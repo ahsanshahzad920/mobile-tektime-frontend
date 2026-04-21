@@ -726,11 +726,11 @@ const Login = () => {
     const email = "portal@tektime.fr";
     window.open(`mailto:${email}`);
   };
-  useEffect(() => {
-    if (window.location.href === "https://www.tektime.io/login") {
-      window.location.replace("https://tektime.io/");
-    }
-  }, []);
+  // useEffect(() => {
+  //   if (window.location.href === "https://www.tektime.io/login") {
+  //     window.location.replace("https://tektime.io/");
+  //   }
+  // }, []);
   return (
     <>
       <div className="login">

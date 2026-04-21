@@ -472,15 +472,15 @@ function App() {
     return () => clearInterval(intervalId);
   }, []);
 
- useEffect(() => {
-    // Add a condition to prevent redirect loops
-    if (
-      window.location.href === "https://mobile.tektime.io/" &&
-      window.location.href !== "https://mobile.tektime.io"
-    ) {
-      window.location.replace("https://mobile.tektime.io");
-    }
-  }, []);
+//  useEffect(() => {
+//     // Add a condition to prevent redirect loops
+//     if (
+//       window.location.href === "https://mobile.tektime.io/" &&
+//       window.location.href !== "https://mobile.tektime.io"
+//     ) {
+//       window.location.replace("https://mobile.tektime.io");
+//     }
+//   }, []);
 
   return (
     <div>

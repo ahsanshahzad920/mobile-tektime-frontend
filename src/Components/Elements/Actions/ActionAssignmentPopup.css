@@ -1,0 +1,227 @@
+/* ActionAssignmentPopup.css */
+
+/* Full-screen dimmed overlay – sits above the normal UI but below any modals */
+.aap-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(3px);
+  animation: aap-fadein 0.25s ease;
+}
+
+@keyframes aap-fadein {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Card */
+.aap-card {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow:
+    0 20px 60px rgba(15, 23, 42, 0.2),
+    0 4px 16px rgba(15, 23, 42, 0.08);
+  width: min(480px, 92vw);
+  overflow: hidden;
+  animation: aap-slidein 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes aap-slidein {
+  from { transform: translateY(24px) scale(0.96); opacity: 0; }
+  to   { transform: translateY(0)    scale(1);    opacity: 1; }
+}
+
+/* Header */
+.aap-header {
+  background: linear-gradient(135deg, #2f56bb 0%, #1a3a8a 100%);
+  padding: 20px 24px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.aap-title {
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: 0.02em;
+  flex: 1;
+}
+
+.aap-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 20px;
+  padding: 2px 10px;
+  white-space: nowrap;
+}
+
+/* Body */
+.aap-body {
+  padding: 24px 24px 16px;
+}
+
+.aap-message {
+  font-size: 15px;
+  color: #1e293b;
+  line-height: 1.65;
+  margin: 0 0 14px;
+}
+
+.aap-sub {
+  font-size: 13.5px;
+  color: #64748b;
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.aap-label {
+  font-weight: 600;
+  color: #475569;
+  white-space: nowrap;
+}
+
+/* Footer */
+.aap-footer {
+  display: flex;
+  gap: 10px;
+  padding: 16px 24px 22px;
+  flex-wrap: wrap;
+}
+
+/* Buttons */
+.aap-btn {
+  flex: 1 1 0;
+  min-width: 120px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.aap-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.aap-btn:active:not(:disabled) {
+  transform: translateY(0);
+  filter: brightness(0.95);
+}
+
+/* Accept */
+.aap-btn--accept {
+  background: #2f56bb;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(47, 86, 187, 0.25);
+}
+
+/* Refuse */
+.aap-btn--refuse {
+  background: #fdf2f2;
+  color: #de350b;
+  border: 1.5px solid #fecaca;
+}
+
+.aap-btn--refuse:hover:not(:disabled) {
+  background: #fee2e2;
+  border-color: #f87171;
+  box-shadow: 0 4px 12px rgba(222, 53, 11, 0.1);
+}
+
+/* Answer later */
+.aap-btn--later {
+  background: #f8fafc;
+  color: #64748b;
+  border: 1.5px solid #e2e8f0;
+}
+
+.aap-btn--later:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+/* Estimation section */
+.aap-estimation-container {
+  padding: 4px 0;
+}
+
+.aap-duration-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.aap-counter-group {
+  display: flex;
+  align-items: center;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 4px;
+  gap: 8px;
+}
+
+.aap-counter-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #2f56bb;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.aap-counter-btn:hover {
+  background: #f1f5f9;
+  border-color: #2f56bb;
+}
+
+.aap-duration-input {
+  width: 48px;
+  border: none;
+  background: transparent;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+  outline: none;
+}
+
+.aap-unit-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: lowercase;
+}
+
+.aap-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}

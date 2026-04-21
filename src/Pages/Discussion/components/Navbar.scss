@@ -1,0 +1,241 @@
+.home-messages-main-wrapper {
+  .navbar-landing {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background-color: white;
+    padding: 1rem 2rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  .navbar-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .navbar-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-decoration: none;
+  }
+
+  .logo-img-main {
+    height: 32px;
+    width: auto;
+    object-fit: contain;
+  }
+
+  .logo-img-drawer {
+    height: 32px;
+    width: auto;
+    object-fit: contain;
+  }
+
+  .navbar-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .nav-btn {
+    padding: 0.5rem 1.25rem;
+    border-radius: 4px;
+    /* Slightly squared as per image */
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .nav-btn-primary {
+    background-color: #0052ff;
+    /* Bright blue from image */
+    color: white;
+  }
+
+  .nav-btn-primary:hover {
+    background-color: #0040cc;
+  }
+
+  .nav-btn-secondary {
+    background-color: transparent;
+    color: #1a1a1a;
+  }
+
+  .nav-btn-secondary:hover {
+    background-color: #f5f5f5;
+  }
+
+  .menu-trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    border-left: 1px solid #eee;
+    padding-left: 1.5rem;
+    margin-left: 0.5rem;
+  }
+
+  .menu-icon-img {
+    width: 24px;
+    height: auto;
+    display: block;
+    filter: invert(1);
+  }
+
+  .menu-text {
+    font-weight: 600;
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* Side Drawer */
+  .drawer-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1001;
+    opacity: 0;
+    animation: fadeIn 0.3s forwards;
+  }
+
+  @keyframes fadeIn {
+    to {
+      opacity: 1;
+    }
+  }
+
+  .drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 380px;
+    max-width: 85vw;
+    background: white;
+    z-index: 1002;
+    padding: 2.5rem;
+    transform: translateX(100%);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+    box-shadow: -5px 0 20px rgba(0, 0, 0, 0.1);
+  }
+
+  .drawer.open {
+    transform: translateX(0);
+  }
+
+  .drawer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3rem;
+  }
+
+  .close-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #1a1a1a;
+    transition: transform 0.2s;
+  }
+
+  .close-btn:hover {
+    transform: rotate(90deg);
+  }
+
+  .drawer-links {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .drawer-item {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #1a1a1a;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+
+  .drawer-item:hover {
+    color: #0052ff;
+  }
+
+  .language-toggle {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: #666;
+    padding-top: 2rem;
+    border-top: 1px solid #eee;
+  }
+
+  .toggle-switch {
+    width: 36px;
+    height: 20px;
+    background: #e5e5e5;
+    border-radius: 100px;
+    position: relative;
+    cursor: pointer;
+  }
+
+  .toggle-handle {
+    width: 16px;
+    height: 16px;
+    background: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Response Mobile Adjustments */
+  @media (max-width: 768px) {
+    .navbar {
+      padding: 1rem;
+    }
+
+    .logo-img-main {
+      max-height: 28px;
+    }
+
+    .nav-btn {
+      display: none;
+      /* Hide buttons on mobile, show only menu trigger */
+    }
+
+    .menu-trigger {
+      border-left: none;
+      padding-left: 0;
+      margin-left: 0;
+    }
+
+    .drawer {
+      width: 100%;
+      max-width: 100%;
+    }
+  }
+}

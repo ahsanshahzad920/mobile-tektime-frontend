@@ -1,0 +1,351 @@
+.home-messages-main-wrapper {
+  .how-it-works-section {
+    padding: 100px 0;
+    background-color: white;
+    overflow: hidden;
+  }
+
+  .how-it-works-section h2 {
+    font-size: 48px;
+    margin-bottom: 24px;
+    text-align: center;
+
+    @media (max-width: 768px) {
+      font-size: 32px;
+    }
+
+    @media (max-width: 480px) {
+      font-size: 28px;
+      margin-bottom: 16px;
+    }
+  }
+
+  .steps-container {
+    position: relative;
+    max-width: 1100px;
+    margin: 64px auto 0;
+  }
+
+  .steps-connector {
+    position: absolute;
+    top: 50%;
+    left: 10%;
+    right: 10%;
+    height: 4px;
+    background: #e5e7eb;
+    z-index: 0;
+    transform: translateY(-50%);
+  }
+
+  .connector-progress {
+    height: 100%;
+    background: var(--color-primary, #335cff);
+    border-radius: 4px;
+  }
+
+  .steps-wrapper {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 48px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .step-item {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .step-card {
+    background: white;
+    border-radius: 24px;
+    padding: 0; /* Remove padding to allow full-bleed images */
+    box-shadow: 0 20px 50px -10px rgba(51, 92, 255, 0.15);
+    position: relative;
+    height: 320px; /* Fixed height for consistency */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* overflow: hidden;  <-- REMOVED to allow floating icons */
+    border: 1px solid #f0f0f0;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    z-index: 1; /* Ensure card stack is correct */
+  }
+
+  .step-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 25px 60px -12px rgba(51, 92, 255, 0.2);
+    z-index: 10; /* Bring to front on hover */
+  }
+
+  .step-desc {
+    text-align: center;
+    font-size: 14px;
+    color: var(--color-text-light, #6b7280);
+    padding: 0 16px;
+    line-height: 1.6;
+  }
+
+  /* Floating Icons */
+  .floating-icon {
+    position: absolute;
+    top: -24px;
+    left: -24px;
+    width: 64px;
+    height: 64px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20; /* Ensure icon is above card content */
+  }
+
+  /* ... existing icon styles ... */
+  .icon-user {
+    background: #e8f0fe;
+  }
+
+  .icon-user svg {
+    color: #335cff;
+    fill: #335cff;
+  }
+
+  .icon-integrations {
+    background: #f3e8ff;
+  }
+
+  .icon-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    width: 24px;
+    height: 24px;
+  }
+
+  .mini-icon {
+    background: #a855f7;
+    border-radius: 4px;
+    opacity: 0.5;
+  }
+
+  .mini-icon:nth-child(2) {
+    background: #335cff;
+  }
+
+  .icon-bot {
+    background: #e0f2fe;
+    position: absolute;
+    right: -20px;
+    bottom: 80px;
+    left: auto;
+    top: auto;
+  }
+
+  .icon-bot svg {
+    color: #0ea5e9;
+    fill: #0ea5e9;
+  }
+
+  /* Mock UI Internals */
+  .card-mock-ui {
+    width: 100%;
+    height: 100%;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 32px;
+    border-radius: 24px; /* Match parent */
+    overflow: hidden; /* Clip inner content */
+  }
+
+  /* Specific style for empty/text-only cards */
+  .default-card-text {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    color: #495057;
+  }
+
+  .default-card-text h3 {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0;
+    padding: 20px;
+  }
+
+  .mock-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .mock-sub {
+    font-size: 12px;
+    color: #999;
+    margin-bottom: 24px;
+  }
+
+  .mock-inputs {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .input-line {
+    height: 8px;
+    width: 40%;
+    background: #eee;
+    border-radius: 4px;
+  }
+
+  .input-field {
+    height: 24px;
+    width: 100%;
+    background: #f5f5f5;
+    border-radius: 6px;
+  }
+
+  .mock-btn {
+    width: 100%;
+    height: 36px;
+    background: var(--color-primary, #335cff);
+    color: white;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .mock-list {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+
+  .mock-list-item {
+    height: 16px;
+    width: 100%;
+    background: #f5f5f5;
+    border-radius: 100px;
+  }
+
+  .mock-list-item:first-child {
+    width: 80%;
+  }
+
+  .mock-row-bottom {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .mock-btn-small {
+    padding: 6px 16px;
+    border: 1px solid #eee;
+    border-radius: 6px;
+    font-size: 12px;
+  }
+
+  /* Stats UI */
+  .ui-stats {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .stat-big {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .mock-chart-container {
+    width: 100%;
+    height: 80px;
+    position: relative;
+    background: #f9f9f9;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: flex-end;
+    overflow: visible;
+  }
+
+  .badge-avg {
+    position: absolute;
+    top: -10px;
+    left: 0;
+    background: black;
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  .chart-svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .mock-footer {
+    width: 100%;
+    border-top: 1px solid #eee;
+    padding-top: 12px;
+  }
+
+  .footer-line {
+    font-size: 10px;
+    color: var(--color-primary, #335cff);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+
+  .dot {
+    width: 4px;
+    height: 4px;
+    background: var(--color-primary, #335cff);
+    border-radius: 50%;
+  }
+
+  .footer-bar {
+    width: 100%;
+    height: 24px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    opacity: 0.5;
+  }
+
+  @media (max-width: 991px) {
+    .steps-wrapper {
+      grid-template-columns: 1fr;
+      gap: 64px;
+    }
+
+    .steps-connector {
+      display: none;
+    }
+
+    .step-card {
+      min-height: auto;
+    }
+  }
+}

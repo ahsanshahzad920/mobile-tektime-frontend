@@ -1,0 +1,291 @@
+.home-messages-main-wrapper {
+  /* Modern Features Section */
+  .features-section-landing {
+    padding: 100px 0;
+    
+    @media (max-width: 768px) {
+      padding: 60px 0;
+    }
+
+    @media (max-width: 480px) {
+      padding: 40px 0;
+    }
+    
+    background-color: #f8fafc;
+    /* Slate-50 */
+    position: relative;
+    overflow: hidden;
+  }
+
+  .features-section-landing::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100%;
+    background: radial-gradient(
+      circle at 50% 0%,
+      rgba(99, 102, 241, 0.05) 0%,
+      transparent 50%
+    );
+    pointer-events: none;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  .section-header {
+    margin-bottom: 64px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .badge-text {
+    display: inline-block;
+    padding: 6px 16px;
+    background: rgba(99, 102, 241, 0.1);
+    color: #4f46e5;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 100px;
+    margin-bottom: 20px;
+  }
+
+  .section-title {
+    font-size: 48px;
+    line-height: 1.1;
+    font-weight: 700;
+    color: #1e293b;
+    letter-spacing: -0.02em;
+    background: linear-gradient(to right, #1e293b, #475569);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+
+    @media (max-width: 768px) {
+      font-size: 32px;
+      line-height: 1.2;
+    }
+
+    @media (max-width: 480px) {
+      font-size: 24px;
+      line-height: 1.2;
+    }
+  }
+
+  .section-subtitle {
+    font-size: 18px;
+    line-height: 1.6;
+    color: #64748b;
+    max-width: 600px;
+    margin: 16px auto 0;
+    font-weight: 500;
+  }
+
+  /* Bento Grid Layout */
+  .bento-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 24px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .bento-card {
+    background: #ffffff;
+    border-radius: 24px;
+    overflow: hidden;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.01),
+      0 2px 4px -1px rgba(0, 0, 0, 0.01);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .bento-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05),
+      0 10px 10px -5px rgba(0, 0, 0, 0.01);
+    border-color: rgba(99, 102, 241, 0.2);
+  }
+
+  /* Specific Card Sizing */
+  .card-large {
+    grid-column: span 7;
+  }
+
+  .card-medium {
+    grid-column: span 5;
+  }
+
+  /* Card Content */
+  .card-content {
+    padding: 32px;
+  }
+
+  .card-content h3 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 12px;
+    letter-spacing: -0.01em;
+  }
+
+  .card-content p {
+    font-size: 16px;
+    line-height: 1.6;
+    color: #64748b;
+  }
+
+  /* Visual Area */
+  .card-visual {
+    height: 380px;
+    /* Taller for better visibility */
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    /* Center vertically */
+    justify-content: center;
+    /* Center horizontally */
+    padding: 20px;
+    /* Breathing room */
+  }
+
+  /* Individual Visual Styles (Gradients) */
+  .visual-blue {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  }
+
+  .visual-gray {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  }
+
+  .visual-white {
+    background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+  }
+
+  .visual-purple {
+    background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+  }
+
+  /* Image Styling */
+  .feature-image {
+    width: 100%;
+    height: auto;
+    max-height: 100%;
+    filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.1));
+    /* Drop shadow on alpha images */
+    border-radius: 12px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
+      0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    /* Box shadow for rectangles */
+    object-fit: contain;
+    /* Ensure the whole image is seen */
+    transition: transform 0.5s ease;
+  }
+
+  .bento-card:hover .feature-image {
+    transform: scale(1.02);
+  }
+
+  /* --- ADAPTED OTHER SECTIONS (MOVED OUT OF MEDIA QUERY) --- */
+  .preview-problem {
+    background: white;
+    padding: 120px 0;
+  }
+
+  .problem-item {
+    transition: all 0.3s;
+  }
+  .problem-item:hover {
+    transform: translateX(8px);
+  }
+
+  .preview-business-benefits {
+    background: #0f172a !important;
+    color: white !important;
+    border-radius: 48px;
+    margin: 0 12px;
+    padding: 100px 0;
+
+    @media (max-width: 768px) {
+      border-radius: 24px;
+      margin: 0 8px;
+      padding: 60px 0;
+
+      h2 {
+        font-size: 2rem !important;
+      }
+    }
+
+    @media (max-width: 480px) {
+      border-radius: 16px;
+      margin: 0 4px;
+      padding: 40px 0;
+      
+      h2 {
+        font-size: 1.75rem !important;
+      }
+
+      .fs-5 {
+        font-size: 1rem !important;
+      }
+    }
+  }
+
+  .preview-business-benefits h2,
+  .preview-business-benefits h3,
+  .preview-business-benefits span {
+    color: white !important;
+  }
+
+  /* Responsive */
+  @media (max-width: 1024px) {
+    .bento-grid {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card-large,
+    .card-medium {
+      width: 100%;
+    }
+
+    .card-visual {
+      height: 300px;
+      padding: 16px;
+    }
+
+    .section-title {
+      font-size: 36px;
+    }
+  }
+
+  /* Media Placeholder Style */
+  .media-placeholder-card {
+    background: #ffffff;
+    width: 80%;
+    max-width: 320px;
+    height: 160px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); /* Soft shadow like screenshot */
+    color: #64748b; /* Slate-500 */
+    font-size: 14px;
+    font-weight: 500;
+    text-align: center;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+  }
+}

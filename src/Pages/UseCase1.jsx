@@ -1,0 +1,356 @@
+import React, { useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import { FaArrowRight } from "react-icons/fa6";
+import CalendlyLink from "../Components/Elements/landingPages/CalendlyLink";
+import { useLocation } from "react-router-dom";
+
+const UseCase1 = () => {
+  const { t } = useTranslation("global");
+  const location = useLocation()
+  const openCalendlyLink = CalendlyLink(
+    "https://tektime.io/destination/uKnsk22F2gvNxC5F5a2s2jp5pts8XbxPk22zZ9qf/167482"
+  );
+  useEffect(() => {
+    setTimeout(() => {
+      window.scrollTo(0, 0);
+    }, 0);
+  }, [location]);
+
+  return (
+    <div className="mt-5 pt-0 pt-lg-5">
+      <div className="usecase-1 pb-5 usecase-one">
+        <div className="hero-img-position d-flex align-items-center justify-content-center h-100 pt-5 pt-md-5"
+          style={{
+            backgroundImage: `url('/Assets/landing/usecase1.svg')`,
+            height: "769px",
+            backgroundRepeat: "no-repeat",
+            backgroundPosition: "-54px -45px",
+            backgroundSize: "cover",
+            width: "100%",
+            paddingTop: "72px",
+          }}
+        >
+          <div className="container process-and-productivity">
+            <div className="row usecase-rowgap">
+              <div className="col-12 col-md-6 d-flex align-items-start justify-content-center">
+                <div className="text-center text-md-start">
+                  <h5 className="usecasone-heading usecase-mainlineheight">{t("useCases.case1.ProcessAndProductivity.title")}</h5>
+                  <p className="description">
+                    {t("useCases.case1.ProcessAndProductivity.description")}
+                  </p>
+                  <button className="button" onClick={openCalendlyLink}>
+                    {t("useCases.case1.ProcessAndProductivity.btn")}
+                  </button>
+                </div>
+              </div>
+              <div className="col-12 col-md-6 d-flex align-items-center justify-content-center mt-4 mt-md-0">
+                <img
+                  src="/Assets/landing/useCase1-img.svg"
+                  alt=""
+                  className="img-fluid"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-5 pt-g improve-business py-5" data-aos="zoom-in-up">
+          <div className="container text-center">
+            <h1 className="improve-business-heading usecasone-heading">
+              {" "}
+              {t("useCases.case1.improveBusiness.title")}{" "}
+              <br className="d-none d-md-block" />{" "}
+              {t("useCases.case1.improveBusiness.title1")}
+            </h1>
+            <div className="row mt-5 usecase-rowgap">
+              <div className="col-md-4">
+                <button className="mt-3 text-start">
+                  <div className="d-flex gap-4">
+                    <div className="text-center">
+                      <p className="heading text-danger">
+                        {t("useCases.case1.improveBusiness.one.heading")}
+                      </p>
+
+                      <h6 className="main-heading usecaseone-problematic usecase-lineheight">
+                        {t("useCases.case1.improveBusiness.one.sub-heading-1")}
+                        <br className="d-none d-lg-block" />{" "}
+                        {t("useCases.case1.improveBusiness.one.sub-heading-2")}
+                        <br className="d-none d-lg-block" />{" "}
+                        {t("useCases.case1.improveBusiness.one.sub-heading-3")}
+                      </h6>
+                      <p className="description fs-6 m-0">
+                        {t("useCases.case1.improveBusiness.one.description")}
+                      </p>
+                      <p className="font-italic description fs-6">
+                        {t("useCases.case1.improveBusiness.one.italic-description")}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              </div>
+              <div className="col-md-4 mt-3 text-start">
+                <div className="d-flex gap-4">
+                  <div className="text-center">
+                    <p className="heading text-danger">
+                      {t("useCases.case1.improveBusiness.two.heading")}
+                    </p>
+                    <h6 className="main-heading usecaseone-problematic usecase-lineheight">
+                      {t("useCases.case1.improveBusiness.two.sub-heading-1")}
+                      <br className="d-none d-md-block" />{" "}
+                      {t("useCases.case1.improveBusiness.one.sub-heading-2")}
+                    </h6>
+                    <p className="description fs-6">
+                      {t("useCases.case1.improveBusiness.two.description")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="col-md-4 mt-3 text-start">
+                <div className="d-flex gap-4">
+                  <div className="text-center">
+                    <p className="heading text-danger">
+                      {t("useCases.case1.improveBusiness.three.heading")}
+                    </p>
+                    <h6 className="main-heading usecaseone-problematic usecase-lineheight">
+                      {t("useCases.case1.improveBusiness.three.sub-heading-1")}
+                      {/* <br className="d-none d-md-block" />{" "} */}
+                      <span className="ps-2"></span>
+                      {t("useCases.case1.improveBusiness.three.sub-heading-2")}
+                    </h6>
+                    <p className="description fs-6">
+                      {t("useCases.case1.improveBusiness.three.description")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-5 team-boost">
+          <div className="container">
+            <div className="row align-items-center usecase-rowgap">
+              <div className="col-md-6 mt-3" data-aos="fade-down">
+                <h4 className="main-heading usecasone-heading">
+                  {t("useCases.case1.teamboost.title1")}{" "}
+                  <br className="d-none d-md-block" />{" "}
+                  {t("useCases.case1.teamboost.title2")}
+                  <br className="d-none d-md-block" />{" "}
+                  {t("useCases.case1.teamboost.title3")}
+                </h4>
+
+                <button onClick={openCalendlyLink} className="btn-demo mt-3">
+                  {t("useCases.case1.teamboost.btn")} <FaArrowRight />
+                </button>
+              </div>
+              <div className="col-md-6 mt-3">
+                <img
+                  src="/Assets/landing/team-boost.svg"
+                  alt=""
+                  className="img-fluid"
+                  data-aos="fade-up"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+        <div className="mt-5 pt-g manage-project py-5" data-aos="zoom-in-up">
+          <div className="container text-center">
+            <h1 className=" manage-project-heading usecasone-heading">
+              {" "}
+              {t("useCases.case1.manageProject.title")}{" "}
+              <br className="d-none d-md-block" />{" "}
+              {t("useCases.case1.manageProject.title1")}
+            </h1>
+            <div className="row mt-5 usecase-rowgap">
+              <div className="col-md-4">
+                <button className="mt-3 text-start">
+                  <div className="d-flex gap-4">
+                    <div className="text-center">
+                      <p className="heading text-danger">
+                        {t("useCases.case1.manageProject.one.heading")}
+                      </p>
+
+                      <h6 className="main-heading usecaseone-problematic">
+                        {t("useCases.case1.manageProject.one.sub-heading-1")}
+                        <br className="d-none d-md-block" />{" "}
+                        {t("useCases.case1.manageProject.one.sub-heading-2")}
+                      </h6>
+                      <p className="description fs-6">
+                        {t("useCases.case1.manageProject.one.description")}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              </div>
+              <div className="col-md-4 mt-3 text-start">
+                <div className="d-flex gap-4">
+                  <div className="text-center">
+                    <p className="heading text-danger">
+                      {t("useCases.case1.manageProject.two.heading")}
+                    </p>
+                    <h6 className="main-heading usecaseone-problematic">
+                      {t("useCases.case1.manageProject.two.sub-heading-1")}
+                      <br className="d-none d-md-block" />{" "}
+                      {t("useCases.case1.manageProject.one.sub-heading-2")}
+                    </h6>
+                    <p className="description fs-6">
+                      {t("useCases.case1.manageProject.two.description")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="col-md-4 mt-3 text-start">
+                <div className="d-flex gap-4">
+                  <div className="text-center">
+                    <p className="heading text-danger">
+                      {t("useCases.case1.manageProject.three.heading")}
+                    </p>
+                    <h6 className="main-heading usecaseone-problematic">
+                      {t("useCases.case1.manageProject.three.sub-heading-1")}
+                      <span className="ps-2"></span>
+                      {t("useCases.case1.manageProject.three.sub-heading-2")}
+                    </h6>
+                    <p className="description fs-6">
+                      {t("useCases.case1.manageProject.three.description")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+        <div className="mt-5 pt-5 project-template">
+          <div className="container">
+            <div className="row align-items-center usecase-rowgap">
+              <div className="col-md-6 mt-3">
+                <img
+                  src="/Assets/landing/project-template.svg"
+                  alt=""
+                  className="img-fluid"
+                  data-aos="fade-up"
+                />
+              </div>
+              <div className="col-md-6 mt-3 mb-5" data-aos="fade-down">
+                <h4 className="main-heading usecasone-heading">
+                  {t("useCases.case1.projectTemplate.title1")}
+
+                  <br className="d-none d-md-block" />{" "}
+                  {t("useCases.case1.projectTemplate.title2")}
+                  {/* <br className="d-none d-md-block" />{" "} */}
+                  {t("useCases.case1.projectTemplate.title3")}
+
+                </h4>
+                <button onClick={openCalendlyLink} className="btn-demo mt-3">
+                  {t("useCases.case1.projectTemplate.btn")}
+                  <FaArrowRight />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-5 pt-g optimized-pomodoro py-5" data-aos="zoom-in-up">
+          <div className="container text-center">
+            <h1 className="optimized-pomodoro-heading usecasone-heading">
+              {" "}
+              {t("useCases.case1.optimizePomodoro.title")}{" "}
+              <br className="d-none d-md-block" />{" "}
+              {t("useCases.case1.optimizePomodoro.title1")}
+            </h1>
+            <div className="row mt-5 usecase-rowgap">
+              <div className="col-md-4">
+                <button className="mt-3 text-start">
+                  <div className="d-flex gap-4">
+                    <div className="text-center">
+                      <p className="heading text-danger">
+                        {t("useCases.case1.optimizePomodoro.one.heading")}
+                      </p>
+
+                      <h6 className="main-heading usecaseone-problematic">
+                        {t("useCases.case1.optimizePomodoro.one.sub-heading-1")}
+                        <br className="d-none d-md-block" />{" "}
+                        {t("useCases.case1.optimizePomodoro.one.sub-heading-2")}
+                      </h6>
+                      <p className="description fs-6">
+                        {t("useCases.case1.optimizePomodoro.one.description")}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              </div>
+              <div className="col-md-4 mt-3 text-start">
+                <div className="d-flex gap-4">
+                  <div className="text-center">
+                    <p className="heading text-danger">
+                      {t("useCases.case1.optimizePomodoro.two.heading")}
+                    </p>
+                    <h6 className="main-heading usecaseone-problematic">
+                      {t("useCases.case1.optimizePomodoro.two.sub-heading-1")}
+                      <br className="d-none d-md-block" />{" "}
+                      {t("useCases.case1.optimizePomodoro.one.sub-heading-2")}
+                    </h6>
+                    <p className="description fs-6">
+                      {t("useCases.case1.optimizePomodoro.two.description")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="col-md-4 mt-3 text-start">
+                <div className="d-flex gap-4">
+                  <div className="text-center">
+                    <p className="heading text-danger">
+                      {t("useCases.case1.optimizePomodoro.three.heading")}
+                    </p>
+                    <h6 className="main-heading usecaseone-problematic">
+                      {t("useCases.case1.optimizePomodoro.three.sub-heading-1")}
+                      <br className="d-none d-md-block" />{" "}
+                      {t("useCases.case1.optimizePomodoro.three.sub-heading-2")}
+                    </h6>
+                    <p className="description fs-6">
+                      {t("useCases.case1.optimizePomodoro.three.description")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-5 productivity">
+          <div className="container">
+            <div className="row align-items-center usecase-rowgap">
+              <div className="col-md-6 mt-3" data-aos="fade-down">
+                <h4 className="main-heading usecasone-heading">
+                  {t("useCases.case1.productivity.title1")}{" "}
+                  <br className="d-none d-md-block" />{" "}
+                  {t("useCases.case1.productivity.title2")}
+
+                </h4>
+
+                <button onClick={openCalendlyLink} className="btn-demo mt-3">
+                  {t("useCases.case1.productivity.btn")} <FaArrowRight />
+                </button>
+              </div>
+              <div className="col-md-6 mt-3">
+                <img
+                  src="/Assets/landing/productivity.svg"
+                  alt=""
+                  className="img-fluid"
+                  data-aos="fade-up"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+export default UseCase1;

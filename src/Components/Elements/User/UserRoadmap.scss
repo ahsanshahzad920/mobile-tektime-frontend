@@ -1,0 +1,522 @@
+// UserRoadmap.scss
+.gantt-container-101 {
+  width: 100%;
+  overflow-x: auto;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+
+  &.mobile-view {
+    font-size: 12px;
+    
+    .gantt-scroll-wrapper {
+      min-width: 600px; // Minimum width for scrollable content
+    }
+
+    // NEW: Mobile-specific improvements for team members
+    .gantt-client-name {
+      width: 100px !important;
+      min-width: 100px !important;
+      max-width: 100px !important;
+      padding: 4px 6px !important;
+      
+      .client-avatar-container {
+        flex-direction: column !important;
+        align-items: center !important;
+        text-align: center;
+        gap: 4px !important;
+        
+        .client-avatar {
+          width: 32px !important;
+          height: 32px !important;
+          min-width: 32px !important;
+        }
+        
+        .client-avatar-placeholder {
+          width: 32px !important;
+          height: 32px !important;
+          min-width: 32px !important;
+          font-size: 14px !important;
+        }
+        
+        .user-text-info {
+          width: 100%;
+          overflow: hidden;
+        }
+        
+        .client-name {
+          font-size: 11px !important;
+          font-weight: 600;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          width: 100%;
+          line-height: 1.2;
+          margin-bottom: 0 !important;
+        }
+        
+        .meetings-count {
+          display: none; // Hide on mobile to save space
+        }
+      }
+    }
+
+    .gantt-client-header {
+      width: 100px !important;
+      min-width: 100px !important;
+      max-width: 100px !important;
+      font-size: 11px !important;
+      padding: 8px 4px !important;
+      text-align: center;
+    }
+
+    // Ensure proper row height for mobile
+    .gantt-row {
+      min-height: 50px;
+    }
+  }
+
+  .roadmap-navigation {
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 16px;
+
+    .view-mode-buttons {
+      .btn-group-mobile {
+        display: flex;
+        width: 100%;
+        
+        .btn-mobile {
+          flex: 1;
+          font-size: 11px;
+          padding: 6px 8px;
+          white-space: nowrap;
+        }
+      }
+    }
+
+    .mobile-controls-wrapper {
+      margin-top: 12px;
+      
+      .mobile-controls {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 8px;
+        
+        .btn {
+          flex: 1;
+          font-size: 12px;
+        }
+      }
+      
+      .mobile-date {
+        text-align: center;
+        font-size: 12px;
+        font-weight: 500;
+        color: #495057;
+      }
+    }
+
+    .desktop-controls {
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 12px;
+    }
+  }
+
+  .gantt-scroll-wrapper {
+    position: relative;
+    overflow-x: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    background: white;
+  }
+
+  .current-date-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #dc3545;
+    z-index: 10;
+    pointer-events: none;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -3px;
+      width: 8px;
+      height: 8px;
+      background: #dc3545;
+      border-radius: 50%;
+    }
+  }
+
+  .gantt-header {
+    display: flex;
+    border-bottom: 2px solid #dee2e6;
+    background: #e9ecef;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+
+  .gantt-row {
+    display: flex;
+    min-height: 60px;
+    border-bottom: 1px solid #dee2e6;
+    
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  .gantt-cell {
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    border-right: 1px solid #dee2e6;
+    
+    &:last-child {
+      border-right: none;
+    }
+  }
+
+  .gantt-client-header {
+    width: 200px;
+    min-width: 200px;
+    background: #2c5aa0;
+    color: white;
+    
+    &.mobile-client-header {
+      width: 120px;
+      min-width: 120px;
+      font-size: 12px;
+    }
+  }
+
+  .gantt-month-header {
+    flex: 1;
+    min-width: 80px;
+    justify-content: center;
+    text-align: center;
+    font-size: 12px;
+    
+    &.mobile-header {
+      min-width: 60px;
+      font-size: 11px;
+      padding: 6px 4px;
+    }
+    
+    &.hourly-header {
+      min-width: 40px;
+      
+      &.mobile-header {
+        min-width: 30px;
+      }
+    }
+  }
+
+  // UPDATED: Desktop styles for team members
+  .gantt-client-name {
+    width: 200px;
+    min-width: 200px;
+    background: #f8f9fa;
+    
+    &.mobile-client-name {
+      width: 120px;
+      min-width: 120px;
+    }
+    
+    .client-avatar-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      
+      // NEW: Better desktop layout
+      .user-text-info {
+        flex: 1;
+        min-width: 0; // Allow text truncation
+      }
+      
+      .client-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+        cursor: pointer;
+        flex-shrink: 0;
+        
+        &.mobile-avatar {
+          width: 32px;
+          height: 32px;
+        }
+      }
+      
+      .client-avatar-placeholder {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #2c5aa0;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        flex-shrink: 0;
+        
+        &.mobile-avatar {
+          width: 32px;
+          height: 32px;
+          font-size: 14px;
+        }
+      }
+      
+      .mobile-user-info {
+        .client-name {
+          font-size: 12px;
+          font-weight: 500;
+        }
+      }
+      
+      .client-name {
+        font-weight: 500;
+        margin-bottom: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        width: 100%;
+      }
+      
+      .meetings-count {
+        font-size: 11px;
+        color: #6c757d;
+        white-space: nowrap;
+      }
+    }
+  }
+
+  .gantt-mission-track {
+    flex: 1;
+    position: relative;
+    min-height: 60px;
+    background: repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 99px,
+      #f8f9fa 99px,
+      #f8f9fa 100px
+    );
+  }
+
+  .gantt-mission-container {
+    position: absolute;
+    height: 24px;
+    cursor: pointer;
+    border-radius: 4px;
+    overflow: hidden;
+    
+    &.mobile-mission {
+      height: 20px;
+    }
+    
+    &.hourly-mission {
+      min-height: 20px;
+    }
+    
+    &:hover {
+      z-index: 20;
+      transform: scale(1.02);
+      transition: transform 0.2s;
+    }
+  }
+
+  .gantt-mission-bar {
+    height: 100%;
+    opacity: 0.3;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  .gantt-mission-completed {
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  .gantt-mission-label {
+    position: relative;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    
+    &.mobile-label {
+      font-size: 10px;
+      padding: 0 4px;
+      justify-content: center;
+    }
+    
+    .mobile-meeting-details {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+      
+      .meeting-title {
+        font-weight: 600;
+        font-size: 9px;
+        text-align: center;
+        line-height: 1;
+      }
+      
+      .meeting-time {
+        font-size: 8px;
+        color: #666;
+        line-height: 1;
+      }
+      
+      .meeting-progress {
+        font-size: 8px;
+        font-weight: 600;
+        color: #2c5aa0;
+        line-height: 1;
+      }
+    }
+    
+    .mobile-meeting-simple {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      height: 100%;
+      
+      .meeting-indicator {
+        font-size: 14px;
+        color: rgba(0, 0, 0, 0.7);
+      }
+    }
+  }
+
+  .column-divider {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background-color: #dee2e6;
+    display: none;
+    z-index: 4;
+  }
+
+  .status-legend {
+    margin-top: 16px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    
+    &.mobile-legend {
+      .status-list {
+        flex-wrap: wrap;
+        gap: 8px;
+        
+        .status-item {
+          font-size: 11px;
+        }
+      }
+    }
+    
+    .status-list {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      
+      .status-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        
+        .status-dot {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          display: inline-block;
+        }
+      }
+    }
+  }
+
+  // NEW: Extra small mobile devices
+  @media (max-width: 360px) {
+    &.mobile-view {
+      .gantt-client-name {
+        width: 90px !important;
+        min-width: 90px !important;
+        max-width: 90px !important;
+        
+        .client-avatar-container {
+          .client-avatar,
+          .client-avatar-placeholder {
+            width: 28px !important;
+            height: 28px !important;
+          }
+          
+          .client-name {
+            font-size: 10px !important;
+          }
+        }
+      }
+      
+      .gantt-client-header {
+        width: 90px !important;
+        min-width: 90px !important;
+        max-width: 90px !important;
+        font-size: 10px !important;
+      }
+    }
+  }
+
+  // Responsive adjustments
+  @media (max-width: 768px) {
+    .btn-nxt-pre {
+      font-size: 12px;
+      padding: 6px 12px;
+    }
+    
+    .date-range {
+      font-size: 12px;
+    }
+    
+    .gantt-mission-container {
+      .gantt-mission-label {
+        font-size: 9px;
+      }
+    }
+  }
+
+  @media (max-width: 480px) {
+    .roadmap-navigation {
+      padding: 8px;
+    }
+    
+    .status-legend {
+      .status-list {
+        justify-content: center;
+        
+        .status-item {
+          font-size: 11px;
+        }
+      }
+    }
+  }
+}

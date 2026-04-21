@@ -1,0 +1,654 @@
+import CookieService from '../../Utils/CookieService';
+import React, { useEffect, useState } from "react";
+import { toast } from "react-toastify";
+import { API_BASE_URL } from "../../Apicongfig";
+import axios from "axios";
+import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { Button, Spinner } from "react-bootstrap";
+import Select from "react-select";
+import { Editor } from "@tinymce/tinymce-react";
+
+function UpdateContract() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [t] = useTranslation("global");
+
+  const [packageOptions, setPackageOptions] = useState([]);
+
+  useEffect(() => {
+    const fetchPackageTypes = async () => {
+      const token = CookieService.get("token");
+      try {
+        // Fetching landing pages to use as package types (gates)
+        const response = await axios.get(`${API_BASE_URL}/landing-pages`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (response.data && response.data.data && response.data.data.data) {
+          const options = response.data.data.data.map((page) => ({
+            value: page.id,
+            label: page.gate_name,
+          }));
+          setPackageOptions(options);
+        }
+      } catch (error) {
+        console.error("Failed to fetch landing pages", error);
+      }
+    };
+    fetchPackageTypes();
+  }, []);
+
+  // 1. CHANGED: Defaults to false
+  const initialContractData = {
+    name: "",
+    start_date: "",
+    end_date: "",
+    no_of_licenses: "",
+    price: "",
+    currency: "",
+    payment_type: "",
+    type: [],
+    mission_need: false,
+    discussion_need: false,
+    meeting_need: false,
+    solution_need: false,
+    action_need: false,
+    casting_need: false,
+    check_stripe: false,
+    description: "",
+  };
+
+  // 2. CHANGED: Defaults to false
+  const [contractData, setContractData] = useState({
+    name: "",
+    start_date: "",
+    end_date: "",
+    no_of_licenses: "",
+    price: "",
+    currency: "",
+    payment_type: "",
+    type: [],
+    mission_need: false,
+    discussion_need: false,
+    meeting_need: false,
+    solution_need: false,
+    action_need: false,
+    casting_need: false,
+    check_stripe: false,
+    description: "",
+  });
+
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    const getDataFromId = async () => {
+      try {
+        setLoading(true);
+        const token = CookieService.get("token");
+        const { data } = await axios.get(`${API_BASE_URL}/contracts/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        setContractData({
+          name: data?.data?.name,
+          start_date: data?.data?.start_date,
+          end_date: data?.data?.end_date,
+          no_of_licenses: data?.data?.no_of_licenses,
+          price: data?.data?.price,
+          currency: data?.data?.currency,
+          payment_type: data?.data?.payment_type,
+          type: (() => {
+            const rawType = data?.data?.type || data?.data?.package_type;
+            if (Array.isArray(rawType)) return rawType;
+            if (typeof rawType === "string") {
+              try {
+                const parsed = JSON.parse(rawType);
+                if (Array.isArray(parsed)) return parsed;
+              } catch (e) {}
+              return [rawType];
+            }
+            return [];
+          })(),
+          // 3. CHANGED: Convert API (1/0) to Boolean (true/false)
+          mission_need: data?.data?.mission_need,
+          discussion_need: data?.data?.discussion_need,
+          meeting_need: data?.data?.meeting_need,
+          solution_need: data?.data?.solution_need,
+          action_need: data?.data?.action_need,
+          casting_need: data?.data?.casting_need,
+          check_stripe: data?.data?.check_stripe === 1 || data?.data?.check_stripe === true,
+          description: data?.data?.description || "",
+        });
+      } catch (error) {
+        toast.error(t("messages.dataFetchError"));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getDataFromId();
+  }, [id, t]); // Added t to dependency array to avoid warning
+
+  const goBack = () => {
+    window.history.back();
+  };
+  const handleInputChange = (e) => {
+    const { name, value, type, checked, selectedOptions } = e.target;
+    if (name === "type" && type === "select-multiple") {
+      const values = Array.from(selectedOptions, (option) => option.value);
+      setContractData((prev) => ({
+        ...prev,
+        [name]: values,
+      }));
+    } else if (type === "checkbox") {
+      setContractData((prev) => ({
+        ...prev,
+        [name]: checked,
+      }));
+    } else {
+      setContractData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
+  };
+
+  const [isLoading, setIsLoading] = useState(false);
+  const updateContract = async () => {
+    const token = CookieService.get("token");
+    if (
+      contractData.name === "" ||
+      contractData.start_date === "" ||
+      contractData.end_date === "" ||
+      contractData.no_of_licenses === "" ||
+      contractData.price === "" ||
+      contractData.currency === ""
+    ) {
+      toast.error(t("messages.contract.create.allFieldsError"));
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await axios.post(
+        `${API_BASE_URL}/contracts/${id}`,
+        {
+          name: contractData.name,
+          start_date: contractData.start_date,
+          end_date: contractData.end_date,
+          no_of_licenses: contractData.no_of_licenses,
+          price: contractData.price,
+          currency: contractData.currency,
+          payment_type: contractData.payment_type,
+          type: contractData.type,
+          // Sending booleans (true/false) based on new state
+          mission_need: contractData.mission_need,
+          discussion_need: contractData.discussion_need,
+          meeting_need: contractData.meeting_need,
+          solution_need: contractData.solution_need,
+          action_need: contractData.action_need,
+          casting_need: contractData.casting_need,
+          check_stripe: contractData.check_stripe ? 1 : 0,
+          description: contractData.description,
+          _method: "put",
+        },
+        {
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (response.status === 200 || response.status === 201) {
+        toast.success(t("messages.contract.update.success"));
+        setContractData(initialContractData);
+        navigate("/contract");
+      }
+    } catch (error) {
+      // toast.error(t("messages.contract.update.error"));
+      if (error.response && error.response.data && error.response.data.errors) {
+        toast.error(error.response.data.errors);
+      } else if (error.response && error.response.data && error.response.data.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error(t("messages.error"));
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <>
+      {loading ? (
+        <Spinner
+          animation="border"
+          role="status"
+          className="center-spinner"
+        ></Spinner>
+      ) : (
+        <div className="create tektimetabs">
+          <div className="container-fluid">
+            <div className="row justify-content-center ">
+              <div className="col-md-5 mb-5">
+                <div className="card py-5 px-3 px-md-0 px-lg-5">
+                  <div className="mb-4">
+                    <label className="form-label">Que veux-tu?</label>
+                    <small
+                      className="text-muted d-block mb-3"
+                      style={{ fontSize: "0.8rem" }}
+                    >
+                      (choix multiples)
+                    </small>
+                    <div className="d-flex flex-column gap-3">
+                      {[
+                        { key: "mission_need", label: "Mission", icon: <img src="/Assets/sidebar_active_destination.svg" alt="mission" width="24" /> },
+                        { key: "solution_need", label: "Solution", icon: <img src="/Assets/Tek.png" alt="solution" width="24" /> },
+                        { key: "meeting_need", label: "Moment", icon: <img src="/Assets/sidebar_meeting_active.svg" alt="moment" width="24" /> },
+                        { key: "action_need", label: "Action", icon: <img src="/Assets/sidebar-action-active.svg" alt="action" width="24" /> },
+                        { key: "discussion_need", label: "Discussion", icon: <img src="/Assets/sidebar_active_discussion.svg" alt="discussion" width="24" /> },
+                        { key: "casting_need", label: "Casting", icon: <img src="/Assets/sidebar_team_active.svg" alt="casting" width="24" /> },
+                      ].map((option) => (
+                        <div
+                          key={option.key}
+                          // 4. CHANGED: Using strict equality with true
+                          className={`d-flex align-items-center p-3 border rounded cursor-pointer ${
+                            contractData[option.key] === true
+                              ? "bg-light-primary border-primary text-primary"
+                              : "bg-white"
+                          }`}
+                          style={{
+                            cursor: "pointer",
+                            // 4. CHANGED: Styles use true/false logic
+                            backgroundColor: contractData[option.key] === true ? "#f0f9ff" : "#fff",
+                            borderColor: contractData[option.key] === true ? "#3aa5ed" : "#dee2e6",
+                            borderWidth: contractData[option.key] === true ? "1.5px" : "1px",
+                            transition: "all 0.2s ease",
+                          }}
+                          onClick={() => {
+                            // 5. CHANGED: Toggle boolean logic
+                            setContractData((prev) => ({
+                              ...prev,
+                              [option.key]: !prev[option.key],
+                            }));
+                          }}
+                        >
+                          <div
+                            className="me-3 fs-5"
+                            style={{
+                              color: contractData[option.key] === true ? "#3aa5ed" : "#6c757d",
+                            }}
+                          >
+                            {option.icon}
+                          </div>
+                          <div
+                            className="flex-grow-1"
+                            style={{
+                              fontSize: "0.95rem",
+                              lineHeight: "1.4",
+                              fontWeight: contractData[option.key] === true ? "500" : "400",
+                            }}
+                          >
+                            {option.label}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="form-label">
+                      {t("newContract.name")}
+                    </label>
+                    <small
+                      style={{
+                        color: "red",
+                        fontSize: "15px",
+                        marginLeft: "2px",
+                      }}
+                    >
+                      *
+                    </small>
+
+                    <input
+                      required
+                      type="text"
+                      className="form-control"
+                      placeholder={t("newContract.name")}
+                      name="name"
+                      value={contractData.name}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="form-label">
+                      {t("newContract.startDate")}
+                    </label>
+                    <small
+                      style={{
+                        color: "red",
+                        fontSize: "15px",
+                        marginLeft: "2px",
+                      }}
+                    >
+                      *
+                    </small>
+
+                    <input
+                      required
+                      type="date"
+                      className="form-control"
+                      //   placeholder="Nom du Contrat"
+                      name="start_date"
+                      value={contractData.start_date}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="form-label">
+                      {" "}
+                      {t("newContract.endDate")}
+                    </label>
+                    <small
+                      style={{
+                        color: "red",
+                        fontSize: "15px",
+                        marginLeft: "2px",
+                      }}
+                    >
+                      *
+                    </small>
+
+                    <input
+                      required
+                      type="date"
+                      className="form-control"
+                      //   placeholder="Nom du Contrat"
+                      name="end_date"
+                      value={contractData.end_date}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="form-label">
+                      {t("newContract.paymentFrequency")}
+                    </label>
+                    {/* <small
+                      style={{
+                        color: "red",
+                        fontSize: "15px",
+                        marginLeft: "2px",
+                      }}
+                    >
+                      *
+                    </small> */}
+
+                    <br />
+                    <select
+                      // required
+                      className="form-control"
+                      name="payment_type"
+                      value={contractData.payment_type}
+                      onChange={handleInputChange}
+                    >
+                      <option value="0" disabled selected>
+                        {t("newContract.paymentFrequency")}
+                      </option>
+                      <option value="Mensuelle (1 mois)">
+                        {" "}
+                        {t("newContract.paymentMethod.monthly")}
+                      </option>
+                      <option value="Trimestrielle (3 mois)">
+                        {" "}
+                        {t("newContract.paymentMethod.3month")}
+                      </option>
+                      <option value="Semestrielle  (6 mois)">
+                        {" "}
+                        {t("newContract.paymentMethod.6month")}
+                      </option>
+                      <option value="Annuelle (12 mois)">
+                        {" "}
+                        {t("newContract.paymentMethod.yearly")}
+                      </option>
+                    </select>
+                  </div>
+                  <div className="mb-4">
+                    <label className="form-label">
+                      {t("newContract.packageType")}
+                    </label>
+                    {/* <small
+                      style={{
+                        color: "red",
+                        fontSize: "15px",
+                        marginLeft: "2px",
+                      }}
+                    >
+                      *
+                    </small> */}
+
+
+                    <br />
+                    <br />
+                    <Select
+                      isMulti
+                      name="type"
+                      options={packageOptions.length > 0 ? packageOptions : [
+                        { value: "Discussion", label: "Discussion" },
+                        { value: "Mission", label: "Mission" },
+                        { value: "Tektime", label: "Tektime" },
+                      ]}
+                      className="basic-multi-select"
+                      classNamePrefix="select"
+                      placeholder={t("newContract.packageTypeSelection")}
+                      value={
+                        Array.isArray(contractData.type)
+                          ? contractData.type.map((val) => {
+                              const option = packageOptions.find((opt) => opt.value === val);
+                              return option ? option : { value: val, label: val };
+                            })
+                          : []
+                      }
+                      onChange={(selectedOptions) => {
+                        setContractData({
+                          ...contractData,
+                          type: selectedOptions
+                            ? selectedOptions.map((option) => option.value)
+                            : [],
+                        });
+                      }}
+                      styles={{
+                        control: (base) => ({
+                          ...base,
+                          borderColor: "#dee2e6",
+                          borderRadius: "0.375rem",
+                        }),
+                      }}
+                    />
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="form-label">
+                      {t("newContract.numberOfLicenses")}
+                    </label>
+                    <small
+                      style={{
+                        color: "red",
+                        fontSize: "15px",
+                        marginLeft: "2px",
+                      }}
+                    >
+                      *
+                    </small>
+
+                    <input
+                      required
+                      type="number"
+                      min={1}
+                      onFocus={(e) =>
+                        e.target.addEventListener(
+                          "wheel",
+                          function (e) {
+                            e.preventDefault();
+                          },
+                          { passive: false }
+                        )
+                      }
+                      className="form-control"
+                      placeholder={t("newContract.numberOfLicenses")}
+                      name="no_of_licenses"
+                      value={contractData.no_of_licenses}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="form-label">
+                      {t("newContract.price")}
+                    </label>
+                    <small
+                      style={{
+                        color: "red",
+                        fontSize: "15px",
+                        marginLeft: "2px",
+                      }}
+                    >
+                      *
+                    </small>
+
+                    <input
+                      required
+                      type="text"
+                      className="form-control"
+                      placeholder={t("newContract.price")}
+                      name="price"
+                      value={contractData.price}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="form-label">
+                      {t("newContract.currency")}
+                    </label>
+                    <small
+                      style={{
+                        color: "red",
+                        fontSize: "15px",
+                        marginLeft: "2px",
+                      }}
+                    >
+                      *
+                    </small>
+
+                    <br />
+                    <select
+                      required
+                      className="form-control"
+                      name="currency"
+                      value={contractData.currency}
+                      onChange={handleInputChange}
+                    >
+                      <option value="0" disabled selected>
+                        {t("newContract.currency")}
+                      </option>
+                      <option value="eur"> Euros</option>
+                      <option value="usd"> Dollars</option>
+                    </select>
+                  </div>
+
+                  <div className="mb-4">
+                    <div className="form-check d-flex align-items-center gap-2">
+                      <input
+                        className="form-check-input mt-0"
+                        type="checkbox"
+                        id="check_stripe_cb"
+                        name="check_stripe"
+                          checked={contractData.check_stripe === true || contractData.check_stripe === 1}
+
+                        onChange={handleInputChange}
+                        style={{ cursor: "pointer" }}
+                      />
+                      <label 
+                        className="form-check-label mb-0" 
+                        htmlFor="check_stripe_cb"
+                        style={{ cursor: "pointer", userSelect: "none" }}
+                      >
+                        {t("newContract.stripePayment")}
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="form-label">Description</label>
+                    <Editor
+                      apiKey={process.env.REACT_APP_TINYMCE_API}
+                      value={contractData.description}
+                      init={{
+                        height: 300,
+                        menubar: false,
+                        plugins: [
+                          "advlist autolink lists link image charmap print preview anchor",
+                          "searchreplace visualblocks code fullscreen",
+                          "insertdatetime media table paste code help wordcount",
+                        ],
+                        toolbar:
+                          "undo redo | formatselect | " +
+                          "bold italic backcolor | alignleft aligncenter " +
+                          "alignright alignjustify | bullist numlist outdent indent | " +
+                          "removeformat | help",
+                      }}
+                      onEditorChange={(content) => {
+                        setContractData({
+                          ...contractData,
+                          description: content,
+                        });
+                      }}
+                    />
+                  </div>
+
+                  <div className="d-flex justify-content-center gap-4 mt-4 ">
+                    {isLoading ? (
+                      <>
+                        <div style={{ width: "47%" }}>
+                          <Button
+                            variant="blue"
+                            disabled
+                            className="w-100"
+                            style={{
+                              backgroundColor: "#3aa5ed",
+                              border: "none",
+                            }}
+                          >
+                            <Spinner
+                              as="span"
+                              variant="light"
+                              size="sm"
+                              role="status"
+                              aria-hidden="true"
+                              animation="border"
+                            />
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <button
+                        className="btn btn-primary"
+                        onClick={updateContract}
+                      >
+                        {t("newContract.update")}
+                      </button>
+                    )}
+                    <button className="btn btn-danger" onClick={goBack}>
+                      {t("newContract.cancel")}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+export default UpdateContract;

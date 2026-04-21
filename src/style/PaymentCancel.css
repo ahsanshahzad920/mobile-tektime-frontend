@@ -1,0 +1,178 @@
+/* PaymentCancel.css */
+
+.payment-cancel-wrapper {
+    background: linear-gradient(135deg, #fff5f5 0%, #f7f9fa 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Background animated vague shapes - Red tinted */
+.payment-cancel-wrapper::before,
+.payment-cancel-wrapper::after {
+    content: '';
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(220, 53, 69, 0.08) 0%, rgba(220, 53, 69, 0) 70%);
+    border-radius: 50%;
+    animation: float 10s infinite ease-in-out;
+    z-index: 0;
+}
+
+.payment-cancel-wrapper::before {
+    top: -50px;
+    left: -50px;
+}
+
+.payment-cancel-wrapper::after {
+    bottom: -50px;
+    right: -50px;
+    animation-delay: 5s;
+}
+
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translate(0, 0);
+    }
+
+    50% {
+        transform: translate(20px, 20px);
+    }
+}
+
+.cancel-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 24px;
+    box-shadow: 0 8px 32px 0 rgba(135, 31, 38, 0.1);
+    padding: 3rem;
+    max-width: 500px;
+    width: 90%;
+    text-align: center;
+    position: relative;
+    z-index: 10;
+    animation: fadeInUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+@keyframes fadeInUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.logo-container {
+    margin-bottom: 2rem;
+    animation: fadeInDown 0.8s ease-out forwards;
+}
+
+.tektime-logo {
+    height: 50px;
+    object-fit: contain;
+}
+
+.icon-container-cancel {
+    margin-bottom: 1.5rem;
+    display: inline-flex;
+    border-radius: 50%;
+    padding: 1rem;
+    background: rgba(220, 53, 69, 0.1);
+    position: relative;
+}
+
+.cancel-icon {
+    color: #dc3545;
+    font-size: 3.5rem;
+    animation: rotateIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.3s backwards;
+}
+
+@keyframes rotateIn {
+    from {
+        transform: scale(0) rotate(-45deg);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1) rotate(0);
+        opacity: 1;
+    }
+}
+
+.cancel-title {
+    color: #2c3e50;
+    font-weight: 800;
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    letter-spacing: -0.5px;
+}
+
+.cancel-text {
+    color: #5a6b7c;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+    font-weight: 500;
+}
+
+.return-btn {
+    background: white;
+    color: #dc3545;
+    border: 2px solid #dc3545;
+    padding: 10px 30px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+}
+
+.return-btn:hover {
+    background: #dc3545;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.25);
+}
+
+.return-btn:active {
+    transform: translateY(0);
+}
+
+/* Pulse Red */
+.icon-container-cancel::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+    animation: pulse-red 2s infinite;
+    z-index: -1;
+}
+
+@keyframes pulse-red {
+    0% {
+        transform: translate(-50%, -50%) scale(0.95);
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+    }
+
+    70% {
+        transform: translate(-50%, -50%) scale(1.5);
+        box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+    }
+
+    100% {
+        transform: translate(-50%, -50%) scale(0.95);
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+    }
+}

@@ -1,0 +1,180 @@
+.home-messages-main-wrapper {
+  .integrations-section {
+    padding: 120px 0;
+    background: #ffffff;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .integrations-section::before {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    background: radial-gradient(
+      circle at 50% 50%,
+      rgba(99, 102, 241, 0.03) 0%,
+      transparent 60%
+    );
+    pointer-events: none;
+  }
+
+  .container {
+    position: relative;
+    z-index: 2;
+  }
+
+  .hub-container {
+    position: relative;
+    width: 800px;
+    height: 800px;
+    margin: 60px auto;
+    border-radius: 50%;
+  }
+
+  /* Central Hub */
+  .hub-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 120px;
+    height: 120px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05),
+      0 20px 40px -10px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+
+  .hub-logo {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    position: relative;
+    box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.4);
+  }
+
+  .hub-ripple {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 1px solid rgba(79, 70, 229, 0.3);
+    animation: ripple 3s linear infinite;
+  }
+
+  @keyframes ripple {
+    0% {
+      width: 100%;
+      height: 100%;
+      opacity: 0.8;
+    }
+    100% {
+      width: 300%;
+      height: 300%;
+      opacity: 0;
+    }
+  }
+
+  /* Satellite Nodes */
+  .satellite-node {
+    position: absolute;
+    transform: translate(-50%, -50%); /* Centers the node on its coordinate */
+    width: auto;
+    padding: 12px 24px;
+    background: white;
+    border-radius: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px; /* Ensure consistent spacing */
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.1),
+      0 2px 8px -2px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f1f5f9;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 5;
+    white-space: nowrap;
+  }
+
+  .satellite-node:hover {
+    transform: translate(-50%, -50%) scale(1.05);
+    box-shadow: 0 15px 25px -3px rgba(0, 0, 0, 0.1),
+      0 6px 10px -2px rgba(0, 0, 0, 0.05);
+    border-color: #4f46e5;
+    z-index: 15;
+  }
+
+  .satellite-icon {
+    /* width: 32px; height: 32px; REMOVED fixed size override here, handled inline */
+    object-fit: contain;
+    flex-shrink: 0;
+  }
+
+  /* Connecting Lines SVG */
+  .connections-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .hub-container {
+      width: 100%;
+      height: auto;
+      min-height: 400px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 30px;
+      margin-top: 40px;
+      background: none;
+      left: auto !important;
+      transform: none !important;
+    }
+
+    .hub-center {
+      position: relative;
+      transform: none;
+      top: auto;
+      left: auto;
+      margin-bottom: 20px;
+    }
+
+    .satellite-node {
+      position: relative;
+      transform: none !important;
+      top: auto !important;
+      left: auto !important;
+      margin-top: 0;
+      width: 70px;
+      height: 70px;
+    }
+
+    .connections-layer {
+      display: none;
+    }
+
+    .hub-ripple {
+      display: none;
+    }
+  }
+}

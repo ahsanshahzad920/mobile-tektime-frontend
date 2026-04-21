@@ -1,0 +1,46 @@
+/* ConfirmationModal.css */
+.confirmation-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000000;
+    backdrop-filter: blur(4px);
+
+  }
+  
+  .confirmation-modal-content {
+    background: white;
+    padding: 29px 50px;
+    border-radius: 5px;
+    text-align: center;
+  }
+  
+  .confirmation-modal button {
+    margin: 5px;
+  }
+  
+  .confirmation-modal .btn-yes {
+    background-color: #ff0000;
+    padding: 5px 20px;
+    border: 0;
+    color: #ffffff;
+    font-family: 'Roboto';
+    border-radius: 8px;
+    outline: none;
+  }
+  
+  .confirmation-modal .btn-no {
+    background-color: blue;
+    padding: 5px 20px;
+    border: 0;
+    color: #ffffff;
+    font-family: 'Roboto';
+    border-radius: 8px;
+    outline: none;
+  }

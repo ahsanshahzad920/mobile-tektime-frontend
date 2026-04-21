@@ -1,0 +1,190 @@
+.home-messages-main-wrapper {
+  .discussion-pricing-section {
+    background-color: #f8faff;
+    /* Light premium bg */
+    padding: 100px 0;
+
+    @media (max-width: 768px) {
+      padding: 60px 0;
+    }
+
+    @media (max-width: 480px) {
+      padding: 40px 0;
+    }
+  }
+
+  .discussion-pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    max-width: 1200px;
+    margin: 4rem auto 0;
+    align-items: stretch;
+  }
+
+  .discussion-pricing-card {
+    background: white;
+    border-radius: 20px;
+    padding: 2.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 2rem;
+    position: relative;
+    transition: all 0.4s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+
+    @media (max-width: 480px) {
+      padding: 1.5rem;
+      gap: 1.5rem;
+    }
+  }
+
+  .discussion-pricing-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(51, 92, 255, 0.08);
+  }
+
+  .discussion-pricing-card.popular {
+    background: #0f172a;
+    /* Dark premium card for popular */
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transform: scale(1.05);
+    z-index: 10;
+    box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+  }
+
+  .discussion-pricing-card.popular:hover {
+    transform: scale(1.05) translateY(-8px);
+  }
+
+  .discussion-popular-badge {
+    position: absolute;
+    top: -16px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    padding: 6px 16px;
+    border-radius: 100px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+  }
+
+  .discussion-plan-header h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: inherit;
+    opacity: 0.9;
+  }
+
+  .discussion-pricing-card:not(.popular) .discussion-plan-header h3 {
+    color: #1e293b;
+  }
+
+  .discussion-plan-price {
+    font-size: 3.5rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: inherit;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+
+    @media (max-width: 768px) {
+      font-size: 2.75rem;
+    }
+
+    @media (max-width: 480px) {
+      font-size: 2.25rem;
+    }
+  }
+
+  .discussion-pricing-card:not(.popular) .discussion-plan-price {
+    color: #0f172a;
+  }
+
+  .discussion-plan-period {
+    font-size: 1rem;
+    font-weight: 500;
+    opacity: 0.6;
+    color: inherit;
+  }
+
+  .discussion-plan-features {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    flex-grow: 1;
+  }
+
+  .discussion-feature-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.95rem;
+    color: inherit;
+    opacity: 0.9;
+  }
+
+  .discussion-pricing-card:not(.popular) .discussion-feature-item {
+    color: #4b5563;
+  }
+
+  .discussion-feature-check {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    color: #3b82f6;
+  }
+
+  .popular .discussion-feature-check {
+    color: #60a5fa;
+  }
+
+  .discussion-pricing-card .btn {
+    width: 100%;
+    padding: 1rem;
+    font-weight: 600;
+    border-radius: 12px;
+  }
+
+  .discussion-pricing-card:not(.popular) .btn {
+    background: #f1f5f9;
+    color: #0f172a;
+    border: none;
+  }
+
+  .discussion-pricing-card:not(.popular) .btn:hover {
+    background: #e2e8f0;
+  }
+
+  .discussion-pricing-card.popular .btn {
+    background: #3b82f6;
+    color: white;
+    border: none;
+  }
+
+  .discussion-pricing-card.popular .btn:hover {
+    background: #2563eb;
+  }
+
+  @media (max-width: 991px) {
+    .discussion-pricing-grid {
+      grid-template-columns: 1fr;
+      max-width: 500px;
+    }
+
+    .discussion-pricing-card.popular {
+      transform: none;
+    }
+  }
+}

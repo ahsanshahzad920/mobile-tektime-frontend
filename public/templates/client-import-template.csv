@@ -1,0 +1,6 @@
+name,client_need_description,type,mailing_address,siret_number,vat_number,contact_email
+Acme Corp,"Need a new e-commerce platform",Entreprise,"123 Business Ave, Paris",12345678901234,FR12345678901,contact@acme.com
+Tech Solutions,"Cross-platform app for iOS and Android",Entreprise,"456 Tech Street, Lyon",98765432109876,FR98765432109,contact@techsolutions.fr
+Global Retail,"Platform migration with 10,000 SKUs",Entreprise,"789 Commerce Road",34567890123456,FR34567890123,sales@globalretail.com
+Green Energy,"Sustainable design with CMS integration",Entreprise,"101 Eco Avenue",89012345678901,FR89012345678,info@greenenergy.org
+Consulting Plus,"Salesforce implementation for 50 users",Entreprise,"202 Business Park",56789012345678,FR56789012345,support@consultingplus.com

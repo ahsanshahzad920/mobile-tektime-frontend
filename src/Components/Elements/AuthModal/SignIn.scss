@@ -1,0 +1,134 @@
+.sign-in-modal {
+  padding: 40px 70px;
+
+  .sign-toggle{
+    text-decoration: underline;
+    color:#0026b1
+  }
+  .title {
+    .modal-title {
+      font-family: Helvetica;
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 32px;
+      text-align: left;
+      color: #212429;
+    }
+    .subtitle {
+      font-family: Helvetica;
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 20px;
+      text-align: left;
+      color: #98989e;
+    }
+  }
+
+  .modal-body {
+    .form-label {
+      margin-top: 1rem;
+      font-family: Helvetica;
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 16px;
+      text-align: left;
+      color: #212429;
+    }
+    .input-with-icon {
+      position: relative;
+      .form-control {
+        border: 1px solid #d8d8d8;
+        border-radius: 8px;
+        font-family: Helvetica;
+        outline: none;
+        padding: 10px 12px;
+
+        &::placeholder {
+          font-family: Helvetica;
+          font-size: 12px;
+          font-weight: 400;
+          line-height: 16px;
+          text-align: left;
+          color: #98989e;
+        }
+      }
+      .input-icon {
+        position: absolute;
+        top: 50%;
+        right: 10px; 
+        transform: translateY(-50%);
+        font-size: 1.2em;
+        color: #98989e;
+      }
+    }
+    .forgot-password {
+      margin: 0.5rem 0 1.5rem 0;
+
+      .form-check {
+        font-family: Helvetica Light;
+        font-size: 12px;
+        font-weight: 400;
+        line-height: 14.75px;
+        text-align: left;
+        color: #4f4f4f;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .forgot-password-link {
+        font-family: Helvetica Light;
+        font-size: 12px;
+        font-weight: 400;
+        line-height: 16px;
+        text-align: right;
+        color: #0026b1;
+        text-decoration: none;
+      }
+    }
+
+    .sign-in-submit-btn {
+      background: #0026b1;
+      border-radius: 4px;
+      font-family: Helvetica;
+      letter-spacing: .2px;
+      font-size: 16px;
+      font-weight: 600;
+      height: 44px;
+      line-height: 24px;
+      text-align: center;
+      color: #ffffff;
+      padding: 0 30px 1px;
+    }
+  }
+
+  .modal-footer {
+    border: 0;
+    span {
+      font-family: Helvetica;
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 16px;
+      text-align: left;
+      color: #98989e;
+      .sign-up-link {
+        font-family: Helvetica;
+        font-size: 12px;
+        font-weight: 400;
+        line-height: 16px;
+        text-align: left;
+        color: #0026b1;
+        text-decoration: none;
+      }
+    }
+  }
+}
+
+.sign-up-modal-container {
+  .progress {
+    height: 8px;
+    border-radius: 1px 1px 30px 30px;
+    .progress-bar {
+      background: #0026b1;
+    }
+  }
+}

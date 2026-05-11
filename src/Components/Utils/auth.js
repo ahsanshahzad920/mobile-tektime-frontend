@@ -19,11 +19,16 @@ export const setupAxiosInterceptors = (navigate) => {
   axios.interceptors.response.use(
     (response) => response,
     (error) => {
+      console.log(';error',error)
+      // Only handle 401 Unauthorized globally (token expired/invalid)
       if (error.response && error.response.status === 401) {
-        // Token expired or invalid
         CookieService.remove('token');
         navigate('/');
+      } else if (error.response && error.response.status === 403) {
+        // Do nothing globally for 403 Forbidden; let local components handle it
+        return Promise.reject(error);
       }
+      
       return Promise.reject(error);
     }
   );

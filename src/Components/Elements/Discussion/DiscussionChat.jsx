@@ -35,6 +35,7 @@ import {
   FaTimes,
   FaUsers,
   FaList,
+  FaClock,
 } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
@@ -49,6 +50,7 @@ import {
   getMeetingMessages,
   deleteMessage,
   getDestinationMeetings,
+  getMissionParticipants,
 } from "./api";
 import { API_BASE_URL, Assets_URL } from "../../Apicongfig";
 
@@ -72,7 +74,9 @@ const DiscussionChat = ({
   defaultFullScreen = false,
   onCloseFullScreen,
   initialMessage = "",
-
+  missionsData = null,
+  selectedMissionId = null,
+  onMissionSelect = null,
 }) => {
   const [t] = useTranslation("global");
   const navigate = useNavigate();
@@ -85,6 +89,7 @@ const DiscussionChat = ({
   const [isFullScreen, setIsFullScreen] = useState(defaultFullScreen);
   const [viewMode, setViewMode] = useState("conversation");
   const [attachments, setAttachments] = useState([]);
+  const [participants, setParticipants] = useState([]);
   const editorRef = useRef(null);
   const messagesEndRef = useRef(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -100,6 +105,9 @@ const DiscussionChat = ({
       setViewMode("conversation");
     }
   }, [isMobile]);
+
+  const onMeetingsUpdateRef = useRef(onMeetingsUpdate);
+  useEffect(() => { onMeetingsUpdateRef.current = onMeetingsUpdate; }, [onMeetingsUpdate]);
 
   const fetchMessages = useCallback(async () => {
     const momentId = selectedMoment?.id;
@@ -122,8 +130,8 @@ const DiscussionChat = ({
         (a, b) => new Date(a?.sent_date_time || a.created_at) - new Date(b?.sent_date_time || b.created_at),
       );
       setMessages(sorted);
-      if (selectedMoment?.unread_messages_count > 0 && onMeetingsUpdate) {
-        onMeetingsUpdate([{ ...selectedMoment, unread_messages_count: 0 }]);
+      if (selectedMoment?.unread_messages_count > 0 && onMeetingsUpdateRef.current) {
+        onMeetingsUpdateRef.current([{ ...selectedMoment, unread_messages_count: 0 }]);
       }
     } catch (e) {
       console.error(e);
@@ -136,10 +144,11 @@ const DiscussionChat = ({
     selectedMoment?.id,
     folder,
     searchTerm,
-    onMeetingsUpdate,
   ]);
 
   useEffect(() => {
+    // Don't auto-select moments when in missions list mode — user clicks to open
+    if (missionsData) return;
     if (meetingsData?.length > 0 && !selectedMoment && !isMobile) {
       if (meetingId) {
         const found = meetingsData.find(
@@ -160,18 +169,69 @@ const DiscussionChat = ({
         setSelectedMoment(updated);
       }
     }
-  }, [meetingsData, selectedMoment, isMobile]);
+  }, [meetingsData, selectedMoment, isMobile, missionsData]);
 
   useEffect(() => {
     setMessages([]);
     fetchMessages();
   }, [selectedMoment?.id, fetchMessages]);
 
+  // Fetch participants from API whenever selected moment changes
+  useEffect(() => {
+    if (!selectedMoment?.id) {
+      setParticipants([]);
+      return;
+    }
+    getMissionParticipants(selectedMoment.id)
+      .then((response) => {
+        if (Array.isArray(response?.data)) {
+          // Each participant from data array goes into the participants array individually
+          setParticipants(response.data);
+        } else if (Array.isArray(response)) {
+          setParticipants(response);
+        } else {
+          // Fallback: use user_with_participants from moment object
+          setParticipants(selectedMoment?.user_with_participants || []);
+        }
+      })
+      .catch(() => {
+        // On error fallback to moment's existing participant data
+        setParticipants(selectedMoment?.user_with_participants || []);
+      });
+  }, [selectedMoment?.id]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const handleSend = async ({ message }) => {
+    // Extract mentioned participants using a robust regex
+    const mentionRegex = /<span [^>]*class="mention"[^>]*>([\s\S]*?)<\/span>/g;
+    const mentionedParticipants = [];
+    let match;
+    
+    while ((match = mentionRegex.exec(message)) !== null) {
+      const spanHtml = match[0];
+      const spanText = match[1].replace(/^@/, "").trim(); // Remove leading @ and trim
+      
+      // Try to find data-id in the span attributes
+      const idMatch = spanHtml.match(/data-id="([^"]+)"/);
+      const dataId = idMatch ? idMatch[1] : null;
+
+      const participant = (participants || []).find(p => {
+        if (dataId) {
+          return p.id?.toString() === dataId || p.user_id?.toString() === dataId;
+        }
+        // Fallback to name/email matching
+        const name = p.full_name || p.name || p.email || "";
+        return name.trim().toLowerCase() === spanText.toLowerCase();
+      });
+
+      if (participant && !mentionedParticipants.some(p => p.id === participant.id)) {
+        mentionedParticipants.push(participant);
+      }
+    }
+
     setSending(true);
     try {
       const formData = new FormData();
@@ -179,6 +239,11 @@ const DiscussionChat = ({
       formData.append("user_id", userId);
       formData.append("message", message);
       attachments.forEach((f, i) => formData.append(`attachments[${i}]`, f));
+      
+      // Add mentioned participants to formData
+      mentionedParticipants.forEach((p, i) => {
+        formData.append(`participants[${i}]`, JSON.stringify(p));
+      });
 
       let endpoint = "/meeting-messages";
       if (isOutlook) endpoint = "/outlook-email/reply-all";
@@ -260,6 +325,14 @@ const DiscussionChat = ({
 
   const currentUserId = parseInt(CookieService.get("user_id"));
 
+  // When closing fullscreen, clear heavy state first so the DOM is lightweight
+  // during the position-fixed → normal-flow layout transition
+  const handleCloseFullScreen = useCallback(() => {
+    setMessages([]);
+    setSelectedMoment(null);
+    setIsFullScreen(false);
+  }, []);
+
   return (
     <Layout
       className={`h-100 bg-white ${isFullScreen || (isMobile && selectedMoment) ? "position-fixed top-0 start-0 w-100 h-100" : ""}`}
@@ -268,7 +341,7 @@ const DiscussionChat = ({
           isFullScreen || (isMobile && selectedMoment) ? "100dvh" : "100%",
         overflow: "hidden",
         zIndex: isFullScreen || (isMobile && selectedMoment) ? 10000 : 1,
-        transition: "all 0.3s ease",
+        transition: "opacity 0.2s ease",
       }}
     >
       {/* ── MOMENTS SIDER ── */}
@@ -276,70 +349,121 @@ const DiscussionChat = ({
           a back button at the top on mobile. Sider has no slot for a header row. */}
       <div
         style={{
-          width: isMobile ? "100%" : "300px",
+          width: isFullScreen
+            ? "300px"
+            : isMobile
+              ? "100%"
+              : missionsData
+                ? "350px"
+                : "300px",
+          flex: isFullScreen
+            ? "0 0 300px"
+            : isMobile
+              ? "0 0 auto"
+              : missionsData
+                ? "0 0 350px"
+                : "0 0 300px",
           flexShrink: 0,
-          display: selectedMoment && isMobile ? "none" : "flex",
+          display: isMobile && selectedMoment
+              ? "none"
+              : "flex",
           flexDirection: "column",
           height: "100%",
           overflow: "hidden",
           borderRight: "1px solid #f0f0f0",
           backgroundColor: "#fff",
+          transition: "width 0.2s ease, flex 0.2s ease",
         }}
       >
         {/* MOMENTS header row */}
         <div
-          className="p-3 border-bottom bg-light bg-opacity-10"
+          className="p-4 border-bottom"
           style={{
             flexShrink: 0,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
+            background: "linear-gradient(to right, #fafafa, #fff)",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {/* FIX 1: Back button on mobile — go back to MessagesToHandleTab list */}
-            {isMobile && onCloseFullScreen && (
-              <Button
-                type="text"
-                size="small"
-                icon={<FaChevronLeft />}
-                onClick={onCloseFullScreen}
-                style={{ flexShrink: 0 }}
-              />
-            )}
-            <Text strong style={{ fontSize: "12px", color: "#8c8c8c", textTransform: "uppercase" }}>
-              MOMENTS
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div
+              style={{
+                width: "32px",
+                height: "32px",
+                borderRadius: "8px",
+                backgroundColor: "#e6f7ff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {missionsData && !isMobile ? (
+                <FaList color="#1890ff" size={16} />
+              ) : (
+                <FaClock color="#1890ff" size={16} />
+              )}
+            </div>
+            <Text
+              strong
+              style={{
+                fontSize: "14px",
+                color: "#262626",
+                letterSpacing: "0.02em",
+              }}
+            >
+              {missionsData && !isMobile ? "MISSIONS" : "MOMENTS"}
             </Text>
           </div>
           <Badge
-            count={meetingsData?.length}
+            count={missionsData && !isMobile ? missionsData?.length : meetingsData?.length}
             showZero
             color="#1890ff"
-            size="small"
+            style={{ boxShadow: "0 2px 4px rgba(24, 144, 255, 0.2)" }}
           />
         </div>
 
         {/* Scrollable moments list */}
-        <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", minHeight: 0 }}>
-          <Moments
-            meetingsData={meetingsData}
-            onMomentSelect={(m) => {
-              setSelectedMoment(m);
-              if (isMobile) setViewMode("conversation");
-              if (m.unread_messages_count > 0 && onMeetingsUpdate) {
-                onMeetingsUpdate([{ ...m, unread_messages_count: 0 }]);
+        <div
+          style={{
+            height: "100%",
+            overflowY: "auto",
+            overflowX: "hidden",
+            minHeight: 0,
+          }}
+        >
+          {missionsData && !isFullScreen && !isMobile ? (
+            <Moments
+              meetingsData={missionsData}
+              onMomentSelect={(m) =>
+                onMissionSelect && onMissionSelect(m.id.toString())
               }
-            }}
-            selectedMoment={selectedMoment}
-            onLoadMore={onLoadMore}
-            hasMore={hasMore}
-          />
+              selectedMoment={{
+                id: selectedMissionId ? parseInt(selectedMissionId) : null,
+              }}
+            />
+          ) : (
+            <Moments
+              meetingsData={meetingsData}
+              onMomentSelect={(m) => {
+                setSelectedMoment(m);
+                if (isMobile) setViewMode("conversation");
+                if (m.unread_messages_count > 0 && onMeetingsUpdate) {
+                  onMeetingsUpdate([{ ...m, unread_messages_count: 0 }]);
+                }
+              }}
+              selectedMoment={selectedMoment}
+              onLoadMore={onLoadMore}
+              hasMore={hasMore}
+            />
+          )}
         </div>
       </div>
 
       {/* ── CONTENT ── */}
+      {/* Use display:none instead of null to avoid unmount/remount on fullscreen toggle */}
       <Content
-        className={`d-flex flex-column h-100 overflow-hidden bg-white ${isMobile && !selectedMoment ? "d-none" : ""}`}
+        className={`d-flex flex-column h-100 overflow-hidden bg-white ${isMobile && !selectedMoment ? "d-none" : ""} ${(!isFullScreen && missionsData && !isMobile) ? "d-none" : ""}`}
       >
         {/* FIX 2: Chat Header — flat flex row so title shrinks and icons never cut */}
         <div
@@ -365,17 +489,26 @@ const DiscussionChat = ({
               overflow: "hidden",
             }}
           >
-            {isMobile && selectedMoment && (
+            {(isMobile && selectedMoment) || (isFullScreen && missionsData) ? (
               <Button
                 type="text"
                 icon={<FaChevronLeft />}
                 style={{ flexShrink: 0 }}
-                onClick={() => setSelectedMoment(null)}
+                onClick={() =>
+                  isFullScreen
+                    ? handleCloseFullScreen()
+                    : setSelectedMoment(null)
+                }
               />
-            )}
+            ) : null}
             <Avatar
               icon={<FaComments />}
-              style={{ backgroundColor: "#1890ff", flexShrink: 0 }}
+              size={48}
+              style={{
+                backgroundColor: "#1890ff",
+                flexShrink: 0,
+                boxShadow: "0 4px 12px rgba(24, 144, 255, 0.2)",
+              }}
               src={
                 selectedMoment?.clients?.client_logo
                   ? selectedMoment.clients.client_logo.startsWith("http")
@@ -387,25 +520,34 @@ const DiscussionChat = ({
             {/* Title block — truncates, never pushes icons off-screen */}
             <div style={{ minWidth: 0, overflow: "hidden" }}>
               <Title
-                level={5}
+                level={4}
                 className="m-0"
                 ellipsis={{ tooltip: selectedMoment?.title || "Discussion" }}
-                style={{ marginBottom: 0, fontSize: "14px", maxWidth: "100%" }}
+                style={{
+                  marginBottom: 0,
+                  fontSize: "18px",
+                  maxWidth: "100%",
+                  fontWeight: 700,
+                }}
               >
                 {selectedMoment?.title || "Discussion"}
               </Title>
-              <Text
-                type="secondary"
-                style={{
-                  fontSize: "11px",
-                  display: "block",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {selectedMoment?.type}
-              </Text>
+              <div className="d-flex align-items-center gap-2">
+                <Badge status="success" />
+                <Text
+                  type="secondary"
+                  style={{
+                    fontSize: "12px",
+                    display: "block",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    fontWeight: 500,
+                  }}
+                >
+                  {selectedMoment?.type || "Conversation active"}
+                </Text>
+              </div>
             </div>
           </div>
 
@@ -458,8 +600,18 @@ const DiscussionChat = ({
                         selectedMoment.destination_status ||
                         ""
                       )?.toLowerCase();
-                      const activeStates = ["active", "in_progress", "todo", "to_finish"];
-                      const closedStates = ["abort", "cancle", "cancel", "closed"];
+                      const activeStates = [
+                        "active",
+                        "in_progress",
+                        "todo",
+                        "to_finish",
+                      ];
+                      const closedStates = [
+                        "abort",
+                        "cancle",
+                        "cancel",
+                        "closed",
+                      ];
                       if (activeStates.some((s) => status.includes(s))) {
                         navigate(`/invite/${selectedMoment.id}`);
                       } else if (closedStates.some((s) => status.includes(s))) {
@@ -475,8 +627,10 @@ const DiscussionChat = ({
             <Button
               type="text"
               shape="circle"
-              icon={isFullScreen ? <FaCompress size={14} /> : <FaExpand size={14} />}
-              onClick={() => setIsFullScreen(!isFullScreen)}
+              icon={
+                isFullScreen ? <FaCompress size={14} /> : <FaExpand size={14} />
+              }
+              onClick={() => isFullScreen ? handleCloseFullScreen() : setIsFullScreen(true)}
               className="d-none d-sm-inline-flex"
             />
             {onCloseFullScreen && (
@@ -490,9 +644,17 @@ const DiscussionChat = ({
             <Button
               type="text"
               shape="circle"
-              icon={isParticipantsCollapsed ? <FaUsers size={16} /> : <FaTimes size={16} />}
+              icon={
+                isParticipantsCollapsed ? (
+                  <FaUsers size={16} />
+                ) : (
+                  <FaTimes size={16} />
+                )
+              }
               className="d-lg-none d-none"
-              onClick={() => setIsParticipantsCollapsed(!isParticipantsCollapsed)}
+              onClick={() =>
+                setIsParticipantsCollapsed(!isParticipantsCollapsed)
+              }
             />
           </Space>
         </div>
@@ -503,9 +665,10 @@ const DiscussionChat = ({
           className="flex-grow-1 p-2 p-md-4 bg-light bg-opacity-5"
           style={{
             overflowY: "auto",
-            overflowX: "hidden",   // ← stops horizontal bleed
+            overflowX: "hidden", // ← stops horizontal bleed
             scrollBehavior: "smooth",
-            minHeight: 0,
+            // minHeight: 0,
+            height: !isMobile && !isFullScreen && "500px",
           }}
         >
           {!selectedMoment ? (
@@ -523,35 +686,62 @@ const DiscussionChat = ({
                 const isMe = parseInt(msg.user_id) === currentUserId;
                 const senderImage = isMe
                   ? userData?.image || userData?.user_image
-                  : msg.user?.image || msg.participant_image || msg.image ||
-                    msg.user_image || msg.sender_image ||
-                    msg.participant?.participant_image || msg.participant?.image;
+                  : msg.user?.image ||
+                    msg.participant_image ||
+                    msg.image ||
+                    msg.user_image ||
+                    msg.sender_image ||
+                    msg.participant?.participant_image ||
+                    msg.participant?.image;
 
                 let senderName = [
-                  msg.user?.full_name, msg.user?.name,
-                  msg.participant?.full_name, msg.participant?.name,
-                  msg.user_name, msg.full_name, msg.sender_name,
-                  msg.from_name, msg.from,
+                  msg.user?.full_name,
+                  msg.user?.name,
+                  msg.participant?.full_name,
+                  msg.participant?.name,
+                  msg.user_name,
+                  msg.full_name,
+                  msg.sender_name,
+                  msg.from_name,
+                  msg.from,
                 ].find((n) => n && n.trim());
 
                 if (!senderName && msg.sender) {
-                  if (typeof msg.sender === "string" && msg.sender.includes("<")) {
+                  if (
+                    typeof msg.sender === "string" &&
+                    msg.sender.includes("<")
+                  ) {
                     const parts = msg.sender.split("<");
-                    senderName = parts[0].trim() || parts[1]?.replace(">", "").trim();
+                    senderName =
+                      parts[0].trim() || parts[1]?.replace(">", "").trim();
                   } else {
                     senderName = msg.sender;
                   }
                 }
                 if (!senderName) {
-                  senderName = [msg.from_email, msg.user_email, msg.email, msg.sender_email].find((e) => e && e.trim());
+                  senderName = [
+                    msg.from_email,
+                    msg.user_email,
+                    msg.email,
+                    msg.sender_email,
+                  ].find((e) => e && e.trim());
                 }
-                if (!senderName || !senderName.trim()) senderName = isMe ? t("You") : "User";
+                if (!senderName || !senderName.trim())
+                  senderName = isMe ? t("You") : "User";
 
                 const avatarStr = senderImage?.toString()?.trim();
                 const avatarSrc = avatarStr
-                  ? avatarStr.startsWith("http") ? avatarStr : `${Assets_URL}/${avatarStr.replace(/^\//, "")}`
+                  ? avatarStr.startsWith("http")
+                    ? avatarStr
+                    : `${Assets_URL}/${avatarStr.replace(/^\//, "")}`
                   : null;
-                const initials = senderName.split(" ").filter(Boolean).map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+                const initials = senderName
+                  .split(" ")
+                  .filter(Boolean)
+                  .map((n) => n[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase();
 
                 return (
                   <div
@@ -560,12 +750,18 @@ const DiscussionChat = ({
                   >
                     <div className="d-flex justify-content-between align-items-start mb-2">
                       <Space align="start" size="middle">
-                        <Avatar size={40} src={avatarSrc} className="shadow-sm">{initials}</Avatar>
+                        <Avatar size={40} src={avatarSrc} className="shadow-sm">
+                          {initials}
+                        </Avatar>
                         <div>
                           <div className="d-flex align-items-center gap-2 mb-1">
-                            <Text strong style={{ fontSize: "14px" }}>{isMe ? t("You") : senderName}</Text>
+                            <Text strong style={{ fontSize: "14px" }}>
+                              {isMe ? t("You") : senderName}
+                            </Text>
                             <Text type="secondary" style={{ fontSize: "12px" }}>
-                              {moment.utc(msg?.sent_date_time || msg?.created_at).local().format("DD/MM/YYYY HH:mm:ss")}
+                              {moment(msg.created_at).format(
+                                "DD/MM/YYYY HH:mm:ss",
+                              )}
                             </Text>
                           </div>
                           <Space size="large" className="text-muted">
@@ -579,10 +775,20 @@ const DiscussionChat = ({
                             {isMe && (
                               <>
                                 <Tooltip title="Edit">
-                                  <FaEdit className="cursor-pointer" size={14} onClick={() => setEditingMessage(msg)} />
+                                  <FaEdit
+                                    className="cursor-pointer"
+                                    size={14}
+                                    onClick={() => setEditingMessage(msg)}
+                                  />
                                 </Tooltip>
                                 <Tooltip title="Delete">
-                                  <FaTrashAlt className="cursor-pointer" size={14} onClick={() => deleteMessage(msg.id).then(fetchMessages)} />
+                                  <FaTrashAlt
+                                    className="cursor-pointer"
+                                    size={14}
+                                    onClick={() =>
+                                      deleteMessage(msg.id).then(fetchMessages)
+                                    }
+                                  />
                                 </Tooltip>
                               </>
                             )}
@@ -590,7 +796,12 @@ const DiscussionChat = ({
                         </div>
                       </Space>
                       {msg.redirect_url && (
-                        <Button type="link" icon={<FaExternalLinkAlt size={10} />} onClick={() => navigate(msg.redirect_url)} className="fw-bold">
+                        <Button
+                          type="link"
+                          icon={<FaExternalLinkAlt size={10} />}
+                          onClick={() => navigate(msg.redirect_url)}
+                          className="fw-bold"
+                        >
                           {t("Voir l'action")}
                         </Button>
                       )}
@@ -601,7 +812,7 @@ const DiscussionChat = ({
                       style={{
                         fontSize: "14px",
                         lineHeight: "1.6",
-                        overflowX: "auto",   // allow scroll inside if content is wide (tables etc)
+                        overflowX: "auto", // allow scroll inside if content is wide (tables etc)
                         maxWidth: "100%",
                         wordBreak: "break-word",
                         overflowWrap: "break-word",
@@ -618,19 +829,31 @@ const DiscussionChat = ({
                 const isMe = parseInt(msg.user_id) === currentUserId;
                 const senderImage = isMe
                   ? userData?.image || userData?.user_image
-                  : msg.user?.image || msg.participant_image || msg.image ||
-                    msg.user_image || msg.sender_image ||
-                    msg.participant?.participant_image || msg.participant?.image;
+                  : msg.user?.image ||
+                    msg.participant_image ||
+                    msg.image ||
+                    msg.user_image ||
+                    msg.sender_image ||
+                    msg.participant?.participant_image ||
+                    msg.participant?.image;
 
                 let senderName = [
-                  msg.user?.full_name, msg.user?.name,
-                  msg.participant?.full_name, msg.participant?.name,
-                  msg.user_name, msg.full_name, msg.sender_name,
-                  msg.from_name, msg.from,
+                  msg.user?.full_name,
+                  msg.user?.name,
+                  msg.participant?.full_name,
+                  msg.participant?.name,
+                  msg.user_name,
+                  msg.full_name,
+                  msg.sender_name,
+                  msg.from_name,
+                  msg.from,
                 ].find((n) => n && n.trim());
 
                 if (!senderName && msg.sender) {
-                  if (typeof msg.sender === "string" && msg.sender.includes("<")) {
+                  if (
+                    typeof msg.sender === "string" &&
+                    msg.sender.includes("<")
+                  ) {
                     const parts = msg.sender.split("<");
                     const namePart = parts[0].trim();
                     const emailPart = parts[1]?.replace(">", "").trim();
@@ -640,29 +863,59 @@ const DiscussionChat = ({
                   }
                 }
                 if (!senderName) {
-                  senderName = [msg.from_email, msg.user_email, msg.email, msg.sender_email, msg.user?.email, msg.participant?.email].find((e) => e && e.trim());
+                  senderName = [
+                    msg.from_email,
+                    msg.user_email,
+                    msg.email,
+                    msg.sender_email,
+                    msg.user?.email,
+                    msg.participant?.email,
+                  ].find((e) => e && e.trim());
                 }
-                if ((!senderName || senderName === "User") && selectedMoment?.user_with_participants) {
-                  const emailSearch = msg.from_email || msg.user_email || msg.email || msg.sender_email || msg.user?.email;
-                  const participant = selectedMoment.user_with_participants.find(
-                    (p) =>
-                      (emailSearch && p.email === emailSearch) ||
-                      (msg.participant_id && p.id === msg.participant_id) ||
-                      (msg.user_id && p.user_id === msg.user_id),
-                  );
+                if (
+                  (!senderName || senderName === "User") &&
+                  selectedMoment?.user_with_participants
+                ) {
+                  const emailSearch =
+                    msg.from_email ||
+                    msg.user_email ||
+                    msg.email ||
+                    msg.sender_email ||
+                    msg.user?.email;
+                  const participant =
+                    selectedMoment.user_with_participants.find(
+                      (p) =>
+                        (emailSearch && p.email === emailSearch) ||
+                        (msg.participant_id && p.id === msg.participant_id) ||
+                        (msg.user_id && p.user_id === msg.user_id),
+                    );
                   if (participant) {
-                    senderName = participant.full_name?.trim() || participant.name?.trim() || participant.email;
+                    senderName =
+                      participant.full_name?.trim() ||
+                      participant.name?.trim() ||
+                      participant.email;
                   }
                 }
                 if (!senderName || !senderName.trim()) {
-                  senderName = isMe ? userData?.full_name || userData?.name || t("You") : msg.name || "User";
+                  senderName = isMe
+                    ? userData?.full_name || userData?.name || t("You")
+                    : msg.name || "User";
                 }
 
                 const avatarStr = senderImage?.toString()?.trim();
                 const avatarSrc = avatarStr
-                  ? avatarStr.startsWith("http") ? avatarStr : `${Assets_URL}/${avatarStr.replace(/^\//, "")}`
+                  ? avatarStr.startsWith("http")
+                    ? avatarStr
+                    : `${Assets_URL}/${avatarStr.replace(/^\//, "")}`
                   : null;
-                const initials = senderName.toString().split(" ").filter(Boolean).map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+                const initials = senderName
+                  .toString()
+                  .split(" ")
+                  .filter(Boolean)
+                  .map((n) => n[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase();
 
                 return (
                   <div
@@ -677,11 +930,21 @@ const DiscussionChat = ({
                         maxWidth: isMobile ? "calc(100% - 8px)" : "85%",
                         minWidth: 0,
                         overflow: "hidden",
-                        alignItems: "flex-start",  // avatar stays at top, never stretches
+                        alignItems: "flex-start", // avatar stays at top, never stretches
                       }}
                     >
-                      <div style={{ width: 32, flexShrink: 0, alignSelf: "flex-start" }}>
-                        <Avatar size="small" src={avatarSrc} className="shadow-sm">
+                      <div
+                        style={{
+                          width: 32,
+                          flexShrink: 0,
+                          alignSelf: "flex-start",
+                        }}
+                      >
+                        <Avatar
+                          size="small"
+                          src={avatarSrc}
+                          className="shadow-sm"
+                        >
                           {initials}
                         </Avatar>
                       </div>
@@ -689,7 +952,10 @@ const DiscussionChat = ({
                         className={`d-flex flex-column ${isMe ? "align-items-end" : "align-items-start"}`}
                         style={{ minWidth: 0, overflow: "hidden", flex: 1 }}
                       >
-                        <div className="d-flex align-items-center gap-2 mb-1" style={{ maxWidth: "100%", overflow: "hidden" }}>
+                        <div
+                          className="d-flex align-items-center gap-2 mb-1"
+                          style={{ maxWidth: "100%", overflow: "hidden" }}
+                        >
                           <Text
                             strong
                             style={{
@@ -701,7 +967,10 @@ const DiscussionChat = ({
                           >
                             {senderName}
                           </Text>
-                          <Text type="secondary" style={{ fontSize: "10px", whiteSpace: "nowrap" }}>
+                          <Text
+                            type="secondary"
+                            style={{ fontSize: "10px", whiteSpace: "nowrap" }}
+                          >
                             {moment.utc(msg?.sent_date_time || msg?.created_at).local().format("DD/MM/YYYY HH:mm")}
                           </Text>
                         </div>
@@ -730,7 +999,10 @@ const DiscussionChat = ({
                               overflowWrap: "break-word",
                             }}
                           />
-                          <div className="text-end" style={{ marginTop: "-4px", opacity: 0.6 }}>
+                          <div
+                            className="text-end"
+                            style={{ marginTop: "-4px", opacity: 0.6 }}
+                          >
                             <Text type="secondary" style={{ fontSize: "9px" }}>
                               {moment.utc(msg?.sent_date_time || msg?.created_at).local().format("DD/MM/YYYY HH:mm")}
                             </Text>
@@ -739,10 +1011,23 @@ const DiscussionChat = ({
                             <div className="mt-2 pt-2 border-top border-dark border-opacity-10">
                               {msg.attachments.map((at, i) => (
                                 <div key={i} className="mb-1">
-                                  <a href={`${Assets_URL}/${at.path}`} target="_blank" rel="noreferrer" className="text-primary">
+                                  <a
+                                    href={`${Assets_URL}/${at.path}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-primary"
+                                  >
                                     <Space size="small">
                                       <FaExternalLinkAlt size={10} />
-                                      <Text ellipsis style={{ maxWidth: 150, fontSize: "12px" }}>{at.name}</Text>
+                                      <Text
+                                        ellipsis
+                                        style={{
+                                          maxWidth: 150,
+                                          fontSize: "12px",
+                                        }}
+                                      >
+                                        {at.name}
+                                      </Text>
                                     </Space>
                                   </a>
                                 </div>
@@ -758,18 +1043,51 @@ const DiscussionChat = ({
                             <Button
                               type="text"
                               size="small"
-                              icon={<FaThumbtack size={12} className={msg.is_pinned ? "text-warning" : "text-muted"} />}
+                              icon={
+                                <FaThumbtack
+                                  size={12}
+                                  className={
+                                    msg.is_pinned
+                                      ? "text-warning"
+                                      : "text-muted"
+                                  }
+                                />
+                              }
                               onClick={() => handleTogglePin(msg)}
                             />
                           </Tooltip>
                           {isMe && (
                             <>
-                              <Button type="text" size="small" icon={<FaEdit size={12} className="text-muted" />} onClick={() => setEditingMessage(msg)} />
-                              <Button type="text" size="small" icon={<FaTrashAlt size={12} className="text-muted" />} onClick={() => deleteMessage(msg.id).then(fetchMessages)} />
+                              <Button
+                                type="text"
+                                size="small"
+                                icon={
+                                  <FaEdit size={12} className="text-muted" />
+                                }
+                                onClick={() => setEditingMessage(msg)}
+                              />
+                              <Button
+                                type="text"
+                                size="small"
+                                icon={
+                                  <FaTrashAlt
+                                    size={12}
+                                    className="text-muted"
+                                  />
+                                }
+                                onClick={() =>
+                                  deleteMessage(msg.id).then(fetchMessages)
+                                }
+                              />
                             </>
                           )}
                           {msg.redirect_url && (
-                            <Button type="link" size="small" style={{ fontSize: "11px" }} onClick={() => handleAction(msg)}>
+                            <Button
+                              type="link"
+                              size="small"
+                              style={{ fontSize: "11px" }}
+                              onClick={() => handleAction(msg)}
+                            >
                               {t("Voir l'action")}
                             </Button>
                           )}
@@ -793,7 +1111,10 @@ const DiscussionChat = ({
               isSending={sending}
               attachments={attachments}
               onFileUpload={(e) =>
-                setAttachments((prev) => [...prev, ...Array.from(e.target.files || [])])
+                setAttachments((prev) => [
+                  ...prev,
+                  ...Array.from(e.target.files || []),
+                ])
               }
               onRemoveAttachment={(i) =>
                 setAttachments((prev) => prev.filter((_, idx) => idx !== i))
@@ -803,40 +1124,114 @@ const DiscussionChat = ({
                 setEditingMessage(null);
                 if (editorRef.current) editorRef.current.setContent("");
               }}
-              initialValue={initialMessage}
-              participants={selectedMoment?.user_with_participants || []}
+              initialValue={editingMessage?.message || initialMessage || ""}
+              participants={participants}
             />
           </div>
         )}
       </Content>
 
-      {/* Participants Sider — desktop only, unchanged */}
+      {/* Participants/Moments Sider */}
       <Sider
-        width={isParticipantsCollapsed ? 80 : 300}
+        width={
+          isFullScreen
+            ? 300
+            : isParticipantsCollapsed
+              ? 80
+              : missionsData && !isFullScreen
+                ? "calc(100% - 350px)"
+                : 300
+        }
         theme="light"
-        className="border-start d-none d-lg-block transition-all"
-        style={{ overflow: "hidden" }}
+        className={`border-start d-none d-lg-block`}
+        style={{
+          overflow: "hidden",
+          width: isFullScreen
+            ? 300
+            : isParticipantsCollapsed
+              ? 80
+              : missionsData && !isFullScreen
+                ? "calc(100% - 350px)"
+                : 300,
+          flex: isFullScreen ? "0 0 300px" : missionsData && !isFullScreen ? "1 1 auto" : "0 0 auto",
+          transition: "width 0.15s ease, flex 0.15s ease",
+        }}
       >
         <div className="h-100 d-flex flex-column overflow-hidden">
           <div
-            className={`p-3 border-bottom d-flex ${isParticipantsCollapsed ? "justify-content-center" : "justify-content-between"} align-items-center`}
+            className={`p-4 border-bottom d-flex ${isParticipantsCollapsed ? "justify-content-center" : "justify-content-between"} align-items-center`}
+            style={{
+              flexShrink: 0,
+              background: "linear-gradient(to left, #fafafa, #fff)",
+            }}
           >
             {!isParticipantsCollapsed && (
-              <Text strong uppercase style={{ fontSize: "12px", color: "#8c8c8c" }}>
-                PARTICIPANTS
-              </Text>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div
+                  style={{
+                    width: "32px",
+                    height: "32px",
+                    borderRadius: "8px",
+                    backgroundColor: "#f6ffed",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {missionsData && !isFullScreen ? (
+                    <FaClock color="#52c41a" size={16} />
+                  ) : (
+                    <FaUsers color="#52c41a" size={16} />
+                  )}
+                </div>
+                <Text
+                  strong
+                  style={{
+                    fontSize: "14px",
+                    color: "#262626",
+                    letterSpacing: "0.02em",
+                  }}
+                >
+                  {missionsData && !isFullScreen ? "MOMENTS" : "PARTICIPANTS"}
+                </Text>
+              </div>
             )}
-            <Button
-              type="text"
-              icon={isParticipantsCollapsed ? <FaUsers /> : <FaTimes />}
-              onClick={() => setIsParticipantsCollapsed(!isParticipantsCollapsed)}
-            />
+            {!(missionsData && !isFullScreen) && (
+              <Button
+                type="text"
+                icon={isParticipantsCollapsed ? <FaUsers /> : <FaTimes />}
+                onClick={() =>
+                  setIsParticipantsCollapsed(!isParticipantsCollapsed)
+                }
+                style={{ borderRadius: "8px" }}
+              />
+            )}
           </div>
-          <div className="flex-grow-1 overflow-auto">
-            <DiscussionParticipant
-              selectedMoment={selectedMoment}
-              isCollapsed={isParticipantsCollapsed}
-            />
+          <div
+            className="flex-grow-1 overflow-hidden"
+            style={{ overflowY: "auto" }}
+          >
+            {missionsData && !isFullScreen ? (
+              <Moments
+                meetingsData={meetingsData}
+                onMomentSelect={(m) => {
+                  setSelectedMoment(m);
+                  if (isMobile) setViewMode("conversation");
+                  else if (missionsData) setIsFullScreen(true);
+                  if (m.unread_messages_count > 0 && onMeetingsUpdate) {
+                    onMeetingsUpdate([{ ...m, unread_messages_count: 0 }]);
+                  }
+                }}
+                selectedMoment={selectedMoment}
+                onLoadMore={onLoadMore}
+                hasMore={hasMore}
+              />
+            ) : (
+              <DiscussionParticipant
+                selectedMoment={selectedMoment}
+                isCollapsed={isParticipantsCollapsed}
+              />
+            )}
           </div>
         </div>
       </Sider>

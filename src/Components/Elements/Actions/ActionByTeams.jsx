@@ -229,7 +229,7 @@ function ActionByTeams({ stepsData, teamName, refreshTrigger }) {
   };
 
   const upcomingCount = steps?.filter(
-    (step) => step.step_status === null
+    (step) => step.step_status === null || step.step_status === "to_accept"
   ).length;
   const todoCount = steps?.filter(
     (step) => step.step_status === "todo" || step?.step_status === "to_finish"
@@ -239,7 +239,7 @@ function ActionByTeams({ stepsData, teamName, refreshTrigger }) {
     return value === 1 ? `${value} ${singular}` : `${value} ${plural}`;
   };
   // ---------------------------------------TOTAL UPCOMING STEPS TIME-----------------------------------
-  const upcomingSteps = steps?.filter((step) => step?.step_status === null);
+  const upcomingSteps = steps?.filter((step) => step?.step_status === null || step.step_status === "to_accept");
   const UpcomingAndTodo = [...upcomingSteps, todoSteps];
 
   const totalUpcomingSteps = UpcomingAndTodo?.reduce((total, step) => {
@@ -505,6 +505,7 @@ function ActionByTeams({ stepsData, teamName, refreshTrigger }) {
       item?.step_status === "completed" ||
       item?.step_status === "cancelled" ||
       item?.step_status === null ||
+      item?.step_status === "to_accept" ||
       item?.step_status === "todo" ||
       item?.step_status === "to_finish"
     ) {
@@ -699,7 +700,7 @@ function ActionByTeams({ stepsData, teamName, refreshTrigger }) {
                     >
                       <div className="mt-3">
                         {steps
-                          ?.filter((step) => step?.step_status === null)
+                          ?.filter((step) => step?.step_status === null || step?.step_status === "to_accept")
                           .sort((a, b) => {
                             // Create date objects for start_date
                             const dateA = new Date(a?.start_date);
@@ -910,6 +911,11 @@ function ActionByTeams({ stepsData, teamName, refreshTrigger }) {
                                               }
                                             >
                                               {t("badge.paused")}
+                                            </span>
+                                          )  : item.step_status ===
+                                            "to_accept" ? (
+                                            <span className="status-badge-green h-auto">
+                                              {t("badge.to_accept")}
                                             </span>
                                           ) : (
                                             // null
@@ -1154,7 +1160,7 @@ function ActionByTeams({ stepsData, teamName, refreshTrigger }) {
                                                 )}
                                               {item?.step_status !== null && (
                                                 <span>
-                                                  &nbsp; /{" "}
+                                                  &nbsp; {item?.step_status !== "to_accept" && "/"}{" "}
                                                   {item.count2 +
                                                     " " +
                                                     t(

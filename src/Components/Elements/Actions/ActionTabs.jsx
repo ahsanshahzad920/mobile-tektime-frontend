@@ -90,6 +90,8 @@ const ActionTabs = () => {
     { value: "Formation", label: t("destination.formation") },
     { value: "Recruitment", label: t("destination.recruitment") },
     { value: "Objective", label: t("destination.objective") },
+    { value: "Agenda", label: t("destination.Agenda") },
+    { value: "Messagerie", label: t("destination.messaging") },
     { value: "Other", label: t("destination.other") },
   ];
 
@@ -123,6 +125,15 @@ const ActionTabs = () => {
 
       case "Objective":
         return <FaBullseye size={20} style={commonStyle} />;
+
+      case "Agenda":
+      case "Messagerie":
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#F19C38" style={commonStyle}>
+            <path d="M7.5 5.6L10 0L12.5 5.6L18.1 8.1L12.5 10.6L10 16.2L7.5 10.6L1.9 8.1L7.5 5.6Z"/>
+            <path d="M17.5 15.6L19.1 12.1L20.7 15.6L24.2 17.2L20.7 18.8L19.1 22.3L17.5 18.8L14 17.2L17.5 15.6Z"/>
+          </svg>
+        );
 
       case "Other":
         return <span style={commonStyle}>✨</span>;

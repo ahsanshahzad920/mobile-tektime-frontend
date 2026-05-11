@@ -200,6 +200,7 @@ const DiscussionTabs = () => {
   );
   const hasIonos = userData?.ionos_links?.length > 0;
   const hasGmail = userData?.gmail_suit?.length > 0;
+  // const hasWhatsapp = userData?.email === "zk044099@gmail.com" || userData?.email === "ahsanshahzad920@gmail.com";
   const showMissionTab =
     userData?.enterprise?.contract?.mission_need === true &&
     userData?.user_needs?.some((n) => n.need === "mission_need");
@@ -325,13 +326,20 @@ const DiscussionTabs = () => {
           mobileLabel: "Chatbot",
           children: <ChatbotTab isActive={activeTab === "chatbot"} />,
         },
-      ].filter(Boolean),
+        // hasWhatsapp && {
+        //   key: "whatsapp",
+        //   label: <Space><FaWhatsapp color="#25D366" size={18} /> WhatsApp</Space>,
+        //   mobileLabel: "WhatsApp",
+        //   children: <WhatsappTab isActive={activeTab === "whatsapp"} userData={userData} />
+        // }  
+          ].filter(Boolean),
     [
       activeTab,
       assistantProfile,
       hasChatbotConversations,
       hasGmail,
       hasIonos,
+      // hasWhatsapp,
       hasOutlook,
       searchTerm,
       showMissionTab,
@@ -345,7 +353,7 @@ const DiscussionTabs = () => {
     <div
       className={`d-flex flex-column bg-white ${isFullScreen ? "position-fixed top-0 start-0 w-100 h-100 z-index-1000" : ""}`}
       style={{
-        height: isFullScreen ? "100dvh" : isMobile ? "calc(100dvh - 125px)" : "",
+        height: isFullScreen ? "100dvh" : "calc(100dvh - 125px)",
         zIndex: isFullScreen ? 2000 : 1,
         overflow: "hidden",
       }}

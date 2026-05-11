@@ -123,7 +123,6 @@ const ActionAssignmentPopup = ({ step: initialStep, onRefresh }) => {
           count2: Number(selectedCount),
           time: Number(selectedCount),
           _method: "put",
-
         },
         {
           headers: {
@@ -170,7 +169,7 @@ const ActionAssignmentPopup = ({ step: initialStep, onRefresh }) => {
     return null;
   }
 
-  const creatorName = currentStep?.step_creator
+    const creatorName = currentStep?.step_creator
     ? `${currentStep.step_creator.name ?? ""} ${currentStep.step_creator.last_name ?? ""}`.trim()
     : currentStep?.meeting?.user
       ? `${currentStep.meeting.user.first_name ?? ""} ${currentStep.meeting.user.last_name ?? ""}`.trim()

@@ -1878,7 +1878,7 @@ const Options = ({ setActiveTab, meeting }) => {
         </Row>
 
         <Row className="mb-4">
-          {/* {(!isFromTemplate || allowedOptions.whatsapp_in) && (
+          {(!isFromTemplate || allowedOptions.whatsapp_in) && (
             <Col xs={12} md={6}>
               <Tooltip title={t("whatsapp_in_tooltip")}>
                 <div
@@ -1961,7 +1961,7 @@ const Options = ({ setActiveTab, meeting }) => {
                 </div>
               </Tooltip>
             </Col>
-          )} */}
+          )}
           {(!isFromTemplate || allowedOptions.presentation) && (
             <Col xs={12} md={6}>
               <Tooltip title={t("presentation_tooltip")}>

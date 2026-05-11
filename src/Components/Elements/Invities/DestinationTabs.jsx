@@ -165,6 +165,7 @@ function DestinationTabs() {
     "Formation",
     "Messagerie",
     "Agenda",
+    "Assistant Conversation"
   ];
 
   const [tabsWithData, setTabsWithData] = useState(
@@ -256,6 +257,7 @@ function DestinationTabs() {
     "Formation",
     "Messagerie",
     "Agenda",
+    "Assistant Conversation"
   ];
   // -----------------------------------------MIssion ROADMAP FUnctions------------------
   // -----------------------------------------MIssion ROADMAP Functions------------------

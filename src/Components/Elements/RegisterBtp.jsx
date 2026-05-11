@@ -624,7 +624,7 @@ const RegisterBtp = () => {
               Nous vous avons envoyé un email de confirmation à {formData.email}
               .
             </p>
-            <Button as={Link} to="/" variant="primary" className="mt-4">
+            <Button as={Link} to="/login" variant="primary" className="mt-4">
               Se connecter
             </Button>
           </Card.Body>

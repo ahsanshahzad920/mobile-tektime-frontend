@@ -207,7 +207,7 @@ const useOutlookAuth = ({ onSuccess }) => {
                 const top = window.screenY + (window.innerHeight - height) / 2;
 
                 const popup = window.open(
-                    `https://api.tektime.io/outlook-login?user_id=${CookieService.get("user_id")}`,
+                    `${process.env.REACT_APP_API_BASE_URL}/outlook-login?user_id=${CookieService.get("user_id")}`,
                     "Outlook Login",
                     `width=${width},height=${height},top=${top},left=${left}`
                 );
@@ -219,7 +219,7 @@ const useOutlookAuth = ({ onSuccess }) => {
                 }
 
                 const messageHandler = async (event) => {
-                    if (event.origin !== "https://api.tektime.io") return;
+                    if (event.origin !== process.env.REACT_APP_API_BASE_URL) return;
 
                     const { type } = event.data || {};
 

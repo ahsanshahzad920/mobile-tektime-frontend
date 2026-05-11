@@ -1,4 +1,5 @@
 import CookieService from '../Components/Utils/CookieService';
+import moment from "moment-timezone";
 import React, { createContext, useContext, useState, useCallback, useMemo } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -33,6 +34,7 @@ export const MeetingsProvider = ({ children }) => {
   const [unreadMeetingCount, setUnreadMeetingCount] = useState(0);
   const [upcomingMeetingCount, setUpcomingMeetingCount] = useState(0);
   const [noStatusMeetingCount, setNoStatusMeetingCount] = useState(0);
+  const [tabsVisibility, setTabsVisibility] = useState(null);
   const [draftMeetingCount, setDraftMeetingCount] = useState(0);
   const [agendaEventCount, setAgendaEventCount] = useState(0);
   const [limit] = useState(5);
@@ -326,6 +328,10 @@ export const MeetingsProvider = ({ children }) => {
 
       if (response?.data?.data) {
         setUnreadMeetingCount(response?.data?.count || 0);
+        // Store tabs visibility from API response
+        if (response?.data?.tabs) {
+          setTabsVisibility(response.data.tabs);
+        }
         const pData = response?.data?.data;
         const data = pData?.data || [];
         if (pData?.per_page) setPerPage(pData.per_page);
@@ -459,6 +465,27 @@ export const MeetingsProvider = ({ children }) => {
         setProgress(100);
         setLoading(false);
       }
+    }
+  }, []);
+
+  // 🟣 ALL MEETINGS BY TYPE (moments list view – paginated)
+  const getAllMeetingsByType = useCallback(async (type, pageNo = 1) => {
+    setIsLoading(true);
+    const cleanType = type?.includes("-") ? type.split("-")[1] : type;
+    try {
+      const response = await axios.get(`${API_BASE_URL}/get-all-meetings-by-type`, {
+        params: { type: cleanType, page: pageNo },
+        headers: { Authorization: `Bearer ${CookieService.get("token")}` },
+      });
+      if (response?.data?.data) {
+        return response.data;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching all meetings by type:", error);
+      return null;
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -652,8 +679,143 @@ export const MeetingsProvider = ({ children }) => {
     }
   }, [getMeetings]);
 
+  const startMeetingDirectly = useCallback(async (item, navigate, t) => {
+    const loggedInUserId = CookieService.get("user_id");
+    const id = item.id;
+    
+    // Set global states for meeting play mode
+    setCallApi(false);
+    setFromTektime(true);
+    CookieService.set("callApi", "false");
+    CookieService.set("fromTektime", "true");
+
+    try {
+      const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const formattedTimeNow = formatTime(new Date());
+      const formattedDateNow = formatDate(new Date());
+      
+      // 1. Fetch meeting steps
+      const stepsResponse = await axios.get(
+        `${API_BASE_URL}/meeting/${id}/steps?current_time=${formattedTimeNow}&current_date=${formattedDateNow}&user_id=${loggedInUserId}&timezone=${userTimeZone}`,
+        { headers: { Authorization: `Bearer ${CookieService.get("token")}` } }
+      );
+      
+      const meetingSteps = stepsResponse?.data?.data;
+      if (!meetingSteps || meetingSteps.length === 0) {
+         toast.error("No steps found for this meeting.");
+         return;
+      }
+
+      // 2. Permission Check
+      const isGuide = meetingSteps?.some(g => g?.userPID === parseInt(loggedInUserId)) || item?.user?.id === parseInt(loggedInUserId);
+      if (!isGuide && item?.type !== "Newsletter") {
+        toast.error(t("meeting.formState.you are not allowed to play the meeting"));
+        return;
+      }
+
+      // 3. Working Hours Check
+      const whResponse = await axios.get(
+        `${API_BASE_URL}/user-scheduled-days/${loggedInUserId}/${item?.destination?.id}`
+      );
+      const workingHours = whResponse?.data?.data?.working_days || [];
+
+      if (workingHours.length > 0) {
+        const now = moment();
+        const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        const englishDayName = days[now.day()];
+        const dayWorkingHours = workingHours.find(d => d.day.toLowerCase() === englishDayName.toLowerCase());
+
+        if (!dayWorkingHours) {
+          
+          if (!window.confirm(t("warnings.outside_working_hours") || "You are outside of working hours. Do you want to continue?")) return;
+        } else {
+          const currentTimeObj = moment(now.format("HH:mm:ss"), "HH:mm:ss");
+          const workStartObj = moment(dayWorkingHours.start_time, "HH:mm");
+          const workEndObj = moment(dayWorkingHours.end_time, "HH:mm");
+          if (currentTimeObj.isBefore(workStartObj) || currentTimeObj.isAfter(workEndObj)) {
+            if (!window.confirm(t("warnings.outside_working_hours") || "You are outside of working hours. Do you want to continue?")) return;
+          }
+        }
+      }
+
+      // 4. Time Difference Check (±60 min)
+      if (item?.type !== "Task" && item?.type !== "Strategy" && item?.type !== "Newsletter") {
+        const scheduledDateTime = moment(`${item.date} ${item.start_time}`, "YYYY-MM-DD HH:mm:ss");
+        const diffMinutes = moment().diff(scheduledDateTime, 'minutes');
+        if (Math.abs(diffMinutes) > 60) {
+            toast.error(t("errors.playMeeting"));
+            return;
+          // if (!window.confirm(t("warnings.time_difference_simple") || "This meeting is scheduled for a different time. Do you want to start it now?")) return;
+        }
+      }
+
+      // 5. Prepare Payload
+      const currentTime = new Date();
+      const localCurrentTime = currentTime.toLocaleString("en-GB", {
+        timeZone: userTimeZone,
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      });
+      const formattedCurrentDate = currentTime.toISOString().split("T")[0];
+      const stepTimeFormatted = moment().tz(userTimeZone).format("hh:mm:ss A");
+      const startDateFormatted = moment().tz(userTimeZone).format("YYYY-MM-DD");
+
+      const minOrderNo = Math.min(...meetingSteps.map((step) => step.order_no));
+      const firstStep = meetingSteps.find((step) => step.order_no === minOrderNo);
+
+      const updatedSteps = meetingSteps.map((step) => {
+        if (step.id === firstStep.id) {
+          return {
+            ...step,
+            status: "in_progress",
+            step_status: "in_progress",
+            current_time: localCurrentTime,
+            current_date: formattedCurrentDate,
+            step_time: stepTimeFormatted,
+            start_date: startDateFormatted,
+          };
+        }
+        return step;
+      });
+
+      const payload = {
+        ...item,
+        steps: updatedSteps,
+        starts_at: localCurrentTime,
+        date: formattedCurrentDate,
+        current_date: currentTime,
+        status: "in_progress",
+        _method: "put",
+        apply_day_off: 0,
+      };
+
+      // 6. API Call
+      const response = await axios.post(`${API_BASE_URL}/meetings/${id}`, payload, {
+        headers: { Authorization: `Bearer ${CookieService.get("token")}` }
+      });
+
+      if (response.status) {
+        if (item?.type === "Task" || item?.type === "Strategy") {
+          const cTime = formatTime(new Date());
+          const cDate = formatDate(new Date());
+          axios.get(`${API_BASE_URL}/user/meeting/mark-todo-meeting/${id}?current_time=${cTime}&current_date=${cDate}`, {
+            headers: { Authorization: `Bearer ${CookieService.get("token")}` }
+          });
+        }
+        navigate(`/destination/${item?.unique_id}/${item?.id}`);
+      }
+      
+    } catch (error) {
+      console.error("Error starting meeting directly", error);
+      toast.error("Error starting meeting");
+    }
+  }, [setCallApi, setFromTektime]);
+
   const contextValue = React.useMemo(() => ({
     allMeetings,
+    startMeetingDirectly,
     isLoading,
     getMeetings,
     allClosedMeetings,
@@ -720,6 +882,7 @@ export const MeetingsProvider = ({ children }) => {
     noStatusMeetingCount,
     draftMeetingCount,
     getDraftMeetings,
+    getAllMeetingsByType,
     getAgendaEvents,
     setAllEventMeetings,
     setUserInfo,
@@ -762,6 +925,8 @@ export const MeetingsProvider = ({ children }) => {
     agendaCount,
     perPage,
     closedPerPage,
+    tabsVisibility,
+    setTabsVisibility,
   }), [
     allMeetings, isLoading, getMeetings, allClosedMeetings, getClosedMeetings, getDraftMeetings, 
     allDraftMeetings, status, selectedFilter, selectedClosedFilter, offset, hasMore, loading, 
@@ -772,7 +937,8 @@ export const MeetingsProvider = ({ children }) => {
     agendaEventCount, agendaEventOffset, agendaEventHasMore, agendaEventLoading, 
     agendaEventProgress, agendaEventLength, selectedAgenda, combineMeetings, 
     combineMeetingLength, callApi, fromTektime, calendar, syncAgenda, agendaCount,
-    getUnreadMeetings, getUpcomingMeetings, getNoStatusMeetings, perPage, closedPerPage
+    getUnreadMeetings, getUpcomingMeetings, getNoStatusMeetings, getAllMeetingsByType, perPage, closedPerPage,
+    tabsVisibility
   ]);
 
   return (

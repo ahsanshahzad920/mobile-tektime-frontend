@@ -171,8 +171,11 @@ export const getAssistantDestinationMessages = (destinationId) =>
   // fetchData(`/assistant/messages/${destinationId}`, "GET");
   fetchData(`/get-all-destinations-for-assistant/${destinationId}`, "GET");
 
-export const sendAssistantChat = (message, destination_id) =>
-  fetchData("/assistant/chat", "POST", { message, destination_id });
+export const sendAssistantChat = (message, destination_id, participants = []) =>
+  fetchData("/assistant/chat", "POST", { message, destination_id, participants });
 
 export const getAssistantProfile = () =>
   fetchData("/assistant", "GET");
+
+export const getMissionParticipants = (missionId) =>
+  fetchData(`/get-participant-for-mission/${missionId}`, "GET");

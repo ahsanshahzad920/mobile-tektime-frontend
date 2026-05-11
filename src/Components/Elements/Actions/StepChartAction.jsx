@@ -1097,7 +1097,7 @@ const StepChartAction = ({
     setSelectedValue(event.target.value);
   };
 
-  const handleIncrementCount = () => {
+ const handleIncrementCount = () => {
     // For Absence type, increment by 0.5
     if (meeting?.type === "Absence") {
       setSelectedCount((prev) => {
@@ -1123,7 +1123,6 @@ const StepChartAction = ({
       setSelectedCount((prev) => Math.max((Number(prev) || 0) - 1, 0));
     }
   };
-
   const deleteStepX = async () => {
     setIsUpdate(false);
     setCreateAnother(false);
@@ -2867,7 +2866,7 @@ const StepChartAction = ({
                                 <input
                                   type="text"
                                   value={selectedCount}
-                                  onChange={(e) => {
+                                 onChange={(e) => {
                                     const value = e.target.value;
                                     // Allow empty string for clearing, otherwise ensure it's a number
                                     if (value === "") {

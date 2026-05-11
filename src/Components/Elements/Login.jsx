@@ -80,6 +80,7 @@ const Login = () => {
       .post(
         `${API_BASE_URL}/auth/refresh`,
         {
+          // refresh_token: refreshToken,
           user_id: userid,
         },
         {
@@ -93,7 +94,7 @@ const Login = () => {
           const newAccessToken = response.data?.access_token;
           const newExpiresIn = response.data?.expires_in; // e.g., 3598 seconds
 
-          // Update the stored tokens and expiration time in cookies
+          // Update the stored tokens and expiration time
           sessionStorage.setItem("access_token", newAccessToken);
           CookieService.set("access_token", newAccessToken);
 
@@ -114,10 +115,14 @@ const Login = () => {
       })
       .catch((error) => {
         console.error("Refresh API Error:", error);
+        // Optionally handle token refresh errors (e.g., log out user)
+        // If the refresh token is invalid (e.g., 401 Unauthorized), handle re-authentication
+        // if (error.response && error.response.status === 401) {
         console.error(
           "Refresh token is invalid or expired. Redirecting to login.",
         );
         handleInvalidToken();
+        // }
       });
   }
   function handleInvalidToken() {
@@ -551,7 +556,7 @@ const Login = () => {
         const accessToken = response.data?.user?.access_token;
         const refreshToken = response.data?.user?.refresh_token;
         const tokenExpirationTime = response.data?.user?.token_expiration_time;
-        const userData = {
+       const userData = {
           id,
           name,
           last_name,
@@ -565,13 +570,16 @@ const Login = () => {
           full_name,
           teams
         };
-
+        
+        sessionStorage.setItem("user_id", id);
+        CookieService.set("user", userData); // CookieService now handles size limits and stringification
+        sessionStorage.setItem("email", email);
+        sessionStorage.setItem("name", name);
         CookieService.set("token", response.data.token);
         CookieService.set("user_id", id);
-        CookieService.set("user", userData); // CookieService now handles stringify automatically
         CookieService.set("email", email);
         CookieService.set("name", name);
-        CookieService.set("type", response.data.user.role.name);
+         CookieService.set("type", response.data.user.role.name);
         CookieService.set("role", response.data.user.role);
 
         // Handle access_token
@@ -849,7 +857,7 @@ const Login = () => {
                     {/* 👇 Forgot password link */}
                     <div className="mb-3 text-end">
                       <Link
-                        to="https://api.tektime.io/password/reset"
+                        to={`${process.env.REACT_APP_API_BASE_URL}/password/reset`}
                         className="text-decoration-none text-primary"
                         style={{ fontSize: "0.9rem" }}
                       >
@@ -899,7 +907,7 @@ const Login = () => {
                         <span>Créez votre compte gratuitement !</span>
                       </div>
                       <Link
-                        to={`/register?contract_id=${3}`}
+                        to={`/register?contract_id=${process.env.REACT_APP_CONTRACT_ID}`}
                         // className="btn-outline-primary"
                         style={{ fontWeight: "500" }}
                       >

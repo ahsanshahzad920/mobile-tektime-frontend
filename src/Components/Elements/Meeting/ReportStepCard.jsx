@@ -1,19 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import {
-  Card,
-  ProgressBar,
-  Accordion,
-  Image,
-  Button,
-  Row,
-  Col,
-  OverlayTrigger,
-  Tooltip,
-} from "react-bootstrap";
-import {
-  MdKeyboardArrowDown,
-  MdOutlinePhotoSizeSelectActual,
-} from "react-icons/md";
+import { Card, ProgressBar, Accordion, Image, Button, Row, Col, OverlayTrigger, Tooltip } from "react-bootstrap";
+import { MdKeyboardArrowDown, MdOutlinePhotoSizeSelectActual } from "react-icons/md";
 import { BsFiletypePdf } from "react-icons/bs";
 import { FiEdit } from "react-icons/fi";
 import { IoVideocamOutline, IoCopyOutline } from "react-icons/io5";
@@ -24,26 +11,11 @@ import { FaRegFileAudio } from "react-icons/fa";
 import Spreadsheet from "react-spreadsheet";
 import axios from "axios";
 import { read, utils } from "xlsx";
-import {
-  convertTo24HourFormat,
-  formatStepDate,
-} from "../../Utils/MeetingFunctions";
+import { convertTo24HourFormat, formatStepDate } from "../../Utils/MeetingFunctions";
 import ReportMediaGallery from "./Report/ReportMediaGallery";
 // import "./ReportStepCard.scss";
 
-const ReportStepCard = ({
-  item,
-  index,
-  startTime,
-  users,
-  meeting,
-  isTranscribing,
-  transcriptionProgress,
-  Assets_URL,
-  t,
-  isAccordion,
-  stepMedias = [],
-}) => {
+const ReportStepCard = ({ item, index, startTime, users, meeting, isTranscribing, transcriptionProgress, Assets_URL, t, isAccordion,stepMedias=[] }) => {
   const [dropdownVisible, setDropdownVisible] = useState(
     !!(item.editor_content || item.note || item.editor_type === "File" || item.editor_type === "Url"),
   );
@@ -52,8 +24,8 @@ const ReportStepCard = ({
   const [excelData, setExcelData] = useState(null);
   const [pdfHeight, setPdfHeight] = useState(isAccordion ? "300px" : "600px");
 
-  const getStepMedias = () => {
-    return stepMedias.filter((media) => media.step_id === item.id);
+      const getStepMedias = () => {
+    return stepMedias.filter(media => media.step_id === item.id);
   };
   const fetchExcel = async (file) => {
     try {
@@ -69,7 +41,7 @@ const ReportStepCard = ({
         row.map((cell) => ({
           value: cell,
           readOnly: rowIndex === 0,
-        })),
+        }))
       );
       setExcelData(formattedData);
     } catch (error) {
@@ -98,7 +70,7 @@ const ReportStepCard = ({
           () => {
             el.style.display = "none";
           },
-          { once: true },
+          { once: true }
         );
       }
     }
@@ -112,11 +84,9 @@ const ReportStepCard = ({
         const fallbackHeight = isAccordion ? 300 : 600;
         try {
           // Attempt to access iframe content (may be restricted by cross-origin)
-          const content =
-            iframe.contentDocument || iframe.contentWindow?.document;
+          const content = iframe.contentDocument || iframe.contentWindow?.document;
           if (content) {
-            const pdfViewer =
-              content.querySelector("embed") || content.querySelector("object");
+            const pdfViewer = content.querySelector("embed") || content.querySelector("object");
             if (pdfViewer) {
               const height = pdfViewer.scrollHeight || fallbackHeight;
               setPdfHeight(`${height}px`);
@@ -147,10 +117,7 @@ const ReportStepCard = ({
     if (!timeTaken) return "";
     const timeUnits = t("time_unit", { returnObjects: true });
     const timeParts = timeTaken.split(" - ");
-    let days = null,
-      hours = null,
-      minutes = null,
-      seconds = null;
+    let days = null, hours = null, minutes = null, seconds = null;
     timeParts.forEach((part) => {
       if (part.includes("day")) days = part;
       else if (part.includes("hour")) hours = part;
@@ -189,7 +156,7 @@ const ReportStepCard = ({
     return false;
   };
 
-  const renderMediaPreview = () => {
+   const renderMediaPreview = () => {
     const commonStyles = {
       width: "100%",
       minHeight: isAccordion ? "250px" : "250px",
@@ -204,27 +171,14 @@ const ReportStepCard = ({
       border: "1px solid #dee2e6",
     };
 
-    if (
-      (item.editor_type === "Editeur" ||
-        item.editor_type === "Subtask" ||
-        item?.editor_type === "Prestation" ||
-        item?.editor_type === "Story") &&
-      item.editor_content &&
-      item.editor_content.trim() !== "<html><head></head><body></body></html>"
-    ) {
+
+    if ((item.editor_type === "Editeur" || item.editor_type === "Subtask" || item?.editor_type === "Prestation" || item?.editor_type === "Story") && item.editor_content && item.editor_content.trim() !== "<html><head></head><body></body></html>") {
       const tempDiv = document.createElement("div");
       tempDiv.innerHTML = item.editor_content;
       const firstImageTag = tempDiv.querySelector("img");
-      const firstImageUrl = firstImageTag
-        ? firstImageTag.getAttribute("src")
-        : "";
+      const firstImageUrl = firstImageTag ? firstImageTag.getAttribute("src") : "";
       return firstImageUrl ? (
-        <Image
-          src={firstImageUrl}
-          style={commonStyles}
-          alt="Step Preview"
-          className="step-media hover-scale"
-        />
+        <Image src={firstImageUrl} style={commonStyles} alt="Step Preview" className="step-media hover-scale" />
       ) : (
         <div style={commonStyles} className="hover-scale">
           <FiEdit size={40} color="#00a8e1" />
@@ -242,10 +196,7 @@ const ReportStepCard = ({
           <RiFileExcel2Line size={40} color="#00a8e1" />
         </div>
       );
-    } else if (
-      item.editor_type === "Video" ||
-      item.editor_type === "Video Report"
-    ) {
+    } else if (item.editor_type === "Video" || item.editor_type === "Video Report") {
       return (
         <div style={commonStyles} className="hover-scale">
           <IoVideocamOutline size={40} color="#00a8e1" />
@@ -259,12 +210,7 @@ const ReportStepCard = ({
       );
     } else if (item.editor_type === "Photo") {
       return (
-        <Image
-          src={`${Assets_URL}/${item.file}`}
-          style={commonStyles}
-          alt="Step Photo"
-          className="step-media hover-scale"
-        />
+        <Image src={`${Assets_URL}/${item.file}`} style={commonStyles} alt="Step Photo" className="step-media hover-scale" />
       );
     } else if (item.url) {
       return (
@@ -281,31 +227,16 @@ const ReportStepCard = ({
   };
 
   const renderContent = () => {
-    if (
-      (item.editor_type === "Editeur" ||
-        item.editor_type === "Subtask" ||
-        item?.editor_type === "Prestation" ||
-        item?.editor_type === "Story") &&
-      item.editor_content &&
-      item.editor_content.trim() !== "<html><head></head><body></body></html>"
-    ) {
+    if ((item.editor_type === "Editeur" || item.editor_type === "Subtask" || item?.editor_type === "Prestation" || item?.editor_type === "Story") && item.editor_content && item.editor_content.trim() !== "<html><head></head><body></body></html>") {
       return (
-        <div
-          className="rendered-content"
-          style={{ borderRadius: "8px", padding: "1rem" }}
-        >
+        <div className="rendered-content" style={{ borderRadius: "8px", padding: "1rem" }}>
           <div dangerouslySetInnerHTML={{ __html: item.editor_content }} />
         </div>
       );
     } else if (item.file && item.editor_type === "File") {
       return (
         <div className="pdf-content">
-          <Button
-            href={`${Assets_URL}/${item.file}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="option-btn mb-3"
-          >
+          <Button href={`${Assets_URL}/${item.file}`} target="_blank" rel="noopener noreferrer" className="option-btn mb-3">
             {t("Download PDF")}
           </Button>
           <iframe
@@ -322,10 +253,7 @@ const ReportStepCard = ({
       );
     } else if (item.file && item.editor_type === "Excel") {
       return (
-        <div
-          className="excel-content"
-          style={{ borderRadius: "8px", padding: "1rem" }}
-        >
+        <div className="excel-content" style={{ borderRadius: "8px", padding: "1rem" }}>
           {excelData ? (
             <Spreadsheet data={excelData} />
           ) : (
@@ -342,10 +270,7 @@ const ReportStepCard = ({
         <iframe
           src={embedUrl}
           width="100%"
-          style={{
-            height: isAccordion ? "200px" : "400px",
-            borderRadius: "8px",
-          }}
+          style={{ height: isAccordion ? "200px" : "400px", borderRadius: "8px" }}
           title="Video Preview"
           frameBorder="0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -354,12 +279,7 @@ const ReportStepCard = ({
           loading="lazy"
         />
       ) : (
-        <Button
-          href={item.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="option-btn"
-        >
+        <Button href={item.url} target="_blank" rel="noopener noreferrer" className="option-btn">
           {t("View Video")}
         </Button>
       );
@@ -376,12 +296,7 @@ const ReportStepCard = ({
       );
     } else if (item.url) {
       return (
-        <Button
-          href={item.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="option-btn"
-        >
+        <Button href={item.url} target="_blank" rel="noopener noreferrer" className="option-btn">
           {t("View Link")}
         </Button>
       );
@@ -419,20 +334,20 @@ const ReportStepCard = ({
   );
 
   const renderCardContent = () => (
-    <Card
-      className="step-card animate__animated animate__fadeInUp shadow-sm"
-      style={{ animationDelay: `${index * 0.2}s` }}
-    >
-      <Card.Body onClick={toggleDropdown}>
+    <Card className="step-card animate__animated animate__fadeInUp shadow-sm" style={{ animationDelay: `${index * 0.2}s` }}>
+      <Card.Body 
+      
+                  onClick={toggleDropdown}
+      >
         <Row>
           {/* <Col xs={12} md={4} className="step-multimedia">
             {renderMediaPreview()}
           </Col> */}
-          {!dropdownVisible && (
-            <Col xs={12} md={4} className="step-multimedia">
-              {renderMediaPreview()}
-            </Col>
-          )}
+           {!dropdownVisible && (
+          <Col xs={12} md={4} className="step-multimedia">
+            {renderMediaPreview()}
+          </Col>
+        )}
           <Col xs={12} md={dropdownVisible ? 12 : 8} className="step-details">
             <div className="d-flex justify-content-between align-items-center mb-3">
               <Card.Title className="step-card-heading">
@@ -442,48 +357,26 @@ const ReportStepCard = ({
                   overlay={<Tooltip>{t(`badge.${item.step_status}`)}</Tooltip>}
                 > */}
                   {item.step_status === "completed" ? (
-                    <span className="status-badge-completed ms-2">
-                      {t("badge.completed")}
-                    </span>
+                    <span className="status-badge-completed ms-2">{t("badge.completed")}</span>
                   ) : item.step_status === "in_progress" ? (
-                    <span
-                      className={
-                        meeting?.delay >= "00d:00h:01m"
-                          ? "status-badge-red ms-2"
-                          : "status-badge-inprogress ms-2"
-                      }
-                    >
+                    <span className={meeting?.delay >= "00d:00h:01m" ? "status-badge-red ms-2" : "status-badge-inprogress ms-2"}>
                       {t("badge.inprogress")}
                     </span>
-                  ) : item.step_status === "cancelled" ||
-                    item.step_status === "abort" ? (
-                    <span className="status-badge-red ms-2">
-                      {t("badge.cancel")}
-                    </span>
+                  ) : item.step_status === "cancelled" || item.step_status === "abort" ? (
+                    <span className="status-badge-red ms-2">{t("badge.cancel")}</span>
                   ) : (
-                    <span className="status-badge-upcoming ms-2">
-                      {t("badge.future")}
-                    </span>
+                    <span className="status-badge-upcoming ms-2">{t("badge.future")}</span>
                   )}
                 {/* </OverlayTrigger> */}
               </Card.Title>
               {/* <OverlayTrigger
                 placement="top"
-                overlay={
-                  <Tooltip>
-                    {dropdownVisible ? t("Hide Details") : t("Show Details")}
-                  </Tooltip>
-                }
+                overlay={<Tooltip>{dropdownVisible ? t("Hide Details") : t("Show Details")}</Tooltip>}
               > */}
                 <MdKeyboardArrowDown
                   size={26}
                   className="toggle-icon"
-                  style={{
-                    cursor: "pointer",
-                    transform: dropdownVisible
-                      ? "rotate(180deg)"
-                      : "rotate(0deg)",
-                  }}
+                  style={{ cursor: "pointer", transform: dropdownVisible ? "rotate(180deg)" : "rotate(0deg)" }}
                   onClick={toggleDropdown}
                 />
               {/* </OverlayTrigger> */}
@@ -496,16 +389,8 @@ const ReportStepCard = ({
                       <img
                         height="24px"
                         width="24px"
-                        style={{
-                          borderRadius: "20px",
-                          objectFit: "cover",
-                          objectPosition: "top",
-                        }}
-                        src={
-                          meeting?.newsletter_guide?.logo.startsWith("http")
-                            ? meeting?.newsletter_guide?.logo
-                            : `${Assets_URL}/${meeting?.newsletter_guide?.logo}`
-                        }
+                        style={{ borderRadius: "20px", objectFit: "cover", objectPosition: "top" }}
+                        src={meeting?.newsletter_guide?.logo.startsWith('http') ? meeting?.newsletter_guide?.logo : `${Assets_URL}/${meeting?.newsletter_guide?.logo}`}
                         alt={meeting?.newsletter_guide?.name}
                       />
                     ) : (
@@ -518,104 +403,59 @@ const ReportStepCard = ({
                     <img
                       height="24px"
                       width="24px"
-                      style={{
-                        borderRadius: "20px",
-                        objectFit: "cover",
-                        objectPosition: "top",
-                      }}
+                      style={{ borderRadius: "20px", objectFit: "cover", objectPosition: "top" }}
                       src={
-                        item?.assigned_to_image?.startsWith("https")
+                        item?.assigned_to_image?.startsWith("https") 
                           ? item?.assigned_to_image
                           : `${Assets_URL}/${item?.assigned_to_image}`
                       }
                       alt="Assignee"
                     />
-                    <span>
-                      {item?.assigned_to_name ||
-                        `${users?.firstName} ${users?.lastName}`}
-                    </span>
+                    <span>{item?.assigned_to_name || `${users?.firstName} ${users?.lastName}`}</span>
                   </>
                 )}
               </span>
               <span className="d-flex align-items-center gap-2">
-                <img
-                  height="16px"
-                  width="16px"
-                  src="/Assets/ion_time-outline.svg"
-                  alt="Time"
-                />
+                <img height="16px" width="16px" src="/Assets/ion_time-outline.svg" alt="Time" />
                 {item.time_unit === "days" ? (
-                  <span>
-                    {formatStepDate(
-                      item?.start_date,
-                      item?.step_time,
-                      meeting?.timezone,
-                    )}
-                  </span>
+                  <span>{formatStepDate(item?.start_date, item?.step_time, meeting?.timezone)}</span>
                 ) : (
                   <span>
-                    {formatStepDate(
-                      item?.start_date,
-                      item?.step_time,
-                      meeting?.timezone,
-                    )}{" "}
-                    {t("at")}{" "}
-                    {convertTo24HourFormat(
-                      item?.step_time,
-                      item?.start_date,
-                      item?.time_unit,
-                      meeting?.timezone,
-                    )}
+                    {formatStepDate(item?.start_date, item?.step_time, meeting?.timezone)} {t("at")} {convertTo24HourFormat(item?.step_time, item?.start_date, item?.time_unit, meeting?.timezone)}
                   </span>
                 )}
               </span>
               <span>
-                {item.time_taken === "0 sec"
-                  ? item.step_time || "0 sec"
-                  : localizeTimeTakenActive(
-                      item?.time_taken?.replace("-", ""),
-                    ) +
-                    (item?.time_taken ? " / " : " ") +
-                    (item?.editor_type === "Story" && item?.time_unit === "days"
-                      ? item.count2 +
-                        " " +
-                        (item.count2 > 1 ? "Story Points" : "Story Point")
-                      : item.count2 + " " + t(`time_unit.${item.time_unit}`))}
+             {item.time_taken === "0 sec"
+  ? item.step_time || "0 sec"
+  : localizeTimeTakenActive(item?.time_taken?.replace("-", "")) +
+    (item?.time_taken ? " / " : " ") +
+    (
+      (item?.editor_type === "Story" && item?.time_unit === "days") 
+        ? item.count2 + " " + (item.count2 > 1 ? "Story Points" : "Story Point")
+        : item.count2 + " " + t(`time_unit.${item.time_unit}`)
+    )
+}
               </span>
             </Card.Text>
             {dropdownVisible && (
-              <div
-                className="dropdown-content-1 fade"
-                ref={dropdownRef}
-                style={{ display: "none" }}
-              >
-                <div className="dropdown-section-1">
+              <div className="dropdown-content-1 fade" ref={dropdownRef} style={{ display: "none" }}>
+                <div className="dropdown-section-1" 
+                >
                   {renderContent()}
-                  <ReportMediaGallery
-                    stepMedias={getStepMedias()}
-                    fromReport={true}
-                  />
-
+                                                    <ReportMediaGallery stepMedias={getStepMedias()}  fromReport={true} />
+                  
                   {isTranscribing && (
                     <div className="d-flex justify-content-center mt-3">
                       <div style={{ width: "50%" }}>
-                        <ProgressBar
-                          now={transcriptionProgress}
-                          animated
-                          label={`${transcriptionProgress}%`}
-                        />
+                        <ProgressBar now={transcriptionProgress} animated label={`${transcriptionProgress}%`} />
                       </div>
                     </div>
                   )}
                   {item?.note && (
-                    <div
-                      className="mt-3 note-section"
-                      dangerouslySetInnerHTML={{ __html: item.note }}
-                    />
+                    <div className="mt-3 note-section" dangerouslySetInnerHTML={{ __html: item.note }} />
                   )}
-                  {item.time_unit === "days" &&
-                    item?.email_campaigns &&
-                    renderCampaignDetails()}
+                  {item.time_unit === "days" && item?.email_campaigns && renderCampaignDetails()}
                 </div>
               </div>
             )}
@@ -626,85 +466,48 @@ const ReportStepCard = ({
   );
 
   const renderAccordionContent = () => (
-    <Accordion.Item
-      eventKey={index.toString()}
-      className="accordion-item-custom"
-    >
+    <Accordion.Item eventKey={index.toString()} className="accordion-item-custom">
       <Accordion.Header className="steps-header" onClick={toggleDropdown}>
         <div className="steps-header-content">
-          <h5 className="mb-0">
-            {" "}
-            {item?.order_no}. &nbsp; {item.title}
-          </h5>
+          <h5 className="mb-0">          {item?.order_no}. &nbsp; {item.title}</h5>
           <div className="steps-meta">
+            <span>{t("Assignee")}: {item?.assigned_to_name || `${users?.firstName} ${users?.lastName}`}</span>
             <span>
-              {t("Assignee")}:{" "}
-              {item?.assigned_to_name ||
-                `${users?.firstName} ${users?.lastName}`}
-            </span>
-            <span>
-              {t("Date")}:{" "}
-              {formatStepDate(
-                item?.start_date,
-                item?.step_time,
-                meeting?.timezone,
-              )}
+              {t("Date")}: {formatStepDate(item?.start_date, item?.step_time, meeting?.timezone)}
               {item.time_unit !== "days" && (
-                <>
-                  {" "}
-                  {t("at")}{" "}
-                  {convertTo24HourFormat(
-                    item?.step_time,
-                    item?.start_date,
-                    item?.time_unit,
-                    meeting?.timezone,
-                  )}
-                </>
+                <> {t("at")} {convertTo24HourFormat(item?.step_time, item?.start_date, item?.time_unit, meeting?.timezone)}</>
               )}
             </span>
             <span>
-              {t("Time Taken")}:{" "}
-              {item.time_taken === "0 sec"
+              {t("Time Taken")}: {item.time_taken === "0 sec"
                 ? item.step_time || "0 sec"
                 : localizeTimeTakenActive(item?.time_taken?.replace("-", "")) +
-                    (item?.time_taken ? " / " : " ") +
-                    (item?.editor_type === "Story" &&
-                      item?.time_unit === "days")
-                  ? item.count2 +
-                    " " +
-                    (item.count2 > 1 ? "Story Points" : "Story Point")
-                  : // or simply: item.count2 + " SP"
-                    item.count2 + " " + t(`time_unit.${item.time_unit}`)}
+                  (item?.time_taken ? " / " : " ") +
+                 (item?.editor_type === "Story" && item?.time_unit === "days") ? (
+    item.count2 + " " + (item.count2 > 1 ? "Story Points" : "Story Point")
+    // or simply: item.count2 + " SP"
+  ) : (
+    item.count2 + " " + t(`time_unit.${item.time_unit}`)
+  )}
             </span>
-            {/* <OverlayTrigger
+            <OverlayTrigger
               placement="top"
               overlay={<Tooltip>{t(`badge.${item.step_status}`)}</Tooltip>}
-            > */}
+            >
               <span>
                 {item.step_status === "completed" ? (
-                  <span className="status-badge-completed">
-                    {t("badge.completed")}
-                  </span>
+                  <span className="status-badge-completed">{t("badge.completed")}</span>
                 ) : item.step_status === "in_progress" ? (
-                  <span
-                    className={
-                      meeting?.delay >= "00d:00h:01m"
-                        ? "status-badge-red"
-                        : "status-badge-inprogress"
-                    }
-                  >
+                  <span className={meeting?.delay >= "00d:00h:01m" ? "status-badge-red" : "status-badge-inprogress"}>
                     {t("badge.inprogress")}
                   </span>
-                ) : item.step_status === "cancelled" ||
-                  item.step_status === "abort" ? (
+                ) : item.step_status === "cancelled" || item.step_status === "abort" ? (
                   <span className="status-badge-red">{t("badge.cancel")}</span>
                 ) : (
-                  <span className="status-badge-upcoming">
-                    {t("badge.future")}
-                  </span>
+                  <span className="status-badge-upcoming">{t("badge.future")}</span>
                 )}
               </span>
-            {/* </OverlayTrigger> */}
+            </OverlayTrigger>
           </div>
         </div>
       </Accordion.Header>
@@ -714,23 +517,14 @@ const ReportStepCard = ({
         {isTranscribing && (
           <div className="d-flex justify-content-center mt-3">
             <div style={{ width: "50%" }}>
-              <ProgressBar
-                now={transcriptionProgress}
-                animated
-                label={`${transcriptionProgress}%`}
-              />
+              <ProgressBar now={transcriptionProgress} animated label={`${transcriptionProgress}%`} />
             </div>
           </div>
         )}
         {item?.note && (
-          <div
-            className="mt-3 note-section"
-            dangerouslySetInnerHTML={{ __html: item.note }}
-          />
+          <div className="mt-3 note-section" dangerouslySetInnerHTML={{ __html: item.note }} />
         )}
-        {item.time_unit === "days" &&
-          item?.email_campaigns &&
-          renderCampaignDetails()}
+        {item.time_unit === "days" && item?.email_campaigns && renderCampaignDetails()}
       </Accordion.Body>
     </Accordion.Item>
   );

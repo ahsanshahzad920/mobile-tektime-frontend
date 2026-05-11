@@ -27,7 +27,7 @@ import {
   Tab,
   Nav,
 } from "react-bootstrap";
-import { FaArrowRight, FaCalendarAlt, FaFileUpload } from "react-icons/fa";
+import { FaArrowRight, FaCalendarAlt, FaFileUpload, FaRobot } from "react-icons/fa";
 import { RxCross2 } from "react-icons/rx";
 import { FiInfo } from "react-icons/fi";
 import { FaBookOpen } from "react-icons/fa6";
@@ -140,6 +140,10 @@ const ClientDetail = () => {
     {
       value: "Agenda",
       label: t("destination.Agenda"),
+    },
+    {
+      value: "Assistant Conversation",
+      label: t("destination.assistantConversation"),
     },
 
   ];
@@ -343,7 +347,8 @@ const ClientDetail = () => {
     "event",
     "formation",
     "messagerie",
-    "agenda"
+    "agenda",
+    "Assistant Conversation"
 
   ];
 
@@ -360,7 +365,8 @@ const ClientDetail = () => {
     "Formation": "formation",
     "Recruitment": "recruitment",
     "Messagerie": "messagerie",
-    "Agenda": "agenda"
+    "Agenda": "agenda",
+    "Assistant Conversation": "Assistant Conversation"
   };
   // State for destinations loading and data
   const [loadingDestinations, setLoadingDestinations] = useState(false);
@@ -1173,6 +1179,13 @@ const ClientDetail = () => {
                           />
                         );
 
+                         case "Assistant Conversation":
+                      return (
+                        <FaRobot
+                          style={{ width: "37px", height: "36px" }}
+                          color="#DAE6ED"
+                        />
+                      );
                       case "Other":
                         return (
                           <svg

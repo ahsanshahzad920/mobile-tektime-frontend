@@ -56,6 +56,7 @@ const CopyContract = () => {
     action_need: false,
     casting_need: false,
     check_stripe: false,
+    check_whatsapp: false,
   };
   const [contractData, setContractData] = useState({
     name: "",
@@ -77,6 +78,7 @@ const CopyContract = () => {
     action_need: false,
     casting_need: false,
     check_stripe: false,
+    check_whatsapp: false,
   });
   const handleInputChange = (e) => {
     const { name, value, type, checked, selectedOptions } = e.target;
@@ -126,6 +128,7 @@ const CopyContract = () => {
             action_need: data?.data?.action_need || false,
             casting_need: data?.data?.casting_need || false,
             check_stripe: data?.data?.check_stripe === 1 || data?.data?.check_stripe === true,
+            check_whatsapp: data?.data?.check_whatsapp === 1 || data?.data?.check_whatsapp === true,
           });
         }
       } catch (error) {
@@ -176,6 +179,7 @@ const CopyContract = () => {
         ...contractData,
         name: `${updatedName}_copie_${count}`,
         check_stripe: contractData.check_stripe ? 1 : 0,
+        check_whatsapp: contractData.check_whatsapp ? 1 : 0,
       };
       const response = await axios.post(
         `${API_BASE_URL}/contracts/${id}/duplicate`,
@@ -191,14 +195,14 @@ const CopyContract = () => {
         // console.log("duplicate api response->", response);
       }
     } catch (error) {
-      // console.log("errro-updating", error);
-       if (error.response && error.response.data && error.response.data.errors) {
+        if (error.response && error.response.data && error.response.data.errors) {
         toast.error(error.response.data.errors);
       } else if (error.response && error.response.data && error.response.data.message) {
         toast.error(error.response.data.message);
       } else {
         toast.error(t("messages.error"));
       }
+      // console.log("errro-updating", error);
     } finally {
       setIsLoading(false);
     }
@@ -470,6 +474,33 @@ const CopyContract = () => {
                         style={{ cursor: "pointer", userSelect: "none" }}
                       >
                         {t("newContract.stripePayment")}
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <div className="form-check d-flex align-items-center gap-2">
+                     <input
+  className="form-check-input mt-0"
+  type="checkbox"
+  id="check_whatsapp_copy"
+  name="check_whatsapp"
+  checked={contractData.check_whatsapp === true || contractData.check_whatsapp === 1}
+  onChange={(e) => {
+    e.stopPropagation();
+    setContractData((prev) => ({
+      ...prev,
+      check_whatsapp: !prev.check_whatsapp,
+    }));
+  }}
+  style={{ cursor: "pointer" }}
+/>
+                      <label
+                        className="form-check-label mb-0"
+                        htmlFor="check_whatsapp_copy"
+                        style={{ cursor: "pointer", userSelect: "none" }}
+                      >
+                        WhatsApp (Direct Message)
                       </label>
                     </div>
                   </div>

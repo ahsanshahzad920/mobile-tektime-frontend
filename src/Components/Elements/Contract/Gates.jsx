@@ -496,6 +496,9 @@ const GateEditor = ({
                     {t("gateForm.gateTypeOptions.Prestations") ||
                       "Prestations"}
                   </option>
+                  <option value="Services">
+                    {t("gateForm.gateTypeOptions.Services") || "Services"}
+                  </option>
                 </Form.Select>
                 {renderError("gateType")}
                 {renderError("gate_type")}

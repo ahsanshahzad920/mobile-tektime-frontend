@@ -1211,7 +1211,7 @@ const StepChart = ({
   // const handleDecrementCount = () => {
   //   setSelectedCount((prevCount) => (prevCount > 0 ? prevCount - 1 : 0));
   // };
-  const handleIncrementCount = () => {
+   const handleIncrementCount = () => {
     // For Absence type, increment by 0.5
     if (meeting?.type === "Absence") {
       setSelectedCount((prev) => {
@@ -1237,6 +1237,7 @@ const StepChart = ({
       setSelectedCount((prev) => Math.max((Number(prev) || 0) - 1, 0));
     }
   };
+
 
   const deleteStepX = async () => {
     setIsUpdate(false);
@@ -2911,7 +2912,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                                 <input
                                   type="text"
                                   value={selectedCount}
-                                  onChange={(e) => {
+                                 onChange={(e) => {
                                     const value = e.target.value;
                                     // Allow empty string for clearing, otherwise ensure it's a number
                                     if (value === "") {

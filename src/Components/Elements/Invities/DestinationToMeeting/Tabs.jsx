@@ -1773,7 +1773,7 @@ const navigate = useNavigate();
                                     {participantsCount}
                                   </span>
                                 </button>
-
+                                
                                 <Tooltip
                                 title={`${t(
                                   "destination.destinationToMeeting.My working days"
@@ -1815,6 +1815,7 @@ const navigate = useNavigate();
                                   {destination?.destination_name}
                                 </button>
                               </Tooltip>
+
 
                                 <button
                                   className={`tab ${activeTab === "Files" ? "active" : ""}`}

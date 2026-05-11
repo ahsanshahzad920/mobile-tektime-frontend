@@ -70,6 +70,7 @@ const MissionTab = ({ searchTerm, isActive, userData }) => {
 
   const handleDestinationChange = (key) => {
     setActiveDestination(key);
+    setMeetings([]);
     fetchMeetings(key);
   };
 
@@ -82,6 +83,9 @@ const MissionTab = ({ searchTerm, isActive, userData }) => {
         d.clients?.client_name?.toLowerCase().includes(term)
     );
   }, [destinations, searchTerm]);
+
+  const activeDestinationRef = React.useRef(activeDestination);
+  useEffect(() => { activeDestinationRef.current = activeDestination; }, [activeDestination]);
 
   const handleMeetingsUpdate = useCallback((newMeetings) => {
     setMeetings((prev) => {
@@ -98,44 +102,14 @@ const MissionTab = ({ searchTerm, isActive, userData }) => {
         return new Date(date) > new Date(max) ? date : max;
       }, null);
 
-      setDestinations(dest => dest.map(d => 
-        d.id.toString() === activeDestination ? { ...d, unread_messages_count: totalUnread, last_message_date: lastDate } : d
+      setDestinations(dest => dest.map(d =>
+        d.id.toString() === activeDestinationRef.current ? { ...d, unread_messages_count: totalUnread, last_message_date: lastDate } : d
       ));
       return updated;
     });
-  }, [activeDestination]);
+  }, []);
 
-  const tabItems = useMemo(() => {
-    return filteredDestinations.map((d) => ({
-      key: d.id.toString(),
-      label: (
-        <Badge count={d.unread_messages_count} offset={[10, 0]} size="small">
-          <Space align="center">
-            {d.clients?.client_logo ? (
-              <Avatar size="small" src={d.clients.client_logo} />
-            ) : (
-              <Avatar size="small" style={{ backgroundColor: '#87d068' }}>
-                {d.destination_name?.charAt(0).toUpperCase()}
-              </Avatar>
-            )}
-            <Text 
-              strong={activeDestination === d.id.toString()}
-              style={{ 
-                color: activeDestination === d.id.toString() ? '#1677ff' : 'inherit',
-                maxWidth: '120px'
-              }}
-              ellipsis
-            >
-              {d.destination_name}
-            </Text>
-            <Text type="secondary" style={{ fontSize: '10px', marginLeft: '4px' }}>
-              {formatMomentDate(d.last_message_date || d.updated_at)}
-            </Text>
-          </Space>
-        </Badge>
-      ),
-    }));
-  }, [filteredDestinations, activeDestination]);
+  const tabItems = null; // removed unused memo
 
   if (!isActive) return null;
 
@@ -151,9 +125,9 @@ const MissionTab = ({ searchTerm, isActive, userData }) => {
         </div>
       ) : (
         <>
-          {/* Mission Tabs / Mobile Dropdown */}
-          <div className="px-3 border-bottom shadow-sm bg-white">
-            {isMobile ? (
+          {/* Mission Tabs / Mobile Dropdown - Hide on desktop to move to sidebar */}
+          {isMobile && (
+            <div className="px-3 border-bottom shadow-sm bg-white">
               <div className="py-2">
                 <Select
                   value={activeDestination}
@@ -180,17 +154,8 @@ const MissionTab = ({ searchTerm, isActive, userData }) => {
                   ))}
                 </Select>
               </div>
-            ) : (
-              <Tabs
-                activeKey={activeDestination}
-                onChange={handleDestinationChange}
-                items={tabItems}
-                size="middle"
-                tabBarStyle={{ marginBottom: 0 }}
-                className="mission-tabs"
-              />
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Discussion Area */}
           <div className="flex-grow-1 overflow-hidden position-relative">
@@ -203,15 +168,30 @@ const MissionTab = ({ searchTerm, isActive, userData }) => {
             <div className="h-100">
               {meetings.length > 0 ? (
                 <DiscussionChat
-                  meetingId={meetings[0].id} // Assuming DiscussionChat handles the logic or we pick the first
+                  meetingId={meetings[0].id} 
                   meetingsData={meetings}
                   onMeetingsUpdate={handleMeetingsUpdate}
-                   isOutlook={false}
-                   userData={userData}
+                  isOutlook={false}
+                  userData={userData}
+                  missionsData={isMobile ? null : filteredDestinations}
+                  selectedMissionId={activeDestination}
+                  onMissionSelect={handleDestinationChange}
                 />
               ) : (
-                <div className="h-100 d-flex justify-content-center align-items-center">
-                  <Text type="secondary">Aucun message dans cette mission</Text>
+                <div className="h-100 d-flex justify-content-center align-items-center p-4">
+                  <div className="w-100 h-100 d-flex flex-column">
+                    {!isMobile && (
+                       <DiscussionChat
+                         meetingId={null}
+                         meetingsData={[]}
+                         missionsData={isMobile ? null : filteredDestinations}
+                         selectedMissionId={activeDestination}
+                         onMissionSelect={handleDestinationChange}
+                         userData={userData}
+                       />
+                    )}
+                    {isMobile && <Text type="secondary">Aucun message dans cette mission</Text>}
+                  </div>
                 </div>
               )}
             </div>

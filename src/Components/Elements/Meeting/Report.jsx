@@ -2178,7 +2178,8 @@ const Report = () => {
   };
 
   const [play, setPlay] = useState(false);
-  const loggedInUserId = CookieService.get("user_id");
+  const loggedInUserId =
+    CookieService.get("user_id");
   const [workingHours, setWorkingHours] = useState([]);
   useEffect(() => {
     if (meetingData) {
@@ -2604,7 +2605,7 @@ const Report = () => {
         setMediaLoading(false); // ← Always stop loading
       }
     };
-    if (meetId) {
+  if (meetId) {
       fetchStepMedia();
     }
   }, [meetId]); // ← Better dependency: step.id only
@@ -2689,7 +2690,7 @@ const Report = () => {
         {
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${CookieService.get("token")
+            Authorization: `Bearer ${CookieService.get("token") || CookieService.get("token")
               }`,
           },
         }
@@ -5023,7 +5024,7 @@ const Report = () => {
                                       )}
                                     </div>
 
-                                    {meetingData?.type !== "Calendly" && <div className="d-flex gap-3 play-meeting-button">
+                                    {(meetingData?.type !== "Calendly" && meetingData?.presentation) && <div className="d-flex gap-3 play-meeting-button">
                                       <div className="d-flex w-100 play-btn-child">
                                         <AntdTooltip
                                           title={

@@ -235,6 +235,11 @@
     "reactive": "Reactive"
   },
   "meeting": {
+    "mobile": {
+      "mission": "Mission",
+      "date_time": "Date & Time",
+      "updated_at": "Updated at"
+    },
     "See More": "See More",
     "title": "Moments",
     "draftTab": "Drafts",
@@ -252,6 +257,7 @@
     "activeMeetingsTab": "In Progress",
     "completedMeetingsTab": "Finished",
     "unread": "Unread",
+    "moments": "Meetings",
     "upcoming": "Upcoming/late",
     "noStatus": "No Status",
     "absence_step_type": {
@@ -385,7 +391,8 @@
           "committee": "Comitee",
           "conference": "Conference",
           "Agile ritual": "Agile ritual",
-          "absence": "Absence"
+          "absence": "Absence",
+          "assistantConversation": "Assistant Conversation"
         },
         "priorities": {
           "priority": "Determine the importance of this moment",
@@ -806,7 +813,8 @@
           "committee": "Comitee",
           "conference": "Conference",
           "Agile ritual": "Agile ritual",
-          "absence": "Absence"
+          "absence": "Absence",
+          "assistantConversation": "Assistant Conversation"
         },
         "priorities": {
           "priority": "Determine the importance of this moment",
@@ -1173,10 +1181,13 @@
     "enterprises": "Enterprises",
     "TeamSubText": "Only people in your team can see your information.",
     "teamsAdded": "Teams added",
+    "missionsAdded": "Missions added",
+    "missionTypes": "Mission Types",
     "selectEnterprise": " Select Enterprise",
     "enterprisesAdded": "Enterprises added",
     "noEnterprisesAdded": "No Enterprises added",
     "noTeamsAdded": "No Teams added",
+    "noMissionsAdded": "No Missions added",
     "private": "Private",
     "privateSubText": "Nobody can see your information.",
     "presentation": "Presentation",
@@ -1460,6 +1471,8 @@
     "today": "Today"
   },
   "destination": {
+    "selectType": "Select mission type",
+    "assistantConversation": "Assistant Conversation",
     "project": "Project",
     "study": "Study",
     "audit": "Audit",
@@ -1625,6 +1638,7 @@
     "Date": "Date"
   },
   "types": {
+    "Assistant Conversation": "Assistant Conversation",
     "Calendly": "Calendar",
     "time_off": "Time off",
     "Prestation Client": "Prestation Client",
@@ -1663,6 +1677,8 @@
     "Conversation Gmail": "Conversation Gmail"
   },
   "destinationTypes": {
+    "assistant conversation":"Assistant Conversation",
+    "Assistant Conversation":"Assistant Conversation",
     "Project": "Project",
     "Study": "Study",
     "Audit": "Audit",
@@ -1851,6 +1867,8 @@
   "Add Mission": "Add Mission",
   "Created on": "Created on",
   "destination_types": {
+    "assistant conversation":"Assistant Conversation",
+    "Assistant Conversation":"Assistant Conversation",
     "opportunity": "Business Opportunity",
     "study": "Study",
     "audit": "Audit",
@@ -1888,7 +1906,9 @@
     "Outlook Agenda": "Outlook Agenda",
     "Google Agenda": "Google Agenda",
     "Agenda": "Agenda",
-    "agenda": "Agenda"
+    "agenda": "Agenda",
+    "assistant conversation":"Assistant Conversation",
+    "Assistant Conversation":"Assistant Conversation"
   },
   "mission-badge": {
     "new": "New missions",
@@ -3320,6 +3340,9 @@
     "follow_us": "Follow us",
     "newsletterText": " Join our community and discover how TekTIME transforms teamwork.",
     "rights_reserved": "All rights reserved.",
+    "ctaTitle": "Ready to reclaim your time and maximize your impact?",
+    "tryBtn": "Try TekTIME",
+    "bookBtn": "Book an appointment",
     "hero": {
       "title1": "Manage all your business activity",
       "title2": "company through a",
@@ -3470,7 +3493,7 @@
         "role": "Founder of Mieux Donner"
       }
     },
-    "values": {
+     "values": {
       "title": "Our Values",
       "desc": "TekTIME is more than just a management tool — it’s a philosophy: working better, together, with peace of mind.",
       "button": "Join our vision →",
@@ -3652,7 +3675,8 @@
       "Entreprises": "Enterprise",
       "Profession": "Profession",
       "Applications": "Applications",
-      "Prestations":"Prestations"
+      "Prestations":"Prestations",
+      "Services":"Services"
     },
     "sections": {
       "hero": {

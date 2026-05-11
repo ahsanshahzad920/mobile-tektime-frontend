@@ -80,8 +80,72 @@ const AddProfile = ({ user, teams, refreshUserData, isLoading, setView }) => {
   } = useFormContext();
 
   const { profileImage, setProfileImage,setUser,setCallUser } = useHeaderTitle();
+ const [addressSuggestions, setAddressSuggestions] = useState([]);
+const [showSuggestions, setShowSuggestions] = useState(false);
+const [isSearching, setIsSearching] = useState(false);
+const [isSelecting, setIsSelecting] = useState(false); // Selection track karne ke liye
+const addressTimeoutRef = useRef(null); // Timeout store karne ke liye
   const navigate = useNavigate();
   const isAuth = JSON.parse(CookieService.get("is_google_login"));
+
+ // 1. Handle Input with Debouncing
+const handleAddressChange = (e) => {
+  const value = e.target.value;
+  setFormData({ ...formData, address: value });
+
+  // Agar selection abhi hui hai toh API call block karo
+  if (isSelecting) {
+    setIsSelecting(false);
+    return;
+  }
+
+  // Purana pending timeout khatam karo
+  if (addressTimeoutRef.current) clearTimeout(addressTimeoutRef.current);
+
+  if (value.length > 2) {
+    // 500ms wait karo typing khatam hone ka
+    addressTimeoutRef.current = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const response = await fetch(
+          `https://photon.komoot.io/api/?q=${encodeURIComponent(value)}&limit=5`
+        );
+        const data = await response.json();
+        setAddressSuggestions(data.features || []);
+        setShowSuggestions(true);
+      } catch (error) {
+        console.error("Address API Error:", error);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 500);
+  } else {
+    setAddressSuggestions([]);
+    setShowSuggestions(false);
+  }
+};
+
+// 2. Select Address with Duplicate Cleaning
+const selectAddress = (item) => {
+  setIsSelecting(true); // Flag set taake handleAddressChange API call na kare
+  
+  const { name, city, state, country } = item.properties;
+
+  // Duplicate values remove karne ke liye logic (e.g., Chicago, Chicago fix)
+  const parts = [name, city, state, country]
+    .filter((val, index, self) => 
+      val && self.indexOf(val) === index // Sirf unique aur non-null values rakhein
+    );
+
+  const fullAddress = parts.join(", ");
+
+  setFormData((prev) => ({ ...prev, address: fullAddress }));
+  setAddressSuggestions([]);
+  setShowSuggestions(false);
+
+  // Clear any pending timeout
+  if (addressTimeoutRef.current) clearTimeout(addressTimeoutRef.current);
+};
   const options = [
     {
       value: "LinkedIn",
@@ -2223,7 +2287,7 @@ const AddProfile = ({ user, teams, refreshUserData, isLoading, setView }) => {
                             </Col>
                           </Row>
                           <Row>
-                            <Col md={12}>
+                            {/* <Col md={12}>
                               <Form.Group className="mb-3">
                                 <Form.Label>{t("profile.address")}</Form.Label>
                                 <Form.Control
@@ -2235,7 +2299,70 @@ const AddProfile = ({ user, teams, refreshUserData, isLoading, setView }) => {
                                   onChange={handleChange}
                                 />
                               </Form.Group>
-                            </Col>
+                            </Col> */}
+                        <Form.Group className="mb-3" style={{ position: 'relative' }}>
+  <Form.Label>{t("profile.address")}</Form.Label>
+  <InputGroup>
+    <Form.Control
+      type="text"
+      placeholder={t("profile.address")}
+      name="address"
+      autoComplete="off"
+      value={formData.address}
+      onChange={handleAddressChange}
+      onFocus={() => formData.address.length > 2 && addressSuggestions.length > 0 && setShowSuggestions(true)}
+      onBlur={() => setTimeout(() => setShowSuggestions(false), 300)} // 300ms delay taake click register ho jaye
+    />
+    {isSearching && (
+      <InputGroup.Text style={{ background: 'white', borderLeft: 'none' }}>
+        <Spinner animation="border" size="sm" variant="primary" />
+      </InputGroup.Text>
+    )}
+  </InputGroup>
+
+  {/* Suggestions List */}
+  {showSuggestions && addressSuggestions.length > 0 && (
+    <div style={{
+      position: 'absolute',
+      top: '100%',
+      left: 0,
+      right: 0,
+      backgroundColor: 'white',
+      border: '1px solid #ced4da',
+      borderRadius: '0 0 8px 8px',
+      zIndex: 1050,
+      boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
+      marginTop: '-1px'
+    }}>
+      {addressSuggestions.map((item, index) => (
+        <div
+          key={index}
+          onClick={() => selectAddress(item)}
+          style={{
+            padding: '12px 15px',
+            cursor: 'pointer',
+            borderBottom: index !== addressSuggestions.length - 1 ? '1px solid #f1f1f1' : 'none',
+            fontSize: '14px'
+          }}
+          onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+          onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
+        >
+          <div className="d-flex align-items-start">
+            <span className="me-2">📍</span>
+            <div>
+              <strong style={{ display: 'block', color: '#333' }}>{item.properties.name}</strong>
+              <small style={{ color: '#6c757d' }}>
+                {[item.properties.city, item.properties.state, item.properties.country]
+                  .filter(v => v && v !== item.properties.name) // Sub-text mein main naam repeat na ho
+                  .join(", ")}
+              </small>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+</Form.Group>
                           </Row>
                         </Form>
                       </Card>
@@ -3927,7 +4054,9 @@ const AddProfile = ({ user, teams, refreshUserData, isLoading, setView }) => {
                                     emoji: "🧠",
                                     title: "Chef de projet / Product Owner",
                                     desc: "Je planifie, j'organise, je pilote.",
-                                    value: "Project Manager / Product Owner",
+                                                                        value: "Project Manager / Product Owner",
+                                    defaultNeeds: ["mission_need", "meeting_need"],
+
                                     // Add tabs that should be shown for this role
                                     tabs: [
                                       {
@@ -3956,7 +4085,9 @@ const AddProfile = ({ user, teams, refreshUserData, isLoading, setView }) => {
                                       "Chargé de relation client / Commercial",
                                     desc: "Je gère les clients, je prépare les rendez-vous, je suis les actions et je m’assure que tout avance côté client comme en interne.",
                                     value:
-                                      "Customer Relations Officer / Sales Representative",
+                                                                            "Customer Relations Officer / Sales Representative",
+                                    defaultNeeds: ["mission_need", "meeting_need"],
+
                                     tabs: [
                                       {
                                         icon: (
@@ -3982,7 +4113,9 @@ const AddProfile = ({ user, teams, refreshUserData, isLoading, setView }) => {
                                     emoji: "🎯",
                                     title: "Manager / Responsable d'équipe",
                                     desc: "Je supervise les personnes, les objectifs, les résultats.",
-                                    value: "Manager / Team Leader",
+                                                                        value: "Manager / Team Leader",
+                                    defaultNeeds: ["casting_need", "meeting_need"],
+
                                     tabs: [
                                       {
                                         icon: (
@@ -4010,7 +4143,9 @@ const AddProfile = ({ user, teams, refreshUserData, isLoading, setView }) => {
                                       "Développeur / Contributeur opérationnel",
                                     desc: "Je veux de la clarté sur mes tâches, mon temps, mes priorités.",
                                     value:
-                                      "Developer / Operational Contributor",
+                                                                            "Developer / Operational Contributor",
+                                    defaultNeeds: ["action_need", "meeting_need"],
+
                                     tabs: [
                                       {
                                         icon: (
@@ -4036,7 +4171,9 @@ const AddProfile = ({ user, teams, refreshUserData, isLoading, setView }) => {
                                     emoji: "🎓",
                                     title: "Formateur / Coach",
                                     desc: "J'organise des sessions, je produis du contenu, je suis des participants.",
-                                    value: "Trainer / Coach",
+                                                                        value: "Trainer / Coach",
+                                    defaultNeeds: ["meeting_need", "solution_need"],
+
                                     tabs: [
                                       {
                                         icon: (
@@ -4063,7 +4200,9 @@ const AddProfile = ({ user, teams, refreshUserData, isLoading, setView }) => {
                                     emoji: "🛠️",
                                     title: "Consultant / Freelance",
                                     desc: "Je facture mon temps, j'enchaîne les missions, je veux aller à l'essentiel.",
-                                    value: "Consultant / Freelance",
+                                                                        value: "Consultant / Freelance",
+                                    defaultNeeds: ["mission_need", "meeting_need"],
+
                                     tabs: [
                                       {
                                         icon: (
@@ -4089,9 +4228,33 @@ const AddProfile = ({ user, teams, refreshUserData, isLoading, setView }) => {
                                     emoji: "🧪",
                                     title: "Autre / Explorateur",
                                     desc: "Je teste pour comprendre ce que TekTIME peut m'apporter.",
-                                    value: "Other / Explorer",
-                                    tabs: [
-                                      ,
+                                                                        value: "Other / Explorer",
+                                                                         defaultNeeds: ["mission_need", "meeting_need", "action_need", "casting_need", "discussion_need", "solution_need"],
+
+
+                                                                                                                                                 tabs: [
+                                       {
+                                         icon: (
+                                           <img
+                                             src="/Assets/Tek.png"
+                                             alt="solution"
+                                             width="30px"
+                                           />
+                                         ),
+                                         name: "Solution",
+                                       },
+                                       {
+                                         icon: (
+                                           <img
+                                             src="/Assets/sidebar_active_discussion.svg"
+                                             alt="discussion"
+                                             width="23px"
+                                           />
+                                         ),
+                                         name: "Discussion",
+                                       },
+
+
                                       {
                                         icon: (
                                           <img
@@ -4143,6 +4306,7 @@ const AddProfile = ({ user, teams, refreshUserData, isLoading, setView }) => {
                                         setFormData((prev) => ({
                                           ...prev,
                                           job: role.value,
+                                          needs: role.defaultNeeds || [],
                                         }))
                                       }
                                     >

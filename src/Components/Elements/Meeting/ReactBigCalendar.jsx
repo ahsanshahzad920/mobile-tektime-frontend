@@ -252,7 +252,7 @@ const ReactBigCalendar = ({ quickMomentForm }) => {
       const top = window.screenY + (window.innerHeight - height) / 2;
 
       const popup = window.open(
-        `https://api.tektime.io/outlook-login?user_id=${CookieService.get(
+        `${process.env.REACT_APP_API_BASE_URL}/outlook-login?user_id=${CookieService.get(
           "user_id",
         )}`,
         "Outlook Login",
@@ -266,7 +266,7 @@ const ReactBigCalendar = ({ quickMomentForm }) => {
       const messageHandler = async (event) => {
         console.log("Received message event:", event);
 
-        if (event.origin !== "https://api.tektime.io") {
+        if (event.origin !== process.env.REACT_APP_API_BASE_URL) {
           console.warn("⚠️ Ignored message from unknown origin:", event.origin);
           return;
         }
@@ -876,7 +876,7 @@ const ReactBigCalendar = ({ quickMomentForm }) => {
 
   useEffect(() => {
     if (selectedAgenda) {
-      getCompletedMeetings(currentStartDate, true);
+      getCompletedMeetings(currentStartDate, false);
     }
   }, [currentStartDate, selectedAgenda, currentView, callUser]);
 

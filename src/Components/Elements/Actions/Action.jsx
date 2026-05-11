@@ -379,7 +379,7 @@ const Action = ({ stepsData, setMyActionCount, refreshTrigger }) => {
   // }, [call]);
 
   const upcomingCount = steps?.filter(
-    (step) => step.step_status === null,
+    (step) => step.step_status === null || step.step_status === "to_accept",
   ).length;
   const todoCount = steps?.filter(
     (step) => step.step_status === "todo" || step?.step_status === "to_finish",
@@ -390,7 +390,7 @@ const Action = ({ stepsData, setMyActionCount, refreshTrigger }) => {
   };
   // ---------------------------------------TOTAL UPCOMING STEPS TIME-----------------------------------
 
-  const upcomingSteps = steps?.filter((step) => step?.step_status === null);
+  const upcomingSteps = steps?.filter((step) => step?.step_status === null || step?.step_status === "to_accept");
   const UpcomingAndTodo = [...upcomingSteps, todoSteps];
   const totalUpcomingSteps = UpcomingAndTodo?.reduce((total, step) => {
     const { count2 = 0, time_unit } = step;
@@ -985,6 +985,7 @@ const Action = ({ stepsData, setMyActionCount, refreshTrigger }) => {
       item?.step_status === "completed" ||
       item?.step_status === "cancelled" ||
       item?.step_status === null ||
+      item?.step_status === "to_accept" ||
       item?.step_status === "todo" ||
       item?.step_status === "to_finish"
     ) {
@@ -1181,7 +1182,7 @@ const Action = ({ stepsData, setMyActionCount, refreshTrigger }) => {
                     >
                       <div className="mt-3">
                         {steps
-                          ?.filter((step) => step?.step_status === null)
+                          ?.filter((step) => step?.step_status === null || step?.step_status === "to_accept")
                           .sort((a, b) => {
                             const dateA = new Date(a?.start_date);
                             const dateB = new Date(b?.start_date);
@@ -1377,8 +1378,8 @@ const Action = ({ stepsData, setMyActionCount, refreshTrigger }) => {
                                             </span>
                                           ) : item.step_status ===
                                             "to_accept" ? (
-                                            <span className="status-badge-to-accept h-auto">
-                                              {t("badge.toAccept")}
+                                            <span className="status-badge-green h-auto">
+                                              {t("badge.to_accept")}
                                             </span>
                                           ) : (
                                             // null
@@ -1629,7 +1630,7 @@ const Action = ({ stepsData, setMyActionCount, refreshTrigger }) => {
                                                   )}
                                               {item?.step_status !== null && (
                                                 <span>
-                                                  &nbsp; /{" "}
+                                                  &nbsp; {item?.step_status !== "to_accept" && "/"}{" "}
                                                   {item.count2 +
                                                     " " +
                                                     t(

@@ -235,6 +235,11 @@
     "reactive": "Résactiver"
   },
   "meeting": {
+    "mobile": {
+      "mission": "Mission",
+      "date_time": "Date & Heure",
+      "updated_at": "Mis à jour"
+    },
     "See More": "Voir le détail",
     "title": "Moments",
     "draftTab": "Brouillons",
@@ -252,6 +257,7 @@
     "activeMeetingsTab": "En cours",
     "completedMeetingsTab": "Terminé",
     "unread": "Non lus",
+    "moments": "Moments",
     "upcoming": "À venir/En retard",
     "noStatus": "Sans statut",
     "absence_step_type": {
@@ -386,7 +392,8 @@
           "individualInterview": "Entretien individuel",
           "Pomodoro": "Pomodoro",
           "Agile ritual": "Rituel agile",
-          "absence": "Absence"
+          "absence": "Absence",
+          "assistantConversation": "Conversation de l'assistant"
         },
         "priorities": {
           "priority": "Déterminer l'importance de ce moment",
@@ -808,7 +815,8 @@
           "individualInterview": "Entretien individuel",
           "Pomodoro": "Pomodoro",
           "Agile ritual": "Rituel agile",
-          "absence": "Absence"
+          "absence": "Absence",
+          "assistantConversation": "Conversation de l'assistant"
         },
         "priorities": {
           "priority": "Déterminer l'importance de ce moment",
@@ -1175,7 +1183,10 @@
     "teams": "Équipes",
     "TeamSubText": "Seules les personnes de votre équipe peuvent voir vos    informations.",
     "teamsAdded": "Équipes ajoutées",
+    "missionsAdded": "Missions ajoutées",
+    "missionTypes": "Types de mission",
     "noTeamsAdded": "Aucune équipe ajoutée",
+    "noMissionsAdded": "Aucune mission ajoutée",
     "selectEnterprise": " Sélectionnez Entreprise",
     "enterprisesAdded": "Entreprises ajoutées",
     "noEnterprisesAdded": "Aucune entreprise ajoutée",
@@ -1454,6 +1465,8 @@
     "today": "Aujourd'hui"
   },
   "destination": {
+    "selectType": "Sélectionner le type de mission",
+    "assistantConversation": "Assistant Conversation",
     "project": "Projet",
     "accompagnement": "Accompagnement",
     "study": "Etude",
@@ -1628,6 +1641,7 @@
     "Date": "Date"
   },
   "types": {
+    "Assistant Conversation": "Assistant Conversation",
     "Calendly": "Calendrier",
     "time_off": "Time off",
     "Prestation Client": "Prestation Client",
@@ -1666,6 +1680,8 @@
     "Conversation Gmail": "Conversation Gmail"
   },
   "destinationTypes": {
+    "assistant conversation":"Assistant Conversation",
+    "Assistant Conversation":"Assistant Conversation",
     "Project": "Projet",
     "Study": "Etude",
     "Audit": "Audit",
@@ -1853,6 +1869,8 @@
   "Add Mission": "Nouvelle mission",
   "Created on": "Créée le",
   "destination_types": {
+    "assistant conversation":"Assistant Conversation",
+    "Assistant Conversation":"Assistant Conversation",
     "opportunity": "Opportunité d'affaire",
     "study": "Étude",
     "audit": "Audit",
@@ -1889,7 +1907,9 @@
     "Outlook Agenda": "Outlook Agenda",
     "Google Agenda": "Google Agenda",
     "Agenda": "Agenda",
-    "agenda": "Agenda"
+    "agenda": "Agenda",
+    "assistant conversation":"Assistant Conversation",
+    "Assistant Conversation":"Assistant Conversation"
   },
   "mission-badge": {
     "new": "Nouvelles missions",
@@ -3317,6 +3337,9 @@
     "follow_us": "Suivez-nous",
     "newsletterText": " Rejoignez notre communauté et découvrez comment TekTIME transforme le travail d’équipe.",
     "rights_reserved": "Tous droits réservés.",
+    "ctaTitle": "Prêt à reprendre le contrôle de votre temps et maximiser votre impact ?",
+    "tryBtn": "Essayer TekTIME",
+    "bookBtn": "Prendre rendez-vous",
     "hero": {
       "title1": "Pilotez toute l'activité de votre",
       "title2": "entreprise à travers une",
@@ -3649,7 +3672,8 @@
       "Entreprises": "Entreprises",
       "Profession": "Métiers",
       "Applications": "Applications",
-      "Prestations":"Prestations"
+      "Prestations":"Prestations",
+      "Services":"Services"
 
     },
 

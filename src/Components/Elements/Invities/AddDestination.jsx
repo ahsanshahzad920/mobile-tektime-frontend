@@ -31,7 +31,7 @@ import { IoIosBusiness, IoIosRocket } from "react-icons/io";
 import { FaBookOpen } from "react-icons/fa6";
 import { AiOutlineAudit } from "react-icons/ai";
 import { MdEventAvailable, MdOutlineSupport, MdWork } from "react-icons/md";
-import { FaBullseye, FaChalkboardTeacher } from "react-icons/fa";
+import { FaBullseye, FaChalkboardTeacher, FaRobot } from "react-icons/fa";
 import { getUserRoleID } from "../../Utils/getSessionstorageItems";
 
 // Optional: register the locale
@@ -164,6 +164,10 @@ const AddDestination = ({
     {
       value: "Messagerie",
       label: t("destination.messaging"),
+    },
+    {
+      value: "Assistant Conversation",
+      label: t("destination.assistantConversation"),
     },
   ], [t]);
   const [createAnother, setCreateAnother] = useState(false);
@@ -792,6 +796,29 @@ const AddDestination = ({
                         />
                       );
 
+                    case "Assistant Conversation":
+                      return (
+                        <FaRobot
+                          style={{ width: "37px", height: "36px" }}
+                          color="#DAE6ED"
+                        />
+                      );
+
+                    case "Agenda":
+                    case "Messagerie":
+                      return (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="37"
+                          height="36"
+                          viewBox="0 0 24 24"
+                          fill="#F19C38"
+                        >
+                          <path d="M7.5 5.6L10 0L12.5 5.6L18.1 8.1L12.5 10.6L10 16.2L7.5 10.6L1.9 8.1L7.5 5.6Z"/>
+                          <path d="M17.5 15.6L19.1 12.1L20.7 15.6L24.2 17.2L20.7 18.8L19.1 22.3L17.5 18.8L14 17.2L17.5 15.6Z"/>
+                        </svg>
+                      );
+
                     case "Other":
                       return (
                         <svg
@@ -929,6 +956,39 @@ const AddDestination = ({
                             return (
                               <FaBullseye style={{ width: 22, height: 22 }} />
                             );
+                          case "Assistant Conversation":
+                            return (
+                              <FaRobot style={{ width: 22, height: 22 }} />
+                            );
+                          case "Agenda":
+                          case "Messagerie":
+                            return (
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="22"
+                                height="22"
+                                viewBox="0 0 24 24"
+                                fill="#F19C38"
+                              >
+                                <path d="M7.5 5.6L10 0L12.5 5.6L18.1 8.1L12.5 10.6L10 16.2L7.5 10.6L1.9 8.1L7.5 5.6Z"/>
+                                <path d="M17.5 15.6L19.1 12.1L20.7 15.6L24.2 17.2L20.7 18.8L19.1 22.3L17.5 18.8L14 17.2L17.5 15.6Z"/>
+                              </svg>
+                            );
+
+                          case "Assistant Conversation":
+                            return (
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="22"
+                                height="22"
+                                viewBox="0 0 24 24"
+                                fill="#F19C38"
+                              >
+                                <path d="M7.5 5.6L10 0L12.5 5.6L18.1 8.1L12.5 10.6L10 16.2L7.5 10.6L1.9 8.1L7.5 5.6Z"/>
+                                <path d="M17.5 15.6L19.1 12.1L20.7 15.6L24.2 17.2L20.7 18.8L19.1 22.3L17.5 18.8L14 17.2L17.5 15.6Z"/>
+                              </svg>
+                            );  
+
                           case "Other":
                             return (
                               <svg

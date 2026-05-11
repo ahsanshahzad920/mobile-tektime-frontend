@@ -55,6 +55,7 @@ function UpdateContract() {
     action_need: false,
     casting_need: false,
     check_stripe: false,
+    check_whatsapp: false,
     description: "",
   };
 
@@ -75,6 +76,7 @@ function UpdateContract() {
     action_need: false,
     casting_need: false,
     check_stripe: false,
+    check_whatsapp: false,
     description: "",
   });
 
@@ -116,9 +118,17 @@ function UpdateContract() {
           action_need: data?.data?.action_need,
           casting_need: data?.data?.casting_need,
           check_stripe: data?.data?.check_stripe === 1 || data?.data?.check_stripe === true,
+          check_whatsapp: data?.data?.check_whatsapp === 1 || data?.data?.check_whatsapp === true,
           description: data?.data?.description || "",
         });
       } catch (error) {
+          if (error.response && error.response.data && error.response.data.errors) {
+        toast.error(error.response.data.errors);
+      } else if (error.response && error.response.data && error.response.data.message) {
+        toast.error(error.response.data.message);
+      } else {
+        // toast.error(t("messages.error"));
+      }
         toast.error(t("messages.dataFetchError"));
       } finally {
         setLoading(false);
@@ -189,6 +199,7 @@ function UpdateContract() {
           action_need: contractData.action_need,
           casting_need: contractData.casting_need,
           check_stripe: contractData.check_stripe ? 1 : 0,
+          check_whatsapp: contractData.check_whatsapp ? 1 : 0,
           description: contractData.description,
           _method: "put",
         },
@@ -200,20 +211,13 @@ function UpdateContract() {
           },
         }
       );
-      if (response.status === 200 || response.status === 201) {
+      if (response.status) {
         toast.success(t("messages.contract.update.success"));
         setContractData(initialContractData);
         navigate("/contract");
       }
     } catch (error) {
-      // toast.error(t("messages.contract.update.error"));
-      if (error.response && error.response.data && error.response.data.errors) {
-        toast.error(error.response.data.errors);
-      } else if (error.response && error.response.data && error.response.data.message) {
-        toast.error(error.response.data.message);
-      } else {
-        toast.error(t("messages.error"));
-      }
+      toast.error(t("messages.contract.update.error"));
     } finally {
       setIsLoading(false);
     }
@@ -573,6 +577,27 @@ function UpdateContract() {
                         style={{ cursor: "pointer", userSelect: "none" }}
                       >
                         {t("newContract.stripePayment")}
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <div className="form-check d-flex align-items-center gap-2">
+                      <input
+                        className="form-check-input mt-0"
+                        type="checkbox"
+                        id="check_whatsapp_cb"
+                        name="check_whatsapp"
+                        checked={contractData.check_whatsapp === true || contractData.check_whatsapp === 1}
+                        onChange={handleInputChange}
+                        style={{ cursor: "pointer" }}
+                      />
+                      <label 
+                        className="form-check-label mb-0" 
+                        htmlFor="check_whatsapp_cb"
+                        style={{ cursor: "pointer", userSelect: "none" }}
+                      >
+                        WhatsApp (Direct Message)
                       </label>
                     </div>
                   </div>

@@ -1,4 +1,4 @@
-import CookieService from '../../../Utils/CookieService';
+import CookieService from "../../../Utils/CookieService";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { API_BASE_URL, Assets_URL } from "../../../Apicongfig";
@@ -69,7 +69,7 @@ function StepFileTab({
           headers: {
             Authorization: `Bearer ${CookieService.get("token")}`,
           },
-        }
+        },
       );
 
       if (response?.data) {
@@ -95,7 +95,7 @@ function StepFileTab({
 
       const response = await axios.post(
         `${API_BASE_URL}/check-meeting-password`,
-        payload
+        payload,
       );
 
       if (response?.status) {

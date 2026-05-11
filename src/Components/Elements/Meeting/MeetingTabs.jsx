@@ -602,7 +602,7 @@ function MeetingTabs() {
           />
         )}
         {activeTab.startsWith("type-") && (
-          <MeetingSubTab 
+           <MeetingSubTab 
             fetchCounts={fetchMeetingCounts} 
             unreadCounts={unreadMeetingCounts} 
           />
@@ -784,8 +784,17 @@ const MeetingTabStyles = () => (
         padding: 0 20px;
         display: flex;
         align-items: center;
+        justify-content: center;
         gap: 8px;
         border: none;
+      }
+      @media (max-width: 768px) {
+        .action-btn {
+          flex: 1;
+          min-width: 140px;
+          padding: 0 10px;
+          font-size: 13px;
+        }
       }
       .action-btn.rapid {
         background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);

@@ -91,8 +91,8 @@ const OutlookTab = ({ searchTerm, isActive, userData, refreshTrigger, onShowComp
     <div className="h-100 d-flex flex-column bg-white">
       {loadingDestinations ? <div className="p-5 text-center"><Spin /></div> : (
         <>
-          <div className={`px-2 px-md-3 border-bottom d-flex ${window.innerWidth < 768 ? 'flex-column gap-2 py-2' : 'align-items-center justify-content-between'} bg-light bg-opacity-10 shadow-sm`}>
-            {window.innerWidth < 768 ? (
+          <div className={`px-2 px-md-3 border-bottom d-flex ${window.innerWidth < 768 ? 'flex-column gap-2 py-2' : 'align-items-center justify-content-end gap-3'} bg-light bg-opacity-10 shadow-sm`}>
+            {window.innerWidth < 768 && (
               <Select
                 value={activeDestination}
                 onChange={setActiveDestination}
@@ -109,15 +109,6 @@ const OutlookTab = ({ searchTerm, isActive, userData, refreshTrigger, onShowComp
                   </Select.Option>
                 ))}
               </Select>
-            ) : (
-              <Tabs 
-                 activeKey={activeDestination} 
-                 onChange={setActiveDestination} 
-                 items={tabItems} 
-                 tabBarStyle={{ marginBottom: 0 }}
-                 className="flex-grow-1"
-                 size="middle"
-              />
             )}
             <div className={`d-flex align-items-center gap-2 ${window.innerWidth < 768 ? "w-100 justify-content-between" : "py-2"}`}>
               <Button 
@@ -146,17 +137,20 @@ const OutlookTab = ({ searchTerm, isActive, userData, refreshTrigger, onShowComp
           <Content className="flex-grow-1 overflow-hidden position-relative">
              {loadingMeetings && <div className="position-absolute w-100 h-100 d-flex justify-content-center align-items-center bg-white bg-opacity-75 z-index-1" style={{ zIndex: 5 }}><Spin tip="Chargement des e-mails..." /></div>}
              <div className="h-100">
-               {activeMeeting ? (
+               {activeMeeting || window.innerWidth >= 768 ? (
                  <DiscussionChat 
                     meetingId={activeMeeting}
                     meetingsData={meetings}
-                  onMeetingsUpdate={handleMeetingsUpdate}
+                    onMeetingsUpdate={handleMeetingsUpdate}
                     isOutlook={true}
                     onLoadMore={handleLoadMore}
                     hasMore={pagination.current_page < pagination.last_page}
                     userData={userData}
                     folder={folder}
                     searchTerm={searchTerm}
+                    missionsData={filteredDestinations}
+                    selectedMissionId={activeDestination}
+                    onMissionSelect={setActiveDestination}
                  />
                ) : <div className="p-5 text-center text-muted">Aucun message trouvé</div>}
              </div>

@@ -29,8 +29,8 @@ import { useHeaderTitle } from "../../../context/HeaderTitleContext";
 import { Avatar, Tooltip } from "antd";
 import { FaStar } from "react-icons/fa";
 import { AiOutlinePlaySquare } from "react-icons/ai";
-import { RiEditBoxLine, RiMailSendLine, RiPresentationFill } from "react-icons/ri";
-import { IoCopyOutline, IoEyeOutline } from "react-icons/io5";
+import { RiEditBoxLine, RiMailSendLine, RiPresentationFill, RiFileChartLine, RiHistoryLine } from "react-icons/ri";
+import { IoCopyOutline, IoEyeOutline, IoPlayOutline, IoVolumeHighOutline } from "react-icons/io5";
 import { MdContentCopy, MdInsertLink, MdOutlineCancel } from "react-icons/md";
 import { useMeetings } from "../../../context/MeetingsContext";
 import { useDraftMeetings } from "../../../context/DraftMeetingContext";
@@ -93,7 +93,11 @@ const ScheduledMeeting = ({
     noStatusMeetingCount,
     activeMeetingCount,
     perPage,
+    startMeetingDirectly
   } = useMeetings();
+
+  const [startingId, setStartingId] = useState(null);
+  const [audioPreviewId, setAudioPreviewId] = useState(null);
 
   const {
     open,
@@ -127,6 +131,12 @@ const ScheduledMeeting = ({
   // const [meetings, setMeetings] = useState([]);
   const moment = require("moment");
   require("moment/locale/fr");
+
+  const isMeetingLate = (item) => {
+    if (!item?.date || !(item?.starts_at || item?.start_time)) return false;
+    const meetingTime = moment(`${item.date} ${item.starts_at || item.start_time}`, "YYYY-MM-DD HH:mm:ss");
+    return moment().isAfter(meetingTime) && item.status !== 'closed' && item.status !== 'in_progress';
+  };
   useEffect(() => {
     setSearchTerm("");
   }, []);
@@ -918,8 +928,9 @@ const ScheduledMeeting = ({
     return result.trim();
   }
 
-  // const meetingsByMonth = {}; // Object to store meetings organized by month
-  allMeetings?.sort((a, b) => moment(a.date).diff(moment(b.date)));
+  if (viewMode !== "list") {
+    allMeetings?.sort((a, b) => moment(a.date).diff(moment(b.date)));
+  }
 
   const calculateDaysDifference = (startDate, endDate) => {
     if (!startDate || !endDate) return;
@@ -982,12 +993,144 @@ const ScheduledMeeting = ({
         item?.estimate_time?.split("T")[0],
       );
 
+      const isGoogle = item?.created_from === "Google Calendar" || item?.type === "Google Agenda Event";
+      const isOutlook = item?.created_from === "Outlook Calendar" || item?.type === "Outlook Agenda Event";
+      const missionTitle = item?.objective || (isGoogle ? "Google" : isOutlook ? "Outlook" : "—");
+      const initials = (item?.objective || item?.title || "M").substring(0, 2).toUpperCase();
+      const logo = item?.destination?.clients?.client_logo || item?.solution?.logo || item?.destination?.logo;
+      const solutionTitle = item?.solution ? item?.solution?.title : (isGoogle ? "Google" : isOutlook ? "Outlook" : item?.type || "Réunion");
+      const startTime = convertTo12HourFormat(item?.starts_at || item?.start_time, item?.date, item?.steps, item?.timezone);
+      const endTime = convertTo12HourFormat(item?.estimate_time?.split("T")[1], item?.estimate_time?.split("T")[0], item?.steps, item?.timezone);
+
       meetingsMap[monthName].push(
         <Card
           className="mt-3 mb-2 scheduled"
           key={index}
           onClick={() => viewPresentation(item)}
         >
+          {/* Mobile Card Layout – Spotify-style */}
+          <div className="mobile-only premium-mobile-card">
+            <div className="smc-top">
+              {/* Thumbnail */}
+              <div className="smc-thumb" style={{ background: isGoogle ? '#fde6e9' : isOutlook ? '#e0e7ff' : '#f1f5f9' }}>
+                {logo ? (
+                  <img src={logo.startsWith('http') ? logo : `${Assets_URL}/${logo}`} alt="logo" />
+                ) : (
+                  <span className="smc-initials" style={{ color: isGoogle ? '#ef4444' : isOutlook ? '#3b82f6' : '#64748b' }}>{initials}</span>
+                )}
+              </div>
+
+              {/* Body */}
+              <div className="smc-body">
+                <div className="smc-title">
+                  {item.title}
+                  {item?.status === 'active' && (
+                    <span className={`smc-badge ${moment().isAfter(moment(`${item.date} ${item.start_time}`, "YYYY-MM-DD HH:mm")) ? "late" : "future"}`}>
+                      {moment().isAfter(moment(`${item.date} ${item.start_time}`, "YYYY-MM-DD HH:mm")) ? t("badge.late") : t("badge.future")}
+                    </span>
+                  )}
+                  {item?.status === 'in_progress' && <span className="smc-badge progress">{t("badge.inprogress")}</span>}
+                  {item?.status === 'closed' && <span className="smc-badge finished">{t("badge.finished")}</span>}
+                  {item?.status === 'abort' && <span className="smc-badge cancelled">{t("badge.cancel")}</span>}
+                  {item?.status === 'todo' && <span className="smc-badge draft">{t("badge.todo")}</span>}
+                </div>
+                <div className="smc-desc">{missionTitle || solutionTitle}</div>
+                <div className="smc-meta">{formattedDate}{startTime ? ` • ${startTime}` : ''}{endTime ? ` → ${endTime}` : ''}</div>
+              </div>
+            </div>
+
+            {/* Bottom action row */}
+            <div className="smc-actions" onClick={e => e.stopPropagation()}>
+              <div className="smc-icon-group">
+                {/* Copy link */}
+                <button className="smc-icon-btn" title="Copier le lien" onClick={() => { copy(`${window.location.origin}/destination/${item?.unique_id}/${item?.id}`); toast.success(t("linkCopiedToast")); }}>
+                  <MdInsertLink size="20px" />
+                </button>
+                {/* Edit / Duplicate */}
+                {canManage(item) && (
+                  <>
+                    <button className="smc-icon-btn" title={t("dropdown.Duplicate")} onClick={(e) => { e.stopPropagation(); handleCopy(item); }}>
+                      <MdContentCopy size="18px" />
+                    </button>
+                  </>
+                )}
+                {/* More (kebab) */}
+                <div className="dropdown">
+                  <button className="smc-icon-btn" type="button" onClick={(e) => { e.stopPropagation(); toggleDropdown(item.id); }}>
+                    <BiDotsVerticalRounded size="20px" />
+                  </button>
+                  <ul className={`dropdown-menu dropdown-menu-end mobile-dropdown-menu ${openDropdownId === item.id ? 'show' : ''}`}>
+                    {canManage(item) && (
+                      <>
+                        <li><a className="dropdown-item d-flex align-items-center gap-2 py-3" onClick={(e) => { e.stopPropagation(); handleEdit(item); }}><RiEditBoxLine size="19px" /> {t("dropdown.Modify")}</a></li>
+                        <div className="dropdown-divider"></div>
+                        <li><a className="dropdown-item d-flex align-items-center gap-2 py-3 text-danger" onClick={(e) => handleDeleteClick(e, item.id)}><AiOutlineDelete size="19px" /> {t("dropdown.Delete")}</a></li>
+                      </>
+                    )}
+                  </ul>
+                </div>
+              </div>
+
+              {/* Play / View / Audio button */}
+              {item?.status === 'active' ? (
+                /* ACTIVE → Play + API call */
+                <button
+                  className="smc-play-btn"
+                  style={{ background: startingId === item?.id ? '#94a3b8' : '#2563eb' }}
+                  disabled={startingId === item?.id}
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    setStartingId(item?.id);
+                    await startMeetingDirectly(item, navigate, t);
+                    setStartingId(null);
+                  }}
+                >
+                  {startingId === item?.id
+                    ? <span className="spinner-border spinner-border-sm" style={{ width: '16px', height: '16px', borderWidth: '2px' }} />
+                    : <IoPlayOutline size="20px" />}
+                </button>
+              ) : (item?.status === 'in_progress' || item?.status === 'to_finish') ? (
+                /* IN PROGRESS / TO_FINISH → Eye icon, navigate */
+                <button
+                  className="smc-play-btn inprogress"
+                  onClick={(e) => { e.stopPropagation(); navigate(`/destination/${item?.unique_id}/${item?.id}`); }}
+                >
+                  <IoEyeOutline size="20px" />
+                </button>
+              ) : (item?.status === 'closed' || item?.status === 'abort') && item?.voice_notes ? (
+                /* CLOSED / ABORT with audio → Speaker toggle */
+                <button
+                  className="smc-play-btn"
+                  style={{ background: audioPreviewId === item?.id ? '#7c3aed' : '#0f172a' }}
+                  onClick={(e) => { e.stopPropagation(); setAudioPreviewId(audioPreviewId === item?.id ? null : item?.id); }}
+                >
+                  <IoVolumeHighOutline size="20px" />
+                </button>
+              ) : (
+                /* CLOSED / ABORT without audio → File chart, navigate */
+                <button
+                  className="smc-play-btn"
+                  style={{ background: '#64748b' }}
+                  onClick={(e) => { e.stopPropagation(); navigate(`/destination/${item?.unique_id}/${item?.id}`); }}
+                >
+                  <RiFileChartLine size="20px" />
+                </button>
+              )}
+            </div>
+            {/* Inline audio preview */}
+            {audioPreviewId === item?.id && item?.voice_notes && (
+              <div style={{ padding: '0 16px 12px', marginTop: '-4px' }} onClick={e => e.stopPropagation()}>
+                <audio
+                  controls
+                  autoPlay
+                  src={item.voice_notes}
+                  style={{ width: '100%', height: '36px', borderRadius: '8px', accentColor: '#7c3aed' }}
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="desktop-only">
           <div className="row">
             <div className="col-md-1 column-1" style={{ fontSize: "24px" }}>
               {formatDate(item)}
@@ -1987,6 +2130,7 @@ const ScheduledMeeting = ({
                 // )} */}
               </div>
             </div>
+            </div>
           </div>
         </Card>,
       );
@@ -2262,7 +2406,7 @@ const ScheduledMeeting = ({
       <div className="list-view-container" style={{
         background: '#ffffff',
         borderRadius: '14px',
-        overflow: 'hidden',
+        overflow: 'visible',
         boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
         border: '1px solid #f1f5f9'
       }}>
@@ -2270,29 +2414,120 @@ const ScheduledMeeting = ({
           {`
             .list-view-grid {
               display: grid;
-              grid-template-columns: 45px 55px 1fr 1fr 250px 250px 100px;
+              grid-template-columns: 45px 55px 1fr 1fr 180px 180px 100px;
               gap: 16px;
               padding: 14px 24px;
               align-items: center;
             }
+            @media (max-width: 1600px) {
+              .list-view-grid {
+                grid-template-columns: 45px 55px 1fr 1fr 150px 150px 100px;
+              }
+            }
             @media (max-width: 1400px) {
               .list-view-grid {
-                grid-template-columns: 45px 55px 1fr 1fr 170px 100px;
+                grid-template-columns: 45px 55px 1fr 1fr 140px 100px;
               }
               .col-audio { display: none; }
             }
             @media (max-width: 1200px) {
               .list-view-grid {
-                grid-template-columns: 45px 55px 1fr 160px 100px;
+                grid-template-columns: 45px 55px 1fr 130px 100px;
               }
               .col-mission, .col-audio { display: none; }
             }
             @media (max-width: 768px) {
-              .list-view-grid {
-                grid-template-columns: 35px 1fr 90px;
+              .list-view-grid-desktop {
+                display: none !important;
               }
-              .ps-2 { padding-left: 0 !important; }
-              .col-logo, .col-mission, .col-audio, .col-date { display: none; }
+              .list-view-row {
+                background: #ffffff;
+                border-radius: 16px !important;
+                padding: 14px !important;
+                margin-bottom: 12px;
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+                border: 1px solid #f1f5f9 !important;
+                display: flex !important;
+                flex-direction: column;
+                gap: 10px;
+                position: relative;
+              }
+              
+              .mobile-card-top {
+                display: flex;
+                align-items: start;
+                gap: 12px;
+                width: 100%;
+              }
+
+              .mobile-index-badge {
+                position: absolute;
+                top: -8px;
+                left: -8px;
+                background: #64748b;
+                color: #fff;
+                width: 22px;
+                height: 22px;
+                border-radius: 50%;
+                display: flex !important;
+                align-items: center;
+                justify-content: center;
+                font-size: 10px;
+                font-weight: 700;
+                border: 2px solid #fff;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              }
+
+              .mobile-card-details {
+                display: flex;
+                flex-direction: column;
+                gap: 10px; /* Increased spacing */
+                padding-top: 14px;
+                border-top: 1px dashed #f1f5f9;
+              }
+              .mobile-detail-item {
+                display: flex;
+                align-items: flex-start;
+                gap: 12px; /* Improved gap */
+                font-size: 12px;
+              }
+              .mobile-detail-icon {
+                font-size: 15px;
+                color: #94a3b8;
+                width: 18px;
+                padding-top: 1px;
+                display: flex;
+                justify-content: center;
+              }
+              .mobile-detail-text {
+                color: #475569;
+                font-weight: 500;
+                flex: 1;
+                line-height: 1.4;
+              }
+              .mobile-detail-label {
+                font-size: 10px;
+                color: #94a3b8;
+                font-weight: 600;
+                text-transform: uppercase;
+                margin-right: 4px;
+              }
+            }
+            
+            /* Hide mobile elements on desktop */
+            @media (min-width: 769px) {
+              .mobile-only { display: none !important; }
+            }
+            @media (max-width: 768px) {
+               .desktop-only { display: none !important; }
+            }
+            @media (max-width: 480px) {
+               .list-view-grid {
+                 gap: 2px 10px !important;
+               }
+               .col-actions {
+                 gap: 4px !important;
+               }
             }
             .meeting-grid-action-btn {
               display: flex;
@@ -2324,10 +2559,157 @@ const ScheduledMeeting = ({
               justify-content: center;
               width: 48px;
             }
-          `}
-        </style>
+
+            /* Responsive Card View Styles */
+            @media (max-width: 768px) {
+              .list-view-row.list-view-grid {
+                display: block !important;
+                padding: 0 !important;
+                margin-bottom: 12px !important;
+                border-radius: 20px !important;
+                background: #fff !important;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.06) !important;
+                border: 1px solid #f1f5f9 !important;
+                overflow: visible !important;
+              }
+              /* ── Spotify-style list card ── */
+              .premium-mobile-card {
+                padding: 16px 16px 12px;
+                position: relative;
+                border-bottom: 1px solid #f1f5f9;
+              }
+              .smc-top {
+                display: flex;
+                gap: 14px;
+                align-items: flex-start;
+              }
+              .smc-thumb {
+                flex-shrink: 0;
+                width: 68px;
+                height: 68px;
+                border-radius: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                overflow: hidden;
+              }
+              .smc-thumb img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+              }
+              .smc-initials {
+                font-size: 22px;
+                font-weight: 900;
+                letter-spacing: -1px;
+              }
+              .smc-body {
+                flex: 1;
+                min-width: 0;
+              }
+              .smc-title {
+                font-size: 14px;
+                font-weight: 700;
+                color: #0f172a;
+                line-height: 1.35;
+                overflow: hidden;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                margin-bottom: 4px;
+              }
+              .smc-desc {
+                font-size: 12px;
+                color: #64748b;
+                line-height: 1.45;
+                overflow: hidden;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                margin-bottom: 5px;
+              }
+              .smc-meta {
+                font-size: 11.5px;
+                color: #94a3b8;
+                font-weight: 500;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+              }
+              .smc-badge {
+                display: inline-block;
+                font-size: 10px;
+                font-weight: 700;
+                padding: 1px 7px;
+                border-radius: 5px;
+                margin-left: 6px;
+                vertical-align: middle;
+              }
+              .smc-badge.progress { background: #fffbeb; color: #d97706; }
+              .smc-badge.late     { background: #fef2f2; color: #ef4444; }
+              .smc-badge.future   { background: #f0fdf4; color: #16a34a; }
+              .smc-actions {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-top: 12px;
+                padding-left: 82px; /* align with body text (thumb 68 + gap 14) */
+              }
+              .smc-icon-group {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+              }
+              .smc-icon-btn {
+                background: transparent;
+                border: none;
+                color: #94a3b8;
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: color 0.15s, background 0.15s;
+              }
+              .smc-icon-btn:active { background: #f1f5f9; color: #475569; }
+              .smc-play-btn {
+                width: 44px;
+                height: 44px;
+                border-radius: 50%;
+                background: #0f172a;
+                border: none;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #fff;
+                flex-shrink: 0;
+                transition: transform 0.15s, background 0.15s;
+              }
+              .smc-play-btn:active { transform: scale(0.93); }
+              .smc-play-btn.inprogress { background: #f59e0b; }
+              .mobile-dropdown-menu {
+                border-radius: 16px !important;
+                padding: 10px !important;
+                box-shadow: 0 15px 40px rgba(0,0,0,0.15) !important;
+                border: 1px solid #f1f5f9 !important;
+                margin-top: 8px !important;
+              }
+              .mobile-dropdown-menu .dropdown-item {
+                border-radius: 10px;
+                font-size: 14px;
+                font-weight: 600;
+              }
+              .mobile-dropdown-menu .dropdown-divider {
+                margin: 8px 0;
+                opacity: 0.5;
+              }
+              .ps-2 { padding-left: 0 !important; }
+            }
+          `}</style>
+
         {/* Header */}
-        <div className="list-view-header list-view-grid" style={{
+        <div className="list-view-header list-view-grid list-view-grid-desktop" style={{
           borderBottom: '1px solid #f1f5f9',
           color: '#64748b',
           fontSize: '11px',
@@ -2352,14 +2734,17 @@ const ScheduledMeeting = ({
         {/* Rows */}
         {allMeetings.map((item, idx) => {
           const loggedInUserId = CookieService.get("user_id");
+          const sessionEmail = CookieService.get("user") ? JSON.parse(CookieService.get("user"))?.email : null;
           const logo = item?.destination?.clients?.client_logo
             || item?.solution?.logo
             || item?.destination?.logo;
           const isGoogle = item?.created_from === "Google Calendar" || item?.type === "Google Agenda Event";
           const isOutlook = item?.created_from === "Outlook Calendar" || item?.type === "Outlook Agenda Event";
           
-          const isCreator = parseInt(item?.user?.id) === parseInt(loggedInUserId);
-          const isGuide = item?.guides?.some(g => parseInt(g.id) === parseInt(loggedInUserId));
+          const isCreator = parseInt(item?.user?.id) === parseInt(loggedInUserId) ||
+            (item?.event_organizer && item?.event_organizer?.email === sessionEmail) ||
+            (item?.user?.email === sessionEmail);
+          const isGuide = item?.guides?.some(g => parseInt(g.id) === parseInt(loggedInUserId) || g?.email === sessionEmail);
           const canManage = isCreator || isGuide;
 
           const solutionTitle = item?.solution
@@ -2397,230 +2782,183 @@ const ScheduledMeeting = ({
           const isLast = idx === allMeetings.length - 1;
 
           return (
-            <div key={item.id} ref={isLast ? lastMeetingRef : null} className="list-view-row list-view-grid" style={{ 
+            <div key={item.id} ref={isLast ? lastMeetingRef : null} className="list-view-row list-view-grid list-view-grid-desktop" style={{ 
               borderBottom: '1px solid #f8fafc',
               transition: 'background 0.2s',
               cursor: 'pointer'
-            }} onMouseEnter={e => e.currentTarget.style.background = '#fcfdfe'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'} onClick={() => navigate(`/invite/${item?.id}`)}>
-              {/* Index */}
-              <span style={{ fontSize: '12px', color: '#94a3b8', width: '40px' }}>{idx + 1}</span>
+            }} onMouseEnter={e => e.currentTarget.style.background = '#fcfdfe'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'} onClick={() => {
+              const route = (item?.status === 'closed' || item?.status === 'abort') 
+                ? `/present/invite/${item?.id}` 
+                : `/invite/${item?.id}`;
+              navigate(route);
+            }}>
+              {/* Mobile View – Spotify-style list card */}
+              <div className="mobile-only premium-mobile-card">
+                <div className="smc-top">
+                  {/* Thumbnail */}
+                  <div className="smc-thumb" style={{ background: isGoogle ? '#fde6e9' : isOutlook ? '#e0e7ff' : '#f1f5f9' }}>
+                    {logo ? (
+                      <img src={logo.startsWith('http') ? logo : `${Assets_URL}/${logo}`} alt="logo" />
+                    ) : (
+                      <span className="smc-initials" style={{ color: isGoogle ? '#ef4444' : isOutlook ? '#3b82f6' : '#64748b' }}>{initials}</span>
+                    )}
+                  </div>
 
-              {/* Logo */}
-              <div className="col-logo">
+                  {/* Body */}
+                  <div className="smc-body">
+                    <div className="smc-title">
+                      {item.title}
+                      {item?.status === 'active' && (
+                        <span className={`smc-badge ${moment().isAfter(moment(`${item.date} ${item.start_time}`, "YYYY-MM-DD HH:mm")) ? "late" : "future"}`}>
+                          {moment().isAfter(moment(`${item.date} ${item.start_time}`, "YYYY-MM-DD HH:mm")) ? t("badge.late") : t("badge.future")}
+                        </span>
+                      )}
+                      {item?.status === 'in_progress' && <span className="smc-badge progress">{t("badge.inprogress")}</span>}
+                      {item?.status === 'closed' && <span className="smc-badge finished">{t("badge.finished")}</span>}
+                      {item?.status === 'abort' && <span className="smc-badge cancelled">{t("badge.cancel")}</span>}
+                      {item?.status === 'todo' && <span className="smc-badge draft">{t("badge.todo")}</span>}
+                    </div>
+                    <div className="smc-desc">{missionTitle || solutionTitle}</div>
+                    <div className="smc-meta">{formattedDate}{startTime ? ` • ${startTime}` : ''}{endTime ? ` → ${endTime}` : ''}</div>
+                  </div>
+                </div>
+
+                {/* Bottom action row */}
+                <div className="smc-actions" onClick={e => e.stopPropagation()}>
+                  <div className="smc-icon-group">
+                    {/* Copy link */}
+                    <button className="smc-icon-btn" title="Copier le lien" onClick={() => { copy(`${window.location.origin}/destination/${item?.unique_id}/${item?.id}`); toast.success(t("linkCopiedToast")); }}>
+                      <MdInsertLink size="20px" />
+                    </button>
+                    {/* Duplicate */}
+                    {canManage && (
+                      <button className="smc-icon-btn" title={t("dropdown.Duplicate")} onClick={() => handleCopy(item)}>
+                        <MdContentCopy size="18px" />
+                      </button>
+                    )}
+                    {/* More (kebab) */}
+                    <div className="dropdown">
+                      <button className="smc-icon-btn" type="button" onClick={(e) => { e.stopPropagation(); toggleDropdown(item.id); }}>
+                        <BiDotsVerticalRounded size="20px" />
+                      </button>
+                      <ul className={`dropdown-menu dropdown-menu-end mobile-dropdown-menu ${openDropdownId === item.id ? 'show' : ''}`}>
+                        {canManage && item.status !== "in_progress" && (
+                          <li><a className="dropdown-item d-flex align-items-center gap-2 py-3" onClick={() => handleShow(item.id)}><RiEditBoxLine size="19px" /> {t("dropdown.Modify")}</a></li>
+                        )}
+                        <div className="dropdown-divider"></div>
+                        {canManage && (
+                          <li><a className="dropdown-item d-flex align-items-center gap-2 py-3 text-danger" onClick={(e) => handleDeleteClick(e, item.id)}><AiOutlineDelete size="19px" /> {t("dropdown.Delete")}</a></li>
+                        )}
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Play / View / Audio button */}
+                  {item?.status === 'active' ? (
+                    <button
+                      className="smc-play-btn"
+                      style={{ background: startingId === item?.id ? '#94a3b8' : '#2563eb' }}
+                      disabled={startingId === item?.id}
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        setStartingId(item?.id);
+                        await startMeetingDirectly(item, navigate, t);
+                        setStartingId(null);
+                      }}
+                    >
+                      {startingId === item?.id
+                        ? <span className="spinner-border spinner-border-sm" style={{ width: '16px', height: '16px', borderWidth: '2px' }} />
+                        : <IoPlayOutline size="20px" />}
+                    </button>
+                  ) : (item?.status === 'in_progress' || item?.status === 'to_finish') ? (
+                    <button
+                      className="smc-play-btn inprogress"
+                      onClick={(e) => { e.stopPropagation(); navigate(`/destination/${item?.unique_id}/${item?.id}`); }}
+                    >
+                      <IoEyeOutline size="20px" />
+                    </button>
+                  ) : (item?.status === 'closed' || item?.status === 'abort') && item?.voice_notes ? (
+                    <button
+                      className="smc-play-btn"
+                      style={{ background: audioPreviewId === item?.id ? '#7c3aed' : '#0f172a' }}
+                      onClick={(e) => { e.stopPropagation(); setAudioPreviewId(audioPreviewId === item?.id ? null : item?.id); }}
+                    >
+                      <IoVolumeHighOutline size="20px" />
+                    </button>
+                  ) : (
+                    <button
+                      className="smc-play-btn"
+                      style={{ background: '#64748b' }}
+                      onClick={(e) => { e.stopPropagation(); navigate(`/destination/${item?.unique_id}/${item?.id}`); }}
+                    >
+                      <RiFileChartLine size="20px" />
+                    </button>
+                  )}
+                </div>
+                {audioPreviewId === item?.id && item?.voice_notes && (
+                  <div style={{ padding: '0 16px 12px', marginTop: '-4px' }} onClick={e => e.stopPropagation()}>
+                    <audio controls autoPlay src={item.voice_notes} style={{ width: '100%', height: '36px', borderRadius: '8px', accentColor: '#7c3aed' }} />
+                  </div>
+                )}
+              </div>
+
+              {/* Desktop View Columns (Visible only on desktop) */}
+              <span className="desktop-only col-index" style={{ fontSize: '12px', color: '#94a3b8', width: '40px' }}>{idx + 1}</span>
+              <div className="desktop-only col-logo">
                 <div style={{
                   width: '32px', height: '32px', borderRadius: '8px', 
                   background: isGoogle ? '#fde6e9' : isOutlook ? '#e0e7ff' : '#f1f5f9',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: '12px', fontWeight: '700', color: isGoogle ? '#ef4444' : isOutlook ? '#3b82f6' : '#64748b',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
                   overflow: 'hidden'
                 }}>
-                  {logo ? (
-                    <img src={logo.startsWith('http') ? logo : `${Assets_URL}/${logo}`} alt="logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  ) : initials}
+                  {logo ? <img src={logo.startsWith('http') ? logo : `${Assets_URL}/${logo}`} alt="logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
                 </div>
               </div>
-
-              {/* Title & Objective */}
-              <div className="ps-2" style={{ minWidth: 0 }}>
-                <div className="text-secondary mb-1" style={{ fontSize: '11px', fontWeight: '600', opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
-                  {solutionTitle}
-                </div>
-                <div className="fw-bold text-dark" style={{ 
-                  fontSize: '14px', 
-                  whiteSpace: 'nowrap', 
-                  overflow: 'hidden', 
-                  textOverflow: 'ellipsis' 
-                }}>
+              <div className="desktop-only ps-2" style={{ minWidth: 0 }}>
+                <div className="text-secondary mb-1" style={{ fontSize: '11px', fontWeight: '600', opacity: 0.7, textTransform: 'uppercase' }}>{solutionTitle}</div>
+                <div className="fw-bold text-dark" style={{ fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {item.title}
-                  {(item?.status === 'in_progress') && (
-                    <span style={{ marginLeft: '8px', fontSize: '10px', background: '#f2db43', color: '#ffff', padding: '2px 8px', borderRadius: '999px', border: '1px solid #fef08a' }}>
-                      {t("badge.inprogress")}
+                  {item?.status === 'active' && (
+                    <span style={{ marginLeft: '8px', fontSize: '10px', padding: '2px 8px', borderRadius: '999px', background: moment().isAfter(moment(`${item.date} ${item.start_time}`, "YYYY-MM-DD HH:mm")) ? '#ffe2e6' : '#c9f7f5', color: moment().isAfter(moment(`${item.date} ${item.start_time}`, "YYYY-MM-DD HH:mm")) ? '#f64e60' : '#1bc5bd' }}>
+                      {moment().isAfter(moment(`${item.date} ${item.start_time}`, "YYYY-MM-DD HH:mm")) ? t("badge.late") : t("badge.future")}
                     </span>
                   )}
-                  {item?.status === 'to_finish' && (
-                    <span style={{ marginLeft: '8px', fontSize: '10px', background: '#ff9800', color: '#ffff', padding: '2px 8px', borderRadius: '999px', border: '1px solid #fed7aa' }}>
-                      {t("badge.finish") || "To Finish"}
-                    </span>
-                  )}
-                 {item?.status === "active" && item?.date && item?.start_time && (
-  moment().isAfter(moment(`${item.date} ${item.start_time}`, "YYYY-MM-DD HH:mm")) ? (
-    <span style={{ 
-      marginLeft: '8px', 
-      fontSize: '10px', 
-      background: 'rgba(187, 55, 47, 0.1)', 
-      color: '#bb372f', 
-      padding: '2px 8px', 
-      borderRadius: '999px', 
-      border: '1px solid #fed7aa' 
-    }}>
-      {t("badge.late")}
-    </span>
-  ) : (
-    <span style={{ 
-      marginLeft: '8px', 
-      fontSize: '10px', 
-      background: '#e2e7f8', 
-      color: '#5b7aca', 
-      padding: '2px 8px', 
-      borderRadius: '999px', 
-      border: '1px solid #fed7aa' 
-    }}>
-      {t("badge.future")}
-    </span>
-  )
-)}
-                  {item?.status === 'abort' && (
-                    <span style={{ marginLeft: '8px', fontSize: '10px', background: '#fee2e2', color: '#ef4444', padding: '2px 8px', borderRadius: '999px', border: '1px solid #fecaca' }}>
-                      {t("badge.cancel")}
-                    </span>
-                  )}
-                  {item?.status === 'closed' && (
-                    <span style={{ marginLeft: '8px', fontSize: '10px', background: '#dcfce7', color: '#16a34a', padding: '2px 8px', borderRadius: '999px', border: '1px solid #bbf7d0' }}>
-                      {t("badge.finished")}
-                    </span>
-                  )}
-                  {item?.status === 'todo' && (
-                    <span style={{ marginLeft: '8px', fontSize: '10px', background: 'rgb(108, 117, 125)', color: '#ffff', padding: '2px 8px', borderRadius: '999px', border: '1px solid #e2e8f0' }}>
-                      {t("badge.todo")}
-                    </span>
-                  )}
-                </div>
-                {/* {item?.objective && (
-                  <div style={{ 
-                    color: '#64748b', 
-                    fontSize: '12px', 
-                    marginTop: '2px',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    fontWeight: '400'
-                  }}>
-                    {item.objective}
-                  </div>
-                )} */}
-              </div>
-
-              {/* Mission */}
-              <div className="col-mission" style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                {/* {missionLogo && (
-                  <div style={{ width: '24px', height: '24px', borderRadius: '4px', overflow: 'hidden', flexShrink: 0 }}>
-                    <img src={missionLogo.startsWith('http') ? missionLogo : `${Assets_URL}/${missionLogo}`}
-                      alt="m-logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  </div>
-                )} */}
-                <div style={{
-                  color: '#64748b', fontSize: '13px',
-                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                }}>
-                  {missionTitle}
+                  {item?.status === 'in_progress' && <span style={{ marginLeft: '8px', fontSize: '10px', background: '#f2db43', color: '#ffffff', padding: '2px 8px', borderRadius: '999px' }}>{t("badge.inprogress")}</span>}
+                  {item?.status === 'closed' && <span style={{ marginLeft: '8px', fontSize: '10px', background: '#dcfce7', color: '#16a34a', padding: '2px 8px', borderRadius: '999px' }}>{t("badge.finished")}</span>}
+                  {(item?.status === 'abort' || item?.status === "cancelled") && <span style={{ marginLeft: '8px', fontSize: '10px', background: '#ffe2e6', color: '#f64e60', padding: '2px 8px', borderRadius: '999px' }}>{t("badge.cancel")}</span>}
+                  {item?.status === 'todo' && <span style={{ marginLeft: '8px', fontSize: '10px', background: 'rgb(228 228 233)', color: 'gray', padding: '2px 8px', borderRadius: '999px' }}>{t("badge.todo")}</span>}
                 </div>
               </div>
-
-              {/* Start → End */}
-              <div className="col-date" style={{ color: '#64748b', fontSize: '12px', lineHeight: 1.5 }}>
+              <div className="desktop-only col-mission" style={{ color: '#64748b', fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{missionTitle}</div>
+              <div className="desktop-only col-date" style={{ color: '#64748b', fontSize: '12px', lineHeight: 1.5 }}>
                 <div>{formattedDate}{startTime ? ` à ${startTime}` : ''}</div>
                 <div style={{ color: '#94a3b8' }}>→ {endTime}</div>
               </div>
-
-              {/* Audio Player */}
-              <div className="col-audio" onClick={e => e.stopPropagation()}>
-                {hasAudio ? (
-                  <audio
-                    controls
-                    src={item.voice_notes}
-                    style={{ height: '32px', width: '200px', accentColor: '#3b82f6', outline: 'none' }}
-                  >
-                    Your browser does not support the audio element.
-                  </audio>
-                ) : (
-                  <span style={{ color: '#e2e8f0', fontSize: '12px', paddingRight: '16px' }}>—</span>
-                )}
+              <div className="desktop-only col-audio" onClick={e => e.stopPropagation()}>
+                {hasAudio ? <audio controls src={item.voice_notes} style={{ height: '32px', width: '200px' }} /> : <span style={{ color: '#e2e8f0' }}>—</span>}
               </div>
-
-              {/* Actions */}
-              <div className="col-actions d-flex align-items-center justify-content-end gap-2" onClick={e => e.stopPropagation()}>
-                {/* Report Icon Button */}
-                <Tooltip title={t("dropdown.reviewinvitation")} placement="top">
-                  <button className="meeting-grid-action-btn" onClick={(e) => {
+              <div className="desktop-only col-actions d-flex align-items-center justify-content-end gap-2" onClick={e => e.stopPropagation()}>
+                <Tooltip title={item?.status === 'active' ? t("buttons.Start moment") : t("dropdown.reviewinvitation")} placement="top">
+                  <button className="meeting-grid-action-btn" style={item?.status === 'active' ? { background: '#2563eb', color: '#fff', borderColor: '#2563eb' } : {}} onClick={async (e) => {
                     e.stopPropagation();
-                    const currentURL = `/destination/${item?.unique_id}/${item?.id}`;
-                    openLinkInNewTab(currentURL);
-                  }}>
-                    <IoEyeOutline />
+                    if (item?.status === 'active') { setStartingId(item?.id); await startMeetingDirectly(item, navigate, t); setStartingId(null); }
+                    else { openLinkInNewTab(`/destination/${item?.unique_id}/${item?.id}`); }
+                  }} disabled={startingId === item?.id}>
+                    {startingId === item?.id ? <Spinner animation="border" size="sm" variant="light" /> : (item?.status === 'active' ? <IoPlayOutline /> : (item?.status === 'closed' ? <RiFileChartLine /> : <IoEyeOutline />))}
                   </button>
                 </Tooltip>
-
-                {/* Dropdown Toggle */}
                 <div className="dropdown">
-                  <button
-                    className="meeting-grid-action-btn"
-                    type="button"
-                    data-bs-toggle="dropdown"
-                    aria-expanded={openDropdownId === item.id}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleDropdown(item.id);
-                    }}
-                  >
+                  <button className="meeting-grid-action-btn" type="button" onClick={(e) => { e.stopPropagation(); toggleDropdown(item.id); }}>
                     <BiDotsVerticalRounded />
                   </button>
-                  <ul className={`dropdown-menu dropdown-menu-end ${openDropdownId === item.id ? 'show' : ''}`} style={{ minWidth: '180px', borderRadius: '12px', padding: '8px', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', border: '1px solid #f1f5f9' }}>
+                  <ul className={`dropdown-menu dropdown-menu-end ${openDropdownId === item.id ? 'show' : ''}`} style={{ minWidth: '180px', borderRadius: '12px', padding: '8px', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', position: 'absolute', right: 0, left: 'auto' }}>
                     {canManage ? (
                       <>
-                        {item.status !== "in_progress" && (
-                          <li>
-                            <a className="dropdown-item d-flex align-items-center gap-2 py-2" style={{ borderRadius: '6px' }} onClick={() => handleShow(item.id)}>
-                              <RiEditBoxLine size="18px" /> {t("dropdown.Modify")}
-                            </a>
-                          </li>
-                        )}
-                        <li>
-                          <a className="dropdown-item d-flex align-items-center gap-2 py-2" style={{ borderRadius: '6px' }} onClick={() => handleCopy(item)}>
-                            <MdContentCopy size="16px" /> {t("dropdown.Duplicate")}
-                          </a>
-                        </li>
-                        <li>
-                          <a className="dropdown-item d-flex align-items-center gap-2 py-2" style={{ borderRadius: '6px' }} onClick={() => {
-                            setChangePrivacy(true);
-                            setMeeting(item);
-                          }}>
-                            <RiEditBoxLine size="18px" /> {t("dropdown.change Privacy")}
-                          </a>
-                        </li>
-                        {item.status === "in_progress" && (
-                          <li>
-                            <a className="dropdown-item d-flex align-items-center gap-2 py-2 text-warning" style={{ borderRadius: '6px' }} onClick={(e) => {
-                              e.stopPropagation();
-                              setItem(item);
-                              setShowConfirmationCancelModal(true);
-                            }}>
-                              <MdOutlineCancel size="18px" /> {t("dropdown.Cancel")}
-                            </a>
-                          </li>
-                        )}
-                        {isCreator && (
-                          <>
-                            <div style={{ height: '1px', background: '#f1f5f9', margin: '6px 0' }} />
-                            <li>
-                              <a className="dropdown-item d-flex align-items-center gap-2 py-2 text-danger" style={{ borderRadius: '6px' }} onClick={(e) => handleDeleteClick(e, item.id)}>
-                                <AiOutlineDelete size="18px" /> {t("dropdown.Delete")}
-                              </a>
-                            </li>
-                          </>
-                        )}
+                        {item.status !== "in_progress" && <li><a className="dropdown-item d-flex align-items-center gap-2 py-2" onClick={() => handleShow(item.id)}><RiEditBoxLine size="18px" /> {t("dropdown.Modify")}</a></li>}
+                        <li><a className="dropdown-item d-flex align-items-center gap-2 py-2 text-danger" onClick={(e) => handleDeleteClick(e, item.id)}><AiOutlineDelete size="18px" /> {t("dropdown.Delete")}</a></li>
                       </>
-                    ) : (
-                      <li>
-                        <a className="dropdown-item d-flex align-items-center gap-2 py-2" style={{ borderRadius: '6px' }} onClick={() => {
-                          const currentURL = `${window.location.origin}/destination/${item?.unique_id}/${item?.id}`;
-                          copy(currentURL);
-                          toast.success(t("linkCopiedToast"));
-                        }}>
-                          <RiPresentationFill size="18px" /> {t("presentation.generateLink")}
-                        </a>
-                      </li>
-                    )}
+                    ) : <li><a className="dropdown-item pointer" onClick={() => { copy(`${window.location.origin}/destination/${item?.unique_id}/${item?.id}`); toast.success(t("linkCopiedToast")); }}><RiPresentationFill size="18px" /> {t("presentation.generateLink")}</a></li>}
                   </ul>
                 </div>
               </div>
@@ -2641,7 +2979,7 @@ const ScheduledMeeting = ({
   return (
     <>
       <div className="scheduled">
-        <div className="my-2 container-fluid">
+        <div className="my-2 container-fluid p-0">
           {showAlert && (
             <div className="confirmation-modal">
               <div className="confirmation-modal-content">
@@ -2657,6 +2995,38 @@ const ScheduledMeeting = ({
             </div>
           )}
 
+          {/* Global mobile card styles (shared by card-view & list-view) */}
+          <style>{`
+            @media (max-width: 768px) {
+              .premium-mobile-card { padding: 16px 16px 12px; position: relative; border-bottom: 1px solid #f1f5f9; }
+              .smc-top { display: flex; gap: 14px; align-items: flex-start; }
+              .smc-thumb { flex-shrink: 0; width: 68px; height: 68px; border-radius: 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+              .smc-thumb img { width: 100%; height: 100%; object-fit: cover; }
+              .smc-initials { font-size: 22px; font-weight: 900; letter-spacing: -1px; }
+              .smc-body { flex: 1; min-width: 0; }
+              .smc-title { font-size: 14px; font-weight: 700; color: #0f172a; line-height: 1.35; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin-bottom: 4px; }
+              .smc-desc { font-size: 12px; color: #64748b; line-height: 1.45; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin-bottom: 5px; }
+              .smc-meta { font-size: 11.5px; color: #94a3b8; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+              .smc-badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 5px; margin-left: 6px; vertical-align: middle; }
+              .smc-badge.progress  { background: #f2db43; color: #ffffff; }
+              .smc-badge.late      { background: #ffe2e6; color: #f64e60; }
+              .smc-badge.future    { background: #c9f7f5; color: #1bc5bd; }
+              .smc-badge.finished  { background: #dcfce7; color: #16a34a; }
+              .smc-badge.cancelled { background: #ffe2e6; color: #f64e60; }
+              .smc-badge.draft     { background: rgb(228, 228, 233); color: gray; }
+              .smc-actions { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-left: 82px; }
+              .smc-icon-group { display: flex; align-items: center; gap: 4px; }
+              .smc-icon-btn { background: transparent; border: none; color: #94a3b8; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: color 0.15s, background 0.15s; }
+              .smc-icon-btn:active { background: #f1f5f9; color: #475569; }
+              .smc-play-btn { width: 44px; height: 44px; border-radius: 50%; background: #0f172a; border: none; display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0; transition: transform 0.15s, background 0.15s; }
+              .smc-play-btn:active { transform: scale(0.93); }
+              .smc-play-btn.inprogress { background: #f59e0b; }
+              .mobile-dropdown-menu { border-radius: 16px !important; padding: 10px !important; box-shadow: 0 15px 40px rgba(0,0,0,0.15) !important; border: 1px solid #f1f5f9 !important; margin-top: 8px !important; }
+              .mobile-dropdown-menu .dropdown-item { border-radius: 10px; font-size: 14px; font-weight: 600; }
+              .mobile-dropdown-menu .dropdown-divider { margin: 8px 0; opacity: 0.5; }
+            }
+            @media (min-width: 769px) { .mobile-only { display: none !important; } }
+          `}</style>
           {loading ? (
             <div
               className="progress-overlay"

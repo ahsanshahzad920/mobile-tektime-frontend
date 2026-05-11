@@ -603,6 +603,7 @@ function UpcomingStepScreen({
     };
 
     try {
+      setLoading(true);
       const response = await axios.post(
         `${API_BASE_URL}/play-meetings/steps/${id}/step-note-and-action?current_time=${latestFormattedTime}&current_date=${latestFormattedDate}&pause_current_time=${latestFormattedTime}&pause_current_date=${latestFormattedDate}`,
         payload,
@@ -626,6 +627,7 @@ function UpcomingStepScreen({
         }
       }
     } catch (error) {
+      setLoading(false);
       console.error("Error starting step:", error);
     }
   };
@@ -649,6 +651,7 @@ function UpcomingStepScreen({
     };
     //
     try {
+      setLoading(true);
       const response = await axios.post(
         `${API_BASE_URL}/play-meetings/steps/${id}/step-note-and-action?current_time=${latestFormattedTime}&current_date=${latestFormattedDate}&pause_current_time=${latestFormattedTime}&pause_current_date=${latestFormattedDate}`,
         payload,
@@ -672,6 +675,7 @@ function UpcomingStepScreen({
         }
       }
     } catch (error) {
+      setLoading(false);
       console.error("Error starting step:", error);
     }
   };
@@ -2186,6 +2190,7 @@ function UpcomingStepScreen({
                       ) : (
                         <button
                           className="btn"
+                          disabled={loading}
                           onClick={() => {
                             if (step?.step_status === "to_finish") {
                               handleStartToFinishStep();
@@ -2195,9 +2200,19 @@ function UpcomingStepScreen({
                           }}
                           style={btnStyle}
                         >
-                          {step?.step_status === "to_finish"
-                            ? t("buttons.Restart")
-                            : t("Continue")}
+                          {loading ? (
+                            <Spinner
+                              as="span"
+                              animation="border"
+                              size="sm"
+                              role="status"
+                              aria-hidden="true"
+                            />
+                          ) : step?.step_status === "to_finish" ? (
+                            t("buttons.Restart")
+                          ) : (
+                            t("Continue")
+                          )}
                         </button>
                       )}
                     </>
@@ -2324,7 +2339,7 @@ function UpcomingStepScreen({
                       className="dropdown-menu"
                       aria-labelledby="dropdownMenuButton"
                     >
-                      {step?.step_status === null && (
+                      {step?.step_status === null && step?.order_no !== 1 && (
                         <li>
                           <button
                             className="dropdown-item"

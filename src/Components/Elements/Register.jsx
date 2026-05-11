@@ -21,6 +21,8 @@ import { getFcmToken } from "../../firebase";
 import { useHeaderTitle } from "../../context/HeaderTitleContext";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
+import PhoneInput from "react-phone-number-input";
+import "react-phone-number-input/style.css";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -45,7 +47,8 @@ const Register = () => {
     confirmPassword: "", // Add confirmPassword field
 
     acceptTerms: true,
-    job: ""
+    job: "",
+    phoneNumber: ""
   });
 
   // State to hold referral data
@@ -397,7 +400,7 @@ const Register = () => {
                 if (message === "The email has already been taken.") {
                   // Navigate after a short delay so user sees the toast
                   setTimeout(() => {
-                    navigate('https://api.tektime.io/password/reset');
+                    navigate(`${process.env.REACT_APP_API_BASE_URL}/password/reset`);
                   }, 3000);
                 }
                 // if (message === "The plan id field is required.") {
@@ -641,6 +644,40 @@ const Register = () => {
 
   return (
     <div className="register-wrapper mt-5 pt-5">
+      <style>
+        {`
+          .register-card .PhoneInput {
+            border: 1px solid #ced4da;
+            border-radius: 8px;
+            padding: 8px 12px;
+            background-color: #fff;
+            display: flex;
+            align-items: center;
+          }
+          .register-card .PhoneInput:focus-within {
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+          }
+          .register-card .PhoneInputInput {
+            border: none !important;
+            outline: none !important;
+            flex: 1;
+            margin-left: 10px;
+            font-size: 1rem;
+            color: #212529;
+            background: transparent !important;
+          }
+          .register-card .form-control {
+            border-radius: 8px !important;
+            padding: 10px 12px !important;
+          }
+          .register-card .form-label {
+            font-weight: 500;
+            color: #3a3f51;
+            margin-bottom: 8px;
+          }
+        `}
+      </style>
       <Container className="py-5">
 
 
@@ -766,6 +803,22 @@ const Register = () => {
                           onChange={handleInputChange}
                           disabled={user_id}
 
+                        />
+                      </Form.Group>
+
+                      <Form.Group className="mt-3">
+                        <Form.Label>{t("meeting.formState.phone")}</Form.Label>
+                        <PhoneInput
+                          international
+                          defaultCountry="FR"
+                          placeholder={t("meeting.formState.phoneNumber")}
+                          value={formData.phoneNumber}
+                          onChange={(value) =>
+                            setFormData({
+                              ...formData,
+                              phoneNumber: value,
+                            })
+                          }
                         />
                       </Form.Group>
 

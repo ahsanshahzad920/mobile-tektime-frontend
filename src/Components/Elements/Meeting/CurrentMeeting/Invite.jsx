@@ -80,6 +80,7 @@ import { FcGoogle } from "react-icons/fc";
 import { SiMicrosoftoutlook, SiMicrosoftteams } from "react-icons/si";
 import GuidesCard from "./components/GuidesCard";
 import KanbanBoard from "./components/KanbanBoard";
+import QuickMomentForm from "../../Invities/DestinationToMeeting/QuickMomentForm";
 
 const Invite = () => {
   const APIKEY = process.env.REACT_APP_TINYMCE_API;
@@ -116,6 +117,7 @@ const Invite = () => {
   const [showModal, setShowModal] = useState(false);
   const [showFileModal, setShowFileModal] = useState(false);
   const [estimateTime, setEstimateTime] = useState(null);
+  console.log("estimate_time", estimateTime);
   const [estimateDate, setEstimateDate] = useState(null);
   const [isDrop, setIsDrop] = useState(false);
   const [isDropFile, setIsDropFile] = useState(false);
@@ -134,6 +136,16 @@ const Invite = () => {
   const [showOrgProfile, setShowOrgProfile] = useState(false);
   const [isFileUploaded, setIsFileUploaded] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const [showQuickMomentForm, setShowQuickMomentForm] = useState(false);
+  const hasOpenedQuickFormRef = useRef(false);
+
+  useEffect(() => {
+    if (meeting?.status === "draft" && meeting.created_from_whatsapp && !hasOpenedQuickFormRef.current) {
+      hasOpenedQuickFormRef.current = true;
+      setShowQuickMomentForm(true);
+    }
+  }, [meeting]);
 
   const openModal = (file) => {
     setModalContent(file);
@@ -367,12 +379,9 @@ const Invite = () => {
 
         // const steps = data?.steps;
         // updateSteps(steps);
-
-        
-        if (data?.status === "in_progress") {
+   if (data?.status === "in_progress") {
           setActiveTab("steps");
         }
-
         setMeeting(data);
         // ✅ Redirect if status is "closed"
         if (data?.status === "closed") {
@@ -1051,7 +1060,27 @@ const Invite = () => {
       // Check for successful deletion (assuming HTTP status 200)
       if (response.status === 200) {
         toast.success("Réunion supprimée avec succès");
-        navigate("/meeting");
+
+        // Check user needs for redirection logic
+        const userJson = CookieService.get("user");
+        let hasMeetingModule = false;
+        if (userJson) {
+          try {
+            const user = JSON.parse(userJson);
+            const userNeeds = user?.user_needs || user?.needs || [];
+            hasMeetingModule =
+              Array.isArray(userNeeds) &&
+              userNeeds.some((n) => n.need === "meeting_need");
+          } catch (e) {
+            console.error("Error parsing user needs", e);
+          }
+        }
+
+        if (hasMeetingModule) {
+          navigate("/meeting");
+        } else {
+          navigate("/profile");
+        }
       } else {
         // Handle other status codes (e.g., 4xx, 5xx) appropriately
         throw new Error("Échec de la suppression de la réunion");
@@ -1291,18 +1320,23 @@ const Invite = () => {
 
   // Final visibility condition
   const showButton =
-    (isAgendaEvent && isEventOrganizer) || isMeetingParticipant;
+    (isAgendaEvent && isEventOrganizer) || 
+    isMeetingParticipant || 
+    (parseInt(meeting?.user?.id) === parseInt(loggedInUserId)) || 
+    meeting?.user?.email === sessionEmail;
   console.log("showButton", showButton);
 
- // --- Condition Logic (Add this ABOVE the Dropdown) ---
-  const userEmail = CookieService.get("email"); // Change key if needed
-  const isGoogleOrOutlook =
-    meeting?.type === "Google Agenda Event" ||
-    meeting?.type === "Outlook Agenda Event"
+  // const userRole = CookieService.get("user_role");
+  const canManage =
+    meeting?.user?.id === parseInt(loggedInUserId) ||
+    (meeting?.event_organizer && meeting?.event_organizer?.email === sessionEmail) ||
+    meeting?.user?.email === sessionEmail ||
+    meeting?.guides?.some(
+      (guide) =>
+        guide?.id === parseInt(loggedInUserId) || guide?.email === sessionEmail,
+    )
 
-  const canShowDropdown = isGoogleOrOutlook
-    ? meeting?.event_organizer?.email === userEmail
-    : meeting?.user?.email === userEmail || true
+  console.log("canManage", canManage);
   return (
     <>
       {isLoading ? (
@@ -1318,6 +1352,7 @@ const Invite = () => {
             position: "static",
             backgroundColor: "white",
             padding: "10px 15px",
+            display: showQuickMomentForm ? "none" : "block",
           }}
         >
           <div className="d-flex flex-column flex-lg-row gap-4">
@@ -1402,7 +1437,11 @@ const Invite = () => {
                       <span className="badge status-badge-green d-none">
                         {t("badge.no_status")}
                       </span>
-                    ) : (
+                    ) : meeting?.status === "draft" ? (
+                      <span className="badge draft">
+                        {t("badge.draft")}
+                      </span>
+                    ): (
                       <span className="badge inprogrss">
                         {t("badge.finished")}
                       </span>
@@ -1411,8 +1450,9 @@ const Invite = () => {
                 </div>
 
                 {/* Rejoindre la réunion */}
-                {(meeting?.status !== "no_status" ||
-                  meeting?.type === "Calendly") && (
+               {(meeting?.status !== "no_status" ||
+                  meeting?.type === "Calendly" ||
+                  canManage) && (
                   <div className="d-flex align-items-center gap-3 flex-wrap">
                     <div className="play-btn-container">
                       {showButton && meeting?.type !== "Calendly" && (
@@ -1576,6 +1616,8 @@ const Invite = () => {
                             </>
                           ) : meeting?.status === "no_status" ? null : (
                             <>
+
+                            {meeting?.presentation && <>
                               {loading ? (
                                 <button
                                   className={`btn play-btn`}
@@ -1642,6 +1684,7 @@ const Invite = () => {
                                   />
                                 </Button>
                               )}
+                            </>}
                             </>
                           )}
                         </>
@@ -1666,7 +1709,7 @@ const Invite = () => {
                         </Button>
                       )}
                       {/* Dropdown List */}
-                      {canShowDropdown && (
+                      {canManage && (
                         <Dropdown className="dropdown">
                           {showButton && (
                             <Dropdown.Toggle
@@ -1683,7 +1726,7 @@ const Invite = () => {
                           {
                             showButton && (
                               <Dropdown.Menu>
-                                {meeting?.status !== "in_progress" && (
+                                {meeting?.status !== "in_progress" && meeting?.status !== "no_status" && (
                                   <>
                                     {/* {(meeting?.type === "Google Agenda Event" || meeting?.type === "Outlook Agenda Event") && */}
 
@@ -1709,41 +1752,47 @@ const Invite = () => {
                                     {t("dropdown.change Privacy")}
                                   </Dropdown.Item>
                                 )}
-                                <Dropdown.Item
-                                  onClick={(e) => handleChangeContext(meeting)}
-                                >
-                                  <RiEditBoxLine size={"18px"} /> &nbsp;{" "}
-                                  {t("dropdown.change Context")}
-                                </Dropdown.Item>
-                                <Dropdown.Item
-                                  onClick={(e) => handleChangeOptions(meeting)}
-                                >
-                                  <RiEditBoxLine size={"18px"} /> &nbsp;{" "}
-                                  {t("dropdown.change Options")}
-                                </Dropdown.Item>
+                                {meeting?.status !== "no_status" && (
+                                  <Dropdown.Item
+                                    onClick={(e) => handleChangeContext(meeting)}
+                                  >
+                                    <RiEditBoxLine size={"18px"} /> &nbsp;{" "}
+                                    {t("dropdown.change Context")}
+                                  </Dropdown.Item>
+                                )}
+                                {meeting?.status !== "no_status" && (
+                                  <Dropdown.Item
+                                    onClick={(e) => handleChangeOptions(meeting)}
+                                  >
+                                    <RiEditBoxLine size={"18px"} /> &nbsp;{" "}
+                                    {t("dropdown.change Options")}
+                                  </Dropdown.Item>
+                                )}
 
-                                <Dropdown.Item
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleCopy(
-                                      setFormState,
-                                      meeting,
-                                      t,
-                                      handleShow,
-                                      setMeetingContext,
-                                      setCheckId,
-                                      setIsDuplicate,
-                                      setMeeting,
-                                      setIsLoading,
-                                      setStatus,
-                                      updateSteps,
-                                      meetingSteps,
-                                    );
-                                  }}
-                                >
-                                  <IoCopyOutline size={"18px"} /> &nbsp;
-                                  {t("dropdown.Duplicate")}
-                                </Dropdown.Item>
+                                {meeting?.status !== "no_status" && (
+                                  <Dropdown.Item
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleCopy(
+                                        setFormState,
+                                        meeting,
+                                        t,
+                                        handleShow,
+                                        setMeetingContext,
+                                        setCheckId,
+                                        setIsDuplicate,
+                                        setMeeting,
+                                        setIsLoading,
+                                        setStatus,
+                                        updateSteps,
+                                        meetingSteps,
+                                      );
+                                    }}
+                                  >
+                                    <IoCopyOutline size={"18px"} /> &nbsp;
+                                    {t("dropdown.Duplicate")}
+                                  </Dropdown.Item>
+                                )}
 
                                 {meeting?.status === "active" && (
                                   <Dropdown.Item
@@ -1761,42 +1810,49 @@ const Invite = () => {
                                     {t("dropdown.invitation")}
                                   </Dropdown.Item>
                                 )}
-                                <Dropdown.Item
-                                  onClick={() =>
-                                    setIsCloseMomentModalOpen(true)
-                                  }
-                                >
-                                  <FaRegCheckSquare size={"18px"} /> &nbsp;
-                                  {t("dropdown.CloseManually")}:{" "}
-                                  {meeting?.solution
-                                    ? meeting?.solution?.title
-                                    : meeting?.type === "Google Agenda Event"
-                                      ? "Google Agenda Event"
-                                      : meeting?.type === "Outlook Agenda Event"
-                                        ? "Outlook Agenda Event"
-                                        : meeting?.type === "Prise de contact"
-                                          ? "Prise de contact"
-                                          : t(`types.${meeting?.type}`)}
-                                </Dropdown.Item>
-                                <Dropdown.Item
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    review(meeting);
-                                  }}
-                                >
-                                  <AiOutlineEye size={"20px"} /> &nbsp;
-                                  {t("dropdown.Review the detail")}
-                                </Dropdown.Item>
+                                {meeting?.status !== "no_status" && (
+                                  <Dropdown.Item
+                                    onClick={() =>
+                                      setIsCloseMomentModalOpen(true)
+                                    }
+                                  >
+                                    <FaRegCheckSquare size={"18px"} /> &nbsp;
+                                    {t("dropdown.CloseManually")}:{" "}
+                                    {meeting?.solution
+                                      ? meeting?.solution?.title
+                                      : meeting?.type === "Google Agenda Event"
+                                        ? "Google Agenda Event"
+                                        : meeting?.type === "Outlook Agenda Event"
+                                          ? "Outlook Agenda Event"
+                                          : meeting?.type === "Prise de contact"
+                                            ? "Prise de contact"
+                                            : t(`types.${meeting?.type}`)}
+                                  </Dropdown.Item>
+                                )}
+                                {meeting?.status !== "no_status" && (
+                                  <Dropdown.Item
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      review(meeting);
+                                    }}
+                                  >
+                                    <AiOutlineEye size={"20px"} /> &nbsp;
+                                    {t("dropdown.Review the detail")}
+                                  </Dropdown.Item>
+                                )}
 
-                                {parseInt(meeting?.user?.id) ===
-                                  parseInt(loggedInUserId) && (
+                                {(parseInt(meeting?.user?.id) === parseInt(loggedInUserId) ||
+                                  (meeting?.event_organizer && meeting?.event_organizer?.email === sessionEmail) ||
+                                  meeting?.user?.email === sessionEmail) && (
                                   <>
-                                    <hr
-                                      style={{
-                                        margin: "10px 0 0 0",
-                                        padding: "2px",
-                                      }}
-                                    />
+                                    {meeting?.status !== "no_status" && (
+                                      <hr
+                                        style={{
+                                          margin: "10px 0 0 0",
+                                          padding: "2px",
+                                        }}
+                                      />
+                                    )}
                                     {meeting?.status === "in_progress" ? (
                                       <>
                                         <Dropdown.Item
@@ -2248,6 +2304,30 @@ const Invite = () => {
                       >
                         {t("meeting.formState.Beep alarm")}
                       </span>
+                    </div>
+                  </>
+                )}
+                 {meeting?.presentation && (
+                  <>
+                    <div>
+                    <svg
+                      width="25"
+                      height="24px"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M21 3H3C1.9 3 1 3.9 1 5V17C1 18.1 1.9 19 3 19H8V21H16V19H21C22.1 19 23 18.1 23 17V5C23 3.9 22.1 3 21 3ZM21 17H3V5H21V17ZM10 7L15 11L10 15V7Z"
+                        fill="#3D57B5"
+                      />
+                    </svg>
+                    <span
+                      className="solutioncards"
+                      style={{ color: "#3D57B5" }}
+                    >
+                      {t("meeting.formState.Presentation")}
+                    </span>
                     </div>
                   </>
                 )}
@@ -3752,6 +3832,7 @@ const Invite = () => {
             meeting={meeting}
             setMeeting={setMeeting}
             refreshMeeting={getRefreshMeeting}
+            openedFrom='step'
           />
         </div>
       )}
@@ -3987,6 +4068,18 @@ const Invite = () => {
             </button>
           </Modal.Footer>
         </Modal>
+      )}
+
+      {showQuickMomentForm && (
+        <QuickMomentForm
+          show={showQuickMomentForm}
+          onClose={() => {
+            setShowQuickMomentForm(false);
+          }}
+          openedFrom="assistant"
+          destination={meeting?.destination}
+          meetingData={meeting}
+        />
       )}
 
       {isPrivacyModal && (

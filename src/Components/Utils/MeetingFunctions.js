@@ -14,7 +14,7 @@ import { MdOutlineSupport } from "react-icons/md";
 import { IoIosBusiness, IoIosRocket } from "react-icons/io";
 import { GoProject } from "react-icons/go";
 import { FaBookOpen } from "react-icons/fa6";
-import { FaCalendarCheck } from "react-icons/fa";
+import { FaCalendarCheck, FaRobot } from "react-icons/fa";
 
 export const formatMissionDate = (dateString) => {
   if (!dateString) return '';
@@ -1929,6 +1929,11 @@ export const getOptions = (t, roleId) => {
         </svg>
       ),
     },
+    {
+      title: "Assistant Conversation",
+      label: t("meeting.newMeeting.options.activityTypes.assistantConversation"),
+      svg: <FaRobot size={36} color="#DAE6ED" />,
+    },
   ];
 
   // If role is 3 or 4, show only specific types
@@ -2783,6 +2788,7 @@ export const LinkIcon = () => (
 );
 
 export const typeIcons = {
+  "Assistant Conversation": <FaRobot size={36} color="#000000" />,
   Atelier: (
     <svg fill="#000000" width="37" height="36" viewBox="0 0 256 256">
       <path
@@ -3269,6 +3275,7 @@ c0.552,0,1-0.448,1-1v-6.064c0-0.552-0.448-1-1-1S22.934,36.321,22.934,36.874z"
   ),
 };
 export const solutionTypeIcons = {
+  "Assistant Conversation": <FaRobot size={36} color="#DAE6ED" />,
   Atelier: (
     <svg fill="#000000" width="37" height="36" viewBox="0 0 256 256">
       <path

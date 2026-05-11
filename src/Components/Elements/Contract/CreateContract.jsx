@@ -51,6 +51,7 @@ function CreateContract({ setActiveTab }) {
     action_need: false,
     casting_need: false,
     check_stripe: false,
+    check_whatsapp: false,
     description: "",
   };
 
@@ -71,6 +72,7 @@ function CreateContract({ setActiveTab }) {
     action_need: false,
     casting_need: false,
     check_stripe: false,
+    check_whatsapp: false,
     description: "",
   });
 
@@ -148,6 +150,7 @@ function CreateContract({ setActiveTab }) {
         {
           ...contractData,
           check_stripe: contractData.check_stripe ? 1 : 0,
+          check_whatsapp: contractData.check_whatsapp ? 1 : 0,
         },
         {
           headers: {
@@ -423,6 +426,27 @@ function CreateContract({ setActiveTab }) {
       style={{ cursor: "pointer", userSelect: "none" }}
     >
       {t("newContract.stripePayment")}
+    </label>
+  </div>
+</div>
+
+<div className="mb-4">
+  <div className="form-check d-flex align-items-center gap-2">
+    <input
+      className="form-check-input mt-0"
+      type="checkbox"
+      id="check_whatsapp_create"
+      name="check_whatsapp"
+      checked={Boolean(contractData.check_whatsapp)} 
+      onChange={handleInputChange} 
+      style={{ cursor: "pointer", width: "20px", height: "20px" }}
+    />
+    <label 
+      className="form-check-label mb-0" 
+      htmlFor="check_whatsapp_create"
+      style={{ cursor: "pointer", userSelect: "none" }}
+    >
+      WhatsApp (Direct Message)
     </label>
   </div>
 </div>

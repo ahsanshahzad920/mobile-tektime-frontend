@@ -1,235 +1,178 @@
 import React from "react";
-import { useTranslation } from "react-i18next";
+import { List, Avatar, Badge, Button, Typography } from "antd";
 import { SiChatbot } from "react-icons/si";
-import { FaChevronRight } from "react-icons/fa";
 import moment from "moment";
+
+const { Text } = Typography;
 
 function ChatbotMoments({ meetingsData, onMomentSelect, selectedMoment }) {
   const moments = meetingsData || [];
-  const [t] = useTranslation("global");
 
-  if (!moments.length)
-    return <div className="p-3 text-center text-muted">No moments found</div>;
+  if (!moments.length) {
+    return (
+      <div className="p-4 text-center text-muted">
+        <SiChatbot size={32} className="mb-3 opacity-25" />
+        <Text type="secondary">Aucune conversation trouvée</Text>
+      </div>
+    );
+  }
 
-  // WhatsApp-style date format: time for today, "Hier" for yesterday, short date otherwise
   const formatMomentDate = (dateStr) => {
     if (!dateStr) return "";
-    const date = moment.utc(dateStr).local();
+    const date = moment(dateStr);
     const now = moment();
-    if (date.isSame(now, 'day')) return date.format('HH:mm');
-    if (date.isSame(now.clone().subtract(1, 'day'), 'day')) return "Hier";
-    return date.format('DD/MM/YYYY');
+    if (date.isSame(now, "day")) return date.format("HH:mm");
+    if (date.isSame(now.clone().subtract(1, "day"), "day")) return "Hier";
+    return date.format("DD/MM");
   };
 
-  // Function to truncate title to maximum 6 sentences
   const truncateTitle = (title) => {
     if (!title) return "";
     const sentences = title.split(/(?<=[.!?])\s+/);
     if (sentences.length <= 6) return title;
-    const truncated = sentences.slice(0, 6).join(" ");
-    return truncated.replace(/[.!?]+$/, "") + "...";
+    return sentences.slice(0, 6).join(" ").replace(/[.!?]+$/, "") + "...";
   };
 
   return (
-    <>
-      <style>{`
-        .moments-card {
-          height: 100%;
-          min-height: 60vh;
-          max-height: 90vh;
-        }
-        .moments-list {
-          overflow-y: auto;
-          overflow-x: hidden;
-          padding-right: 8px;
-          max-height: calc(90vh - 100px);
-        }
-        .moments-list::-webkit-scrollbar {
-          width: 6px;
-        }
-        .moments-list::-webkit-scrollbar-track {
-          background: #f1f1f1;
-          border-radius: 10px;
-        }
-        .moments-list::-webkit-scrollbar-thumb {
-          background: #c1c1c1;
-          border-radius: 10px;
-        }
+    <div
+      className="h-100 d-flex flex-column"
+      style={{ overflowX: "hidden", width: "100%" }}
+    >
+      <List
+        dataSource={moments}
+        split={false}
+        style={{ width: "100%" }}
+        renderItem={(item) => {
+          const isSelected = selectedMoment?.id === item.id;
+          const displayTitle = truncateTitle(item.title || "");
+          const objective = item?.destination?.destination_name || "Chatbot";
 
-        /* Desktop Styles (Original) */
-        @media (min-width: 768px) {
-          .moment-item {
-            border-left: 3px solid transparent;
-            transition: all 0.2s ease;
-            cursor: pointer;
-            position: relative;
-            min-height: 70px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            padding: 1rem;
-            background: #fff;
-            border-bottom: 1px solid #eee;
-          }
-          .moment-item:hover {
-            background-color: #f8f9fa !important;
-          }
-          .moment-item.selected {
-            border-left-color: #0d6efd;
-            background-color: #f5f8ff !important;
-          }
-          .moment-title {
-            font-size: 1rem;
-            font-weight: 600;
-            margin: 0;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            line-height: 1.3;
-            max-width: 250px;
-          }
-          .moment-subtitle {
-             font-size: 0.8rem;
-             color: #6c757d;
-             white-space: nowrap;
-             overflow: hidden;
-             text-overflow: ellipsis;
-          }
-          .moment-date {
-             font-size: 0.75rem;
-             color: #adb5bd;
-             margin-top: 4px;
-          }
-          .moment-icon-box { display: none; }
-          .mobile-chevron { display: none; }
-        }
-
-        /* Professional Mobile Styles (WhatsApp-style) */
-        @media (max-width: 767px) {
-          .moments-list {
-            max-height: 100%;
-            height: 100%;
-            padding: 10px 4px 12px 0px;
-            overflow-y: auto;
-          }
-          .moment-item {
-            background: #ffffff;
-            border: none;
-            border-bottom: 1px solid #f0f0f0;
-            border-radius: 0 !important;
-            margin-bottom: 0;
-            padding: 12px 16px;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-          }
-          .moment-item.selected {
-            background-color: #f0f7ff !important;
-          }
-          .moment-icon-box {
-            width: 54px;
-            height: 54px;
-            background: #e8f0fe;
-            font-size: 1.4rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            flex-shrink: 0;
-            color: #0d6efd;
-          }
-          .moment-item .moment-title {
-            font-size: 1.05rem;
-            display: -webkit-box !important;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            word-break: break-word;
-            font-weight: 700;
-          }
-          .moment-item .moment-subtitle {
-            font-size: 0.9rem;
-            color: #666;
-            display: -webkit-box !important;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            word-break: break-word;
-            line-height: 1.3;
-          }
-          .moment-date {
-            font-size: 0.72rem;
-            margin-left: 8px;
-          }
-          .badge.bg-primary {
-            background: #25D366 !important;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.7rem;
-            padding: 0;
-          }
-        }
-      `}</style>
-
-      <div className="card rounded-0 moments-card shadow-sm border-0">
-        <div className="card-body p-0 p-md-3">
-          <h5 className="mb-3 fw-bold text-dark d-none d-md-block px-3">
-            Moments
-          </h5>
-
-          <div className="moments-list">
-            {moments.map((meeting) => {
-              const displayTitle = truncateTitle(meeting.title || "");
-              const objective =
-                meeting?.destination?.destination_name || "Chatbot";
-
-              return (
+          return (
+            <div
+              key={item.id}
+              onClick={() => onMomentSelect(item)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === "Enter" && onMomentSelect(item)}
+              style={{
+                margin: "8px 12px",
+                padding: "14px 16px",
+                borderRadius: "12px",
+                backgroundColor: isSelected ? "#f0f7ff" : "#fff",
+                border: isSelected ? "1px solid #1890ff" : "1px solid #f0f0f0",
+                boxShadow: isSelected
+                  ? "0 4px 12px rgba(24,144,255,0.1)"
+                  : "0 2px 4px rgba(0,0,0,0.02)",
+                transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+                position: "relative",
+                cursor: "pointer",
+              }}
+              className={isSelected ? "chatbot-item-selected" : "chatbot-item"}
+            >
+              {/* Left accent bar when selected */}
+              {isSelected && (
                 <div
-                  key={meeting.id}
-                  className={`moment-item ${selectedMoment?.id === meeting.id ? "selected" : ""}`}
-                  onClick={() => onMomentSelect(meeting)}
-                  role="button"
-                  tabIndex={0}
-                >
-                  {/* Icon Column (Mobile Only) */}
-                  <div className="moment-icon-box">
-                    <SiChatbot size={24} />
+                  style={{
+                    position: "absolute",
+                    left: 0,
+                    top: "20%",
+                    bottom: "20%",
+                    width: "4px",
+                    backgroundColor: "#1890ff",
+                    borderRadius: "0 4px 4px 0",
+                  }}
+                />
+              )}
+
+              <div className="d-flex gap-3 align-items-start w-100 overflow-hidden">
+                {/* Icon */}
+                <div className="flex-shrink-0" style={{ marginTop: "2px" }}>
+                  <Avatar
+                    size={36}
+                    icon={<SiChatbot size={18} />}
+                    style={{
+                      backgroundColor: isSelected ? "#1890ff" : "#e6f7ff",
+                      color: isSelected ? "#fff" : "#1890ff",
+                    }}
+                  />
+                </div>
+
+                {/* Content */}
+                <div className="flex-grow-1 overflow-hidden" style={{ minWidth: 0 }}>
+                  {/* Title + date row */}
+                  <div className="d-flex justify-content-between align-items-start gap-2 mb-1">
+                    <Text
+                      strong
+                      ellipsis
+                      style={{
+                        fontSize: "14px",
+                        fontWeight: 600,
+                        color: isSelected ? "#1890ff" : "#1a1a1a",
+                        flex: 1,
+                      }}
+                    >
+                      {displayTitle || "Sans titre"}
+                    </Text>
+                    <Text
+                      type="secondary"
+                      style={{
+                        fontSize: "11px",
+                        color: "#8c8c8c",
+                        fontWeight: 500,
+                        marginTop: "2px",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {formatMomentDate(item.date || item.updated_at)}
+                    </Text>
                   </div>
 
-                  {/* Content Column */}
-                  <div className="flex-grow-1 overflow-hidden">
-                    <div className="d-flex justify-content-between align-items-start mb-1">
-                      <h6 className="moment-title mb-0">{displayTitle}</h6>
-                      <span className="moment-date">
-                        {formatMomentDate(meeting.sent_date_time || meeting.date)}
-                      </span>
-                    </div>
-
-                    <div className="d-flex justify-content-between align-items-end">
-                      <div className="flex-grow-1 overflow-hidden">
-                        <div className="moment-subtitle mb-0">{objective}</div>
-                      </div>
-
-                      {meeting.unread_messages_count > 0 && (
-                        <span className="badge rounded-pill bg-primary ms-2 shrink-0">
-                          {meeting.unread_messages_count}
-                        </span>
-                      )}
-
-                      <div className="mobile-chevron d-md-none ms-2">
-                        <FaChevronRight size={12} color="#999" />
-                      </div>
-                    </div>
+                  {/* Subtitle + unread badge row */}
+                  <div className="d-flex justify-content-between align-items-center">
+                    <Text
+                      type="secondary"
+                      ellipsis
+                      style={{
+                        fontSize: "12px",
+                        color: "#595959",
+                        lineHeight: "1.4",
+                        flex: 1,
+                      }}
+                    >
+                      {objective}
+                    </Text>
+                    {item.unread_messages_count > 0 && (
+                      <Badge
+                        count={item.unread_messages_count}
+                        size="small"
+                        style={{
+                          backgroundColor: "#1890ff",
+                          boxShadow: "0 2px 4px rgba(24,144,255,0.3)",
+                          marginLeft: 8,
+                          flexShrink: 0,
+                        }}
+                      />
+                    )}
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </>
+              </div>
+            </div>
+          );
+        }}
+      />
+
+      <style>{`
+        .chatbot-item:hover {
+          background-color: #fafafa !important;
+          border-color: #d9d9d9 !important;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
+        }
+        .chatbot-item-selected {
+          transform: scale(1.01);
+        }
+      `}</style>
+    </div>
   );
 }
 

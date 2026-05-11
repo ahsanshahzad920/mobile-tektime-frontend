@@ -11,11 +11,13 @@ import NoContent from "./NoContent";
 import { useTranslation } from "react-i18next";
 import { useHeaderTitle } from "../../../context/HeaderTitleContext";
 import { Avatar, Tooltip } from "antd";
-import { IoEyeOutline } from "react-icons/io5";
+import { IoEyeOutline, IoPlayOutline, IoVolumeHighOutline } from "react-icons/io5";
 import {
   RiEditBoxLine,
   RiMailSendLine,
   RiPresentationFill,
+  RiFileChartLine,
+  RiHistoryLine,
 } from "react-icons/ri";
 import { useMeetings } from "../../../context/MeetingsContext";
 import { useDraftMeetings } from "../../../context/DraftMeetingContext";
@@ -66,7 +68,10 @@ const CompletedMeetings = ({
     closedLoading,
     closedPerPage,
     closedMeetingCount,
+    startMeetingDirectly
   } = useMeetings();
+
+  const [startingId, setStartingId] = useState(null);
 
   const { searchTerm, setSearchTerm } = useOutletContext();
   const { language } = useDraftMeetings();
@@ -346,6 +351,7 @@ const CompletedMeetings = ({
   };
 
   const [openDropdownId, setOpenDropdownId] = useState(null);
+  const [audioPreviewId, setAudioPreviewId] = useState(null);
 
   const toggleDropdown = (id) => {
     setOpenDropdownId(openDropdownId === id ? null : id);
@@ -518,6 +524,15 @@ const CompletedMeetings = ({
         ? validFeedbacks.reduce((sum, feedback) => sum + feedback.rating, 0) /
           validFeedbacks.length
         : 0;
+
+    const isGoogle = item?.created_from === "Google Calendar" || item?.type === "Google Agenda Event";
+    const isOutlook = item?.created_from === "Outlook Calendar" || item?.type === "Outlook Agenda Event";
+    const initials = (item?.objective || item?.title || "M").substring(0, 2).toUpperCase();
+    const logo = item?.destination?.clients?.client_logo || item?.solution?.logo || item?.destination?.logo;
+    const missionTitle = item?.objective || (isGoogle ? "Google" : isOutlook ? "Outlook" : "—");
+    const solutionTitle = item?.solution ? item?.solution?.title : (isGoogle ? "Google" : isOutlook ? "Outlook" : item?.type || "Réunion");
+    const startTimeComp = convertTo12HourFormat(item?.starts_at || item?.start_time, item?.date, item?.steps, item?.timezone);
+
     meetingsByMonth[month].push(
       <Card
         className="mt-3 mb-2"
@@ -533,7 +548,71 @@ const CompletedMeetings = ({
             : viewPresentation(item);
         }}
       >
-        <div className="row">
+        {/* Mobile View – Spotify-style list card */}
+        <div className="mobile-only premium-mobile-card">
+          <div className="smc-top">
+            <div className="smc-thumb" style={{ background: isGoogle ? '#fde6e9' : isOutlook ? '#e0e7ff' : '#f1f5f9' }}>
+              {logo ? (
+                <img src={logo.startsWith('http') ? logo : `${Assets_URL}/${logo}`} alt="logo" />
+              ) : (
+                <span className="smc-initials" style={{ color: isGoogle ? '#ef4444' : isOutlook ? '#3b82f6' : '#64748b' }}>{initials}</span>
+              )}
+            </div>
+
+            <div className="smc-body">
+              <div className="smc-title">
+                {item.title}
+                {statusMessage && (
+                  <span className={`smc-badge ${statusMessage === t("meeting.completedMeetings.late") ? 'late' : statusMessage === t("meeting.completedMeetings.onTime") ? 'future' : 'progress'}`}>
+                    {statusMessage}
+                  </span>
+                )}
+                {item?.status === 'closed' && <span className="smc-badge finished">{t("badge.finished")}</span>}
+                {item?.status === 'abort' && <span className="smc-badge cancelled">{t("badge.cancel")}</span>}
+                {item?.status === 'in_progress' && <span className="smc-badge progress">{t("badge.inprogress")}</span>}
+              </div>
+              <div className="smc-desc">{missionTitle || solutionTitle}</div>
+              <div className="smc-meta">{formattedStartDate}{startTimeComp ? ` • ${startTimeComp}` : ''}</div>
+            </div>
+          </div>
+
+          <div className="smc-actions" onClick={e => e.stopPropagation()}>
+            <div className="smc-icon-group">
+              <button className="smc-icon-btn" title="Copier le lien" onClick={() => {
+                copy(`${window.location.origin}/destination/${item?.unique_id}/${item?.id}`);
+                toast.success(t("linkCopiedToast"));
+              }}>
+                <MdInsertLink size="20px" />
+              </button>
+            </div>
+            
+            {/* Play / Audio / Navigate button */}
+            {(item?.status === 'closed' || item?.status === 'abort') && item?.voice_notes ? (
+              <button
+                className="smc-play-btn"
+                style={{ background: audioPreviewId === item?.id ? '#7c3aed' : '#0f172a' }}
+                onClick={(e) => { e.stopPropagation(); setAudioPreviewId(audioPreviewId === item?.id ? null : item?.id); }}
+              >
+                <IoVolumeHighOutline size="20px" />
+              </button>
+            ) : (
+              <button
+                className="smc-play-btn"
+                style={{ background: '#64748b' }}
+                onClick={(e) => { e.stopPropagation(); navigate(`/destination/${item?.unique_id}/${item?.id}`); }}
+              >
+                <RiFileChartLine size="20px" />
+              </button>
+            )}
+          </div>
+          {audioPreviewId === item?.id && item?.voice_notes && (
+            <div style={{ padding: '0 16px 12px', marginTop: '-4px' }} onClick={e => e.stopPropagation()}>
+              <audio controls autoPlay src={item.voice_notes} style={{ width: '100%', height: '36px', borderRadius: '8px', accentColor: '#7c3aed' }} />
+            </div>
+          )}
+        </div>
+
+        <div className="row desktop-only">
           <div className="col-md-1 column-1" style={{ fontSize: "24px" }}>
             {formatDate(item)}
           </div>
@@ -1322,64 +1401,179 @@ const CompletedMeetings = ({
           {`
             .list-view-grid {
               display: grid;
-              grid-template-columns: 45px 55px 1fr 1fr 250px 250px 100px;
+              grid-template-columns: 45px 55px 1fr 1fr 180px 180px 180px 100px;
               gap: 16px;
               padding: 14px 24px;
               align-items: center;
             }
+            @media (max-width: 1600px) {
+              .list-view-grid {
+                grid-template-columns: 45px 55px 1fr 1fr 150px 150px 150px 100px;
+              }
+            }
             @media (max-width: 1400px) {
               .list-view-grid {
-                grid-template-columns: 45px 55px 1fr 1fr 170px 110px;
+                grid-template-columns: 45px 55px 1fr 1fr 140px 140px 100px;
               }
               .col-audio { display: none; }
             }
             @media (max-width: 1200px) {
               .list-view-grid {
-                grid-template-columns: 45px 55px 1fr 160px 110px;
+                grid-template-columns: 45px 55px 1fr 130px 130px 100px;
               }
               .col-mission, .col-audio { display: none; }
             }
             @media (max-width: 768px) {
-              .list-view-grid {
-                grid-template-columns: 35px 1fr 90px;
+              .list-view-row.list-view-grid {
+                display: block !important;
+                padding: 0 !important;
+                margin-bottom: 12px !important;
+                border-radius: 20px !important;
+                background: #fff !important;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.06) !important;
+                border: 1px solid #f1f5f9 !important;
+                overflow: visible !important;
+              }
+              /* ── Spotify-style list card ── */
+              .premium-mobile-card {
+                padding: 16px 16px 12px;
+                position: relative;
+                border-bottom: 1px solid #f1f5f9;
+              }
+              .smc-top {
+                display: flex;
+                gap: 14px;
+                align-items: flex-start;
+              }
+              .smc-thumb {
+                flex-shrink: 0;
+                width: 68px;
+                height: 68px;
+                border-radius: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                overflow: hidden;
+              }
+              .smc-thumb img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+              }
+              .smc-initials {
+                font-size: 22px;
+                font-weight: 900;
+                letter-spacing: -1px;
+              }
+              .smc-body {
+                flex: 1;
+                min-width: 0;
+              }
+              .smc-title {
+                font-size: 14px;
+                font-weight: 700;
+                color: #0f172a;
+                line-height: 1.35;
+                overflow: hidden;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                margin-bottom: 4px;
+              }
+              .smc-desc {
+                font-size: 12px;
+                color: #64748b;
+                line-height: 1.45;
+                overflow: hidden;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                margin-bottom: 5px;
+              }
+              .smc-meta {
+                font-size: 11.5px;
+                color: #94a3b8;
+                font-weight: 500;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+              }
+              .smc-badge {
+                display: inline-block;
+                font-size: 10px;
+                font-weight: 700;
+                padding: 1px 7px;
+                border-radius: 5px;
+                margin-left: 6px;
+                vertical-align: middle;
+              }
+              .smc-badge.finished  { background: #f0fdf4; color: #16a34a; }
+              .smc-badge.cancelled { background: #fef2f2; color: #ef4444; }
+              .smc-badge.progress  { background: #fffbeb; color: #d97706; }
+              .smc-actions {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-top: 12px;
+                padding-left: 82px;
+              }
+              .smc-icon-group {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+              }
+              .smc-icon-btn {
+                background: transparent;
+                border: none;
+                color: #94a3b8;
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: color 0.15s, background 0.15s;
+              }
+              .smc-icon-btn:active { background: #f1f5f9; color: #475569; }
+              .smc-play-btn {
+                width: 44px;
+                height: 44px;
+                border-radius: 50%;
+                background: #0f172a;
+                border: none;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #fff;
+                flex-shrink: 0;
+                transition: transform 0.15s, background 0.15s;
+              }
+              .smc-play-btn:active { transform: scale(0.93); }
+              .mobile-dropdown-menu {
+                border-radius: 16px !important;
+                padding: 10px !important;
+                box-shadow: 0 15px 40px rgba(0,0,0,0.15) !important;
+                border: 1px solid #f1f5f9 !important;
+                margin-top: 8px !important;
+              }
+              .mobile-dropdown-menu .dropdown-item {
+                border-radius: 10px;
+                font-size: 14px;
+                font-weight: 600;
+              }
+              .mobile-dropdown-menu .dropdown-divider {
+                margin: 8px 0;
+                opacity: 0.5;
               }
               .ps-2 { padding-left: 0 !important; }
-              .col-logo, .col-mission, .col-audio, .col-date { display: none; }
+              .desktop-only { display: none !important; }
             }
-            .meeting-grid-action-btn {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              width: 34px;
-              height: 34px;
-              border-radius: 10px;
-              border: 1px solid #e2e8f0;
-              background: #fff;
-              color: #475569;
-              transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-              cursor: pointer;
-              padding: 0;
-            }
-            .meeting-grid-action-btn:hover {
-              background: #f1f5f9;
-              color: #2563eb;
-              border-color: #cbd5e1;
-              transform: translateY(-1px);
-              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            }
-            .meeting-grid-action-btn svg {
-              font-size: 18px;
-            }
-            .col-logo {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              width: 48px;
-            }
+            .ps-2 { padding-left: 0 !important; }
+            @media (min-width: 769px) { .mobile-only { display: none !important; } }
           `}
         </style>
         {/* Header */}
-        <div className="list-view-header list-view-grid" style={{
+        <div className="list-view-header list-view-grid desktop-only" style={{
           borderBottom: '1px solid #f1f5f9',
           color: '#64748b',
           fontSize: '11px',
@@ -1447,6 +1641,19 @@ const CompletedMeetings = ({
               })();
           const isLast = idx === sortedMeetings.length - 1;
 
+          const startTimeDateForMsg = item?.start_time ? parseTime(item.start_time) : null;
+          const realStartTimeDateForMsg = item?.starts_at ? parseTime(item.starts_at) : null;
+          let statusMessage = "";
+          if (startTimeDateForMsg && realStartTimeDateForMsg) {
+            if (realStartTimeDateForMsg.getTime() === startTimeDateForMsg.getTime()) {
+              statusMessage = t("meeting.completedMeetings.onTime");
+            } else if (realStartTimeDateForMsg.getTime() < startTimeDateForMsg.getTime()) {
+              statusMessage = t("meeting.completedMeetings.early");
+            } else {
+              statusMessage = t("meeting.completedMeetings.late");
+            }
+          }
+
           return (
             <div key={item.id} ref={isLast ? lastMeetingRef : null} className="list-view-row list-view-grid" style={{ 
               borderBottom: '1px solid #f8fafc',
@@ -1454,16 +1661,109 @@ const CompletedMeetings = ({
               cursor: 'pointer'
             }} onMouseEnter={e => e.currentTarget.style.background = '#fcfdfe'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'} 
                onClick={() => {
-                 item?.steps?.some(g => g?.userPID === parseInt(loggedInUserId)) ||
-                 item?.user?.id === parseInt(loggedInUserId)
-                   ? presentMeeting(item.id)
-                   : viewPresentation(item);
+                 const route = (item?.status === 'closed' || item?.status === 'abort') 
+                   ? `/present/invite/${item?.id}` 
+                   : `/invite/${item?.id}`;
+                 navigate(route);
                }}>
-              {/* Index */}
-              <span style={{ fontSize: '12px', color: '#94a3b8', width: '40px' }}>{idx + 1}</span>
+              
+              {/* Mobile View – Spotify-style list card */}
+              <div className="mobile-only premium-mobile-card">
+                <div className="smc-top">
+                  {/* Thumbnail */}
+                  <div className="smc-thumb" style={{ background: isGoogle ? '#fde6e9' : isOutlook ? '#e0e7ff' : '#f1f5f9' }}>
+                    {logo ? (
+                      <img src={logo.startsWith('http') ? logo : `${Assets_URL}/${logo}`} alt="logo" />
+                    ) : (
+                      <span className="smc-initials" style={{ color: isGoogle ? '#ef4444' : isOutlook ? '#3b82f6' : '#64748b' }}>{initials}</span>
+                    )}
+                  </div>
 
-              {/* Logo */}
-              <div className="col-logo">
+                  {/* Body */}
+                  <div className="smc-body">
+                    <div className="smc-title">
+                      {item.title}
+                      {statusMessage && (
+                        <span className={`smc-badge ${statusMessage === t("meeting.completedMeetings.late") ? 'late' : statusMessage === t("meeting.completedMeetings.onTime") ? 'future' : 'progress'}`}>
+                          {statusMessage}
+                        </span>
+                      )}
+                      {item?.status === 'closed' && <span className="smc-badge finished">{t("badge.finished")}</span>}
+                      {item?.status === 'abort' && <span className="smc-badge cancelled">{t("badge.cancel")}</span>}
+                      {item?.status === 'in_progress' && <span className="smc-badge progress">{t("badge.inprogress")}</span>}
+                    </div>
+                    <div className="smc-desc">{missionTitle || solutionTitle}</div>
+                    <div className="smc-meta">{startFormatted}{startTime ? ` • ${startTime}` : ''}</div>
+                  </div>
+                </div>
+
+                {/* Bottom action row */}
+                <div className="smc-actions" onClick={e => e.stopPropagation()}>
+                  <div className="smc-icon-group">
+                    {/* Copy link */}
+                    <button className="smc-icon-btn" title="Copier le lien" onClick={() => {
+                      const currentURL = `/destination/${item?.unique_id}/${item?.id}`;
+                      copy(currentURL);
+                      toast.success(t("linkCopiedToast"));
+                    }}>
+                      <MdInsertLink size="20px" />
+                    </button>
+                    {/* Duplicate */}
+                    {canManage && (
+                      <button className="smc-icon-btn" title={t("dropdown.Duplicate")} onClick={() => handleCopy(item)}>
+                        <MdContentCopy size="18px" />
+                      </button>
+                    )}
+                    {/* More (kebab) */}
+                    <div className="dropdown">
+                      <button className="smc-icon-btn" type="button" onClick={(e) => { e.stopPropagation(); toggleDropdown(item.id); }}>
+                        <BiDotsVerticalRounded size="20px" />
+                      </button>
+                      <ul className={`dropdown-menu dropdown-menu-end mobile-dropdown-menu ${openDropdownId === item.id ? 'show' : ''}`}>
+                        {canManage && (
+                          <>
+                            <li><a className="dropdown-item d-flex align-items-center gap-2 py-3" onClick={() => handleChangePrivacy(item)}><RiEditBoxLine size="19px" /> {t("dropdown.change Privacy")}</a></li>
+                            <div className="dropdown-divider"></div>
+                            <li><a className="dropdown-item d-flex align-items-center gap-2 py-3 text-danger" onClick={(e) => handleDeleteClick(e, item.id)}><AiOutlineDelete size="19px" /> {t("dropdown.Delete")}</a></li>
+                          </>
+                        )}
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Play / Audio / Navigate button */}
+                  {(item?.status === 'closed' || item?.status === 'abort') && item?.voice_notes ? (
+                    /* Has audio → speaker toggle */
+                    <button
+                      className="smc-play-btn"
+                      style={{ background: audioPreviewId === item?.id ? '#7c3aed' : '#0f172a' }}
+                      onClick={(e) => { e.stopPropagation(); setAudioPreviewId(audioPreviewId === item?.id ? null : item?.id); }}
+                    >
+                      <IoVolumeHighOutline size="20px" />
+                    </button>
+                  ) : (
+                    /* No audio → file chart, navigate to destination */
+                    <button
+                      className="smc-play-btn"
+                      style={{ background: '#64748b' }}
+                      onClick={(e) => { e.stopPropagation(); navigate(`/destination/${item?.unique_id}/${item?.id}`); }}
+                    >
+                      <RiFileChartLine size="20px" />
+                    </button>
+                  )}
+                </div>
+                {/* Inline audio player */}
+                {audioPreviewId === item?.id && item?.voice_notes && (
+                  <div style={{ padding: '0 16px 12px', marginTop: '-4px' }} onClick={e => e.stopPropagation()}>
+                    <audio controls autoPlay src={item.voice_notes} style={{ width: '100%', height: '36px', borderRadius: '8px', accentColor: '#7c3aed' }} />
+                  </div>
+                )}
+              </div>
+
+              {/* Desktop View Columns */}
+              <span className="desktop-only" style={{ fontSize: '12px', color: '#94a3b8', width: '40px' }}>{idx + 1}</span>
+
+              <div className="col-logo desktop-only">
                 <div style={{
                   width: '32px', height: '32px', borderRadius: '8px', 
                   background: isGoogle ? '#fde6e9' : isOutlook ? '#e0e7ff' : '#f1f5f9',
@@ -1478,8 +1778,7 @@ const CompletedMeetings = ({
                 </div>
               </div>
 
-              {/* Title & Objective */}
-              <div className="ps-2" style={{ minWidth: 0 }}>
+              <div className="ps-2 desktop-only" style={{ minWidth: 0 }}>
                 <div className="text-secondary mb-1" style={{ fontSize: '11px', fontWeight: '600', opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
                   {solutionTitle}
                 </div>
@@ -1490,52 +1789,39 @@ const CompletedMeetings = ({
                   textOverflow: 'ellipsis' 
                 }}>
                   {item?.title}
-                  {(item?.status === 'in_progress' || item?.status === 'active') && (
-                    <span style={{ marginLeft: '8px', fontSize: '10px', background: '#fef9c3', color: '#a16207', padding: '2px 8px', borderRadius: '999px', border: '1px solid #fef08a' }}>
-                      {t("badge.inprogress")}
-                    </span>
-                  )}
-                  {item?.status === 'to_finish' && (
-                    <span style={{ marginLeft: '8px', fontSize: '10px', background: '#ffedd5', color: '#c2410c', padding: '2px 8px', borderRadius: '999px', border: '1px solid #fed7aa' }}>
-                      {t("badge.tofinish") || "To Finish"}
-                    </span>
-                  )}
-                  {item?.status === 'abort' && (
-                    <span style={{ marginLeft: '8px', fontSize: '10px', background: '#fee2e2', color: '#ef4444', padding: '2px 8px', borderRadius: '999px', border: '1px solid #fecaca' }}>
-                      {t("badge.cancel")}
-                    </span>
-                  )}
-                  {item?.status === 'closed' && (
-                    <span style={{ marginLeft: '8px', fontSize: '10px', background: '#dcfce7', color: '#16a34a', padding: '2px 8px', borderRadius: '999px', border: '1px solid #bbf7d0' }}>
-                      {t("badge.finished")}
-                    </span>
-                  )}
-                  {item?.status === 'todo' && (
-                    <span style={{ marginLeft: '8px', fontSize: '10px', background: '#f1f5f9', color: '#64748b', padding: '2px 8px', borderRadius: '999px', border: '1px solid #e2e8f0' }}>
-                       {t("badge.todo")}
-                    </span>
-                  )}
                 </div>
               </div>
 
-              {/* Mission */}
-              <div className="col-mission" style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                <div style={{
-                  color: '#64748b', fontSize: '13px',
-                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              <div className="col-mission text-start ps-3 desktop-only" style={{ minWidth: 0 }}>
+                <div className="mission-badge" style={{
+                  background: '#f8fafc',
+                  color: '#475569',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  display: 'inline-block',
+                  maxWidth: '100%',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  border: '1px solid #f1f5f9'
                 }}>
                   {missionTitle}
                 </div>
               </div>
 
-              {/* Start → End */}
-              <div className="col-date" style={{ color: '#64748b', fontSize: '12px', lineHeight: 1.5 }}>
-                <div>{startFormatted}{startTime ? ` à ${startTime}` : ''}</div>
-                <div style={{ color: '#94a3b8' }}>→ {endTime}</div>
+              <div className="col-date text-start ps-3 desktop-only">
+                <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '12px' }}>{startFormatted}</div>
+                <div style={{ color: '#94a3b8', fontSize: '11px' }}>{startTime}</div>
               </div>
 
-              {/* Audio Player */}
-              <div className="col-audio" onClick={e => e.stopPropagation()}>
+              <div className="col-updated text-start ps-3 desktop-only">
+                <div style={{ fontWeight: 500 }}>{item?.updated_at ? moment(item.updated_at).format("DD/MM/YYYY") : moment(item?.created_at).format("DD/MM/YYYY")}</div>
+                <div style={{ color: '#94a3b8' }}>{item?.updated_at ? moment(item.updated_at).format("HH:mm") : moment(item?.created_at).format("HH:mm")}</div>
+              </div>
+
+              <div className="col-audio desktop-only" onClick={e => e.stopPropagation()}>
                 {hasAudio ? (
                   <audio
                     controls
@@ -1549,20 +1835,46 @@ const CompletedMeetings = ({
                 )}
               </div>
 
-              {/* Actions */}
-              <div className="col-actions d-flex align-items-center justify-content-end gap-2" onClick={e => e.stopPropagation()}>
-                {/* Report Icon Button */}
-                <Tooltip title={t("dropdown.reviewinvitation")} placement="top">
-                  <button className="meeting-grid-action-btn" onClick={(e) => {
-                    e.stopPropagation();
-                    const currentURL = `/destination/${item?.unique_id}/${item?.id}`;
-                    openLinkInNewTab(currentURL);
-                  }}>
-                    <IoEyeOutline />
+              <div className="col-actions d-flex align-items-center justify-content-end gap-2 desktop-only" onClick={e => e.stopPropagation()}>
+                <Tooltip title={item?.status === 'active' ? t("buttons.Start moment") : t("dropdown.reviewinvitation")} placement="top">
+                  <button 
+                    className="meeting-grid-action-btn" 
+                    style={item?.status === 'active' ? { 
+                      width: 'auto', 
+                      height: '34px',
+                      padding: '0 12px', 
+                      gap: '6px',
+                      background: '#2563eb',
+                      color: '#fff',
+                      borderColor: '#2563eb',
+                      borderRadius: '10px'
+                    } : {}}
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      if (item?.status === 'active') {
+                        setStartingId(item?.id);
+                        await startMeetingDirectly(item, navigate, t);
+                        setStartingId(null);
+                      } else {
+                        const currentURL = `/destination/${item?.unique_id}/${item?.id}`;
+                        openLinkInNewTab(currentURL);
+                      }
+                    }}
+                    disabled={startingId === item?.id}
+                  >
+                    {startingId === item?.id ? (
+                      <Spinner animation="border" size="sm" variant="light" />
+                    ) : item?.status === 'active' ? (
+                      <>
+                        <IoPlayOutline style={{ fontSize: '16px' }} />
+                        <span style={{ fontSize: '11px', fontWeight: '600' }}>{t("buttons.Start moment")}</span>
+                      </>
+                    ) : (
+                      item?.status === 'closed' ? <RiFileChartLine /> : <IoEyeOutline />
+                    )}
                   </button>
                 </Tooltip>
 
-                {/* Dropdown Toggle */}
                 <div className="dropdown">
                   <button
                     className="meeting-grid-action-btn"
@@ -1642,8 +1954,11 @@ const CompletedMeetings = ({
 
   return (
     <>
+      <style>{`
+        @media (min-width: 769px) { .mobile-only { display: none !important; } }
+      `}</style>
       <div className="scheduled">
-        <div className="my-2 container-fluid">
+        <div className="my-2 container-fluid p-0">
           {closedLoading ? (
             <div className="progress-overlay" style={{ background: "transparent" }}>
               <div style={{ width: "50%" }}>

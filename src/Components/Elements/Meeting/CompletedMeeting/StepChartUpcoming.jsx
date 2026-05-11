@@ -2690,7 +2690,7 @@ const StepChartUpcoming = ({
                               <input
                                 type="text"
                                 value={selectedCount}
-                                onChange={(e) => {
+                               onChange={(e) => {
                                   const value = e.target.value;
                                   // Allow empty string for clearing, otherwise ensure it's a number
                                   if (value === "") {

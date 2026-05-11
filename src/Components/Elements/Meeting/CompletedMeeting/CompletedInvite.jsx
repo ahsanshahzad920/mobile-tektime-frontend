@@ -1011,8 +1011,27 @@ const CompletedInvite = () => {
 
       if (response.status === 200) {
         toast.success("Réunion supprimée avec succès");
-        // getMeetings();
-        navigate("/meeting");
+
+        // Check user needs for redirection logic
+        const userJson = CookieService.get("user");
+        let hasMeetingModule = false;
+        if (userJson) {
+          try {
+            const user = JSON.parse(userJson);
+            const userNeeds = user?.user_needs || user?.needs || [];
+            hasMeetingModule =
+              Array.isArray(userNeeds) &&
+              userNeeds.some((n) => n.need === "meeting_need");
+          } catch (e) {
+            console.error("Error parsing user needs", e);
+          }
+        }
+
+        if (hasMeetingModule) {
+          navigate("/meeting");
+        } else {
+          navigate("/profile");
+        }
       } else {
         throw new Error("Échec de la suppression de la réunion");
       }
@@ -4119,6 +4138,30 @@ Please categorize the relevant details into their corresponding sections.`;
                       <span className="solutioncards option-text">
                         {t("meeting.formState.Automatic note taking")}
                       </span>
+                    </div>
+                  </>
+                )}
+                   {meeting?.presentation && (
+                  <>
+                    <div>
+                    <svg
+                      width="25"
+                      height="24px"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M21 3H3C1.9 3 1 3.9 1 5V17C1 18.1 1.9 19 3 19H8V21H16V19H21C22.1 19 23 18.1 23 17V5C23 3.9 22.1 3 21 3ZM21 17H3V5H21V17ZM10 7L15 11L10 15V7Z"
+                        fill="#3D57B5"
+                      />
+                    </svg>
+                    <span
+                      className="solutioncards"
+                      style={{ color: "#3D57B5" }}
+                    >
+                      {t("meeting.formState.Presentation")}
+                    </span>
                     </div>
                   </>
                 )}

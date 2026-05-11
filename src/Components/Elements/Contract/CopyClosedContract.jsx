@@ -29,6 +29,7 @@ const CopyClosedContract = () => {
     solution_need: false,
     action_need: false,
     casting_need: false,
+    check_whatsapp: false,
   };
   const [contractData, setContractData] = useState({
     name: "",
@@ -46,6 +47,7 @@ const CopyClosedContract = () => {
     solution_need: false,
     action_need: false,
     casting_need: false,
+    check_whatsapp: false,
   });
   const handleInputChange = (e) => {
     const { name, value, selectedOptions, type } = e.target;
@@ -54,6 +56,12 @@ const CopyClosedContract = () => {
       setContractData({
         ...contractData,
         [name]: values,
+      });
+
+    } else if (type === "checkbox") {
+      setContractData({
+        ...contractData,
+        [name]: e.target.checked,
       });
     } else {
       setContractData({
@@ -90,6 +98,7 @@ const CopyClosedContract = () => {
             solution_need: data?.data?.solution_need || false,
             action_need: data?.data?.action_need || false,
             casting_need: data?.data?.casting_need || false,
+            check_whatsapp: data?.data?.check_whatsapp === 1 || data?.data?.check_whatsapp === true,
           });
         }
       } catch (error) {
@@ -110,12 +119,13 @@ const CopyClosedContract = () => {
       setIsLoading(true);
       const response = await axios.post(
         `${API_BASE_URL}/contracts/${id}/duplicate`,
-        contractData,
+        { ...contractData, check_whatsapp: contractData.check_whatsapp ? 1 : 0 },
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
       if (response.status === 200 || response.status === 201) {
+
         toast.success(t("messages.contract.duplicate.success"));
         // contractData(initialContractData);
         navigate("/contract");
@@ -363,6 +373,26 @@ const CopyClosedContract = () => {
                       <option value="eur"> Euros</option>
                       <option value="usd"> Dollars</option>
                     </select>
+                  </div>
+                  <div className="mb-4">
+                    <div className="form-check d-flex align-items-center gap-2">
+                     <input
+                        className="form-check-input mt-0"
+                        type="checkbox"
+                        id="check_whatsapp_closed_copy"
+                        name="check_whatsapp"
+                        checked={contractData.check_whatsapp === true || contractData.check_whatsapp === 1}
+                        onChange={handleInputChange}
+                        style={{ cursor: "pointer" }}
+                      />
+                      <label
+                        className="form-check-label mb-0"
+                        htmlFor="check_whatsapp_closed_copy"
+                        style={{ cursor: "pointer", userSelect: "none" }}
+                      >
+                        WhatsApp (Direct Message)
+                      </label>
+                    </div>
                   </div>
                   <div className="mb-4">
                     <label className="form-label">Description</label>

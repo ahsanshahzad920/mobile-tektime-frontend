@@ -1,4 +1,5 @@
 import CookieService from "../../../Utils/CookieService";
+import { createPortal } from "react-dom";
 import React, { useEffect, useState } from "react";
 import { RxCross2 } from "react-icons/rx";
 import {
@@ -67,12 +68,15 @@ const QuickMomentForm = ({
   onClose,
   openedFrom,
   destination,
+  meetingData,
   // answer,
   // refresh,
 }) => {
   const [t] = useTranslation("global");
   console.log("destination", destination);
-  const [step, setStep] = useState(openedFrom === "mission" ? 1 : 1);
+  const [step, setStep] = useState(
+    meetingData ? 2 : openedFrom === "mission" ? 1 : 1,
+  );
   const [momentType, setMomentType] = useState("");
   const [momentName, setMomentName] = useState("");
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -191,6 +195,151 @@ const QuickMomentForm = ({
   //     matchSolution();
   //   }
   // }, [show, answer, step]);
+  useEffect(() => {
+    if (show && meetingData) {
+      // Direct jump to step 2 handled by initial state, but ensure it if show changes
+      if (step === 1) setStep(2);
+      if (meetingData?.created_from_whatsapp) {
+        setFormState(meetingData);
+        setMeeting(meetingData);
+
+        // Map Date and Time
+        const mTime = meetingData.time || meetingData.start_time;
+        if (meetingData.date && mTime) {
+          const [year, month, day] = meetingData.date.split("-");
+          const [hour, minute] = mTime.split(":");
+          const newD = new Date(year, month - 1, day, hour, minute);
+          setSelectedDateTime(newD);
+        }
+
+        // Map Title
+        if (meetingData.title) {
+          setMomentName(meetingData.title);
+          setIsManualTitle(true);
+        }
+      } else {
+        // Original mapping for other cases
+        if (meetingData.date && meetingData.time) {
+          const [year, month, day] = meetingData.date.split("-");
+          const [hour, minute] = meetingData.time.split(":");
+          const newD = new Date(year, month - 1, day, hour, minute);
+          setSelectedDateTime(newD);
+        }
+
+        if (meetingData.title) {
+          setMomentName(meetingData.title);
+          setIsManualTitle(true);
+        }
+      }
+
+      if (meetingData?.solution && meetingData?.created_from_whatsapp === true) {
+        setFormState((prev) => ({
+          ...prev,
+          solution_id: meetingData.solution.id,
+          solution_tab: "use a template",
+        }));
+      }
+
+      // Map Template (Solution)
+      if (meetingData.solution_suggestion && meetingData?.created_from_whatsapp === true) {
+        const matchSolution = async () => {
+          try {
+            const response = await axios.get(
+              `${API_BASE_URL}/get-all-solutions`,
+              {
+                headers: {
+                  Authorization: `Bearer ${CookieService.get("token")}`,
+                },
+              },
+            );
+            if (response?.status === 200) {
+              const solutions = response.data.data || [];
+              const suggestion = meetingData.solution_suggestion
+                .toLowerCase()
+                .trim();
+
+              const matchingSolution = solutions.find((s) => {
+                const title = s.title?.toLowerCase().trim();
+                return suggestion.includes(title) || title.includes(suggestion);
+              });
+
+              if (matchingSolution) {
+                setFormState((prev) => ({
+                  ...prev,
+                  solution_id: matchingSolution.id,
+                  solution_tab: "use a template",
+                }));
+              }
+            }
+          } catch (error) {
+            console.error("Error matching solution:", error);
+          }
+        };
+        matchSolution();
+      }
+
+      // Map Client
+      const clientObj = meetingData.client || meetingData.clients;
+      if (clientObj) {
+        setSelectedClient({
+          value: clientObj.id,
+          label: clientObj.name,
+          data: {
+            client_logo: clientObj.client_logo || "",
+          },
+        });
+        setClientId(clientObj.id);
+      }
+
+      // Map Mission (Destination)
+      if (meetingData.destination) {
+        setSelectedMission({
+          value: meetingData.destination.id,
+          label: meetingData.destination.destination_name,
+          type: meetingData.destination.destination_type,
+          data: {
+            description: meetingData.destination.destination_description,
+          },
+        });
+      }
+
+      // Map Participants (Invites)
+      if (meetingData.participants && Array.isArray(meetingData.participants)) {
+        const mappedParticipants = meetingData.participants.map((p) => ({
+          id: p.id || null,
+          email: p.email,
+          first_name: p.first_name || p.name || "",
+          last_name: p.last_name || "",
+          post: p.post || p.role || "",
+          client: p.client || null,
+          client_id: p.client_id || null,
+          contribution: p.contribution || "",
+          meeting_id: checkId || null,
+        }));
+
+        setFormState((prev) => ({
+          ...prev,
+          participants: mappedParticipants,
+        }));
+      }
+
+      // Map Repetition Settings
+      if (meetingData.repetition !== undefined) {
+        setFormState((prev) => ({
+          ...prev,
+          repetition: !!meetingData.repetition,
+          repetition_frequency:
+            meetingData.repetition_frequency ||
+            prev.repetition_frequency ||
+            "Weekly",
+          repetition_number: meetingData.repetition_number || 1,
+          repetition_end_date:
+            meetingData.repetition_end_date || prev.repetition_end_date,
+          selected_days: meetingData.selected_days || prev.selected_days || [],
+        }));
+      }
+    }
+  }, [show, meetingData, checkId]);
 
   const [selectedDateTime, setSelectedDateTime] = useState(new Date());
   const formatDateWithCustomTime = (date) => {
@@ -293,6 +442,7 @@ const QuickMomentForm = ({
       return false;
     }) || [];
 
+
   const getFilteredMissions = () => {
     if (!selectedClient) return []; // No client selected, show empty
 
@@ -322,9 +472,7 @@ const QuickMomentForm = ({
       const top = window.screenY + (window.innerHeight - height) / 2;
 
       const popup = window.open(
-        `https://api.tektime.io/outlook-login?user_id=${CookieService.get(
-          "user_id",
-        )}`,
+        `${process.env.REACT_APP_API_BASE_URL}/outlook-login?user_id=${CookieService.get("user_id")}`,
         "Outlook Login",
         `width=${width},height=${height},top=${top},left=${left}`,
       );
@@ -339,7 +487,7 @@ const QuickMomentForm = ({
       setProgress(30);
 
       const messageHandler = async (event) => {
-        if (event.origin !== "https://api.tektime.io") {
+        if (event.origin !== `${process.env.REACT_APP_API_BASE_URL}`) {
           console.warn("⚠️ Ignored message from unknown origin:", event.origin);
           return;
         }
@@ -835,7 +983,7 @@ const QuickMomentForm = ({
     newValues.forEach((option) => {
       if (!option) return;
 
-      if (option.type === "user") {
+      if (option.type === "user" || option.type === "contact") {
         // Try to keep the ID from the previous state if it's already there
         const existingParticipant = (formState?.participants || []).find(
           (p) =>
@@ -846,7 +994,6 @@ const QuickMomentForm = ({
         const participantId = option.data?.meeting_id
           ? option.data.id
           : existingParticipant?.id || null;
-
         const clientId =
           option.data?.client_id || option.data?.clients?.id || null;
 
@@ -919,14 +1066,14 @@ const QuickMomentForm = ({
   };
 
   useEffect(() => {
-    if (destination || meeting) {
-      setMissionId(destination?.id || meeting?.destination_id);
-      setClientId(destination?.client_id || meeting?.destination?.client_id);
+    if (destination || meeting || meetingData) {
+      setMissionId(destination?.id || meeting?.destination_id || meetingData?.destination_id);
+      setClientId(destination?.client_id || meeting?.destination?.client_id || meetingData?.destination?.client_id);
       setDestinationType(
-        destination?.destination_type || meeting?.destination?.destination_type,
+        destination?.destination_type || meeting?.destination?.destination_type || meetingData?.destination?.destination_type,
       );
     }
-  }, [destination, meeting]);
+  }, [destination, meeting,meetingData]);
   // Fetch users on component mount
   useEffect(() => {
     const fetchUsers = async () => {
@@ -1046,6 +1193,7 @@ const QuickMomentForm = ({
   // Mission defaults effect
   useEffect(() => {
     if (!selectedClient?.label || isManualMission) return;
+    if(meetingData?.created_from_whatsapp) return;
 
     // Determine default mission label based on user profile
     let defaultMissionLabel = `projet ${selectedClient.label.toLowerCase()}`;
@@ -1081,7 +1229,8 @@ const QuickMomentForm = ({
 
     const existingMission = missionOptions.find(
       (option) =>
-        option.label.toLowerCase().trim() === defaultMissionLabel.toLowerCase().trim(),
+        option.label.toLowerCase().trim() ===
+        defaultMissionLabel.toLowerCase().trim(),
     );
 
     if (existingMission) {
@@ -1110,6 +1259,7 @@ const QuickMomentForm = ({
     missionOptions,
     isManualMission,
     openedFrom,
+    meetingData
   ]);
 
   // Title defaults effect
@@ -1137,7 +1287,7 @@ const QuickMomentForm = ({
   ]);
 
   useEffect(() => {
-    if (show && user) {
+    if (show && user && !meetingData) {
       const gAgenda = user?.integration_links?.some(
         (link) => link.platform === "Google Agenda",
       );
@@ -1222,7 +1372,10 @@ const QuickMomentForm = ({
   }, []); // Run once on mount (or could add minimal deps if needed, but mount is safest to not overwrite user changes)
 
   // Fetch missions
-  const getDefaultMission = async (defaultMissionLabel, currentMissionOptions) => {
+  const getDefaultMission = async (
+    defaultMissionLabel,
+    currentMissionOptions,
+  ) => {
     try {
       const userId = parseInt(CookieService.get("user_id"));
       const payload = {
@@ -1403,9 +1556,9 @@ const QuickMomentForm = ({
 
         status: "draft", // Keep as draft until final submit
         timezone: userTimezone,
-        _method: "put",
+        ...(meeting?.id ? { _method: "put" } : {}),
       };
-      api_end_point = `/meetings/${meeting?.id}`;
+      api_end_point = meeting?.id ? `/meetings/${meeting.id}` : "/meetings";
     }
 
     try {
@@ -1554,12 +1707,14 @@ const QuickMomentForm = ({
       timezone: userTimezone,
       status: "active",
       team_ids: (formState.teams || []).map((t) => t.id).filter((id) => id),
-      _method: "put",
+      ...(meeting?.id ? { _method: "put" } : {}),
     };
 
     try {
       const res = await axios.post(
-        `${API_BASE_URL}/meetings/${meeting?.id}`,
+        meeting?.id
+          ? `${API_BASE_URL}/meetings/${meeting.id}`
+          : `${API_BASE_URL}/meetings`,
         payload,
         {
           headers: {
@@ -1569,58 +1724,120 @@ const QuickMomentForm = ({
       );
 
       if (res.status === 200 || res?.status === 201) {
-        if (formState.repetition) {
-          await recurrentMeetingAPI(meeting.id);
-        }
-        if (isTemplate && selectedSolution?.is_step_exists !== false) {
-          // For templates, navigate to invite page
-          navigate(`/invite/${meeting?.id}`);
-          setMeeting(null);
-          setFormState({
-            selectedOption: null,
-            title: "",
-            date: "",
-            start_time: "",
-            description: "",
-            type: "",
-            priority: "",
-            alarm: false,
-            feedback: false,
-            remainder: false,
-            notification: false,
-            autostart: false,
-            playback: "Manual",
-            prise_de_notes: "Manual",
-            note_taker: false,
-            objective: "",
-            participants: [],
-            steps: [],
-            solution_tab: "use a template",
-            solution_id: null,
-            id: null,
-            repetition: false,
-            repetition_number: 1,
-            repetition_frequency: "Daily",
-            repetition_end_date: null,
-            selected_days: [],
-            teams: [],
-            moment_privacy: "participant only",
-            moment_privacy_teams: [],
-            moment_password: null,
-            location: null,
-            agenda: null,
-            address: null,
-            room_details: null,
-            phone: null,
-            share_by: null,
-            price: null,
-            max_participants_register: 0,
+        const responseData = res?.data?.data || meeting;
+        const targetId = responseData?.id;
 
-            casting_tab: null,
-          });
+        setMeeting(responseData);
+        // toast.success(t("meeting.formState.Meeting created successfully"));
+
+        if (formState.repetition) {
+          await recurrentMeetingAPI(targetId);
+        }
+        if (meetingData) {
+          // Assistant Flow: Check actual meeting data for steps
+          const hasSteps = (responseData?.steps?.length > 0) || (responseData?.meeting_steps_count > 0);
+          if (hasSteps) {
+            navigate(`/invite/${targetId}`);
+            if (isTemplate) {
+              setMeeting(null);
+              setFormState({
+                selectedOption: null,
+                title: "",
+                date: "",
+                start_time: "",
+                description: "",
+                type: "",
+                priority: "",
+                alarm: false,
+                feedback: false,
+                remainder: false,
+                notification: false,
+                autostart: false,
+                playback: "Manual",
+                prise_de_notes: "Manual",
+                note_taker: false,
+                objective: "",
+                participants: [],
+                steps: [],
+                solution_tab: "use a template",
+                solution_id: null,
+                id: null,
+                repetition: false,
+                repetition_number: 1,
+                repetition_frequency: "Daily",
+                repetition_end_date: null,
+                selected_days: [],
+                teams: [],
+                moment_privacy: "participant only",
+                moment_privacy_teams: [],
+                moment_password: null,
+                location: null,
+                agenda: null,
+                address: null,
+                room_details: null,
+                phone: null,
+                share_by: null,
+                price: null,
+                max_participants_register: 0,
+                casting_tab: null,
+              });
+            }
+            onClose();
+          } else {
+            setShowStepsModal(true);
+          }
         } else {
-          // For solutions, show steps modal
-          setShowStepsModal(true);
+          // Standard Flow: Original Quick Planning logic
+          if (isTemplate && selectedSolution?.is_step_exists !== false) {
+            // For templates, navigate to invite page
+            navigate(`/invite/${targetId}`);
+            setMeeting(null);
+            setFormState({
+              selectedOption: null,
+              title: "",
+              date: "",
+              start_time: "",
+              description: "",
+              type: "",
+              priority: "",
+              alarm: false,
+              feedback: false,
+              remainder: false,
+              notification: false,
+              autostart: false,
+              playback: "Manual",
+              prise_de_notes: "Manual",
+              note_taker: false,
+              objective: "",
+              participants: [],
+              steps: [],
+              solution_tab: "use a template",
+              solution_id: null,
+              id: null,
+              repetition: false,
+              repetition_number: 1,
+              repetition_frequency: "Daily",
+              repetition_end_date: null,
+              selected_days: [],
+              teams: [],
+              moment_privacy: "participant only",
+              moment_privacy_teams: [],
+              moment_password: null,
+              location: null,
+              agenda: null,
+              address: null,
+              room_details: null,
+              phone: null,
+              share_by: null,
+              price: null,
+              max_participants_register: 0,
+
+              casting_tab: null,
+            });
+          } else {
+            // For solutions, show steps modal
+            setShowStepsModal(true);
+          }
         }
       }
     } catch (err) {
@@ -1629,6 +1846,86 @@ const QuickMomentForm = ({
     } finally {
       setLoading(false);
       setLoadingPlay(false);
+    }
+  };
+
+
+  const handleMeetingUpdate = async () => {
+    if (!meetingData?.id) return;
+
+    setLoading(true);
+
+    const userTimezone = moment.tz.guess();
+    const dateTime = Array.isArray(selectedDateTime)
+      ? selectedDateTime.length > 0
+        ? selectedDateTime[0]
+        : new Date()
+      : selectedDateTime || new Date();
+
+    const isNewClient = selectedClient?.__isNew__;
+    const isNewMission = selectedMission?.__isNew__;
+
+    const payload = {
+      ...(meetingData?.created_from_whatsapp ? meetingData : {}),
+      ...formState,
+      _method: "put",
+      status: "active",
+      update_meeting: true,
+      create_agenda:
+        meetingData?.location === "Google Meet" ||
+        meetingData?.agenda === "Google Agenda" ||
+        meetingData?.agenda === "Outlook Agenda"
+          ? true
+          : false,
+      id: meetingData?.id,
+      title: momentName,
+      date: moment(dateTime).format("YYYY-MM-DD"),
+      start_time: dateTime.toTimeString().split(" ")[0],
+      timezone: userTimezone,
+      client_id: !isNewClient ? selectedClient?.value : null,
+      client: isNewClient ? selectedClient?.label : null,
+      ...(isNewMission
+        ? {
+            destination: selectedMission?.label,
+            destination_type: destinationType,
+          }
+        : {
+            destination_id:
+              openedFrom === "mission"
+                ? destination?.id
+                : selectedMission?.value,
+            destination_type: selectedMission?.type || destinationType,
+          }),
+      steps: formState?.steps?.length > 0 ? formState?.steps : [],
+    };
+
+    try {
+      const res = await axios.post(
+        `${API_BASE_URL}/meetings/${meetingData?.id}`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${CookieService.get("token")}`,
+          },
+        },
+      );
+
+      if (res.status === 200 || res?.status === 201) {
+        toast.success(t("meeting.formState.Meeting updated successfully"));
+
+            const hasSteps =
+      (meetingData?.steps?.length > 0) || (meetingData?.meeting_steps_count > 0);
+
+    if (!hasSteps) {
+      setShowStepsModal(true);
+      // return;
+    }
+      }
+    } catch (error) {
+      console.error("Error updating meeting:", error);
+      toast.error(t("An error occurred while updating the meeting"));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1838,12 +2135,14 @@ const QuickMomentForm = ({
       timezone: userTimezone,
       status: "active",
       team_ids: (formState.teams || []).map((t) => t.id).filter((id) => id),
-      _method: "put",
+      ...(meeting?.id ? { _method: "put" } : {}),
     };
 
     try {
       const res = await axios.post(
-        `${API_BASE_URL}/meetings/${meeting?.id}`,
+        meeting?.id
+          ? `${API_BASE_URL}/meetings/${meeting.id}`
+          : `${API_BASE_URL}/meetings`,
         payload,
         {
           headers: {
@@ -1962,6 +2261,8 @@ const QuickMomentForm = ({
     { value: "Formation", label: t("destination.formation") },
     { value: "Recruitment", label: t("destination.recruitment") },
     { value: "Objective", label: t("destination.objective") },
+    { value: "Agenda", label: t("destination.Agenda") },
+    { value: "Messagerie", label: t("destination.messaging") },
     { value: "Other", label: t("destination.other") },
   ];
 
@@ -1995,6 +2296,15 @@ const QuickMomentForm = ({
 
       case "Objective":
         return <FaBullseye size={20} style={commonStyle} />;
+
+      case "Agenda":
+      case "Messagerie":
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#F19C38" style={commonStyle}>
+            <path d="M7.5 5.6L10 0L12.5 5.6L18.1 8.1L12.5 10.6L10 16.2L7.5 10.6L1.9 8.1L7.5 5.6Z"/>
+            <path d="M17.5 15.6L19.1 12.1L20.7 15.6L24.2 17.2L20.7 18.8L19.1 22.3L17.5 18.8L14 17.2L17.5 15.6Z"/>
+          </svg>
+        );
 
       case "Other":
         return <span style={commonStyle}>✨</span>;
@@ -2476,7 +2786,8 @@ const QuickMomentForm = ({
 
                 {/* Location & Integration info */}
                 {(displayAgendaLinks.length > 0 ||
-                  displayVisioLinks.length > 0) && (
+                  displayVisioLinks.length > 0) &&
+                  !((meetingData?.created_from_whatsapp || meeting?.created_from_whatsapp) && !meetingData?.location && !meetingData?.agenda) && (
                   <div className="form-group mb-3">
                     <label className="form-label">
                       {t("Location & Integration")}
@@ -2494,6 +2805,13 @@ const QuickMomentForm = ({
                         <div
                           key={`visio-${idx}`}
                           className="d-flex align-items-center gap-2"
+                          style={{ cursor: "pointer" }}
+                          onClick={() => {
+                            setFormState((prev) => ({
+                              ...prev,
+                              location: prev.location === link.platform ? null : link.platform,
+                            }));
+                          }}
                         >
                           <input
                             type="radio"
@@ -2516,6 +2834,13 @@ const QuickMomentForm = ({
                         <div
                           key={`agenda-${idx}`}
                           className="d-flex align-items-center gap-2"
+                          style={{ cursor: "pointer" }}
+                          onClick={() => {
+                            setFormState((prev) => ({
+                              ...prev,
+                              agenda: prev.agenda === link.platform ? null : link.platform,
+                            }));
+                          }}
                         >
                           <input
                             type="radio"
@@ -3215,7 +3540,8 @@ const QuickMomentForm = ({
 
                 {/* Location & Integration info */}
                 {(displayAgendaLinks.length > 0 ||
-                  displayVisioLinks.length > 0) && (
+                  displayVisioLinks.length > 0) &&
+                  !((meetingData?.created_from_whatsapp || meeting?.created_from_whatsapp) && !meetingData?.location && !meetingData?.agenda) && (
                   <div className="form-group mb-3">
                     <label className="form-label">
                       {t("meeting.NewMeetingTabs.tab4")}
@@ -3233,6 +3559,13 @@ const QuickMomentForm = ({
                         <div
                           key={`visio-${idx}`}
                           className="d-flex align-items-center gap-2"
+                          style={{ cursor: "pointer" }}
+                          onClick={() => {
+                            setFormState((prev) => ({
+                              ...prev,
+                              location: prev.location === link.platform ? null : link.platform,
+                            }));
+                          }}
                         >
                           <input
                             type="radio"
@@ -3255,6 +3588,13 @@ const QuickMomentForm = ({
                         <div
                           key={`agenda-${idx}`}
                           className="d-flex align-items-center gap-2"
+                          style={{ cursor: "pointer" }}
+                          onClick={() => {
+                            setFormState((prev) => ({
+                              ...prev,
+                              agenda: prev.agenda === link.platform ? null : link.platform,
+                            }));
+                          }}
                         >
                           <input
                             type="radio"
@@ -3360,250 +3700,242 @@ const QuickMomentForm = ({
     }
   };
 
-  return (
-    <>
-      {show && (
-        <div className="quick-moment-form">
-          <div className="modal-overlay-1">
-            <div className="new-meeting-modal-1">
-              <div className="modal-nav">
-                <h4>{t("addQuickMomentbtninmission")}</h4>
-                <button className="cross-btn" onClick={handleCancel}>
-                  <RxCross2 size={18} />
-                </button>
-              </div>
+  const mainModalContent = (
+    <div
+      className="quick-moment-form"
+      style={{
+        zIndex: 1040,
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+      }}
+    >
+      <div className="modal-overlay-1">
+        <div className="new-meeting-modal-1">
+          <div className="modal-nav">
+            <h4>
+              {t("addQuickMomentbtninmission")}
+              {(meetingData?.solution && meetingData?.created_from_whatsapp ) ? ` - ${meetingData?.solution?.title}` :meetingData?.solution_suggestion &&
+                ` - ${meetingData.solution_suggestion}`}
+            </h4>
+            <button className="cross-btn" onClick={handleCancel}>
+              <RxCross2 size={18} />
+            </button>
+          </div>
 
-              <div className="modal-body">
-                <div className="progress-container-1">
-                  <div className="progress-track">
-                    <div
-                      className="progress-fill"
-                      style={{
-                        width:
-                          openedFrom === "mission"
-                            ? `${((step - 1) / 1) * 100}%` // For mission flow (2 steps: 0% to 100%)
-                            : `${((step - 1) / 3) * 100}%`, // For normal flow (4 steps: 0% to 100%)
-                      }}
-                    ></div>
-                  </div>
-                  <div className="progress-steps">
-                    {openedFrom === "mission" ? (
-                      <>
-                        <div
-                          className={`progress-step ${
-                            step >= 1 ? "active" : ""
-                          }`}
-                        >
-                          <div className="step-number">1</div>
-                          <div className="step-label">{t("Solution")}</div>
-                        </div>
-                        <div
-                          className={`progress-step ${
-                            step >= 2 ? "active" : ""
-                          }`}
-                        >
-                          <div className="step-number">2</div>
-                          <div className="step-label">{t("Moment")}</div>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div
-                          className={`progress-step ${
-                            step >= 1 ? "active" : ""
-                          }`}
-                        >
-                          <div className="step-number">1</div>
-                          <div className="step-label">{t("Solution")}</div>
-                        </div>
-                        <div
-                          className={`progress-step ${
-                            step >= 2 ? "active" : ""
-                          }`}
-                        >
-                          <div className="step-number">2</div>
-                          <div className="step-label">{t("Moment")}</div>
-                        </div>
-                        {/* <div
-                          className={`progress-step ${
-                            step >= 3 ? "active" : ""
-                          }`}
-                        >
-                          <div className="step-number">3</div>
-                          <div className="step-label">{t("Mission")}</div>
-                        </div>
-                        <div
-                          className={`progress-step ${
-                            step >= 4 ? "active" : ""
-                          }`}
-                        >
-                          <div className="step-number">4</div>
-                          <div className="step-label">{t("Moment")}</div>
-                        </div> */}
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {showProgressBar && (
+          <div className="modal-body">
+            {!meetingData && (
+              <div className="progress-container-1">
+                <div className="progress-track">
                   <div
+                    className="progress-fill"
                     style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      background: "rgba(255, 255, 255, 0.8)",
-                      zIndex: 1000,
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      padding: "20px",
+                      width:
+                        openedFrom === "mission"
+                          ? `${((step - 1) / 1) * 100}%` // For mission flow (2 steps: 0% to 100%)
+                          : `${((step - 1) / 3) * 100}%`, // For normal flow (4 steps: 0% to 100%)
                     }}
-                  >
-                    <ProgressBar
-                      now={progress}
-                      label={`${progress}%`}
-                      animated
-                      style={{
-                        width: "80%",
-                        height: "20px",
-                        borderRadius: "10px",
-                      }}
-                    />
-                    <p
-                      style={{
-                        marginTop: "15px",
-                        fontWeight: "600",
-                        color: "#2C48AE",
-                      }}
-                    >
-                      {t("Processing integration login...")}
-                    </p>
-                  </div>
-                )}
-                {renderStepContent()}
-              </div>
-
-              <div className="modal-footer-fixed">
-                <button className="btn btn-danger" onClick={handleCancel}>
-                  {t("Cancel")}
-                </button>
-                <div className="d-flex gap-2">
+                  ></div>
+                </div>
+                <div className="progress-steps">
                   {openedFrom === "mission" ? (
                     <>
-                      {step === 1 ? (
-                        <button
-                          className="btn btn-primary"
-                          style={{ outline: 0, borderRadius: "9px" }}
-                          onClick={handleCreate}
-                          disabled={loading}
-                        >
-                          {loading ? (
-                            <Spinner as="span" animation="border" size="sm" />
-                          ) : (
-                            t("meeting.formState.Save and Continue")
-                          )}
-                        </button>
-                      ) : (
-                        <>
-                          <button
-                            className="btn btn-primary"
-                            style={{ outline: 0, borderRadius: "9px" }}
-                            onClick={handleFinalSubmit}
-                            disabled={!momentName || loading}
-                          >
-                            {loading ? (
-                              <Spinner as="span" animation="border" size="sm" />
-                            ) : (
-                              t("Validate")
-                            )}
-                          </button>
-                          {isTemplate &&
-                            formState?.type !== "Calendly" &&
-                            selectedSolution?.is_step_exists !== false && (
-                              <button
-                                className="btn btn-primary"
-                                style={{ outline: 0, borderRadius: "9px" }}
-                                onClick={createAndPlay}
-                                disabled={!momentName}
-                              >
-                                {loadingPlay ? (
-                                  <Spinner
-                                    as="span"
-                                    animation="border"
-                                    size="sm"
-                                  />
-                                ) : (
-                                  t("Validate and Play")
-                                )}
-                              </button>
-                            )}
-                        </>
-                      )}
+                      <div
+                        className={`progress-step ${step >= 1 ? "active" : ""}`}
+                      >
+                        <div className="step-number">1</div>
+                        <div className="step-label">{t("Solution")}</div>
+                      </div>
+                      <div
+                        className={`progress-step ${step >= 2 ? "active" : ""}`}
+                      >
+                        <div className="step-number">2</div>
+                        <div className="step-label">{t("Moment")}</div>
+                      </div>
                     </>
                   ) : (
                     <>
-                      {step < 2 ? (
-                        <button
-                          className="btn btn-primary"
-                          style={{ outline: 0, borderRadius: "9px" }}
-                          onClick={handleCreate}
-                        >
-                          {t("meeting.formState.Save and Continue")}
-                        </button>
-                      ) : (
-                        <>
-                          <button
-                            className="btn btn-primary"
-                            style={{ outline: 0, borderRadius: "9px" }}
-                            onClick={handleFinalSubmit}
-                            disabled={!momentName}
-                          >
-                            {loading ? (
-                              <Spinner as="span" animation="border" size="sm" />
-                            ) : (
-                              t("Validate")
-                            )}
-                          </button>
-
-                          {isTemplate &&
-                            formState?.type !== "Calendly" &&
-                            selectedSolution?.is_step_exists !== false && (
-                              <button
-                                className="btn btn-primary"
-                                style={{ outline: 0, borderRadius: "9px" }}
-                                onClick={createAndPlay}
-                                disabled={!momentName}
-                              >
-                                {loadingPlay ? (
-                                  <Spinner
-                                    as="span"
-                                    animation="border"
-                                    size="sm"
-                                  />
-                                ) : (
-                                  t("Validate and Play")
-                                )}
-                              </button>
-                            )}
-                        </>
-                      )}
+                      <div
+                        className={`progress-step ${step >= 1 ? "active" : ""}`}
+                      >
+                        <div className="step-number">1</div>
+                        <div className="step-label">{t("Solution")}</div>
+                      </div>
+                      <div
+                        className={`progress-step ${step >= 2 ? "active" : ""}`}
+                      >
+                        <div className="step-number">2</div>
+                        <div className="step-label">{t("Moment")}</div>
+                      </div>
                     </>
                   )}
                 </div>
               </div>
+            )}
+            {showProgressBar && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  background: "rgba(255, 255, 255, 0.8)",
+                  zIndex: 1000,
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  padding: "20px",
+                }}
+              >
+                <ProgressBar
+                  now={progress}
+                  label={`${progress}%`}
+                  animated
+                  style={{
+                    width: "80%",
+                    height: "20px",
+                    borderRadius: "10px",
+                  }}
+                />
+                <p
+                  style={{
+                    marginTop: "15px",
+                    fontWeight: "600",
+                    color: "#2C48AE",
+                  }}
+                >
+                  {t("Processing integration login...")}
+                </p>
+              </div>
+            )}
+            {renderStepContent()}
+          </div>
+
+          <div className="modal-footer-fixed">
+            <button className="btn btn-danger" onClick={handleCancel}>
+              {t("Cancel")}
+            </button>
+            <div className="d-flex gap-2">
+              {openedFrom === "mission" ? (
+                <>
+                  {step === 1 ? (
+                    <button
+                      className="btn btn-primary"
+                      style={{ outline: 0, borderRadius: "9px" }}
+                      onClick={handleCreate}
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <Spinner as="span" animation="border" size="sm" />
+                      ) : (
+                        t("meeting.formState.Save and Continue")
+                      )}
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        className="btn btn-primary"
+                        style={{ outline: 0, borderRadius: "9px" }}
+                        onClick={()=>meetingData?.created_from_whatsapp ? handleMeetingUpdate() : handleFinalSubmit()}
+                        disabled={!momentName || loading}
+                      >
+                        {loading ? (
+                          <Spinner as="span" animation="border" size="sm" />
+                        ) : (
+                          t("Validate")
+                        )}
+                      </button>
+                      {isTemplate &&
+                        formState?.type !== "Calendly" &&
+                        selectedSolution?.is_step_exists !== false &&
+                        !meetingData?.created_from_whatsapp && (
+                          <button
+                            className="btn btn-primary"
+                            style={{ outline: 0, borderRadius: "9px" }}
+                            onClick={createAndPlay}
+                            disabled={!momentName}
+                          >
+                            {loadingPlay ? (
+                              <Spinner as="span" animation="border" size="sm" />
+                            ) : (
+                              t("Validate and Play")
+                            )}
+                          </button>
+                        )}
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  {step < 2 ? (
+                    <button
+                      className="btn btn-primary"
+                      style={{ outline: 0, borderRadius: "9px" }}
+                      onClick={handleCreate}
+                    >
+                      {t("meeting.formState.Save and Continue")}
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        className="btn btn-primary"
+                        style={{ outline: 0, borderRadius: "9px" }}
+                        onClick={()=>meetingData?.created_from_whatsapp ? handleMeetingUpdate() : handleFinalSubmit()}
+                        disabled={!momentName}
+                      >
+                        {loading ? (
+                          <Spinner as="span" animation="border" size="sm" />
+                        ) : (
+                          t("Validate")
+                        )}
+                      </button>
+
+                      {isTemplate &&
+                        formState?.type !== "Calendly" &&
+                        selectedSolution?.is_step_exists !== false &&
+                        !meetingData?.created_from_whatsapp && (
+                          <button
+                            className="btn btn-primary"
+                            style={{ outline: 0, borderRadius: "9px" }}
+                            onClick={createAndPlay}
+                            disabled={!momentName}
+                          >
+                            {loadingPlay ? (
+                              <Spinner as="span" animation="border" size="sm" />
+                            ) : (
+                              t("Validate and Play")
+                            )}
+                          </button>
+                        )}
+                    </>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>
-      )}
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      {show &&
+        !showStepsModal &&
+        typeof document !== "undefined" &&
+        createPortal(mainModalContent, document.body)}
 
       <Modal
         show={showConfirmation}
         onHide={handleCloseConfirmation}
         centered
         className="confirmation-modal"
+        style={{ zIndex: 1051 }}
+        backdropClassName="custom-high-z-backdrop"
       >
         <Modal.Header closeButton>
           <Modal.Title>{t("areYouSure")}</Modal.Title>
@@ -3636,24 +3968,59 @@ const QuickMomentForm = ({
         </Modal.Footer>
       </Modal>
 
-      {showStepsModal && meeting && (
-        <div className="new-meeting-modal">
-          <div className="tektimetabs">
-            <QuickStepChart
-              meetingId={meeting?.id}
-              id={id}
-              show={showStepsModal}
-              setId={setId}
-              closeModal={() => setShowStepsModal(false)}
-              meeting={meeting}
-              setMeeting={setMeeting}
-              isDrop={isDrop}
-              setIsDrop={setIsDrop}
-              closeMeeting={onClose}
-            />
-          </div>
-        </div>
-      )}
+      {showStepsModal &&
+        meeting &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="new-meeting-modal-container"
+            style={{
+              zIndex: 1055,
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "rgba(0,0,0,0.5)",
+            }}
+          >
+            <div
+              className="new-meeting-modal"
+              style={{
+                width: "80%",
+                maxHeight: "90vh",
+                background: "white",
+                borderRadius: "12px",
+                overflow: "hidden",
+              }}
+            >
+              <div className="tektimetabs">
+                <QuickStepChart
+                  meetingId={meeting?.id}
+                  id={id}
+                  show={showStepsModal}
+                  setId={setId}
+                  closeModal={() => {
+                    setShowStepsModal(false);
+                    // onClose();
+                  }}
+                  meeting={meeting}
+                  setMeeting={setMeeting}
+                  closeMeeting={onClose}
+                />
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
+      <style>{`
+        .custom-high-z-backdrop {
+          z-index: 1050 !important;
+        }
+      `}</style>
     </>
   );
 };

@@ -86,6 +86,7 @@ import AccessControl from "./Components/Elements/AccessControl";
 import AccessDenied from "./Pages/AccessDenied";
 import HomeMessages from "./Pages/Discussion/HomeMessages.jsx";
 import CookieService from "./Components/Utils/CookieService";
+import { setupAxiosInterceptors } from "./Components/Utils/auth";
 
 i18next.init({
   interpolation: { escapevalue: false },
@@ -178,11 +179,11 @@ function App() {
   });
 
   console.log("m...");
-  // useEffect(() => {
-  //   // Setup axios interceptors
-  //   setupAxiosInterceptors(navigate);
+  useEffect(() => {
+    // Setup axios interceptors
+    setupAxiosInterceptors(navigate);
 
-  // }, [navigate]);
+  }, [navigate]);
 
   useEffect(() => {
     if (!messaging) {
@@ -384,13 +385,9 @@ function App() {
 
   useEffect(() => {
     const hasToken = !!CookieService.get("token");
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
     if (hasToken && (location.pathname === "/")) {
       navigate("/meeting");
-    } else if (!hasToken && location.pathname === "/" && isMobile) {
-      // For mobile users, redirect root to login as requested
-      navigate("/");
     }
   }, [location.pathname, navigate]);
   function refreshAccessToken() {

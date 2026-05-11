@@ -49,23 +49,22 @@ const MessageTypeWritter = ({
 
   const [participantsList, setParticipantsList] = useState([]);
 
-  const participantsRef = useRef([]);
+ const participantsRef = useRef([]);
 
-  useEffect(() => {
-    const getUniqueParticipants = (p) => {
-      if (!p || p.length === 0) return [];
-      return p.filter(
-        (part, idx, self) =>
-          idx ===
-          self.findIndex((p2) =>
-            p2.email ? p2.email === part.email : p2.id === part.id,
-          ),
-      );
-    };
-    const unique = getUniqueParticipants(participants);
-    setParticipantsList(unique);
-    participantsRef.current = unique; // ref bhi update karo
-  }, [participants]);
+useEffect(() => {
+  const getUniqueParticipants = (p) => {
+    if (!p || p.length === 0) return [];
+    return p.filter(
+      (part, idx, self) =>
+        idx === self.findIndex((p2) =>
+          p2.email ? p2.email === part.email : p2.id === part.id
+        )
+    );
+  };
+  const unique = getUniqueParticipants(participants);
+  setParticipantsList(unique);
+  participantsRef.current = unique; // ref bhi update karo
+}, [participants]);
 
   const handleSubmit = (e) => {
     if (e) e.preventDefault();
@@ -172,27 +171,25 @@ const MessageTypeWritter = ({
               onChange={(val) => setSimpleValue(val)}
               className="rounded-pill px-3"
               style={{ resize: "none" }}
-              options={participantsList.map((p) => ({
-                value: p.full_name || p.name || "",
-                label: (
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 8 }}
-                  >
-                    <img
-                      src={
-                        p.participant_image?.startsWith("http")
-                          ? p.participant_image
-                          : p.participant_image
-                            ? `${Assets_URL}/${p.participant_image.replace(/^\//, "")}`
-                            : FALLBACK_IMAGE
-                      }
-                      style={{ width: 20, height: 20, borderRadius: "50%" }}
-                      alt=""
-                    />
-                    <span>{p.full_name || p.name}</span>
-                  </div>
-                ),
-              }))}
+             options={participantsList.map((p) => ({
+  value: p.full_name || p.name || p.email || "",
+  label: (
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <img
+        src={
+          p.participant_image?.startsWith("http")
+            ? p.participant_image
+            : p.participant_image
+            ? `${Assets_URL}/${p.participant_image.replace(/^\//, "")}`
+            : FALLBACK_IMAGE
+        }
+        style={{ width: 20, height: 20, borderRadius: "50%" }}
+        alt=""
+      />
+      <span>{p.full_name || p.name || p.email}</span>
+    </div>
+  ),
+}))}
             />
 
             <Button
@@ -299,21 +296,21 @@ const MessageTypeWritter = ({
                     ? "bold italic | link image"
                     : "undo redo | bold italic | alignleft aligncenter alignright alignjustify | link image | help",
               statusbar: false,
-              setup: (editor) => {
-                editor.ui.registry.addAutocompleter("mentions", {
-                  ch: "@",
-                  minChars: 0,
-                  fetch: (query) => {
-                    const results = participantsRef.current // ← yahan change
-                      .filter((p) =>
-                        (p.full_name || p.name)
-                          ?.toLowerCase()
-                          .includes(query.toLowerCase()),
-                      )
-                      .map((p) => ({
-                        value: p.id.toString(),
-                        text: p.full_name || p.name || "Utilisateur",
-                        custom: `<div style="display:flex;align-items:center;gap:8px;padding:4px;">
+             setup: (editor) => {
+  editor.ui.registry.addAutocompleter("mentions", {
+    ch: "@",
+    minChars: 0,
+    fetch: (query) => {
+      const results = participantsRef.current  // ← yahan change
+        .filter((p) =>
+          (p.full_name || p.name || p.email)
+            ?.toLowerCase()
+            .includes(query.toLowerCase())
+        )
+        .map((p) => ({
+          value: p.id.toString(),
+          text: p.full_name || p.name || p.email || "Utilisateur",
+          custom: `<div style="display:flex;align-items:center;gap:8px;padding:4px;">
             <img src="${
               p.participant_image?.startsWith("http")
                 ? p.participant_image
@@ -321,24 +318,24 @@ const MessageTypeWritter = ({
                   ? `${Assets_URL}/${p.participant_image.replace(/^\//, "")}`
                   : FALLBACK_IMAGE
             }" style="width:20px;height:20px;border-radius:50%;" />
-            <span>${p.full_name || p.name}</span>
+            <span>${p.full_name || p.name || p.email}</span>
           </div>`,
-                      }));
-                    return Promise.resolve(results);
-                  },
-                  onAction: (api, rng, value) => {
-                    const p = participantsRef.current.find(
-                      // ← yahan bhi
-                      (p) => p.id.toString() === value,
-                    );
-                    editor.selection.setRng(rng);
-                    editor.insertContent(
-                      `<span class="mention" style="color:#1890ff;background:#e6f7ff;padding:2px 4px;border-radius:4px;">@${p.full_name || p.name}</span> `,
-                    );
-                    api.hide();
-                  },
-                });
-              },
+        }));
+      return Promise.resolve(results);
+    },
+    onAction: (api, rng, value) => {
+      const p = participantsRef.current.find(  // ← yahan bhi
+        (p) => p.id.toString() === value
+      );
+      editor.selection.setRng(rng);
+      editor.insertContent(
+        `<span class="mention" data-id="${p.id}" style="color:#1890ff;background:#e6f7ff;padding:2px 4px;border-radius:4px;">@${p.full_name || p.name || p.email}</span> `
+      );
+      api.hide();
+    },
+  });
+},
+              extended_valid_elements: "span[class|style|data-id]",
               content_style: `body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial; font-size: ${window.innerWidth < 768 ? "12px" : "14px"}; padding: 4px; margin: 0; }`,
             }}
           />
@@ -400,13 +397,10 @@ const MessageTypeWritter = ({
         open={isExpanded}
         onCancel={() => setIsExpanded(false)}
         footer={null}
-        width={window.innerWidth < 768 ? "100%" : 1000}
+        width={1000}
         centered
         destroyOnClose={false}
-        bodyStyle={{
-          height: window.innerWidth < 768 ? "90dvh" : "70vh",
-          padding: 0,
-        }}
+        bodyStyle={{ height: "70vh", padding: 0 }}
         className="editor-full-modal"
       >
         {isExpanded && renderContent(true)}

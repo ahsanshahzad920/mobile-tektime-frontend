@@ -4497,7 +4497,7 @@ Please categorize the relevant details into their corresponding sections.`;
                     (item) => item?.email === CookieService.get("email"),
                   ) && (
                     <>
-                      {!isModalOpen && (
+                      {meetingData?.presentation && (
                         <div
                           style={{
                             display: "flex",
@@ -4557,7 +4557,7 @@ Please categorize the relevant details into their corresponding sections.`;
                       close={close}
                     />
                   </div>
-                  {!isModalOpen && (
+                  {meetingData?.presentation && (
                     <>
                       <div
                         style={{
@@ -6443,18 +6443,18 @@ Please categorize the relevant details into their corresponding sections.`;
                             className="d-none d-lg-flex align-items-center"
                             style={{
                               textAlign: "right",
-                              visibility: meetingData?.guides?.some(
-                                (item) =>
-                                  item?.email === CookieService.get("email"),
-                              )
-                                ? "visible"
-                                : "hidden",
+                              // visibility: meetingData?.guides?.some(
+                              //   (item) =>
+                              //     item?.email === CookieService.get("email"),
+                              // )
+                              //   ? "visible"
+                              //   : "hidden",
                             }}
                           >
-                            {meetingData?.guides?.some(
+                            {/* {meetingData?.guides?.some(
                               (item) =>
                                 item?.email === CookieService.get("email"),
-                            ) && (
+                            ) && ( */}
                               <div className="d-flex justify-content-center align-items-center d-none d-lg-flex">
                                 {!recordingStart &&
                                 (meetingData?.location === "Google Meet" ||
@@ -6605,7 +6605,7 @@ Please categorize the relevant details into their corresponding sections.`;
                                   </>
                                 )}
                               </div>
-                            )}
+                            {/* // )} */}
                           </div>
 
                           {/* Close Button Desktop */}
@@ -7715,9 +7715,9 @@ Please categorize the relevant details into their corresponding sections.`;
                         ))}
                     </ul>
                   </div>
-                  {meetingData?.guides?.some(
+                  {/* {meetingData?.guides?.some(
                     (item) => item?.email === CookieService.get("email"),
-                  ) && (
+                  ) && ( */}
                     <div className="d-flex justify-content-center align-items-center">
                       <button
                         className="btn"
@@ -7765,7 +7765,7 @@ Please categorize the relevant details into their corresponding sections.`;
                         )}
                       </button>
                     </div>
-                  )}
+
 
                   {meetingData?.type === "Newsletter" ? (
                     <>

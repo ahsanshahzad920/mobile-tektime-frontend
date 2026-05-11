@@ -1610,11 +1610,11 @@ const Options = ({ setActiveTab }) => {
             {/* </Tooltip> */}
           </Col>
 
-          
+        
         </Row>
 
         <Row className="mb-4">
-          <Col xs={12} md={6}>
+            <Col xs={12} md={6}>
             <div
               className="d-flex justify-content-between align-items-center modal-tab-button playback-list"
               onClick={handleToggle}
@@ -1803,7 +1803,7 @@ const Options = ({ setActiveTab }) => {
         </Row>
 
         <Row className="mb-4">
-          {/* <Col xs={12} md={6}>
+          <Col xs={12} md={6}>
             <Tooltip title={t("whatsapp_in_tooltip")}>
               <div
                 className="d-flex justify-content-between align-items-center modal-tab-button"
@@ -1881,7 +1881,7 @@ const Options = ({ setActiveTab }) => {
                 </div>
               </div>
             </Tooltip>
-          </Col> */}
+          </Col>
           <Col xs={12} md={6}>
             <Tooltip title={t("presentation_tooltip")}>
               <div
@@ -2016,7 +2016,8 @@ const Options = ({ setActiveTab }) => {
           className={`btn moment-btn`}
           onClick={handleSaveAndContinue}
           disabled={loading}
-          style={{padding:'0px 10px '}}
+            style={{ padding: "0px 10px" }}
+
         >
           {loading ? (
             <>

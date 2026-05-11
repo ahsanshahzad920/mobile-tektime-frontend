@@ -437,7 +437,9 @@ const Settings = ({ }) => {
                                   emoji: "🧠",
                                   title: "Chef de projet / Product Owner",
                                   desc: "Je planifie, j'organise, je pilote.",
-                                  value: "Project Manager / Product Owner",
+                                                                    value: "Project Manager / Product Owner",
+                                  defaultNeeds: ["mission_need", "meeting_need"],
+
                                   // Add tabs that should be shown for this role
                                   tabs: [
                                     {
@@ -465,7 +467,9 @@ const Settings = ({ }) => {
                                   title: "Chargé de relation client / Commercial",
                                   desc: "Je gère les clients, je prépare les rendez-vous, je suis les actions et je m’assure que tout avance côté client comme en interne.",
                                   value:
-                                    "Customer Relations Officer / Sales Representative",
+                                                                        "Customer Relations Officer / Sales Representative",
+                                  defaultNeeds: ["mission_need", "meeting_need"],
+
                                   tabs: [
                                     {
                                       icon: (
@@ -491,7 +495,9 @@ const Settings = ({ }) => {
                                   emoji: "🎯",
                                   title: "Manager / Responsable d'équipe",
                                   desc: "Je supervise les personnes, les objectifs, les résultats.",
-                                  value: "Manager / Team Leader",
+                                                                    value: "Manager / Team Leader",
+                                  defaultNeeds: ["casting_need", "meeting_need"],
+
                                   tabs: [
                                     {
                                       icon: (
@@ -518,7 +524,9 @@ const Settings = ({ }) => {
                                   title:
                                     "Développeur / Contributeur opérationnel",
                                   desc: "Je veux de la clarté sur mes tâches, mon temps, mes priorités.",
-                                  value: "Developer / Operational Contributor",
+                                                                    value: "Developer / Operational Contributor",
+                                  defaultNeeds: ["action_need", "meeting_need"],
+
                                   tabs: [
                                     {
                                       icon: (
@@ -544,7 +552,9 @@ const Settings = ({ }) => {
                                   emoji: "🎓",
                                   title: "Formateur / Coach",
                                   desc: "J'organise des sessions, je produis du contenu, je suis des participants.",
-                                  value: "Trainer / Coach",
+                                                                    value: "Trainer / Coach",
+                                  defaultNeeds: ["meeting_need", "solution_need"],
+
                                   tabs: [
                                     {
                                       icon: (
@@ -571,7 +581,9 @@ const Settings = ({ }) => {
                                   emoji: "🛠️",
                                   title: "Consultant / Freelance",
                                   desc: "Je facture mon temps, j'enchaîne les missions, je veux aller à l'essentiel.",
-                                  value: "Consultant / Freelance",
+                                                                    value: "Consultant / Freelance",
+                                  defaultNeeds: ["mission_need", "meeting_need"],
+
                                   tabs: [
                                     {
                                       icon: (
@@ -597,9 +609,22 @@ const Settings = ({ }) => {
                                   emoji: "🧪",
                                   title: "Autre / Explorateur",
                                   desc: "Je teste pour comprendre ce que TekTIME peut m'apporter.",
-                                  value: "Other / Explorer",
+                                                                    value: "Other / Explorer",
+                                  defaultNeeds: ["mission_need", "meeting_need", "action_need", "casting_need", "discussion_need", "solution_need"],
+
                                   tabs: [
-                                    ,
+                                    {
+                                      icon: (
+                                        <img
+                                          src="/Assets/Tek.png"
+                                          alt="solution"
+                                          width="30px"
+                                        />
+                                      ),
+                                      name: "Solution",
+                                    },
+
+                                    
                                     {
                                       icon: (
                                         <img
@@ -659,7 +684,9 @@ const Settings = ({ }) => {
                                     onClick={() =>
                                       setFormData((prev) => ({
                                         ...prev,
-                                        job: role.value,
+                                                                                job: role.value,
+                                        needs: role.defaultNeeds || [],
+
                                       }))
                                     }
                                   >

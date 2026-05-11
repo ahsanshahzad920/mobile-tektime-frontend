@@ -37,6 +37,7 @@ import {
   getAllDestinationsForAssitant,
   getAssistantDestinationMessages,
   sendAssistantChat,
+  getMissionParticipants,
 } from "../api";
 import { Assets_URL } from "../../../Apicongfig";
 import Moments from "../Moments";
@@ -61,10 +62,15 @@ const AssistantChatTab = ({ isActive, assistantName = "", assistantLogo }) => {
   const [loading, setLoading] = useState({
     destinations: false,
     messages: false,
+    participants: false,
   });
+  const [participants, setParticipants] = useState([]);
   const [sending, setSending] = useState(false);
   const [viewMode, setViewMode] = useState("conversation");
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [showQuickForm, setShowQuickForm] = useState(false);
+  const [meetingData, setMeetingData] = useState(null);
+  const [persistedParticipants, setPersistedParticipants] = useState([]);
   const editorRef = useRef(null);
 
   const messagesEndRef = useRef(null);
@@ -145,17 +151,76 @@ const AssistantChatTab = ({ isActive, assistantName = "", assistantLogo }) => {
     }
   }, []);
 
+  const fetchParticipants = useCallback(async (id) => {
+    if (!id) return;
+    setLoading((prev) => ({ ...prev, participants: true }));
+    try {
+      const response = await getMissionParticipants(id);
+      if (response?.data) {
+        setParticipants(response.data);
+      } else if (Array.isArray(response)) {
+        setParticipants(response);
+      }
+    } catch (e) {
+      console.error("Error fetching participants:", e);
+    } finally {
+      setLoading((prev) => ({ ...prev, participants: false }));
+    }
+  }, []);
+
   useEffect(() => {
     if (isActive) fetchDestinations();
   }, [isActive, fetchDestinations]);
 
   useEffect(() => {
-    if (isActive && activeDestination) fetchHistory(activeDestination);
-  }, [isActive, activeDestination, fetchHistory]);
+    if (isActive && activeDestination) {
+      fetchHistory(activeDestination);
+      fetchParticipants(activeDestination);
+    }
+  }, [isActive, activeDestination, fetchHistory, fetchParticipants]);
 
   const handleSend = async ({ message }) => {
     if (!message?.trim() || sending) return;
     const content = message;
+    
+    // Extract mentioned participants using a robust regex
+    const mentionRegex = /<span [^>]*class="mention"[^>]*>([\s\S]*?)<\/span>/g;
+    const mentionedParticipants = [];
+    let match;
+    
+    while ((match = mentionRegex.exec(content)) !== null) {
+      const spanHtml = match[0];
+      const spanText = match[1].replace(/^@/, "").trim(); // Remove leading @ and trim
+      
+      // Try to find data-id in the span attributes
+      const idMatch = spanHtml.match(/data-id="([^"]+)"/);
+      const dataId = idMatch ? idMatch[1] : null;
+
+      const participant = participants.find(p => {
+        if (dataId) {
+          return p.id?.toString() === dataId || p.user_id?.toString() === dataId;
+        }
+        // Fallback to name/email matching
+        const name = p.full_name || p.name || p.email || "";
+        return name.trim().toLowerCase() === spanText.toLowerCase();
+      });
+
+      if (participant && !mentionedParticipants.some(p => p.id === participant.id)) {
+        mentionedParticipants.push(participant);
+      }
+    }
+
+    // Combine current mentions with persisted participants
+    // Current mentions take precedence if there's any overlap
+    const finalParticipants = mentionedParticipants.length > 0 
+      ? mentionedParticipants 
+      : persistedParticipants;
+
+    // Update persistence if new mentions were found
+    if (mentionedParticipants.length > 0) {
+      setPersistedParticipants(mentionedParticipants);
+    }
+
     setSending(true);
     setMessages((prev) => [
       ...prev,
@@ -168,18 +233,31 @@ const AssistantChatTab = ({ isActive, assistantName = "", assistantLogo }) => {
     ]);
 
     try {
-      const resp = await sendAssistantChat(content, activeDestination);
-      if (resp?.answer) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `resp-${Date.now()}`,
-            role: "assistant",
-            content: resp.answer,
-            created_at: new Date().toISOString(),
-          },
-        ]);
+      const resp = await sendAssistantChat(content, activeDestination, finalParticipants);
+      if (resp) {
+        if (resp.answer) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `resp-${Date.now()}`,
+              role: "assistant",
+              content: resp.answer,
+              created_at: new Date().toISOString(),
+            },
+          ]);
+        }
         if (editorRef.current) editorRef.current.setContent("");
+
+        // If assistant response provides participants, persist them for next turn
+        if (resp.participants && Array.isArray(resp.participants) && resp.participants.length > 0) {
+          setPersistedParticipants(resp.participants);
+        }
+
+        // Handle plan_confirmed type
+        if (resp.type === "plan_confirmed" && resp.meeting_data) {
+          setMeetingData(resp.meeting_data);
+          setShowQuickForm(true);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -206,8 +284,7 @@ const AssistantChatTab = ({ isActive, assistantName = "", assistantLogo }) => {
           : ""
       }`}
       style={{
-        zIndex: isFullScreen || (activeDestination && isMobile) ? 10000 : 1,
-        // Always fill parent height, whether fullscreen or not
+        zIndex: (isFullScreen || (activeDestination && isMobile)) ? 10000 : 1,
         height: "100%",
         minHeight: 0,
         overflow: "hidden",
@@ -227,25 +304,46 @@ const AssistantChatTab = ({ isActive, assistantName = "", assistantLogo }) => {
         {/* Sidebar — plain div instead of Ant Design Sider
             Sider internally injects overflow:hidden on its aside element
             which blocks the inner scroll div from working */}
-        {isMobile && selectedDest && !isFullScreen ? null : (
+        {isFullScreen ? null : (
           <div
             className={`border-end bg-white ${isMobile && activeDestination ? "d-none" : ""}`}
             style={{
-              width: isMobile ? "100%" : "300px",
+              width: isMobile ? "100%" : (activeDestination ? "300px" : "100%"),
               flexShrink: 0,
               display: "flex",
               flexDirection: "column",
               height: "100%",
               overflow: "hidden",
+              transition: "all 0.3s ease",
             }}
           >
             <div
-              className="p-3 border-bottom bg-light bg-opacity-10 d-flex align-items-center"
-              style={{ flexShrink: 0, minHeight: "64px" }}
+              className="p-4 border-bottom"
+              style={{
+                 flexShrink: 0, 
+                 background: "linear-gradient(to right, #fafafa, #fff)",
+                 display: 'flex',
+                 alignItems: 'center',
+                 justifyContent: 'space-between'
+              }}
             >
-              <Text strong type="secondary">
-                Missions & Conversations
-              </Text>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ 
+                  width: '32px', 
+                  height: '32px', 
+                  borderRadius: '8px', 
+                  backgroundColor: '#e6f7ff', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center' 
+                }}>
+                  <FaList color="#1890ff" size={16} />
+                </div>
+                <Text strong style={{ fontSize: "14px", color: "#262626", letterSpacing: '0.02em' }}>
+                  MISSIONS & CONVERSATIONS
+                </Text>
+              </div>
+              <Badge count={destinations.length} showZero color="#1890ff" style={{ boxShadow: '0 2px 4px rgba(24, 144, 255, 0.2)' }} />
             </div>
             {/* This div handles the scroll — flex:1 + minHeight:0 is the key */}
             <div
@@ -281,10 +379,8 @@ const AssistantChatTab = ({ isActive, assistantName = "", assistantLogo }) => {
         <Content
           className={`${isMobile && !activeDestination ? "d-none" : "d-flex"}`}
           style={{
-            display: isMobile && !activeDestination ? "none" : "flex",
+            display: (isMobile && !activeDestination) || (!isFullScreen && !isMobile && !activeDestination) ? "none" : "flex",
             flexDirection: "column",
-            // FIX 6: height: 0 + flex: 1 is the correct pattern for a
-            // scrollable flex child — prevents content from pushing parent taller
             flex: 1,
             height: "100%",
             minHeight: 0,
@@ -314,14 +410,14 @@ const AssistantChatTab = ({ isActive, assistantName = "", assistantLogo }) => {
                 overflow: "hidden",
               }}
             >
-              {isMobile && (
+              {(isMobile && activeDestination) || (isFullScreen && !isMobile) ? (
                 <Button
                   icon={<FaChevronLeft />}
                   type="text"
                   style={{ flexShrink: 0 }}
-                  onClick={() => setActiveDestination(null)}
+                  onClick={() => isFullScreen ? setIsFullScreen(false) : setActiveDestination(null)}
                 />
-              )}
+              ) : null}
               <Avatar
                 src={assistantImage}
                 size="large"
@@ -652,6 +748,69 @@ const AssistantChatTab = ({ isActive, assistantName = "", assistantLogo }) => {
                 )}
               />
             )}
+
+            {sending && (
+              <div
+                className={`mb-4 ${
+                  viewMode === "list" ? "bg-white p-3 p-md-4 rounded-3 shadow-sm mt-3" : "d-flex justify-content-start"
+                }`}
+                style={{ width: "100%", overflow: "hidden" }}
+              >
+                <div
+                  className={`d-flex ${
+                    viewMode === "list" ? "align-items-start" : "flex-row gap-2"
+                  }`}
+                  style={{ maxWidth: "calc(100% - 8px)", minWidth: 0 }}
+                >
+                  {viewMode === "list" ? (
+                    <>
+                      <Space align="start" size="middle">
+                        <Avatar size={40} src={assistantImage} className="shadow-sm">A</Avatar>
+                        <div>
+                          <div className="d-flex align-items-center gap-2 mb-1">
+                            <Text strong style={{ fontSize: "14px" }}>{assistantName || "Assistant IA"}</Text>
+                            <Text type="secondary" style={{ fontSize: "12px", fontStyle: "italic" }}>est en train d'écrire...</Text>
+                          </div>
+                          <div className="text-dark mt-2" style={{ fontSize: "14px", lineHeight: "1.6" }}>
+                            <div className="d-flex gap-1 align-items-center" style={{ height: "20px", paddingLeft: "1px" }}>
+                              <span style={{ width: 6, height: 6, backgroundColor: '#adb5bd', borderRadius: '50%', animation: 'typing-pulse 1.4s infinite ease-in-out both' }}></span>
+                              <span style={{ width: 6, height: 6, backgroundColor: '#adb5bd', borderRadius: '50%', animation: 'typing-pulse 1.4s infinite ease-in-out both', animationDelay: '0.2s' }}></span>
+                              <span style={{ width: 6, height: 6, backgroundColor: '#adb5bd', borderRadius: '50%', animation: 'typing-pulse 1.4s infinite ease-in-out both', animationDelay: '0.4s' }}></span>
+                            </div>
+                          </div>
+                        </div>
+                      </Space>
+                    </>
+                  ) : (
+                    <>
+                      <Avatar src={assistantImage} style={{ flexShrink: 0 }} />
+                      <div className="d-flex flex-column align-items-start" style={{ minWidth: 0, flex: 1 }}>
+                        <div className="d-flex align-items-center gap-2 mb-1">
+                          <Text strong style={{ fontSize: "12px", whiteSpace: "nowrap" }}>
+                            {assistantName || "Assistant IA"}
+                          </Text>
+                          <Text type="secondary" style={{ fontSize: "10px", whiteSpace: "nowrap", fontStyle: "italic" }}>
+                            est en train d'écrire...
+                          </Text>
+                        </div>
+                        <Card
+                          size="small"
+                          className="border-0 shadow-sm bg-white rounded-end"
+                          bodyStyle={{ padding: "10px 15px", height: "42px", display: "flex", alignItems: "center" }}
+                        >
+                          <div className="d-flex gap-1 align-items-center" style={{ height: "100%" }}>
+                            <span style={{ width: 6, height: 6, backgroundColor: '#adb5bd', borderRadius: '50%', animation: 'typing-pulse 1.4s infinite ease-in-out both' }}></span>
+                            <span style={{ width: 6, height: 6, backgroundColor: '#adb5bd', borderRadius: '50%', animation: 'typing-pulse 1.4s infinite ease-in-out both', animationDelay: '0.2s' }}></span>
+                            <span style={{ width: 6, height: 6, backgroundColor: '#adb5bd', borderRadius: '50%', animation: 'typing-pulse 1.4s infinite ease-in-out both', animationDelay: '0.4s' }}></span>
+                          </div>
+                        </Card>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div ref={messagesEndRef} />
           </div>
 
@@ -669,12 +828,32 @@ const AssistantChatTab = ({ isActive, assistantName = "", assistantLogo }) => {
                 isEditing={false}
                 onCancelEdit={() => {}}
                 initialValue={""}
-                participants={[]}
+                participants={participants}
               />
             )}
           </div>
         </Content>
       </Layout>
+
+      {/* Render QuickMomentForm for plan_confirmed */}
+      {showQuickForm && (
+        <QuickMomentForm
+          show={showQuickForm}
+          onClose={() => {
+            setShowQuickForm(false);
+            setMeetingData(null);
+          }}
+          openedFrom="assistant"
+          destination={selectedDest}
+          meetingData={meetingData}
+        />
+      )}
+      <style>{`
+        @keyframes typing-pulse {
+          0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
+          40% { transform: scale(1.2); opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 };

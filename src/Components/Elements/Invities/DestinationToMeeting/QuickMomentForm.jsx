@@ -991,14 +991,12 @@ const QuickMomentForm = ({
             option.value?.toLowerCase().trim(),
         );
 
-        const participantId = option.data?.meeting_id
-          ? option.data.id
-          : existingParticipant?.id || null;
+        const participantId = existingParticipant?.id || null;
         const clientId =
           option.data?.client_id || option.data?.clients?.id || null;
 
         participants.push({
-          id: participantId,
+          id: null,
           email: option.data?.email || option.value,
           first_name:
             option.data?.first_name || option.data?.name || option.label || "",
@@ -1019,6 +1017,7 @@ const QuickMomentForm = ({
         if (option.data) teams.push(option.data);
       } else if (option.__isNew__) {
         participants.push({
+          id: null,
           email: option.value,
           first_name: option.value,
           last_name: "",

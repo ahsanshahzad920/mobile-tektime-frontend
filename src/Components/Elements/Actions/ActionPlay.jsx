@@ -113,6 +113,12 @@ const ActionPlay = () => {
   }
 
   const { id, step_Id } = useParams();
+  const currentStep = meetingData?.steps?.find(
+    (s) => Number(s?.id) === Number(step_Id),
+  );
+
+  const isStepInProgress = currentStep?.step_status === "in_progress";
+
   const params = useParams();
   const [t] = useTranslation("global");
   const navigate = useNavigate();
@@ -390,6 +396,11 @@ const ActionPlay = () => {
       (step) => Number(step?.id) === Number(step_Id),
     );
 
+    if (meetingData?.steps[inProgressIndex]?.step_status !== "in_progress") {
+      navigate(`/step/${step_Id}`, { replace: true });
+      return;
+    }
+
     setCurrentStepIndex(inProgressIndex);
     setStepStartTime(meetingData?.steps[inProgressIndex]?.step_time);
     setStepStartDate(meetingData?.steps[inProgressIndex]?.start_date);
@@ -450,6 +461,10 @@ const ActionPlay = () => {
       );
 
       if (response.status === 200) {
+        if (response.data.data.step_status !== "in_progress") {
+          navigate(`/step/${step_Id}`, { replace: true });
+          return;
+        }
         setStep(response.data.data);
         setMeta(response.data);
       }
@@ -1931,7 +1946,7 @@ const ActionPlay = () => {
   };
   return (
     <>
-      {loading || !meetingData ? (
+      {loading || !meetingData || isLoading || !isStepInProgress ? (
         <Spinner
           animation="border"
           role="status"

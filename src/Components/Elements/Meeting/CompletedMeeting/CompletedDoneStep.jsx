@@ -102,6 +102,13 @@ function CompletedDoneStep() {
         },
       );
       if (response.status === 200) {
+        if (response?.data?.data?.step_status === "in_progress") {
+          navigate(
+            `/actīon-play/${response?.data?.data?.meeting_id}/${id}`,
+            { replace: true }
+          );
+          return;
+        }
         setStep(response?.data?.data);
         setMeta(response?.data);
         setModifiedFileText(response?.data?.data?.editor_content);

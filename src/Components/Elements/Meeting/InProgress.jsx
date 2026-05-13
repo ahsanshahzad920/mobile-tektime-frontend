@@ -3378,7 +3378,7 @@ Please categorize the relevant details into their corresponding sections.`;
     const filename = `record_${safeTitle}_${timestamp}.mp3`;
 
     // Optional: Download locally
-    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     if (!isMobileDevice) {
       const downloadUrl = URL.createObjectURL(file);
       const a = document.createElement("a");
@@ -5802,7 +5802,7 @@ Please categorize the relevant details into their corresponding sections.`;
               </div>
 
               {/* Guest Profile - Compact on Mobile */}
-              <div className="d-flex align-items-center d-flex d-lg-none">
+              <div className="d-flex align-items-center d-flex d-xl-none">
                 {/* {meetingData?.type === "Newsletter" ? (
                   <div className="text-start d-">
                     {meetingData?.newsletter_guide ? (
@@ -5833,7 +5833,7 @@ Please categorize the relevant details into their corresponding sections.`;
                     )}
                   </div>
                 ) : (
-                  <div className="text-start d-flex d-lg-none">
+                  <div className="text-start d-flex d-xl-none">
                     {meetingData?.steps[currentStepIndex]?.participant?.participant_image ? (
                       <img
                         className="user-img-compact"
@@ -5874,7 +5874,7 @@ Please categorize the relevant details into their corresponding sections.`;
 
               {/* Expand/Collapse Button */}
               <button
-                className="d-flex d-lg-none btn-expand-compact"
+                className="d-flex d-xl-none btn-expand-compact"
                 style={{
                   background: "rgba(30, 64, 175, 0.1)",
                   color: "#1e40af",
@@ -5888,7 +5888,7 @@ Please categorize the relevant details into their corresponding sections.`;
                 <FaExpand size={16} />
               </button>
             </div>
-              {/* <div className="d-flex d-lg-none text-center">
+              {/* <div className="d-flex d-xl-none text-center">
                 <Tooltip
                   title={
                     meetingData?.steps[currentStepIndex]?.order_no +
@@ -5911,7 +5911,7 @@ Please categorize the relevant details into their corresponding sections.`;
               {/* //For Mobile - Expand button */}
 
               {/* <button
-                className="d-flex d-lg-none"
+                className="d-flex d-xl-none"
                 style={{
                   background: "linear-gradient(135deg, #1e40af, #3b82f6)",
                   color: "#fff",
@@ -5959,7 +5959,7 @@ Please categorize the relevant details into their corresponding sections.`;
             </div> */}
 
             {/* For Mobile */}
-            <div className="row align-items-center d-flex d-lg-none w-100 mt-3 mb-2">
+            <div className="row align-items-center d-flex d-xl-none w-100 mt-3 mb-2">
               <div className="col-12 d-sm-none text-center d-flex justify-content-center p-0">
                 {(meetingData?.location === "Google Meet" ||
                   meetingData?.location === "Microsoft Teams") && (
@@ -6014,13 +6014,13 @@ Please categorize the relevant details into their corresponding sections.`;
           <div
             className="top-row-toggles position-relative premium-glow-container"
             style={{
-              border: isMobile ? "none" : "2.5px solid transparent",
+              border: (isMobile || window.innerWidth <= 1200) ? "none" : "2.5px solid transparent",
               borderRadius: "50px",
-              background: isMobile ? "transparent" :
+              background: (isMobile || window.innerWidth <= 1200) ? "transparent" :
                 "linear-gradient(white, white) padding-box, linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899, #f59e0b, #22d3ee, #3b82f6) border-box",
               backgroundSize: "200% auto",
-              animation: isMobile ? "none" : "borderGlow 4s linear infinite",
-              boxShadow: isMobile ? "none" : `
+              animation: (isMobile || window.innerWidth <= 1200) ? "none" : "borderGlow 4s linear infinite",
+              boxShadow: (isMobile || window.innerWidth <= 1200) ? "none" : `
               0 10px 15px -3px rgba(0, 0, 0, 0.1), 
               0 0 15px rgba(59, 130, 246, 0.3), 
               0 0 5px rgba(236, 72, 153, 0.2)
@@ -6046,7 +6046,7 @@ Please categorize the relevant details into their corresponding sections.`;
                   marginLeft: "10px",
                   marginBottom: "0px",
                 }}
-                className="d-none d-lg-flex"
+                className="d-none d-xl-flex"
               >
                 {/* Avatar with online dot */}
                 <div style={{ position: "relative", flexShrink: 0 }}>
@@ -6147,7 +6147,7 @@ Please categorize the relevant details into their corresponding sections.`;
               <div className="d-flex gap-3 align-items-center play-meeting-btn action-buttons">
 
                 <button
-                  className="d-none d-lg-flex"
+                  className="d-none d-xl-flex"
                   style={{
                     background: "linear-gradient(135deg, #1e40af, #3b82f6)",
                     color: "#fff",
@@ -6168,15 +6168,15 @@ Please categorize the relevant details into their corresponding sections.`;
                 </button>
                 <>
                   {meetingData?.type === "Newsletter" && (
-                    <div className="d-flex gap-3 align-items-center d-none d-lg-flex">
+                    <div className="d-flex gap-3 align-items-center d-none d-xl-flex">
                       {/* {pause button} */}
                       <div
-                        className="d-none d-lg-flex align-items-center"
+                        className="d-none d-xl-flex align-items-center"
                         style={{
                           textAlign: "right",
                         }}
                       >
-                        <div className="d-flex justify-content-center align-items-center d-none d-lg-flex">
+                        <div className="d-flex justify-content-center align-items-center d-none d-xl-flex">
                           {(isPause || isReOpen) ? (
                             <button
                               className="btn"
@@ -6437,10 +6437,10 @@ Please categorize the relevant details into their corresponding sections.`;
                   {meetingData?.type !== "Newsletter" && (
                     <>
                       {showButton && (
-                        <div className="d-flex gap-2 prev-btn align-items-center d-none d-lg-flex">
+                        <div className="d-flex gap-2 prev-btn align-items-center d-none d-xl-flex">
                           {/* Conditional Join or Pause Button */}
                           <div
-                            className="d-none d-lg-flex align-items-center"
+                            className="d-none d-xl-flex align-items-center"
                             style={{
                               textAlign: "right",
                               // visibility: meetingData?.guides?.some(
@@ -6455,7 +6455,7 @@ Please categorize the relevant details into their corresponding sections.`;
                               (item) =>
                                 item?.email === CookieService.get("email"),
                             ) && ( */}
-                              <div className="d-flex justify-content-center align-items-center d-none d-lg-flex">
+                              <div className="d-flex justify-content-center align-items-center d-none d-xl-flex">
                                 {!recordingStart &&
                                 (meetingData?.location === "Google Meet" ||
                                   meetingData?.location ===
@@ -6809,7 +6809,7 @@ Please categorize the relevant details into their corresponding sections.`;
             {meetingData?.type === "Newsletter" ? (
               <>
                 <div
-                  className="d-none d-lg-flex align-items-center"
+                  className="d-none d-xl-flex align-items-center"
                   style={{
                     textAlign: "right",
                     gap: "10px",
@@ -6901,7 +6901,7 @@ Please categorize the relevant details into their corresponding sections.`;
                 </div>
 
                 {/* Top Row for Mobile */}
-                <div className="d-flex d-lg-none w-100 justify-content-center align-items-center gap-2">
+                <div className="d-flex d-xl-none w-100 justify-content-center align-items-center gap-2">
                   <div className="dropdown d-flex justify-content-center">
                     {meetingData?.type === "Newsletter" ? (
                        <div className="dropdown">
@@ -7535,11 +7535,11 @@ Please categorize the relevant details into their corresponding sections.`;
               <>
                 {/* Top Row for Mobile Pending work */}
                 {/* {recordingStart && (
-                  <div className="d-flex d-lg-none w-100 justify-content-center align-items-center gap-2">
+                  <div className="d-flex d-xl-none w-100 justify-content-center align-items-center gap-2">
                     <RecordingIndicator t={t} />
                   </div>
                 )} */}
-                <div className="d-flex d-lg-none w-100 justify-content-center align-items-center gap-2">
+                <div className="d-flex d-xl-none w-100 justify-content-center align-items-center gap-2">
                    {!recordingStart && (meetingData?.location === "Google Meet" ||
                   meetingData?.location === "Microsoft Teams") && (
                   <button

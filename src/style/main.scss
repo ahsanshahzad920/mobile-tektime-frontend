@@ -17122,7 +17122,88 @@ input[type="range"] {
   .col-md-4 {
     width: 100%;
     text-align: center;
-    // margin-bottom: 10px;
+  }
+}
+
+@media (min-width: 577px) and (max-width: 1200px) {
+  .counter-container-full-screen {
+    h5 {
+      font-size: 14px !important;
+      line-height: normal !important;
+    }
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    padding: 5px;
+    width: 100%;
+    text-align: center;
+  }
+   .counter-container {
+    h5 {
+      font-size: 14px !important;
+      line-height: normal !important;
+    }
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    padding: 5px;
+    width: 100%;
+    text-align: center;
+  }
+  .counter-buttons {
+    flex-direction: column !important;
+  }
+  .counter-top-space {
+    margin-top: 43px !important;
+  }
+  .counter-top-space-newsletter {
+    margin-top: 20px !important;
+  }
+  .left-counter {
+    display: none !important;
+  }
+  .right-counter {
+    display: none !important;
+  }
+  .full-screen-top-row {
+    flex-direction: column !important;
+  }
+  .top-row-toggles {
+    margin-bottom: 5px;
+    padding: 0;
+    .top-row-child {
+      width: 100%;
+    }
+  }
+  .google-meet-btn {
+    display: none;
+  }
+  .fullscreen-toggles {
+    gap: 10px !important;
+    justify-content: center;
+  }
+  .counter-wrapper {
+    display: flex !important;
+    justify-content: center;
+    width: 100%;
+    order: 3;
+  }
+  .action-buttons {
+    flex-direction: row !important;
+    gap: 8px !important;
+    width: 100%;
+    align-items: center;
+    margin-top: 7rem;
+  }
+  .action-buttons .btn {
+    padding: 8px 20px !important;
+    font-size: 14px !important;
+    width: 100%;
+    max-width: 200px;
   }
 }
 

@@ -379,7 +379,7 @@ const Invite = () => {
 
         // const steps = data?.steps;
         // updateSteps(steps);
-   if (data?.status === "in_progress") {
+        if (data?.status === "in_progress") {
           setActiveTab("steps");
         }
         setMeeting(data);

@@ -3609,7 +3609,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                             }}
                             onEditorChange={(content) => {
                               setModifiedFileText(content);
-                              debouncedAutoSave(content);
+                              // debouncedAutoSave(content);
                             }}
                           />
                         </div>

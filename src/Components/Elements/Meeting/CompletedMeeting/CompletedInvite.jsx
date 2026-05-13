@@ -705,7 +705,7 @@ const CompletedInvite = () => {
     setShowProgressBar(true);
 
     let attempts = 0;
-    const maxAttempts = 100; // ~3.5 minutes max wait
+    const maxAttempts = 200; // ~3.5 minutes max wait
 
     const poll = async () => {
       attempts++;
@@ -727,7 +727,7 @@ const CompletedInvite = () => {
 
     // Agar abhi tak nahi mila → interval start karo
     if (attempts < maxAttempts) {
-      pollingIntervalRef.current = setInterval(poll, 7000); // Har 7 second
+      pollingIntervalRef.current = setInterval(poll, 60000); //  1 minute
     }
   };
 

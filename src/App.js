@@ -386,7 +386,7 @@ function App() {
   useEffect(() => {
     const hasToken = !!CookieService.get("token");
 
-    if (hasToken && (location.pathname === "/")) {
+    if (hasToken && (location.pathname === "/" || location.pathname === "/login")) {
       navigate("/meeting");
     }
   }, [location.pathname, navigate]);
@@ -493,6 +493,7 @@ function App() {
       <Routes>
         {/* <Route path="/" element={<Login onLogin={signin} />} /> */}
         <Route path="/" element={<Login onLogin={signin} />} />
+        <Route path="/login" element={<Login onLogin={signin} />} />
         <Route
           path="/heroes/:nick_name/emissary/:referral_id"
           element={<ReferralLanding />}

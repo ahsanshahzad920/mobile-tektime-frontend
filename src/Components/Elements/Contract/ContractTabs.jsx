@@ -6,6 +6,8 @@ import CreateContract from "./CreateContract";
 import CurrentContract from "./CurrentContract";
 import ClosedContract from "./ClosedContract";
 import Gates from "./Gates";
+import MissionTypes from "./MissionTypes";
+import RoleTypes from "./RoleTypes";
 import { useTranslation } from "react-i18next";
 
 const ContractTabs = () => {
@@ -98,6 +100,16 @@ const ContractTabs = () => {
         {/* TAB 2: PORTES (GATES) */}
         <Tab eventKey="Portes" title="Portes (Gates)">
           <Gates />
+        </Tab>
+
+        {/* TAB 3: MISSIONS TYPES */}
+        <Tab eventKey="Missions" title="Missions">
+          {mainActiveTab === "Missions" && <MissionTypes />}
+        </Tab>
+
+        {/* TAB 4: ROLES */}
+        <Tab eventKey="Roles" title="Roles">
+          {mainActiveTab === "Roles" && <RoleTypes />}
         </Tab>
       </Tabs>
     </div>

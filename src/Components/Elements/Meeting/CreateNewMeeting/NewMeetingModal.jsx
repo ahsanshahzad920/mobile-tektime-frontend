@@ -1,4 +1,4 @@
-import CookieService from '../../../Utils/CookieService';
+import CookieService from "../../../Utils/CookieService";
 import { RxCross2 } from "react-icons/rx";
 import MomentDetail from "./components/MomentDetails";
 import Solution from "./components/Template";
@@ -23,71 +23,130 @@ import { useTranslation } from "react-i18next";
 import { API_BASE_URL, Assets_URL } from "../../../Apicongfig";
 import axios from "axios";
 import { IoIosBusiness, IoIosRocket } from "react-icons/io";
-import { FaBookOpen, FaBullseye, FaChalkboardTeacher } from "react-icons/fa";
+import { FaBookOpen, FaBullseye, FaChalkboardTeacher, FaRobot, FaCode, FaBullhorn, FaShoppingCart, FaUserTie, FaSearch, FaChessKnight } from "react-icons/fa";
 import { AiOutlineAudit } from "react-icons/ai";
-import { MdEventAvailable, MdOutlineSupport, MdWork } from "react-icons/md";
+import { MdEventAvailable, MdOutlineSupport, MdWork, MdBrush, MdMessage, MdEvent } from "react-icons/md";
+import { useHeaderTitle } from "../../../../context/HeaderTitleContext";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { useSteps } from "../../../../context/Step";
 
-
-
 const NewMeetingModal = ({ destination, openedFrom }) => {
   const [t] = useTranslation("global");
+  const { user } = useHeaderTitle();
 
-  const missionTypeOptions = [
-    { value: "Business opportunity", label: t("destination.businessOppurtunity") },
-    { value: "Study", label: t("destination.study") },
-    { value: "Audit", label: t("destination.audit") },
-    { value: "Project", label: t("destination.project") },
-    { value: "Accompagnement", label: t("destination.accompagnement") },
-    { value: "Event", label: t("destination.event") },
-    { value: "Formation", label: t("destination.formation") },
-    { value: "Recruitment", label: t("destination.recruitment") },
-    { value: "Objective", label: t("destination.objective") },
-    { value: "Agenda", label: t("destination.Agenda") },
-    { value: "Messagerie", label: t("destination.messaging") },
-    { value: "Other", label: t("destination.other") },
-  ];
+  const [missionTypeOptions, setMissionTypeOptions] = useState([]);
+  const [isLoadingMissionTypes, setIsLoadingMissionTypes] = useState(false);
 
+  useEffect(() => {
+    const fetchMissionTypes = async () => {
+      const token = CookieService.get("token");
+      try {
+        setIsLoadingMissionTypes(true);
+        const { data } = await axios.get(`${API_BASE_URL}/mission-types`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (data && data.data) {
+          const contractMissions = (() => {
+            const raw = user?.contract?.mission_types || user?.enterprise?.contract?.mission_types;
+            if (Array.isArray(raw)) return raw;
+            if (typeof raw === "string") {
+              try {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) return parsed;
+              } catch (e) {}
+              return [raw];
+            }
+            return [];
+          })();
 
-  const getIcon = (value) => {
+          const filteredMissions = data.data.filter(t =>
+            contractMissions.includes(t.id) ||
+            contractMissions.includes(String(t.id)) ||
+            contractMissions.includes(t.title)
+          );
+
+          const source = filteredMissions.length > 0 ? filteredMissions : data.data;
+
+          const options = source.map((type) => ({
+            value: type.title,
+            id: type.id,
+            label: t(`des_type.${type.title}`, type.title),
+            logo_file_url: type.mission_icon ? (type.mission_icon.startsWith('http') ? type.mission_icon : `${Assets_URL}/${type.mission_icon}`) : type.logo_file_url,
+            logo_key: type.logo,
+          }));
+          setMissionTypeOptions(options);
+        }
+      } catch (error) {
+        console.error("Failed to fetch mission types", error);
+      } finally {
+        setIsLoadingMissionTypes(false);
+      }
+    };
+    fetchMissionTypes();
+  }, [user, t]);
+
+  const getIcon = (value, option = null) => {
     const commonStyle = { marginRight: 8 };
+    const size = 20;
 
-    switch (value) {
+    if (option?.logo_file_url) {
+      return (
+        <img
+          src={option.logo_file_url}
+          alt=""
+          style={{
+            width: size,
+            height: size,
+            ...commonStyle,
+            objectFit: "contain",
+          }}
+        />
+      );
+    }
+
+    const iconKey = option?.logo_key || value;
+    switch (iconKey) {
       case "Business opportunity":
-        return <IoIosBusiness size={20} style={commonStyle} />;
-
+        return <IoIosBusiness size={size} style={commonStyle} />;
       case "Study":
-        return <FaBookOpen size={20} style={commonStyle} />;
-
+        return <FaBookOpen size={size} style={commonStyle} />;
       case "Audit":
-        return <AiOutlineAudit size={20} style={commonStyle} />;
-
+        return <AiOutlineAudit size={size} style={commonStyle} />;
       case "Project":
-        return <IoIosRocket size={20} style={commonStyle} />;
-
+        return <IoIosRocket size={size} style={commonStyle} />;
       case "Accompagnement":
-        return <MdOutlineSupport size={20} style={commonStyle} />;
-
+        return <MdOutlineSupport size={size} style={commonStyle} />;
       case "Event":
-        return <MdEventAvailable size={20} style={commonStyle} />;
-
+        return <MdEventAvailable size={size} style={commonStyle} />;
       case "Formation":
-        return <FaChalkboardTeacher size={20} style={commonStyle} />;
-
+        return <FaChalkboardTeacher size={size} style={commonStyle} />;
       case "Recruitment":
-        return <MdWork size={20} style={commonStyle} />;
-
+        return <MdWork size={size} style={commonStyle} />;
       case "Objective":
-        return <FaBullseye size={20} style={commonStyle} />;
-
+        return <FaBullseye size={size} style={commonStyle} />;
+      case "Design": return <MdBrush size={size} style={commonStyle} />;
+      case "Development": return <FaCode size={size} style={commonStyle} />;
+      case "Marketing": return <FaBullhorn size={size} style={commonStyle} />;
+      case "Sales": return <FaShoppingCart size={size} style={commonStyle} />;
+      case "Consulting": return <FaUserTie size={size} style={commonStyle} />;
+      case "Research": return <FaSearch size={size} style={commonStyle} />;
+      case "Strategy": return <FaChessKnight size={size} style={commonStyle} />;
+      case "Assistant Conversation":
+        return <FaRobot size={size} style={commonStyle} />;
       case "Agenda":
       case "Messagerie":
         return (
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#F19C38" style={commonStyle}>
-            <path d="M7.5 5.6L10 0L12.5 5.6L18.1 8.1L12.5 10.6L10 16.2L7.5 10.6L1.9 8.1L7.5 5.6Z"/>
-            <path d="M17.5 15.6L19.1 12.1L20.7 15.6L24.2 17.2L20.7 18.8L19.1 22.3L17.5 18.8L14 17.2L17.5 15.6Z"/>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width={size}
+            height={size}
+            viewBox="0 0 24 24"
+            fill="#F19C38"
+            style={commonStyle}
+          >
+            <path d="M7.5 5.6L10 0L12.5 5.6L18.1 8.1L12.5 10.6L10 16.2L7.5 10.6L1.9 8.1L7.5 5.6Z" />
+            <path d="M17.5 15.6L19.1 12.1L20.7 15.6L24.2 17.2L20.7 18.8L19.1 22.3L17.5 18.8L14 17.2L17.5 15.6Z" />
           </svg>
         );
 
@@ -95,7 +154,7 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
         return <span style={commonStyle}>✨</span>;
 
       default:
-        return null;
+        return <span style={commonStyle}>✨</span>;
     }
   };
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -119,7 +178,7 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
     solutionAutostart,
     // solutionAutomaticStrategy,
     solutionTitle,
-    solutionId
+    solutionId,
   } = useSteps();
 
   const navigate = useNavigate();
@@ -145,17 +204,16 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
     handleInputBlur,
     recurrentMeetingAPI,
     getMeetingModal,
-    loading
-
+    loading,
   } = useFormContext();
   const [currentStep, setCurrentStep] = useState(
     openedFrom === "destination"
       ? 1
       : isUpdated || isDuplicate || openedFrom === "solution"
         ? 2
-        : 1
+        : 1,
   );
-  console.log("currentStep", currentStep)
+  console.log("currentStep", currentStep);
   // useEffect(() => {
   //   setIsEditMode((isUpdated || isDuplicate)&& !!formState?.id);
   // }, [isUpdated,isDuplicate, formState]);
@@ -215,10 +273,24 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
         if (!payload.calendly_timezone) {
           payload.calendly_timezone = "Europe/Paris";
         }
-        if (!payload.calendly_availability || payload.calendly_availability.length === 0) {
+        if (
+          !payload.calendly_availability ||
+          payload.calendly_availability.length === 0
+        ) {
           payload.calendly_availability = [
-            "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche",
-          ].map((day, index) => ({ day, active: index < 5, start: "09:00", end: "17:00" }));
+            "Lundi",
+            "Mardi",
+            "Mercredi",
+            "Jeudi",
+            "Vendredi",
+            "Samedi",
+            "Dimanche",
+          ].map((day, index) => ({
+            day,
+            active: index < 5,
+            start: "09:00",
+            end: "17:00",
+          }));
         }
       }
 
@@ -230,7 +302,7 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${CookieService.get("token")}`,
           },
-        }
+        },
       );
 
       if (response.status) {
@@ -373,7 +445,6 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
     };
   }, [checkId]);
 
-
   const [clientOption, setClientOption] = useState(null);
   // Add a state to track the selected client's description
   const [selectedClientDescription, setSelectedClientDescription] =
@@ -392,13 +463,13 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
     axios
       .get(
         `${API_BASE_URL}/get-same-enterprise-users/${CookieService.get(
-          "user_id"
+          "user_id",
         )}`,
         {
           headers: {
             Authorization: `Bearer ${CookieService.get("token")}`,
           },
-        }
+        },
       )
       .then((res) => setUsersArray(res.data?.data))
       .catch((err) => console.log("error fetching users", err));
@@ -411,13 +482,13 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
     axios
       .get(
         `${API_BASE_URL}/get-objectives-with-id/${CookieService.get(
-          "user_id"
+          "user_id",
         )}`,
         {
           headers: {
             Authorization: `Bearer ${CookieService.get("token")}`,
           },
-        }
+        },
       )
       .then((res) => {
         const options = res.data?.data?.map((item) => ({
@@ -440,7 +511,7 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
           label: item.label,
           data: { description: item.description },
         })),
-    [missionsArray, clientOption]
+    [missionsArray, clientOption],
   );
   const clientOptions = [
     {
@@ -524,13 +595,11 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
   //   }
   // }, [meeting, usersArray, missionsArray]);
   useEffect(() => {
-    if (
-      meeting?.destination
-    ) {
+    if (meeting?.destination) {
       // For Absence type, we don't need to set clientOption and missionOption
       if (meeting?.type !== "Absence") {
-        const foundClient = meeting.destination?.clients
-        console.log('foundClient', foundClient)
+        const foundClient = meeting.destination?.clients;
+        console.log("foundClient", foundClient);
         if (foundClient) {
           setClientOption({
             value: foundClient.id,
@@ -541,13 +610,13 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
             },
           });
           setSelectedClientDescription(
-            foundClient.client_need_description || null
+            foundClient.client_need_description || null,
           );
         }
 
         // const foundMission =  meeting.destination
-        const foundMission = meeting.destination
-        console.log('foundMission', foundMission)
+        const foundMission = meeting.destination;
+        console.log("foundMission", foundMission);
 
         if (foundMission) {
           // setMissionOption(foundMission);
@@ -555,8 +624,7 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
             value: foundMission?.id,
             label: foundMission?.destination_name,
             client_id: foundMission?.client_id,
-            description: foundMission?.destination_description
-
+            description: foundMission?.destination_description,
           });
           //           {
           //     "value": 938,
@@ -564,20 +632,25 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
           //     "client_id": 609,
           //     "description": null
           // }
-          setSelectedMissionDescription(foundMission.destination_description || null);
+          setSelectedMissionDescription(
+            foundMission.destination_description || null,
+          );
         }
 
         if (meeting.destination.destination_type) {
           const missionType = missionTypeOptions.find(
-            (type) => type.value === meeting.destination.destination_type
+            (type) => type.value === meeting.destination.destination_type,
           );
           if (missionType) {
             setMissionTypeOption({
               value: missionType.value,
+              id: missionType.id,
               label: (
-                <div>
-                  {getIcon(missionType.value)}
-                  {t(missionType.label)}
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {getIcon(missionType.value, missionType)}
+                  <span>
+                    {t(`des_type.${missionType.label}`, missionType.label)}
+                  </span>
                 </div>
               ),
             });
@@ -626,7 +699,7 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
               "Content-Type": "application/json",
               Authorization: `Bearer ${CookieService.get("token")}`,
             },
-          }
+          },
         );
 
         if (response.status) {
@@ -661,7 +734,11 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
         // client: null,
         _method: "put",
         timezone: userTimeZone,
-        update_meeting: formState?.agenda === "Google Agenda" || meeting?.agenda === "Google Agenda" ? true : false,
+        update_meeting:
+          formState?.agenda === "Google Agenda" ||
+          meeting?.agenda === "Google Agenda"
+            ? true
+            : false,
       };
 
       // Ensure Calendly defaults are present in payload if type is Calendly
@@ -669,10 +746,24 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
         if (!payload.calendly_timezone) {
           payload.calendly_timezone = "Europe/Paris";
         }
-        if (!payload.calendly_availability || payload.calendly_availability.length === 0) {
+        if (
+          !payload.calendly_availability ||
+          payload.calendly_availability.length === 0
+        ) {
           payload.calendly_availability = [
-            "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche",
-          ].map((day, index) => ({ day, active: index < 5, start: "09:00", end: "17:00" }));
+            "Lundi",
+            "Mardi",
+            "Mercredi",
+            "Jeudi",
+            "Vendredi",
+            "Samedi",
+            "Dimanche",
+          ].map((day, index) => ({
+            day,
+            active: index < 5,
+            start: "09:00",
+            end: "17:00",
+          }));
         }
       }
 
@@ -685,7 +776,7 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
               "Content-Type": "application/json",
               Authorization: `Bearer ${CookieService.get("token")}`,
             },
-          }
+          },
         );
 
         if (response.status) {
@@ -715,31 +806,48 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
         const fullPayload =
           openedFrom === "solution"
             ? {
-              ...payload,
-              solution_id: solutionId || null,
-              // solution_steps: solutionSteps || [],
-              solution_type: solutionType || null,
-              // solution_note: solutionNote || "Manual",
-              // solution_note_taker: solutionNoteTaker || false,
-              // solution_alarm: solutionAlarm || false,
-              // solution_open_ai_decide: solutionMessageManagement || false,
-              // solution_feedback: solutionFeedback || false,
-              // solution_remainder: solutionRemainder || false,
-              // solution_playback: solutionPlayback || "manual",
-              // solution_autostart: solutionAutostart || null,
-              // solution_shareby: solutionShareBy || null,
-            }
+                ...payload,
+                solution_id: solutionId || null,
+                // solution_steps: solutionSteps || [],
+                solution_type: solutionType || null,
+                // solution_note: solutionNote || "Manual",
+                // solution_note_taker: solutionNoteTaker || false,
+                // solution_alarm: solutionAlarm || false,
+                // solution_open_ai_decide: solutionMessageManagement || false,
+                // solution_feedback: solutionFeedback || false,
+                // solution_remainder: solutionRemainder || false,
+                // solution_playback: solutionPlayback || "manual",
+                // solution_autostart: solutionAutostart || null,
+                // solution_shareby: solutionShareBy || null,
+              }
             : payload;
 
         // Ensure Calendly defaults are present in payload if type is Calendly
-        if (fullPayload.type === "Calendly" || fullPayload.solution_type === "Calendly") {
+        if (
+          fullPayload.type === "Calendly" ||
+          fullPayload.solution_type === "Calendly"
+        ) {
           if (!fullPayload.calendly_timezone) {
             fullPayload.calendly_timezone = "Europe/Paris";
           }
-          if (!fullPayload.calendly_availability || fullPayload.calendly_availability.length === 0) {
+          if (
+            !fullPayload.calendly_availability ||
+            fullPayload.calendly_availability.length === 0
+          ) {
             fullPayload.calendly_availability = [
-              "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche",
-            ].map((day, index) => ({ day, active: index < 5, start: "09:00", end: "17:00" }));
+              "Lundi",
+              "Mardi",
+              "Mercredi",
+              "Jeudi",
+              "Vendredi",
+              "Samedi",
+              "Dimanche",
+            ].map((day, index) => ({
+              day,
+              active: index < 5,
+              start: "09:00",
+              end: "17:00",
+            }));
           }
         }
 
@@ -751,7 +859,7 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
               "Content-Type": "application/json",
               Authorization: `Bearer ${CookieService.get("token")}`,
             },
-          }
+          },
         );
 
         if (response.status) {
@@ -862,6 +970,10 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
               meeting?.type === "Absence"
                 ? meeting.destination_type
                 : missionTypeOption?.value || null,
+            destination_type_id:
+              meeting?.type === "Absence"
+                ? meeting.destination_type_id
+                : missionTypeOption?.id || null,
             timezone: userTimeZone,
             status: isUpdated || isDuplicate ? "active" : "draft",
           };
@@ -897,6 +1009,10 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
               meeting?.type === "Absence"
                 ? meeting.destination_type
                 : missionTypeOption?.value || null,
+            destination_type_id:
+              meeting?.type === "Absence"
+                ? meeting.destination_type_id
+                : missionTypeOption?.id || null,
             timezone: userTimeZone,
             status: isUpdated || isDuplicate ? "active" : "draft",
           };
@@ -907,7 +1023,6 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
             await createMeeting(meetingPayload);
           }
           break;
-
 
         case 1:
           if (!formState?.id && openedFrom === "destination") {
@@ -936,6 +1051,7 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
               destination_id: destination?.id || null,
               destination: null,
               destination_type: destination?.destination_type || null,
+              destination_type_id: destination?.destination_type_id || null,
               // status: "draft",
               status: isUpdated || isDuplicate ? "active" : "draft",
               timezone: userTimeZone,
@@ -976,7 +1092,8 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
           break;
 
         case 3:
-          const isCalendly = meeting?.type === "Calendly" || formState?.type === "Calendly";
+          const isCalendly =
+            meeting?.type === "Calendly" || formState?.type === "Calendly";
 
           if (!isCalendly) {
             if (!formState.date) {
@@ -1014,18 +1131,32 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
           // Ensure defaults for Calendly are present in formState before update
           if (isCalendly && formState?.id) {
             const defaults = [
-              "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche",
-            ].map((day, index) => ({ day, active: index < 5, start: "09:00", end: "17:00" }));
+              "Lundi",
+              "Mardi",
+              "Mercredi",
+              "Jeudi",
+              "Vendredi",
+              "Samedi",
+              "Dimanche",
+            ].map((day, index) => ({
+              day,
+              active: index < 5,
+              start: "09:00",
+              end: "17:00",
+            }));
 
-            const calendly_availability = (formState.calendly_availability && formState.calendly_availability.length > 0)
-              ? formState.calendly_availability
-              : defaults;
+            const calendly_availability =
+              formState.calendly_availability &&
+              formState.calendly_availability.length > 0
+                ? formState.calendly_availability
+                : defaults;
 
-            const calendly_timezone = formState.calendly_timezone || "Europe/Paris";
+            const calendly_timezone =
+              formState.calendly_timezone || "Europe/Paris";
 
             await updateMeeting({
               calendly_availability,
-              calendly_timezone
+              calendly_timezone,
             });
           } else if (formState?.id) {
             await updateMeeting();
@@ -1039,13 +1170,12 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
             setIsLoading(false);
 
             return;
-          };
+          }
           if (formState?.id) {
             await updateMeeting();
           }
           break;
         case 7:
-
           if (formState?.id) {
             await updateMeeting();
           }
@@ -1075,9 +1205,7 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
           break;
         // case 9:
 
-
         // case 10:
-
       }
       setCurrentStep((prev) => {
         let next = prev + 1;
@@ -1107,7 +1235,8 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
     if (
       // (openedFrom === "destination" &&
       //   (currentStep === 2 || currentStep === 3)) ||
-      (shouldHideSolutionStep && currentStep === 1)
+      shouldHideSolutionStep &&
+      currentStep === 1
     ) {
       return null;
     }
@@ -1350,49 +1479,92 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
       case 2:
         return (
           <div className="px-4">
-            <MomentDetail meeting={meeting} loading={loading} openedFrom={openedFrom} closeModal={handleCloseModal} usersArray={usersArray} setClientOption={setClientOption} clientOption={clientOption} clientOptions={clientOptions} setSelectedClientDescription={setSelectedClientDescription} selectedClientDescription={selectedClientDescription} missionOption={missionOption} missionOptions={missionOptions} setMissionOption={setMissionOption} missionsArray={missionsArray} missionTypeOption={missionTypeOption} setMissionTypeOption={setMissionTypeOption} setSelectedMissionDescription={setSelectedMissionDescription} selectedMissionDescription={selectedMissionDescription} />
+            <MomentDetail
+              meeting={meeting}
+              loading={loading}
+              openedFrom={openedFrom}
+              closeModal={handleCloseModal}
+              usersArray={usersArray}
+              setClientOption={setClientOption}
+              clientOption={clientOption}
+              clientOptions={clientOptions}
+              setSelectedClientDescription={setSelectedClientDescription}
+              selectedClientDescription={selectedClientDescription}
+              missionOption={missionOption}
+              missionOptions={missionOptions}
+              setMissionOption={setMissionOption}
+              missionsArray={missionsArray}
+              missionTypeOption={missionTypeOption}
+              setMissionTypeOption={setMissionTypeOption}
+              setSelectedMissionDescription={setSelectedMissionDescription}
+              selectedMissionDescription={selectedMissionDescription}
+            />
           </div>
         );
 
       case 3:
         return (
           <div className="px-4">
-            <DateandTime meeting={meeting} loading={loading} closeModal={handleCloseModal} />
+            <DateandTime
+              meeting={meeting}
+              loading={loading}
+              closeModal={handleCloseModal}
+            />
           </div>
         );
 
       case 4:
         return (
           <div className="px-4">
-            <Location meeting={meeting} loading={loading} closeModal={handleCloseModal} />
+            <Location
+              meeting={meeting}
+              loading={loading}
+              closeModal={handleCloseModal}
+            />
           </div>
         );
 
       case 5:
         return (
           <div className="px-4">
-            <AddGuests meeting={meeting} loading={loading} closeModal={handleCloseModal} />
+            <AddGuests
+              meeting={meeting}
+              loading={loading}
+              closeModal={handleCloseModal}
+            />
           </div>
         );
 
       case 6:
         return (
           <div className="px-4">
-            <AddSteps meeting={meeting} loading={loading} closeModal={handleCloseModal} />
+            <AddSteps
+              meeting={meeting}
+              loading={loading}
+              closeModal={handleCloseModal}
+            />
           </div>
         );
 
       case 7:
         return (
           <div className="px-4">
-            <Options meeting={meeting} loading={loading} closeModal={handleCloseModal} />
+            <Options
+              meeting={meeting}
+              loading={loading}
+              closeModal={handleCloseModal}
+            />
           </div>
         );
 
       case 8:
         return (
           <div className="px-4">
-            <Privacy meeting={meeting} loading={loading} closeModal={handleCloseModal} />
+            <Privacy
+              meeting={meeting}
+              loading={loading}
+              closeModal={handleCloseModal}
+            />
           </div>
         );
 
@@ -1413,8 +1585,9 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
         .map((step) => (
           <div
             key={step}
-            className={`progress-step ${currentStep >= step ? "active" : ""} ${isEditMode ? "clickable-step" : ""
-              }`}
+            className={`progress-step ${currentStep >= step ? "active" : ""} ${
+              isEditMode ? "clickable-step" : ""
+            }`}
             onClick={() => handleStepClick(step)}
           >
             <div
@@ -1612,14 +1785,14 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
                   {isUpdated
                     ? meeting?.solution
                       ? `${t(
-                        "meeting.newMeeting.update"
-                      )}: ${meeting?.solution?.title?.toUpperCase()}`
+                          "meeting.newMeeting.update",
+                        )}: ${meeting?.solution?.title?.toUpperCase()}`
                       : `Modifier ${meeting?.type}: ${meeting?.title}`
                     : isDuplicate
                       ? meeting?.solution
                         ? `${t(
-                          "meeting.newMeeting.duplicate"
-                        )}: ${meeting?.solution?.title?.toUpperCase()}`
+                            "meeting.newMeeting.duplicate",
+                          )}: ${meeting?.solution?.title?.toUpperCase()}`
                         : t("meeting.newMeeting.DuplicateMoment")
                       : addParticipant && meeting?.type !== "Newsletter"
                         ? t("meeting.newMeeting.Add new invite")
@@ -1632,9 +1805,10 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
                               : changeOptions
                                 ? t("dropdown.change Options")
                                 : meeting?.solution || openedFrom === "solution"
-                                  ? `${t("meeting.newMeeting.create")}: ${meeting?.solution?.title?.toUpperCase() ||
-                                  solutionTitle?.toUpperCase()
-                                  }`
+                                  ? `${t("meeting.newMeeting.create")}: ${
+                                      meeting?.solution?.title?.toUpperCase() ||
+                                      solutionTitle?.toUpperCase()
+                                    }`
                                   : t("meeting.newMeeting.CreateMoment")}
                 </h4>
                 <button
@@ -1646,22 +1820,28 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
               </div>
 
               <div className="modal-body">
-                {
-                  addParticipant || changeOptions || changePrivacy || changeContext ? <div style={{
-                    marginTop: '1rem'
-                  }}></div> :
-                    <div className="progress-container-1">
-                      <div className="progress-track">
-                        <div
-                          className="progress-fill"
-                          style={{
-                            width: `${((currentStep - 1) / 7) * 100}%`,
-                          }}
-                        ></div>
-                      </div>
-                      {renderProgressSteps()}
+                {addParticipant ||
+                changeOptions ||
+                changePrivacy ||
+                changeContext ? (
+                  <div
+                    style={{
+                      marginTop: "1rem",
+                    }}
+                  ></div>
+                ) : (
+                  <div className="progress-container-1">
+                    <div className="progress-track">
+                      <div
+                        className="progress-fill"
+                        style={{
+                          width: `${((currentStep - 1) / 7) * 100}%`,
+                        }}
+                      ></div>
                     </div>
-                }
+                    {renderProgressSteps()}
+                  </div>
+                )}
                 {renderStepContent()}
               </div>
               {renderFooterButtons()}
@@ -1678,19 +1858,19 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
               <h2 className="w-100 text-center fs-5">{t("Are you sure")}</h2>
               <p className="mb-4" style={{ color: "#92929D" }}>
                 {isUpdated ||
-                  isDuplicate ||
-                  addParticipant ||
-                  changePrivacy ||
-                  changeContext
+                isDuplicate ||
+                addParticipant ||
+                changePrivacy ||
+                changeContext
                   ? ""
                   : t("saveAndDraftText")}
               </p>
               <div className="d-flex justify-content-center gap-3 mb-3">
                 {isUpdated ||
-                  addParticipant ||
-                  changePrivacy ||
-                  changeContext ||
-                  changeOptions ? (
+                addParticipant ||
+                changePrivacy ||
+                changeContext ||
+                changeOptions ? (
                   <Button
                     variant="outline-danger"
                     className="px-4 py-2 confirmation-delete"
@@ -1714,9 +1894,9 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
                     isDuplicate || isUpdated
                       ? handleSaveAndQuit
                       : addParticipant ||
-                        changePrivacy ||
-                        changeContext ||
-                        changeOptions
+                          changePrivacy ||
+                          changeContext ||
+                          changeOptions
                         ? handleSaveAndQuit
                         : saveDraft
                   }
@@ -1724,9 +1904,9 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
                   {isUpdated || isDuplicate
                     ? t("Save Meeting")
                     : addParticipant ||
-                      changePrivacy ||
-                      changeContext ||
-                      changeOptions
+                        changePrivacy ||
+                        changeContext ||
+                        changeOptions
                       ? t("Save Meeting")
                       : t("Save Draft")}
                 </Button>
@@ -1740,4 +1920,3 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
 };
 
 export default React.memo(NewMeetingModal);
-

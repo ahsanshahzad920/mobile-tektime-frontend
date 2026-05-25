@@ -109,6 +109,10 @@ export const SolutionFormProvider = ({ children }) => {
     solution_privacy: "private",
     solution_privacy_teams: [],
     solution_privacy_enterprises: [],
+    solution_privacy_missions: [],
+    solution_privacy_roles: [],
+    solution_privacy_gates: [],
+    solution_privacy_subscriptions: [],
     solution_password: null,
     date: null,
     start_time: null,
@@ -126,6 +130,8 @@ export const SolutionFormProvider = ({ children }) => {
     max_participants_register: null,
     price: null,
     casting_type: "Invitation",
+    show_participants: false,
+    show_discussion: false,
   });
 
   const handleCloseModal = () => {
@@ -171,6 +177,10 @@ export const SolutionFormProvider = ({ children }) => {
       solution_privacy: "private",
       solution_privacy_teams: [],
       solution_privacy_enterprises: [],
+      solution_privacy_missions: [],
+      solution_privacy_roles: [],
+      solution_privacy_gates: [],
+      solution_privacy_subscriptions: [],
       solution_password: null,
       date: null,
       start_time: null,
@@ -182,6 +192,8 @@ export const SolutionFormProvider = ({ children }) => {
       max_participants_register: null,
       price: null,
       casting_type: "Invitation",
+      show_participants: false,
+      show_discussion: false,
     });
     updateSteps([]);
     updateSolutionSteps([]);
@@ -319,7 +331,7 @@ export const SolutionFormProvider = ({ children }) => {
       }
       setLoading(false); // Hide loader
     },
-    [formState, checkId, isDuplicate]
+    [formState, checkId, isDuplicate, isUpdated]
   );
 
   const handleDraft = async (newformstate) => {
@@ -365,6 +377,8 @@ export const SolutionFormProvider = ({ children }) => {
       automatic_instruction: formState.automatic_instruction,
       whatsapp_in: formState.whatsapp_in,
       presentation: formState.presentation,
+      show_participants: formState.show_participants,
+      show_discussion: formState.show_discussion,
       // teams: formState.teams,
       solution_id: formState.solutionId,
       status: "draft",
@@ -378,6 +392,22 @@ export const SolutionFormProvider = ({ children }) => {
           typeof formState.solution_privacy_enterprises[0] === "object"
           ? formState.solution_privacy_enterprises.map((ent) => ent.id)
           : formState.solution_privacy_enterprises || [],
+      solution_privacy_missions:
+        formState.solution_privacy === "missions"
+          ? formState.solution_privacy_missions || []
+          : [],
+      solution_privacy_roles:
+        formState.solution_privacy === "roles"
+          ? formState.solution_privacy_roles || []
+          : [],
+      solution_privacy_gates:
+        formState.solution_privacy === "gates"
+          ? formState.solution_privacy_gates || []
+          : [],
+      solution_privacy_subscriptions:
+        formState.solution_privacy === "subscriptions"
+          ? formState.solution_privacy_subscriptions || []
+          : [],
       participants: newformstate?.participants || formState.participants || [],
       date: formState.date,
       start_time: formState.start_time,
@@ -389,6 +419,11 @@ export const SolutionFormProvider = ({ children }) => {
       max_participants_register: formState.max_participants_register,
       price: formState.price,
       casting_type: formState.casting_type,
+      location: formState.location,
+      address: formState.address,
+      room_details: formState.room_details,
+      phone: formState.phone,
+      agenda: formState.agenda,
     };
 
     try {
@@ -437,6 +472,10 @@ export const SolutionFormProvider = ({ children }) => {
       solution_privacy,
       solution_privacy_teams,
       solution_privacy_enterprises,
+      solution_privacy_missions,
+      solution_privacy_roles,
+      solution_privacy_gates,
+      solution_privacy_subscriptions,
       solution_password,
       logo,
       location,
@@ -458,7 +497,9 @@ export const SolutionFormProvider = ({ children }) => {
       automatic_strategy,
       automatic_instruction,
       whatsapp_in,
-      presentation
+      presentation,
+      show_participants,
+      show_discussion
     } = formState;
 
     const formFields = [title, description];
@@ -493,6 +534,8 @@ export const SolutionFormProvider = ({ children }) => {
       automatic_instruction,
       whatsapp_in,
       presentation,
+      show_participants,
+      show_discussion,
       share_by,
       note_taker,
       total_time: time,
@@ -517,10 +560,26 @@ export const SolutionFormProvider = ({ children }) => {
           typeof solution_privacy_enterprises[0] === "object"
           ? solution_privacy_enterprises.map((ent) => ent.id)
           : solution_privacy_enterprises || [],
+      solution_privacy_missions:
+        solution_privacy === "missions"
+          ? solution_privacy_missions || []
+          : [],
+      solution_privacy_roles:
+        solution_privacy === "roles"
+          ? solution_privacy_roles || []
+          : [],
+      solution_privacy_gates:
+        solution_privacy === "gates"
+          ? solution_privacy_gates || []
+          : [],
+      solution_privacy_subscriptions:
+        solution_privacy === "subscriptions"
+          ? solution_privacy_subscriptions || []
+          : [],
       solution_password:
         solution_privacy === "password" ? solution_password : null,
       _method: "put",
-      solution_Id: checkId,
+      solution_id: checkId,
       add_team: teams?.length > 0 ? true : false,
       participants: newformstate?.participants || formState.participants || [],
       date,
@@ -596,6 +655,10 @@ export const SolutionFormProvider = ({ children }) => {
       solution_privacy,
       solution_privacy_teams,
       solution_privacy_enterprises,
+      solution_privacy_missions,
+      solution_privacy_roles,
+      solution_privacy_gates,
+      solution_privacy_subscriptions,
       solution_password,
       location,
       address,
@@ -616,7 +679,9 @@ export const SolutionFormProvider = ({ children }) => {
       automatic_strategy,
       automatic_instruction,
       whatsapp_in,
-      presentation
+      presentation,
+      show_participants,
+      show_discussion
     } = formState;
 
     const formFields = [type, title, description];
@@ -651,6 +716,8 @@ export const SolutionFormProvider = ({ children }) => {
       automatic_instruction,
       presentation,
       whatsapp_in,
+      show_participants,
+      show_discussion,
       share_by,
       note_taker,
       total_time: time,
@@ -670,6 +737,22 @@ export const SolutionFormProvider = ({ children }) => {
           typeof solution_privacy_enterprises[0] === "object"
           ? solution_privacy_enterprises.map((ent) => ent.id)
           : solution_privacy_enterprises || [],
+      solution_privacy_missions:
+        solution_privacy === "missions"
+          ? solution_privacy_missions || []
+          : [],
+      solution_privacy_roles:
+        solution_privacy === "roles"
+          ? solution_privacy_roles || []
+          : [],
+      solution_privacy_gates:
+        solution_privacy === "gates"
+          ? solution_privacy_gates || []
+          : [],
+      solution_privacy_subscriptions:
+        solution_privacy === "subscriptions"
+          ? solution_privacy_subscriptions || []
+          : [],
       solution_password:
         solution_privacy === "password" ? solution_password : null,
       _method: "put",
@@ -767,6 +850,8 @@ export const SolutionFormProvider = ({ children }) => {
             solution_privacy: "private",
             solution_privacy_teams: [],
             solution_password: null,
+            show_participants: false,
+            show_discussion: false,
           });
           navigate("/solution");
           setStepsData([]);
@@ -817,8 +902,7 @@ export const SolutionFormProvider = ({ children }) => {
         teams: [],
         solution_privacy: "private",
         solution_privacy_teams: [],
-        solution_privacy: "private",
-        solution_privacy_teams: [],
+        solution_privacy_roles: [],
         solution_password: null,
         logo: "",
         location: "",
@@ -826,6 +910,8 @@ export const SolutionFormProvider = ({ children }) => {
         room_details: "",
         phone: "",
         agenda: "",
+        show_participants: false,
+        show_discussion: false,
       });
       updateSteps([]);
       updateSolutionSteps([]);
@@ -881,6 +967,11 @@ export const SolutionFormProvider = ({ children }) => {
         teams,
         solution_privacy,
         solution_privacy_teams,
+        solution_privacy_enterprises,
+        solution_privacy_missions,
+        solution_privacy_roles,
+        solution_privacy_gates,
+        solution_privacy_subscriptions,
         solution_password,
         logo,
         location,
@@ -888,6 +979,8 @@ export const SolutionFormProvider = ({ children }) => {
         room_details,
         phone,
         agenda,
+        show_participants,
+        show_discussion,
       } = formState;
 
       const formFields = [type, title, description];
@@ -930,10 +1023,34 @@ export const SolutionFormProvider = ({ children }) => {
             typeof solution_privacy_teams[0] === "object"
             ? solution_privacy_teams.map((team) => team.id)
             : solution_privacy_teams || [], // Send as-is if IDs are already present
+        solution_privacy_enterprises:
+          solution_privacy === "enterprise" &&
+            solution_privacy_enterprises?.length &&
+            typeof solution_privacy_enterprises[0] === "object"
+            ? solution_privacy_enterprises.map((ent) => ent.id)
+            : solution_privacy_enterprises || [],
+        solution_privacy_missions:
+          solution_privacy === "missions"
+            ? solution_privacy_missions || []
+            : [],
+        solution_privacy_roles:
+          solution_privacy === "roles"
+            ? solution_privacy_roles || []
+            : [],
+        solution_privacy_gates:
+          solution_privacy === "gates"
+            ? solution_privacy_gates || []
+            : [],
+        solution_privacy_subscriptions:
+          solution_privacy === "subscriptions"
+            ? solution_privacy_subscriptions || []
+            : [],
         solution_password:
           solution_privacy === "password" ? solution_password : null,
         _method: "put",
         solution_id: checkId,
+        show_participants,
+        show_discussion,
       };
       //
       try {
@@ -983,6 +1100,8 @@ export const SolutionFormProvider = ({ children }) => {
             solution_privacy: "private",
             solution_privacy_teams: [],
             solution_password: null,
+            show_participants: false,
+            show_discussion: false,
           });
           setCheckId(null);
           updateSteps([]);
@@ -1077,7 +1196,36 @@ export const SolutionFormProvider = ({ children }) => {
         solution_privacy: formState.solution_privacy,
         solution_password:
           formState.solution_privacy === "password" ? formState.password : null,
-        solution_privacy_teams: [],
+        solution_privacy_teams:
+          formState.solution_privacy === "team" &&
+            formState.solution_privacy_teams?.length &&
+            typeof formState.solution_privacy_teams[0] === "object"
+            ? formState.solution_privacy_teams.map((team) => team.id)
+            : formState.solution_privacy_teams || [],
+        solution_privacy_enterprises:
+          formState.solution_privacy === "enterprise" &&
+            formState.solution_privacy_enterprises?.length &&
+            typeof formState.solution_privacy_enterprises[0] === "object"
+            ? formState.solution_privacy_enterprises.map((ent) => ent.id)
+            : formState.solution_privacy_enterprises || [],
+        solution_privacy_missions:
+          formState.solution_privacy === "missions"
+            ? formState.solution_privacy_missions || []
+            : [],
+        solution_privacy_roles:
+          formState.solution_privacy === "roles"
+            ? formState.solution_privacy_roles || []
+            : [],
+        solution_privacy_gates:
+          formState.solution_privacy === "gates"
+            ? formState.solution_privacy_gates || []
+            : [],
+        solution_privacy_subscriptions:
+          formState.solution_privacy === "subscriptions"
+            ? formState.solution_privacy_subscriptions || []
+            : [],
+        show_participants: formState.show_participants,
+        show_discussion: formState.show_discussion,
       };
 
       try {
@@ -1121,6 +1269,8 @@ export const SolutionFormProvider = ({ children }) => {
             solution_privacy: "private",
             solution_privacy_teams: [],
             solution_password: "",
+            show_participants: false,
+            show_discussion: false,
           });
           setCheckId(null);
           updateSteps([]);
@@ -1175,7 +1325,13 @@ export const SolutionFormProvider = ({ children }) => {
       solution_privacy,
       solution_privacy_teams,
       solution_privacy_enterprises,
+      solution_privacy_missions,
+      solution_privacy_roles,
+      solution_privacy_gates,
+      solution_privacy_subscriptions,
       solution_password,
+      show_participants,
+      show_discussion,
     } = formState;
 
     // if (
@@ -1223,9 +1379,27 @@ export const SolutionFormProvider = ({ children }) => {
           solution_privacy_enterprises?.length
           ? solution_privacy_enterprises.map((ent) => (typeof ent === "object" ? ent.id : ent))
           : [],
+      solution_privacy_missions:
+        solution_privacy === "missions"
+          ? solution_privacy_missions || []
+          : [],
+      solution_privacy_roles:
+        solution_privacy === "roles"
+          ? solution_privacy_roles || []
+          : [],
+      solution_privacy_gates:
+        solution_privacy === "gates"
+          ? solution_privacy_gates || []
+          : [],
+      solution_privacy_subscriptions:
+        solution_privacy === "subscriptions"
+          ? solution_privacy_subscriptions || []
+          : [],
       solution_password:
-        solution_password === "password" ? solution_password : null,
+        solution_privacy === "password" ? solution_password : null,
       status: "active",
+      show_participants,
+      show_discussion,
       _method: "put",
     };
 

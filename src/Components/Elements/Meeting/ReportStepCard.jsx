@@ -17,7 +17,7 @@ import ReportMediaGallery from "./Report/ReportMediaGallery";
 
 const ReportStepCard = ({ item, index, startTime, users, meeting, isTranscribing, transcriptionProgress, Assets_URL, t, isAccordion,stepMedias=[] }) => {
   const [dropdownVisible, setDropdownVisible] = useState(
-    !!(item.editor_content || item.note || item.editor_type === "File" || item.editor_type === "Url"),
+    !!(item.editor_content || item.note || item.editor_type === "File" || item.editor_type === "Url" || item?.editor_type === "Publication" || item?.editor_type === "AI Instruction"),
   );
   const dropdownRef = useRef(null);
   const pdfIframeRef = useRef(null);
@@ -172,7 +172,7 @@ const ReportStepCard = ({ item, index, startTime, users, meeting, isTranscribing
     };
 
 
-    if ((item.editor_type === "Editeur" || item.editor_type === "Subtask" || item?.editor_type === "Prestation" || item?.editor_type === "Story") && item.editor_content && item.editor_content.trim() !== "<html><head></head><body></body></html>") {
+    if ((item.editor_type === "Editeur" || item.editor_type === "Subtask" || item?.editor_type === "Prestation" || item?.editor_type === "Story" || item?.editor_type === "Publication" || item?.editor_type === "AI Instruction") && item.editor_content && item.editor_content.trim() !== "<html><head></head><body></body></html>") {
       const tempDiv = document.createElement("div");
       tempDiv.innerHTML = item.editor_content;
       const firstImageTag = tempDiv.querySelector("img");
@@ -227,7 +227,7 @@ const ReportStepCard = ({ item, index, startTime, users, meeting, isTranscribing
   };
 
   const renderContent = () => {
-    if ((item.editor_type === "Editeur" || item.editor_type === "Subtask" || item?.editor_type === "Prestation" || item?.editor_type === "Story") && item.editor_content && item.editor_content.trim() !== "<html><head></head><body></body></html>") {
+    if ((item.editor_type === "Editeur" || item.editor_type === "Subtask" || item?.editor_type === "Prestation" || item?.editor_type === "Story" || item?.editor_type === "Publication" || item?.editor_type === "AI Instruction") && item.editor_content && item.editor_content.trim() !== "<html><head></head><body></body></html>") {
       return (
         <div className="rendered-content" style={{ borderRadius: "8px", padding: "1rem" }}>
           <div dangerouslySetInnerHTML={{ __html: item.editor_content }} />
@@ -483,12 +483,11 @@ const ReportStepCard = ({ item, index, startTime, users, meeting, isTranscribing
                 ? item.step_time || "0 sec"
                 : localizeTimeTakenActive(item?.time_taken?.replace("-", "")) +
                   (item?.time_taken ? " / " : " ") +
-                 (item?.editor_type === "Story" && item?.time_unit === "days") ? (
-    item.count2 + " " + (item.count2 > 1 ? "Story Points" : "Story Point")
-    // or simply: item.count2 + " SP"
-  ) : (
-    item.count2 + " " + t(`time_unit.${item.time_unit}`)
-  )}
+                  (
+                    (item?.editor_type === "Story" && item?.time_unit === "days")
+                      ? item.count2 + " " + (item.count2 > 1 ? "Story Points" : "Story Point")
+                      : item.count2 + " " + t(`time_unit.${item.time_unit}`)
+                  )}
             </span>
             <OverlayTrigger
               placement="top"
@@ -514,6 +513,7 @@ const ReportStepCard = ({ item, index, startTime, users, meeting, isTranscribing
       <Accordion.Body className="steps-body">
         {renderMediaPreview()}
         {renderContent()}
+        <ReportMediaGallery stepMedias={getStepMedias()} fromReport={true} />
         {isTranscribing && (
           <div className="d-flex justify-content-center mt-3">
             <div style={{ width: "50%" }}>

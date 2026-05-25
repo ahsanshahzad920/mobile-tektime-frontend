@@ -1,17 +1,59 @@
 import CookieService from '../../Utils/CookieService';
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
-import { API_BASE_URL } from "../../Apicongfig";
+import { API_BASE_URL, Assets_URL } from "../../Apicongfig";
 import axios from "axios";
 import { useTranslation } from "react-i18next";
 import { Button, Spinner } from "react-bootstrap";
 import Select from "react-select";
 import { Editor } from "@tinymce/tinymce-react";
+import { IoIosBusiness, IoIosRocket } from "react-icons/io";
+import { FaBookOpen, FaBullseye, FaChalkboardTeacher, FaCode, FaBullhorn, FaShoppingCart, FaUserTie, FaSearch, FaChessKnight } from "react-icons/fa";
+import { AiOutlineAudit } from "react-icons/ai";
+import { MdEventAvailable, MdOutlineSupport, MdWork, MdBrush, MdMessage, MdEvent } from "react-icons/md";
+import { useHeaderTitle } from "../../../context/HeaderTitleContext";
 
 function CreateContract({ setActiveTab }) {
   const [t] = useTranslation("global");
+  const { setCallUser } = useHeaderTitle();
 
   const [packageOptions, setPackageOptions] = useState([]);
+  const [missionTypeOptions, setMissionTypeOptions] = useState([]);
+  const [isLoadingMissionTypes, setIsLoadingMissionTypes] = useState(false);
+  const [roleOptions, setRoleOptions] = useState([]);
+  const [isLoadingRoles, setIsLoadingRoles] = useState(false);
+
+  const getMissionIcon = (value) => {
+    switch (value) {
+      case "Business opportunity": return <IoIosBusiness style={{ width: 22, height: 22 }} />;
+      case "Study": return <FaBookOpen style={{ width: 22, height: 22 }} />;
+      case "Audit": return <AiOutlineAudit style={{ width: 22, height: 22 }} />;
+      case "Project": return <IoIosRocket style={{ width: 22, height: 22 }} />;
+      case "Accompagnement": return <MdOutlineSupport style={{ width: 22, height: 22 }} />;
+      case "Event": return <MdEventAvailable style={{ width: 22, height: 22 }} />;
+      case "Formation": return <FaChalkboardTeacher style={{ width: 22, height: 22 }} />;
+      case "Recruitment": return <MdWork style={{ width: 22, height: 22 }} />;
+      case "Objective": return <FaBullseye style={{ width: 22, height: 22 }} />;
+      case "Design": return <MdBrush style={{ width: 22, height: 22 }} />;
+      case "Development": return <FaCode style={{ width: 22, height: 22 }} />;
+      case "Marketing": return <FaBullhorn style={{ width: 22, height: 22 }} />;
+      case "Sales": return <FaShoppingCart style={{ width: 22, height: 22 }} />;
+      case "Consulting": return <FaUserTie style={{ width: 22, height: 22 }} />;
+      case "Research": return <FaSearch style={{ width: 22, height: 22 }} />;
+      case "Strategy": return <FaChessKnight style={{ width: 22, height: 22 }} />;
+      case "Agenda": return <MdEvent style={{ width: 22, height: 22 }} />;
+      case "Messagerie": return <MdMessage style={{ width: 22, height: 22 }} />;
+      case "Other":
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 512 512" fill="#DAE6ED">
+            <path d="M432,336h-10.84c16.344-13.208,26.84-33.392,26.84-56v-32c0-30.872-25.128-56-56-56h-32c-2.72,0-5.376,0.264-8,0.64V48h16V0H0v48h16v232H0v48h187.056l40,80H304v88h192v-96C496,364.712,467.288,336,432,336z" />
+          </svg>
+        );
+      default: return <IoIosBusiness style={{ width: 22, height: 22 }} />;
+    }
+  };
+
+
 
   useEffect(() => {
     const fetchPackageTypes = async () => {
@@ -31,7 +73,57 @@ function CreateContract({ setActiveTab }) {
         console.error("Failed to fetch landing pages", error);
       }
     };
+
+    const fetchMissionTypes = async () => {
+      const token = CookieService.get("token");
+      try {
+        setIsLoadingMissionTypes(true);
+        const { data } = await axios.get(`${API_BASE_URL}/mission-types`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (data && data.data) {
+          const options = data.data.map((type) => ({
+            value: type.id,
+            label: type.title,
+            logo_file_url: type.mission_icon ? (type.mission_icon.startsWith('http') ? type.mission_icon : `${Assets_URL}/${type.mission_icon}`) : type.logo_file_url,
+            logo_key: type.logo,
+          }));
+          setMissionTypeOptions(options);
+        }
+      } catch (error) {
+        console.error("Failed to fetch mission types", error);
+      } finally {
+        setIsLoadingMissionTypes(false);
+      }
+    };
+
+    const fetchRoles = async () => {
+      const token = CookieService.get("token");
+      try {
+        setIsLoadingRoles(true);
+        const { data } = await axios.get(`${API_BASE_URL}/role-types`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (data && data.data) {
+          const options = data.data.map((role) => ({
+            value: role.id,
+            title: role.title,
+            emoji: role.emoji,
+            desc: role.description,
+            role_icon: role.role_icon
+          }));
+          setRoleOptions(options);
+        }
+      } catch (error) {
+        console.error("Failed to fetch roles", error);
+      } finally {
+        setIsLoadingRoles(false);
+      }
+    };
+
     fetchPackageTypes();
+    fetchMissionTypes();
+    fetchRoles();
   }, []);
 
   // 1. CHANGED: set defaults to false
@@ -53,6 +145,8 @@ function CreateContract({ setActiveTab }) {
     check_stripe: false,
     check_whatsapp: false,
     description: "",
+    mission_types: [],
+    roles: [],
   };
 
   // 2. CHANGED: set defaults to false in useState as well
@@ -74,6 +168,8 @@ function CreateContract({ setActiveTab }) {
     check_stripe: false,
     check_whatsapp: false,
     description: "",
+    mission_types: [],
+    roles: [],
   });
 
   const handleInputChange = (e) => {
@@ -161,6 +257,7 @@ function CreateContract({ setActiveTab }) {
       );
       if (response.status === 201) {
         toast.success(t("messages.contract.create.success"));
+        setCallUser(prev => !prev); // Trigger user refresh in Sidebar
         setActiveTab("Abonnements en cours");
         setContractData(initialContractData);
       }
@@ -337,6 +434,123 @@ function CreateContract({ setActiveTab }) {
                       ...base,
                       borderColor: "#dee2e6",
                       borderRadius: "0.375rem",
+                    }),
+                  }}
+                />
+              </div>
+
+              <div className="mb-4">
+                <label className="form-label">{t("destination_type") || "Mission Types"}</label>
+                <br />
+                {isLoadingMissionTypes ? (
+                  <div className="d-flex align-items-center gap-2 text-muted" style={{ fontSize: "0.9rem" }}>
+                    <Spinner animation="border" size="sm" />
+                    <span>{t("messages.loading") || "Loading..."}</span>
+                  </div>
+                ) : (
+                  <Select
+                    isMulti
+                    name="mission_types"
+                    options={missionTypeOptions}
+                    className="basic-multi-select"
+                    classNamePrefix="select"
+                    placeholder={t("destination.selectType")}
+                    value={
+                      Array.isArray(contractData.mission_types)
+                        ? contractData.mission_types.map((val) => {
+                            const option = missionTypeOptions.find((opt) => opt.value === val);
+                            return option ? option : { value: val, label: val };
+                          })
+                        : []
+                    }
+                    onChange={(selectedOptions) => {
+                      setContractData({
+                        ...contractData,
+                        mission_types: selectedOptions ? selectedOptions.map((option) => option.value) : [],
+                      });
+                    }}
+                    formatOptionLabel={(option) => (
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        {option.logo_file_url ? (
+                          <img src={option.logo_file_url} alt="" style={{ width: 22, height: 22, objectFit: "contain" }} />
+                        ) : (
+                          getMissionIcon(option.logo_key || option.label) && (
+                            <span style={{ color: "#DAE6ED" }}>{getMissionIcon(option.logo_key || option.label)}</span>
+                          )
+                        )}
+                        <span>{option.label}</span>
+                      </div>
+                    )}
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        borderColor: "#dee2e6",
+                        borderRadius: "0.375rem",
+                      }),
+                    }}
+                  />
+                )}
+              </div>
+
+              <div className="mb-4">
+                <label className="form-label">{t("profile.customizeRole") || "Roles"}</label>
+                <br />
+                <Select
+                  isMulti
+                  name="roles"
+                  isLoading={isLoadingRoles}
+                  options={roleOptions}
+                  className="basic-multi-select"
+                  classNamePrefix="select"
+                  placeholder={t("profile.customizeRoleDesc") || "Select roles"}
+                  value={
+                    Array.isArray(contractData.roles)
+                      ? contractData.roles.map((val) => {
+                          const option = roleOptions.find((opt) => opt.value === val);
+                          return option ? option : { value: val, title: val, emoji: "", desc: "" };
+                        })
+                      : []
+                  }
+                  onChange={(selectedOptions) => {
+                    setContractData({
+                      ...contractData,
+                      roles: selectedOptions ? selectedOptions.map((option) => option.value) : [],
+                    });
+                  }}
+                  getOptionLabel={(option) => option.title}
+                  getOptionValue={(option) => option.value}
+                  formatOptionLabel={(option) => (
+                    <div style={{ display: "flex", flexDirection: "column", padding: "4px 0" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        {option.role_icon ? (
+                          <img
+                            src={option.role_icon.startsWith('http') ? option.role_icon : `${Assets_URL}/${option.role_icon}`}
+                            alt=""
+                            style={{ width: 24, height: 24, objectFit: 'contain' }}
+                          />
+                        ) : (
+                          <span style={{ fontSize: "1.2rem" }}>{option.emoji || "🧠"}</span>
+                        )}
+                        <span style={{ fontWeight: "500", fontSize: "0.95rem" }}>{option.title}</span>
+                      </div>
+                      <span style={{ fontSize: "0.75rem", color: "#6c757d", marginLeft: "34px" }}>{option.desc}</span>
+                    </div>
+                  )}
+                  styles={{
+                    control: (base) => ({
+                      ...base,
+                      borderColor: "#dee2e6",
+                      borderRadius: "0.375rem",
+                    }),
+                    option: (base, state) => ({
+                      ...base,
+                      backgroundColor: state.isFocused ? "#f8f9fa" : "white",
+                      color: "#333",
+                      cursor: "pointer",
+                      borderBottom: "1px solid #f1f1f1",
+                      "&:last-child": {
+                        borderBottom: "none",
+                      }
                     }),
                   }}
                 />

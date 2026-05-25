@@ -16,7 +16,7 @@ import {
 import { FaEye, FaEyeSlash, FaCheckCircle } from "react-icons/fa";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
-import { API_BASE_URL } from "../Apicongfig";
+import { API_BASE_URL, Assets_URL } from "../Apicongfig";
 import { getFcmToken } from "../../firebase";
 import { useHeaderTitle } from "../../context/HeaderTitleContext";
 import { toast } from "react-toastify";
@@ -48,6 +48,7 @@ const Register = () => {
 
     acceptTerms: true,
     job: "",
+    job_id: "",
     phoneNumber: ""
   });
 
@@ -59,6 +60,8 @@ const Register = () => {
 
   const [showPassword, setShowPassword] = useState(false); // State for password visibility
   const [passwordError, setPasswordError] = useState(""); // State for password validation e
+  const [roleOptions, setRoleOptions] = useState([]);
+  const [isLoadingRoles, setIsLoadingRoles] = useState(false);
 
   // Add password validation effect
   useEffect(() => {
@@ -116,6 +119,23 @@ const Register = () => {
         });
     }
   }, [user_id]);
+
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        setIsLoadingRoles(true);
+        const { data } = await axios.get(`${API_BASE_URL}/public/role-types`);
+        if (data && data.data) {
+          setRoleOptions(data.data);
+        }
+      } catch (err) {
+        console.error("Error fetching roles:", err);
+      } finally {
+        setIsLoadingRoles(false);
+      }
+    };
+    fetchRoles();
+  }, []);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -295,6 +315,7 @@ const Register = () => {
         profile: profileMap[formData.profile] || formData.profile,
         needs: formData.needs.map((need) => needsMap[need] || need),
         job: roleMap[formData.job] || formData.job,
+        job_id: formData.job_id,
         last_connection: formattedLoginTime,
         fcm_token: fcmToken,
         ...(referralData.is_referral && {
@@ -305,6 +326,7 @@ const Register = () => {
 
       };
 
+  
       const response = await axios.post(
         `${API_BASE_URL}/register-user`,
         registrationData
@@ -485,56 +507,36 @@ const Register = () => {
 
   const renderRoleOptions = () => (
     <div className="role-options mb-4">
-      {[
-        {
-          emoji: "🧠",
-          title: "Chef de projet / Product Owner",
-          desc: "Je planifie, j’organise, je pilote.",
-        },
-        {
-          emoji: "💼",
-          title: "Chargé de relation client / Commercial",
-          desc: "Je gère les clients, je prépare les rendez-vous, je suis les actions et je m’assure que tout avance côté client comme en interne.",
-        },
-        {
-          emoji: "🎯",
-          title: "Manager / Responsable d'équipe",
-          desc: "Je supervise les personnes, les objectifs, les résultats.",
-        },
-        {
-          emoji: "💻",
-          title: "Développeur / Contributeur opérationnel",
-          desc: "Je veux de la clarté sur mes tâches, mon temps, mes priorités.",
-        },
-        {
-          emoji: "🎓",
-          title: "Formateur / Coach",
-          desc: "J’organise des sessions, je produis du contenu, je suis des participants.",
-        },
-        {
-          emoji: "🛠️",
-          title: "Consultant / Freelance",
-          desc: "Je facture mon temps, j’enchaîne les missions, je veux aller à l’essentiel.",
-        },
-        {
-          emoji: "🧪",
-          title: "Autre / Explorateur",
-          desc: "Je teste pour comprendre ce que TekTIME peut m’apporter.",
-        },
-      ].map((role, index) => (
-        <div
-          key={index}
-          className={`role-card ${formData.job === role.title ? "selected" : ""
-            }`}
-          onClick={() => setFormData({ ...formData, job: role.title })}
-        >
-          <div className="role-emoji">{role.emoji}</div>
-          <div className="role-content">
-            <h5>{role.title}</h5>
-            <p>{role.desc}</p>
-          </div>
+      {isLoadingRoles ? (
+        <div className="text-center py-5">
+          <ProgressBar animated now={100} label="Chargement des rôles..." />
         </div>
-      ))}
+      ) : (
+        roleOptions.map((role, index) => (
+          <div
+            key={index}
+            className={`role-card ${formData.job === role.title ? "selected" : ""
+              }`}
+            onClick={() => setFormData({ ...formData, job: role.title, job_id: role.id })}
+          >
+            <div className="role-emoji">
+              {role.role_icon ? (
+                <img 
+                  src={role.role_icon.startsWith('http') ? role.role_icon : `${Assets_URL}/${role.role_icon}`} 
+                  alt="" 
+                  style={{ width: 40, height: 40, objectFit: 'contain' }} 
+                />
+              ) : (
+                role.emoji || "🧠"
+              )}
+            </div>
+            <div className="role-content">
+              <h5>{role.title}</h5>
+              <p>{role.description}</p>
+            </div>
+          </div>
+        ))
+      )}
     </div>
   );
 

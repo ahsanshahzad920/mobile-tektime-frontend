@@ -5537,6 +5537,7 @@ Please categorize the relevant details into their corresponding sections.`;
             </section>
           )}
 
+{meetingData?.show_participants &&<>
           {meetingData?.participants?.length > 0 &&
             meetingData?.type !== "Newsletter" && (
               <section id="guides" className="section report-host-card">
@@ -5573,6 +5574,8 @@ Please categorize the relevant details into their corresponding sections.`;
                 {/* </div> */}
               </section>
             )}
+</>
+}
 
           {meetingData?.steps?.length > 0 && (
             <section id="steps" className="section">
@@ -5671,7 +5674,9 @@ Please categorize the relevant details into their corresponding sections.`;
             </section>
           )}
 
-          <section id="discussion" className="section">
+       {meetingData?.show_discussion && 
+       
+       <section id="discussion" className="section">
             <h4 className="section-title-1 text-left">
               {`${t("meeting.newMeeting.labels.discussion")} `}
             </h4>
@@ -5683,7 +5688,7 @@ Please categorize the relevant details into their corresponding sections.`;
                 setMeetingMessages(newMeetings)
               }
             />
-          </section>
+          </section>}
           {/* {!isModalOpen && (
             <div className="cards-section">
            

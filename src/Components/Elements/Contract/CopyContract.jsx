@@ -2,18 +2,58 @@ import CookieService from '../../Utils/CookieService';
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { API_BASE_URL } from "../../Apicongfig";
+import { API_BASE_URL, Assets_URL } from "../../Apicongfig";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
 import { Button, Spinner } from "react-bootstrap";
 import { Editor } from "@tinymce/tinymce-react";
 import Select from "react-select";
+import { IoIosBusiness, IoIosRocket } from "react-icons/io";
+import { FaBookOpen, FaBullseye, FaChalkboardTeacher, FaCode, FaBullhorn, FaShoppingCart, FaUserTie, FaSearch, FaChessKnight } from "react-icons/fa";
+import { AiOutlineAudit } from "react-icons/ai";
+import { MdEventAvailable, MdOutlineSupport, MdWork, MdBrush, MdMessage, MdEvent } from "react-icons/md";
 
 const CopyContract = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [t] = useTranslation("global");
   const [packageOptions, setPackageOptions] = useState([]);
+  const [missionTypeOptions, setMissionTypeOptions] = useState([]);
+  const [isLoadingMissionTypes, setIsLoadingMissionTypes] = useState(false);
+  const [roleOptions, setRoleOptions] = useState([]);
+  const [isLoadingRoles, setIsLoadingRoles] = useState(false);
+
+  const getMissionIcon = (value) => {
+    switch (value) {
+      case "Business opportunity": return <IoIosBusiness style={{ width: 22, height: 22 }} />;
+      case "Study": return <FaBookOpen style={{ width: 22, height: 22 }} />;
+      case "Audit": return <AiOutlineAudit style={{ width: 22, height: 22 }} />;
+      case "Project": return <IoIosRocket style={{ width: 22, height: 22 }} />;
+      case "Accompagnement": return <MdOutlineSupport style={{ width: 22, height: 22 }} />;
+      case "Event": return <MdEventAvailable style={{ width: 22, height: 22 }} />;
+      case "Formation": return <FaChalkboardTeacher style={{ width: 22, height: 22 }} />;
+      case "Recruitment": return <MdWork style={{ width: 22, height: 22 }} />;
+      case "Objective": return <FaBullseye style={{ width: 22, height: 22 }} />;
+      case "Design": return <MdBrush style={{ width: 22, height: 22 }} />;
+      case "Development": return <FaCode style={{ width: 22, height: 22 }} />;
+      case "Marketing": return <FaBullhorn style={{ width: 22, height: 22 }} />;
+      case "Sales": return <FaShoppingCart style={{ width: 22, height: 22 }} />;
+      case "Consulting": return <FaUserTie style={{ width: 22, height: 22 }} />;
+      case "Research": return <FaSearch style={{ width: 22, height: 22 }} />;
+      case "Strategy": return <FaChessKnight style={{ width: 22, height: 22 }} />;
+      case "Agenda": return <MdEvent style={{ width: 22, height: 22 }} />;
+      case "Messagerie": return <MdMessage style={{ width: 22, height: 22 }} />;
+      case "Other":
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 512 512" fill="#DAE6ED">
+            <path d="M432,336h-10.84c16.344-13.208,26.84-33.392,26.84-56v-32c0-30.872-25.128-56-56-56h-32c-2.72,0-5.376,0.264-8,0.64V48h16V0H0v48h16v232H0v48h187.056l40,80H304v88h192v-96C496,364.712,467.288,336,432,336z" />
+          </svg>
+        );
+      default: return <IoIosBusiness style={{ width: 22, height: 22 }} />;
+    }
+  };
+
+
 
   useEffect(() => {
     const fetchPackageTypes = async () => {
@@ -33,7 +73,57 @@ const CopyContract = () => {
         console.error("Failed to fetch landing pages", error);
       }
     };
+
+    const fetchMissionTypes = async () => {
+      const token = CookieService.get("token");
+      try {
+        setIsLoadingMissionTypes(true);
+        const { data } = await axios.get(`${API_BASE_URL}/mission-types`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (data && data.data) {
+          const options = data.data.map((type) => ({
+            value: type.id,
+            label: type.title,
+            logo_file_url: type.mission_icon ? (type.mission_icon.startsWith('http') ? type.mission_icon : `${Assets_URL}/${type.mission_icon}`) : type.logo_file_url,
+            logo_key: type.logo,
+          }));
+          setMissionTypeOptions(options);
+        }
+      } catch (error) {
+        console.error("Failed to fetch mission types", error);
+      } finally {
+        setIsLoadingMissionTypes(false);
+      }
+    };
+
+    const fetchRoles = async () => {
+      const token = CookieService.get("token");
+      try {
+        setIsLoadingRoles(true);
+        const { data } = await axios.get(`${API_BASE_URL}/role-types`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (data && data.data) {
+          const options = data.data.map((role) => ({
+            value: role.id,
+            title: role.title,
+            emoji: role.emoji,
+            desc: role.description,
+            role_icon: role.role_icon
+          }));
+          setRoleOptions(options);
+        }
+      } catch (error) {
+        console.error("Failed to fetch roles", error);
+      } finally {
+        setIsLoadingRoles(false);
+      }
+    };
+
     fetchPackageTypes();
+    fetchMissionTypes();
+    fetchRoles();
   }, []);
 
   const initialContractData = {
@@ -42,9 +132,6 @@ const CopyContract = () => {
     end_date: "",
     no_of_licenses: "",
     price: "",
-    price: "",
-    currency: "",
-    payment_type: "",
     currency: "",
     payment_type: "",
     description: "",
@@ -57,6 +144,8 @@ const CopyContract = () => {
     casting_need: false,
     check_stripe: false,
     check_whatsapp: false,
+    mission_types: [],
+    roles: [],
   };
   const [contractData, setContractData] = useState({
     name: "",
@@ -64,9 +153,6 @@ const CopyContract = () => {
     end_date: "",
     no_of_licenses: "",
     price: "",
-    price: "",
-    currency: "",
-    payment_type: "",
     currency: "",
     payment_type: "",
     description: "",
@@ -79,6 +165,8 @@ const CopyContract = () => {
     casting_need: false,
     check_stripe: false,
     check_whatsapp: false,
+    mission_types: [],
+    roles: [],
   });
   const handleInputChange = (e) => {
     const { name, value, type, checked, selectedOptions } = e.target;
@@ -109,7 +197,6 @@ const CopyContract = () => {
         const { data } = await axios.get(`${API_BASE_URL}/contracts/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        // console.log("dataaa", data?.data);
         if (data) {
           setContractData({
             name: data?.data?.name,
@@ -129,10 +216,33 @@ const CopyContract = () => {
             casting_need: data?.data?.casting_need || false,
             check_stripe: data?.data?.check_stripe === 1 || data?.data?.check_stripe === true,
             check_whatsapp: data?.data?.check_whatsapp === 1 || data?.data?.check_whatsapp === true,
+            mission_types: (() => {
+              const rawMissionTypes = data?.data?.mission_types;
+              if (Array.isArray(rawMissionTypes)) return rawMissionTypes;
+              if (typeof rawMissionTypes === "string") {
+                try {
+                  const parsed = JSON.parse(rawMissionTypes);
+                  if (Array.isArray(parsed)) return parsed;
+                } catch (e) {}
+                return [rawMissionTypes];
+              }
+              return [];
+            })(),
+            roles: (() => {
+              const rawRoles = data?.data?.roles;
+              if (Array.isArray(rawRoles)) return rawRoles;
+              if (typeof rawRoles === "string") {
+                try {
+                  const parsed = JSON.parse(rawRoles);
+                  if (Array.isArray(parsed)) return parsed;
+                } catch (e) {}
+                return [rawRoles];
+              }
+              return [];
+            })(),
           });
         }
       } catch (error) {
-        // console.error("Error fetching contract data:", error);
         toast.error(t("messages.dataFetchError"));
       } finally {
         setLoading(false);
@@ -151,8 +261,7 @@ const CopyContract = () => {
       contractData.end_date === "" ||
       contractData.no_of_licenses === "" ||
       contractData.price === "" ||
-      contractData.currency === "" ||
-      contractData.price === ""
+      contractData.currency === ""
     ) {
       toast.error(t("messages.contract.create.allFieldsError"));
       setIsLoading(false);
@@ -180,6 +289,8 @@ const CopyContract = () => {
         name: `${updatedName}_copie_${count}`,
         check_stripe: contractData.check_stripe ? 1 : 0,
         check_whatsapp: contractData.check_whatsapp ? 1 : 0,
+        mission_types: contractData.mission_types,
+        roles: contractData.roles,
       };
       const response = await axios.post(
         `${API_BASE_URL}/contracts/${id}/duplicate`,
@@ -190,9 +301,7 @@ const CopyContract = () => {
       );
       if (response.status === 200 || response.status === 201) {
         toast.success(t("messages.contract.duplicate.success"));
-        // contractData(initialContractData);
         navigate("/contract");
-        // console.log("duplicate api response->", response);
       }
     } catch (error) {
         if (error.response && error.response.data && error.response.data.errors) {
@@ -202,7 +311,6 @@ const CopyContract = () => {
       } else {
         toast.error(t("messages.error"));
       }
-      // console.log("errro-updating", error);
     } finally {
       setIsLoading(false);
     }
@@ -231,13 +339,11 @@ const CopyContract = () => {
   return (
     <>
       {loading ? (
-
         <Spinner
           animation="border"
           role="status"
           className="center-spinner"
         ></Spinner>
-
       ) : (
         <div className="create">
           <div className="container-fluid">
@@ -311,7 +417,6 @@ const CopyContract = () => {
                     <input
                       type="date"
                       className="form-control"
-                      //   placeholder="Nom du Contrat"
                       name="start_date"
                       value={contractData.start_date}
                       onChange={handleInputChange}
@@ -327,7 +432,6 @@ const CopyContract = () => {
                     <input
                       type="date"
                       className="form-control"
-                      //   placeholder="Nom du Contrat"
                       name="end_date"
                       value={contractData.end_date}
                       onChange={handleInputChange}
@@ -369,8 +473,6 @@ const CopyContract = () => {
                   </div>
                   <div className="mb-4">
                     <label className="form-label">{t("newContract.packageType")}</label>
-                    {/* <small style={{ color: "red", fontSize: "15px", marginLeft: "2px" }}>*</small> */}
-
                     <br />
                       <Select
                         isMulti
@@ -400,6 +502,123 @@ const CopyContract = () => {
                       }}
                     />
                   </div>
+                  <div className="mb-4">
+                    <label className="form-label">{t("destination_type") || "Mission Types"}</label>
+                    <br />
+                    {isLoadingMissionTypes ? (
+                      <div className="d-flex align-items-center gap-2 text-muted" style={{ fontSize: "0.9rem" }}>
+                        <Spinner animation="border" size="sm" />
+                        <span>{t("messages.loading") || "Loading..."}</span>
+                      </div>
+                    ) : (
+                      <Select
+                        isMulti
+                        name="mission_types"
+                        options={missionTypeOptions}
+                        className="basic-multi-select"
+                        classNamePrefix="select"
+                        placeholder={t("destination.selectType")}
+                        value={
+                          Array.isArray(contractData.mission_types)
+                            ? contractData.mission_types.map((val) => {
+                                const option = missionTypeOptions.find((opt) => opt.value === val);
+                                return option ? option : { value: val, label: val };
+                              })
+                            : []
+                        }
+                        onChange={(selectedOptions) => {
+                          setContractData({
+                            ...contractData,
+                            mission_types: selectedOptions ? selectedOptions.map((option) => option.value) : [],
+                          });
+                        }}
+                        formatOptionLabel={(option) => (
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            {option.logo_file_url ? (
+                              <img src={option.logo_file_url} alt="" style={{ width: 22, height: 22, objectFit: "contain" }} />
+                            ) : (
+                              getMissionIcon(option.logo_key || option.label) && (
+                                <span style={{ color: "#DAE6ED" }}>{getMissionIcon(option.logo_key || option.label)}</span>
+                              )
+                            )}
+                            <span>{option.label}</span>
+                          </div>
+                        )}
+                        styles={{
+                          control: (base) => ({
+                            ...base,
+                            borderColor: "#dee2e6",
+                            borderRadius: "0.375rem",
+                          }),
+                        }}
+                      />
+                    )}
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="form-label">{t("profile.customizeRole") || "Roles"}</label>
+                    <br />
+                    <Select
+                      isMulti
+                      isLoading={isLoadingRoles}
+                      name="roles"
+                      options={roleOptions}
+                      className="basic-multi-select"
+                      classNamePrefix="select"
+                      placeholder={t("profile.customizeRoleDesc") || "Select roles"}
+                      value={
+                        Array.isArray(contractData.roles)
+                          ? contractData.roles.map((val) => {
+                              const option = roleOptions.find((opt) => opt.value === val);
+                              return option ? option : { value: val, title: val, emoji: "", desc: "" };
+                            })
+                          : []
+                      }
+                      onChange={(selectedOptions) => {
+                        setContractData({
+                          ...contractData,
+                          roles: selectedOptions ? selectedOptions.map((option) => option.value) : [],
+                        });
+                      }}
+                      getOptionLabel={(option) => option.title}
+                      getOptionValue={(option) => option.value}
+                      formatOptionLabel={(option) => (
+                        <div style={{ display: "flex", flexDirection: "column", padding: "4px 0" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            {option.role_icon ? (
+                              <img
+                                src={option.role_icon.startsWith('http') ? option.role_icon : `${Assets_URL}/${option.role_icon}`}
+                                alt=""
+                                style={{ width: 24, height: 24, objectFit: 'contain' }}
+                              />
+                            ) : (
+                              <span style={{ fontSize: "1.2rem" }}>{option.emoji || "🧠"}</span>
+                            )}
+                            <span style={{ fontWeight: "500", fontSize: "0.95rem" }}>{option.title}</span>
+                          </div>
+                          <span style={{ fontSize: "0.75rem", color: "#6c757d", marginLeft: "34px" }}>{option.desc}</span>
+                        </div>
+                      )}
+                      styles={{
+                        control: (base) => ({
+                          ...base,
+                          borderColor: "#dee2e6",
+                          borderRadius: "0.375rem",
+                        }),
+                        option: (base, state) => ({
+                          ...base,
+                          backgroundColor: state.isFocused ? "#f8f9fa" : "white",
+                          color: "#333",
+                          cursor: "pointer",
+                          borderBottom: "1px solid #f1f1f1",
+                          "&:last-child": {
+                            borderBottom: "none",
+                          }
+                        }),
+                      }}
+                    />
+                  </div>
+
                   <div className="mb-4">
                     <label className="form-label">
                       {t("newContract.numberOfLicenses")}
@@ -454,20 +673,20 @@ const CopyContract = () => {
                   <div className="mb-4">
                     <div className="form-check d-flex align-items-center gap-2">
                      <input
-  className="form-check-input mt-0"
-  type="checkbox"
-  id="check_stripe_copy"
-  name="check_stripe"
-  checked={contractData.check_stripe === true || contractData.check_stripe === 1}
-  onChange={(e) => {
-    e.stopPropagation();
-    setContractData((prev) => ({
-      ...prev,
-      check_stripe: !prev.check_stripe,
-    }));
-  }}
-  style={{ cursor: "pointer" }}
-/>
+                      className="form-check-input mt-0"
+                      type="checkbox"
+                      id="check_stripe_copy"
+                      name="check_stripe"
+                      checked={contractData.check_stripe === true || contractData.check_stripe === 1}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        setContractData((prev) => ({
+                          ...prev,
+                          check_stripe: !prev.check_stripe,
+                        }));
+                      }}
+                      style={{ cursor: "pointer" }}
+                    />
                       <label
                         className="form-check-label mb-0"
                         htmlFor="check_stripe_copy"
@@ -481,20 +700,20 @@ const CopyContract = () => {
                   <div className="mb-4">
                     <div className="form-check d-flex align-items-center gap-2">
                      <input
-  className="form-check-input mt-0"
-  type="checkbox"
-  id="check_whatsapp_copy"
-  name="check_whatsapp"
-  checked={contractData.check_whatsapp === true || contractData.check_whatsapp === 1}
-  onChange={(e) => {
-    e.stopPropagation();
-    setContractData((prev) => ({
-      ...prev,
-      check_whatsapp: !prev.check_whatsapp,
-    }));
-  }}
-  style={{ cursor: "pointer" }}
-/>
+                      className="form-check-input mt-0"
+                      type="checkbox"
+                      id="check_whatsapp_copy"
+                      name="check_whatsapp"
+                      checked={contractData.check_whatsapp === true || contractData.check_whatsapp === 1}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        setContractData((prev) => ({
+                          ...prev,
+                          check_whatsapp: !prev.check_whatsapp,
+                        }));
+                      }}
+                      style={{ cursor: "pointer" }}
+                    />
                       <label
                         className="form-check-label mb-0"
                         htmlFor="check_whatsapp_copy"

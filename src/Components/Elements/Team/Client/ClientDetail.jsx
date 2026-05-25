@@ -1,8 +1,9 @@
 import CookieService from '../../../Utils/CookieService';
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { API_BASE_URL, Assets_URL } from "../../../Apicongfig";
 import axios from "axios";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { useHeaderTitle } from "../../../../context/HeaderTitleContext";
 import MomentCard from "./../../Meeting/CurrentMeeting/components/MomentCard";
 import moment from "moment";
 import { RiEditBoxLine } from "react-icons/ri";
@@ -27,12 +28,12 @@ import {
   Tab,
   Nav,
 } from "react-bootstrap";
-import { FaArrowRight, FaCalendarAlt, FaFileUpload, FaRobot } from "react-icons/fa";
+import { FaArrowRight, FaCalendarAlt, FaFileUpload } from "react-icons/fa";
 import { RxCross2 } from "react-icons/rx";
 import { FiInfo } from "react-icons/fi";
-import { FaBookOpen } from "react-icons/fa6";
 import { IoIosBusiness, IoIosRocket } from "react-icons/io";
-import { MdOutlineSupport } from "react-icons/md";
+import { FaBookOpen, FaBullseye, FaChalkboardTeacher, FaRobot, FaCode, FaBullhorn, FaShoppingCart, FaUserTie, FaSearch, FaChessKnight } from "react-icons/fa";
+import { MdEventAvailable, MdOutlineSupport, MdWork, MdBrush, MdMessage, MdEvent } from "react-icons/md";
 import { format } from "date-fns";
 
 import DatePicker from "react-datepicker";
@@ -60,6 +61,30 @@ const ClientDetail = () => {
   const [loading, setLoading] = useState(true);
   const [t] = useTranslation("global");
   const [show, setShow] = useState(false);
+  const { user } = useHeaderTitle();
+  const [contractMissionTypes, setContractMissionTypes] = useState([]);
+  const [showMissionModal, setShowMissionModal] = useState(false);
+  const [missionStep, setMissionStep] = useState(1);
+  const [selectedType, setSelectedType] = useState(null);
+  const [selectedTypeId, setSelectedTypeId] = useState(null);
+  const [selectedCard, setSelectedCard] = useState(null);
+  const [image, setImage] = useState(null);
+  const [croppedimage, setcroppedImage] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [clientDestinations, setClientDestinations] = useState(null);
+  const [groupedDestinations, setGroupedDestinations] = useState({});
+  const [destinationTime, setDestinationTime] = useState(new Date());
+  const [createAnother, setCreateAnother] = useState(false);
+  const [formData, setFormData] = useState({
+    client_need: "",
+    destination_description: "",
+    initial_budget: "",
+    currency: "EUR",
+    milestones: "",
+    banner: null,
+    client_id: id,
+  });
+  const fileInputRef = useRef(null);
 
 
   let fromCasting = false;
@@ -92,7 +117,44 @@ const ClientDetail = () => {
     getClient();
   }, [id]);
 
-  const typeOptions = [
+  const fetchContractMissionTypes = async () => {
+    try {
+      const { data } = await axios.get(`${API_BASE_URL}/mission-types`, {
+        headers: { Authorization: `Bearer ${CookieService.get("token")}` },
+      });
+
+      if (data && data.data) {
+        const contractMissions = (() => {
+          const raw = user?.contract?.mission_types || user?.enterprise?.contract?.mission_types;
+          if (Array.isArray(raw)) return raw;
+          if (typeof raw === "string") {
+            try {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed)) return parsed;
+            } catch (e) {}
+            return [raw];
+          }
+          return [];
+        })();
+
+        // Filter mission types based on contract
+        const filtered = data.data.filter(t =>
+          contractMissions.includes(t.id) ||
+          contractMissions.includes(String(t.id)) ||
+          contractMissions.includes(t.title)
+        );
+        setContractMissionTypes(filtered);
+      }
+    } catch (error) {
+      console.error("Failed to fetch mission types", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchContractMissionTypes();
+  }, [user]);
+
+  const allTypeOptions = useMemo(() => [
     {
       value: "Business opportunity",
       label: t("destination.businessOppurtunity"),
@@ -134,24 +196,36 @@ const ClientDetail = () => {
       label: t("destination.other"),
     },
     {
-      value: "Messagerie",
-      label: t("destination.messagerie"),
-    },
-    {
       value: "Agenda",
       label: t("destination.Agenda"),
+    },
+    {
+      value: "Messagerie",
+      label: t("destination.messaging"),
     },
     {
       value: "Assistant Conversation",
       label: t("destination.assistantConversation"),
     },
+  ], [t]);
 
-  ];
-  // Mission modal states
-  const [showMissionModal, setShowMissionModal] = useState(false);
-  const [missionStep, setMissionStep] = useState(1);
-  const [selectedType, setSelectedType] = useState(null);
-  const [selectedCard, setSelectedCard] = useState(null);
+  const typeOptions = useMemo(() => {
+    // If we have mission types defined in contract, only show those
+    if (contractMissionTypes.length > 0) {
+      return contractMissionTypes.map(type => {
+        const base = allTypeOptions.find(opt => opt.value === type.title);
+        return {
+          value: type.title,
+          id: type.id,
+          label: base ? base.label : type.title,
+          logo_file_url: type.mission_icon ? (type.mission_icon.startsWith('http') ? type.mission_icon : `${Assets_URL}/${type.mission_icon}`) : type.logo_file_url,
+          logo_key: type.logo,
+        };
+      });
+    }
+    // Fallback: show all if contract not loaded or empty
+    return allTypeOptions;
+  }, [allTypeOptions, contractMissionTypes]);
 
   const toggle = () => setShow(!show);
   const handleClose = () => setShow(false);
@@ -174,11 +248,9 @@ const ClientDetail = () => {
     }
   };
 
-  const [image, setImage] = useState(null);
-  const [croppedimage, setcroppedImage] = useState(null);
-  const [showModal, setShowModal] = useState(false);
 
-  const fileInputRef = React.useRef(null);
+
+
   const handleModalClose = () => {
     setShowModal(false);
   };
@@ -188,9 +260,9 @@ const ClientDetail = () => {
       fileInputRef.current.click();
     }
   };
-  const [clientDestinations, setClientDestinations] = useState(null);
 
-  const [groupedDestinations, setGroupedDestinations] = useState({});
+
+
 
   useEffect(() => {
     if (clientDestinations?.destinations) {
@@ -204,19 +276,10 @@ const ClientDetail = () => {
     }
   }, [clientDestinations]);
 
-  const [destinationTime, setDestinationTime] = useState(new Date());
-  // Update your form state initialization
-  const [formData, setFormData] = useState({
-    client_need: "", // Changed from clientNeed
-    destination_description: "", // Changed from details
-    initial_budget: "", // Changed from budget
-    currency: "EUR",
-    milestones: "",
-    banner: null,
-    client_id: id,
-  });
 
-  const [createAnother, setCreateAnother] = useState(false);
+  // Update your form state initialization
+
+
   const handleCheckboxChange = (e) => {
     setCreateAnother(e.target.checked);
   };
@@ -233,6 +296,7 @@ const ClientDetail = () => {
       formPayload.append("destination_name", formData.client_need);
       formPayload.append("client_need", formData.client_need);
       formPayload.append("destination_type", selectedType);
+      formPayload.append("destination_type_id", selectedTypeId);
       formPayload.append(
         "destination_description",
         formData.destination_description
@@ -348,7 +412,7 @@ const ClientDetail = () => {
     "formation",
     "messagerie",
     "agenda",
-    "Assistant Conversation"
+    "assistant-conversation"
 
   ];
 
@@ -366,7 +430,7 @@ const ClientDetail = () => {
     "Recruitment": "recruitment",
     "Messagerie": "messagerie",
     "Agenda": "agenda",
-    "Assistant Conversation": "Assistant Conversation"
+    "Assistant Conversation": "assistant-conversation"
   };
   // State for destinations loading and data
   const [loadingDestinations, setLoadingDestinations] = useState(false);
@@ -375,13 +439,16 @@ const ClientDetail = () => {
 
   const [filteredDestinationTypes, setFilteredDestinationTypes] = useState([]);
   // Function to fetch destinations by type
-  const getDestinationsByType = async (type) => {
+  const getDestinationsByType = async (typeOrObj) => {
+    const typeTitle = typeof typeOrObj === "string" ? typeOrObj : typeOrObj.title;
+    const typeId = typeof typeOrObj === "string" 
+      ? (contractMissionTypes.find(t => t.title === typeOrObj)?.id || typeOrObj)
+      : typeOrObj.id;
+
     setLoadingDestinations(true);
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/get-client-destination/${id}?type=${encodeURIComponent(
-          type
-        )}`,
+        `${API_BASE_URL}/get-client-destination/${id}?destination_type_id=${typeId}`,
         {
           headers: {
             Authorization: `Bearer ${CookieService.get("token")}`,
@@ -400,7 +467,7 @@ const ClientDetail = () => {
         }));
         setDestinationsByType((prev) => ({
           ...prev,
-          [type]: response.data.data?.destinations || [],
+          [typeTitle]: response.data.data?.destinations || [],
         }));
       }
     } catch (error) {
@@ -412,7 +479,7 @@ const ClientDetail = () => {
       }));
       setDestinationsByType((prev) => ({
         ...prev,
-        [type]: [],
+        [typeTitle]: [],
       }));
     } finally {
       setLoadingDestinations(false);
@@ -426,11 +493,20 @@ const ClientDetail = () => {
   }, [activeTab]);
 
 
-  // Initialize tabs and load first tab's data
   useEffect(() => {
     if (clientTypes && Object.keys(clientTypes).length > 0) {
+      const contractMissions = contractMissionTypes.map(t => t.title);
+
       const filtered = Object.entries(clientTypes)
-        .filter(([_, count]) => count > 0)
+        .filter(([type, count]) => {
+          // If contract data is loaded, filter by it. 
+          // If contract data is empty but we have a user (meaning no restrictions), show all.
+          // However, if we have contract restrictions, strictly follow them.
+          if (contractMissions.length > 0) {
+            return contractMissions.includes(type) && count > 0;
+          }
+          return count > 0;
+        })
         .map(([type]) => type)
         .sort((a, b) => {
           const aKey = typeKeyMap[a] || "zzz";
@@ -438,14 +514,17 @@ const ClientDetail = () => {
           return desiredOrder.indexOf(aKey) - desiredOrder.indexOf(bKey);
         });
 
-      setFilteredDestinationTypes(filtered);
+      setFilteredDestinationTypes(filtered.map(title => {
+        const found = contractMissionTypes.find(mt => mt.title === title);
+        return { id: found ? found.id : title, title };
+      }));
 
-      // Set the first tab as active if not already set
+      // Set the first tab as active if not already set or if current tab is not in filtered list
       if (filtered.length > 0 && !activeTab) {
-        setActiveTab(filtered[0]);
+        setActiveTab("contacts");
       }
     }
-  }, [clientTypes]);
+  }, [clientTypes, contractMissionTypes]);
 
   const [contacts, setContacts] = useState([]);
   const [contactLoading, setContactLoading] = useState(false);
@@ -498,7 +577,6 @@ const ClientDetail = () => {
   useEffect(() => {
     getContacts();
   }, []);
-  const user = JSON.parse(CookieService.get("user"));
 
   const userId = parseInt(CookieService.get("user_id"));
 
@@ -826,20 +904,16 @@ const ClientDetail = () => {
                       <span className="ms-2">{contacts?.length || 0}</span>
                     </Nav.Link>
                   </Nav.Item>
-                  {filteredDestinationTypes.map((type) => (
-                    <Nav.Item key={type} className="tab">
-                      <Nav.Link eventKey={type} className="custom-tab-link">
-                        {t(`destination_types.${typeKeyMap[type]}`)}
+                  {filteredDestinationTypes.map((typeObj) => (
+                    <Nav.Item key={typeObj.id} className="tab">
+                      <Nav.Link eventKey={typeObj.title} className="custom-tab-link">
+                        {t(`destination_types.${typeKeyMap[typeObj.title]}`)}
                         <span
                           className={`ms-2 px-2 py-1 rounded
-        ${activeTab === type ? "future" : "draft"}
+        ${activeTab === typeObj.title ? "future" : "draft"}
         `}
-                        // style={{
-                        //   backgroundColor: activeTab === type ? '#cce5ff' : '#d6d8db', // light blue or light black/grey
-                        //   color: activeTab === type ? '#004085' : '#343a40'            // optional: dark blue or dark grey
-                        // }}
                         >
-                          {clientTypes[type] || 0}
+                          {clientTypes[typeObj.title] || 0}
                         </span>
                       </Nav.Link>
                     </Nav.Item>
@@ -943,6 +1017,7 @@ const ClientDetail = () => {
                         setShowMissionModal(true);
                         setMissionStep(1);
                         setSelectedType(null);
+                        setSelectedTypeId(null);
                       }}
                       style={{
                         fontFamily: "Inter",
@@ -990,6 +1065,7 @@ const ClientDetail = () => {
                       setShowMissionModal(true);
                       setMissionStep(1);
                       setSelectedType(null);
+                      setSelectedTypeId(null);
                     }}
                     style={{
                       fontFamily: "Inter",
@@ -1034,9 +1110,9 @@ const ClientDetail = () => {
 
             <Tab.Content className="mt-3">
               {/* Render dynamic panes for each filtered destination type */}
-              {filteredDestinationTypes.map((type) => (
-                <Tab.Pane eventKey={type} key={type}>
-                  {activeTab === type ? (
+              {filteredDestinationTypes.map((typeObj) => (
+                <Tab.Pane eventKey={typeObj.title} key={typeObj.id}>
+                  {activeTab === typeObj.title ? (
                     <div
                       className="row d-flex justify-content-center"
                       style={{
@@ -1141,113 +1217,56 @@ const ClientDetail = () => {
               <Row className="g-3">
                 {typeOptions.map((option, index) => {
                   // Get the appropriate icon for each option
-                  const getIcon = () => {
-                    switch (option.value) {
-                      case "Business opportunity":
-                        return (
-                          <IoIosBusiness
-                            style={{ width: "37px", height: "36px" }}
-                            color="#DAE6ED"
-                          />
-                        );
-                      case "Study":
-                        return (
-                          <FaBookOpen
-                            style={{ width: "37px", height: "36px" }}
-                            color="#DAE6ED"
-                          />
-                        );
-                      case "Audit":
-                        return (
-                          <AiOutlineAudit
-                            style={{ width: "37px", height: "36px" }}
-                            color="#DAE6ED"
-                          />
-                        );
-                      case "Project":
-                        return (
-                          <IoIosRocket
-                            style={{ width: "37px", height: "36px" }}
-                            color="#DAE6ED"
-                          />
-                        );
-                      case "Accompagnement":
-                        return (
-                          <MdOutlineSupport
-                            style={{ width: "37px", height: "36px" }}
-                            color="#DAE6ED"
-                          />
-                        );
+                  const getIcon = (size = "37px", color = "#DAE6ED") => {
+                    if (option.icon) {
+                      return <img src={option.icon} style={{ width: size, height: size, objectFit: "contain" }} alt="" />;
+                    }
 
-                         case "Assistant Conversation":
-                      return (
-                        <FaRobot
-                          style={{ width: "37px", height: "36px" }}
-                          color="#DAE6ED"
-                        />
-                      );
+                    const iconKey = option.logo_key || option.value;
+                    switch (iconKey) {
+                      case "Business opportunity":
+                        return <IoIosBusiness style={{ width: size, height: size }} color={color} />;
+                      case "Study":
+                        return <FaBookOpen style={{ width: size, height: size }} color={color} />;
+                      case "Audit":
+                        return <AiOutlineAudit style={{ width: size, height: size }} color={color} />;
+                      case "Project":
+                        return <IoIosRocket style={{ width: size, height: size }} color={color} />;
+                      case "Accompagnement":
+                        return <MdOutlineSupport style={{ width: size, height: size }} color={color} />;
+                      case "Event":
+                        return <MdEventAvailable style={{ width: size, height: size }} color={color} />;
+                      case "Formation":
+                        return <FaChalkboardTeacher style={{ width: size, height: size }} color={color} />;
+                      case "Recruitment":
+                        return <MdWork style={{ width: size, height: size }} color={color} />;
+                      case "Objective":
+                        return <FaBullseye style={{ width: size, height: size }} color={color} />;
+                      case "Design": return <MdBrush style={{ width: size, height: size }} color={color} />;
+                      case "Development": return <FaCode style={{ width: size, height: size }} color={color} />;
+                      case "Marketing": return <FaBullhorn style={{ width: size, height: size }} color={color} />;
+                      case "Sales": return <FaShoppingCart style={{ width: size, height: size }} color={color} />;
+                      case "Consulting": return <FaUserTie style={{ width: size, height: size }} color={color} />;
+                      case "Research": return <FaSearch style={{ width: size, height: size }} color={color} />;
+                      case "Strategy": return <FaChessKnight style={{ width: size, height: size }} color={color} />;
+                      case "Assistant Conversation":
+                        return <FaRobot style={{ width: size, height: size }} color={color} />;
+                      case "Agenda":
+                      case "Messagerie":
+                        return (
+                          <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="#F19C38">
+                            <path d="M7.5 5.6L10 0L12.5 5.6L18.1 8.1L12.5 10.6L10 16.2L7.5 10.6L1.9 8.1L7.5 5.6Z" />
+                            <path d="M17.5 15.6L19.1 12.1L20.7 15.6L24.2 17.2L20.7 18.8L19.1 22.3L17.5 18.8L14 17.2L17.5 15.6Z" />
+                          </svg>
+                        );
                       case "Other":
                         return (
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="37"
-                            height="36"
-                            viewBox="0 0 512 512"
-                            fill="#DAE6ED"
-                          >
-                            <g>
-                              <g>
-                                <g>
-                                  <path
-                                    d="M432,336h-10.84c16.344-13.208,26.84-33.392,26.84-56v-32c0-30.872-25.128-56-56-56h-32c-2.72,0-5.376,0.264-8,0.64V48
-				h16V0H0v48h16v232H0v48h187.056l40,80H304v88h192v-96C496,364.712,467.288,336,432,336z M422.584,371.328l-32.472,13.92
-				L412.28,352h5.472L422.584,371.328z M358.944,352h34.112L376,377.576L358.944,352z M361.872,385.248l-32.472-13.92L334.24,352
-				h5.472L361.872,385.248z M432.008,280C432,310.872,406.872,336,376,336s-56-25.128-56-56h37.424
-				c14.12,0,27.392-5.504,37.368-15.48l4.128-4.128c8.304,10.272,20.112,16.936,33.088,18.92V280z M48,192v72h107.176
-				c0.128,0.28,0.176,0.584,0.312,0.856L163.056,280H32V48h304v149.48c-18.888,9.008-32,28.24-32,50.52v32h-65.064l-24.816-46.528
-				C208.368,222.696,197.208,216,185,216c-10.04,0-18.944,4.608-25,11.712V192H48z M144,208v40H64v-40H144z M360,208h32
-				c22.056,0,40,17.944,40,40v15.072c-9.168-2.032-17.32-7.48-22.656-15.48l-8.104-12.152l-17.768,17.768
-				c-6.96,6.96-16.208,10.792-26.048,10.792H320v-16C320,225.944,337.944,208,360,208z M16,16h336v16H16V16z M16,312v-16h155.056
-				l8,16H16z M256,392h-19.056L169.8,257.712c-1.176-2.36-1.8-4.992-1.8-7.608V249c0-9.376,7.624-17,17-17c6.288,0,12.04,3.456,15,9
-				l56,104.992V392z M247.464,296h58.392c1.28,5.616,3.232,10.968,5.744,16H256L247.464,296z M264.536,328h57.952
-				c2.584,2.872,5.352,5.568,8.36,8H268.8L264.536,328z M480,480h-32v-32h32V480z M480,432h-32v-32h-16v80H320v-88h-48v-40h45.76
-				l-7.168,28.672L376,408.704l65.416-28.032l-7.144-28.56C459.68,353.312,480,374.296,480,400V432z"
-                                    fill="#DAE6ED"
-                                  />
-                                  <path
-                                    d="M160,128v-16h-16.808c-1.04-5.096-3.072-9.832-5.856-14.024l11.92-11.92l-11.312-11.312l-11.92,11.92
-				c-4.192-2.784-8.928-4.816-14.024-5.856V64H96v16.808c-5.096,1.04-9.832,3.072-14.024,5.856l-11.92-11.92L58.744,86.056
-				l11.92,11.92c-2.784,4.192-4.816,8.928-5.856,14.024H48v16h16.808c1.04,5.096,3.072,9.832,5.856,14.024l-11.92,11.92
-				l11.312,11.312l11.92-11.92c4.192,2.784,8.928,4.816,14.024,5.856V176h16v-16.808c5.096-1.04,9.832-3.072,14.024-5.856
-				l11.92,11.92l11.312-11.312l-11.92-11.92c2.784-4.192,4.816-8.928,5.856-14.024H160z M104,144c-13.232,0-24-10.768-24-24
-				s10.768-24,24-24s24,10.768,24,24S117.232,144,104,144z"
-                                    fill="#DAE6ED"
-                                  />
-                                  <polygon points="244.28,80 272,80 272,64 235.72,64 203.72,112 176,112 176,128 212.28,12" />
-                                  <rect x="288" y="64" width="32" height="16" />
-                                  <path
-                                    d="M224,144h-48v48h48V144z M208,176h-16v-16h16V176z"
-                                    fill="#DAE6ED"
-                                  />
-                                  <rect
-                                    x="240"
-                                    y="160"
-                                    width="32"
-                                    height="16"
-                                  />
-                                  <rect
-                                    x="288"
-                                    y="160"
-                                    width="32"
-                                    height="16"
-                                  />
-                                </g>
-                              </g>
-                            </g>
+                          <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 512 512" fill={color}>
+                            <path d="M432,336h-10.84c16.344-13.208,26.84-33.392,26.84-56v-32c0-30.872-25.128-56-56-56h-32c-2.72,0-5.376,0.264-8,0.64V48h16V0H0v48h16v232H0v48h187.056l40,80H304v88h192v-96C496,364.712,467.288,336,432,336z" />
                           </svg>
                         );
                       default:
-                        return "✨";
+                        return <span style={{ fontSize: size }}>✨</span>;
                     }
                   };
 
@@ -1270,6 +1289,7 @@ const ClientDetail = () => {
                         onClick={() => {
                           setSelectedCard(index);
                           setSelectedType(option.value);
+                          setSelectedTypeId(option.id || null);
                           setMissionStep(2);
                         }}
                       >

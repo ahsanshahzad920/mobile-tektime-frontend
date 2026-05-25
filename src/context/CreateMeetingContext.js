@@ -106,6 +106,7 @@ export const FormProvider = ({ children }) => {
     Address: false,
     phone: false,
     agenda: false,
+    // social_media: false,
   });
   const [selectedToggle, setSelectedToggle] = useState(null);
   const [addParticipant, setAddParticipant] = useState(false);
@@ -172,11 +173,14 @@ export const FormProvider = ({ children }) => {
     destination: null,
     destination_id: null,
     destination_type: null,
+    destination_type_id: null,
     open_ai_decide: false,
     automatic_strategy: false,
     automatic_instruction: false,
     whatsapp_in: false,
     presentation: false,
+    show_participants: false,
+    show_discussion: false,
   });
 
   // Function to get the user's current time dynamically
@@ -278,6 +282,10 @@ export const FormProvider = ({ children }) => {
       automatic_instruction: false,
       whatsapp_in: false,
       presentation: false,
+      show_participants: false,
+      show_discussion: false,
+      destination_type: null,
+      destination_type_id: null,
     });
 
     // Reset other related states
@@ -575,6 +583,10 @@ export const FormProvider = ({ children }) => {
       automatic_instruction: formState.automatic_instruction || false,
       whatsapp_in: formState.whatsapp_in || false,
       presentation: formState.presentation || false,
+      show_participants: formState.show_participants || false,
+      show_discussion: formState.show_discussion || false,
+      destination_type: formState.destination_type || null,
+      destination_type_id: formState.destination_type_id || null,
     };
 
     try {
@@ -648,11 +660,14 @@ export const FormProvider = ({ children }) => {
       destination,
       destination_id,
       destination_type,
+      destination_type_id,
       open_ai_decide,
       automatic_strategy,
       automatic_instruction,
       whatsapp_in,
-      presentation
+      presentation,
+      show_participants,
+      show_discussion
     } = formState;
     const repetitionFields = repetition
       ? {
@@ -749,11 +764,14 @@ export const FormProvider = ({ children }) => {
       destination: destination || null,
       destination_id: destination_id || null,
       destination_type: destination_type || null,
+      destination_type_id: destination_type_id || null,
       open_ai_decide: open_ai_decide || false,
       automatic_strategy: automatic_strategy || false,
       automatic_instruction: automatic_instruction || false,
       whatsapp_in: whatsapp_in || false,
       presentation: presentation || false,
+      show_participants: show_participants || false,
+      show_discussion: show_discussion || false
 
     };
 
@@ -855,11 +873,14 @@ export const FormProvider = ({ children }) => {
       destination,
       destination_id,
       destination_type,
+      destination_type_id,
       open_ai_decide,
       automatic_strategy,
       automatic_instruction,
       whatsapp_in,
-      presentation
+      presentation,
+      show_participants,
+      show_discussion
     } = formState;
     const repetitionFields = repetition
       ? {
@@ -952,11 +973,14 @@ export const FormProvider = ({ children }) => {
       destination: destination || null,
       destination_id: destination_id || null,
       destination_type: destination_type || null,
+      destination_type_id: destination_type_id || null,
       open_ai_decide: open_ai_decide || false,
       automatic_strategy: automatic_strategy || false,
       automatic_instruction: automatic_instruction || false,
       whatsapp_in: whatsapp_in || false,
       presentation: presentation || false,
+      show_participants: show_participants || false,
+      show_discussion: show_discussion || false,
     };
 
     if (isUpdated) {
@@ -1103,6 +1127,8 @@ export const FormProvider = ({ children }) => {
             automatic_instruction: false, 
             whatsapp_in: false, 
             presentation: false,
+            show_participants: false,
+            show_discussion: false,
             
             casting_tab: null,
             solution_id: null,
@@ -1191,6 +1217,8 @@ export const FormProvider = ({ children }) => {
         automatic_instruction:false,
         whatsapp_in:false,
         presentation: false,
+        show_participants: false,
+        show_discussion: false,
 
       });
       updateSteps([]);
@@ -1253,7 +1281,9 @@ export const FormProvider = ({ children }) => {
         automatic_strategy,
         automatic_instruction,
         whatsapp_in,
-        presentation
+        presentation,
+        show_participants,
+        show_discussion
       } = formState;
 
       const repetitionFields = repetition
@@ -1348,6 +1378,8 @@ export const FormProvider = ({ children }) => {
         automatic_instruction: automatic_instruction || false,
         whatsapp_in: whatsapp_in || false,
         presentation: presentation || false,
+        show_participants: show_participants || false,
+        show_discussion: show_discussion || false,
       };
       //
       try {
@@ -1412,6 +1444,8 @@ export const FormProvider = ({ children }) => {
             max_participants_register: 0,
 
             casting_type: "Invitation",
+            show_participants: false,
+            show_discussion: false,
           });
           setCheckId(null);
           updateSteps([]);
@@ -1480,11 +1514,15 @@ export const FormProvider = ({ children }) => {
           destination: null,
           destination_id: null,
           destination_type: null,
+          destination_type_id: null,
+
           open_ai_decide: false,
           automatic_strategy: false,
           automatic_instruction:false,
           whatsapp_in:false,
           presentation: false,
+          show_participants: false,
+          show_discussion: false,
         })
         setCheckId(null);
         setMeeting(null);
@@ -1564,7 +1602,9 @@ export const FormProvider = ({ children }) => {
         automatic_strategy: formState.automatic_strategy || false,
         automatic_instruction: formState.automatic_instruction || false,
         whatsapp_in: formState.whatsapp_in || false,
-        presentation: formState.presentation || false
+        presentation: formState.presentation || false,
+        show_participants: formState.show_participants || false,
+        show_discussion: formState.show_discussion || false
       };
 
       try {

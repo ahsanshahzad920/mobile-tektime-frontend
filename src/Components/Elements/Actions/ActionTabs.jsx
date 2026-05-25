@@ -17,7 +17,7 @@ import Select from "react-select";
 import CreatableSelect from "react-select/creatable";
 import { RxCross2 } from "react-icons/rx";
 import Creatable from "react-select/creatable";
-import { MdEventAvailable, MdOutlineSupport, MdWork } from "react-icons/md";
+import { MdEventAvailable, MdOutlineSupport, MdWork, MdEvent, MdMessage } from "react-icons/md";
 import { IoIosBusiness, IoIosRocket } from "react-icons/io";
 import { AiOutlineAudit } from "react-icons/ai";
 import { FaBookOpen } from "react-icons/fa6";
@@ -30,8 +30,9 @@ import { solutionTypeIcons, getOptions } from "../../Utils/MeetingFunctions";
 import moment from "moment";
 import { toast } from "react-toastify";
 import { useHeaderTitle } from "../../../context/HeaderTitleContext";
-import { FaBullseye, FaChalkboardTeacher, FaSync } from "react-icons/fa";
+import { FaBullseye, FaChalkboardTeacher, FaSync, FaRobot } from "react-icons/fa";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { SiStripe } from "react-icons/si";
 
 const ActionTabs = () => {
   const [t] = useTranslation("global");
@@ -40,6 +41,7 @@ const ActionTabs = () => {
   const teamNameFromState = location?.state;
   const navigate = useNavigate()
   const { user: userContext } = useHeaderTitle();
+  const user = JSON.parse(CookieService.get("user"));
   // Default tab based on job
   const getDefaultTab = () => {
     return userContext?.job === "Manager / Team Leader"
@@ -56,6 +58,54 @@ const ActionTabs = () => {
       setActiveTab("Action by Teams");
     }
   }, [teamNameFromState]);
+
+  const [loadingStripe, setLoadingStripe] = useState(false);
+  const isStripeConnected = !!(user?.stripe_onboarding_completed && user?.stripe_charges_enabled && user?.stripe_payouts_enabled);
+
+  const handleStripeConnect = async (e) => {
+    e.preventDefault();
+    setLoadingStripe(true);
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/stripe/connect`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${CookieService.get("token")}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const url = response.data?.url || response.data?.data?.url;
+
+      if (url) {
+        const width = 600;
+        const height = 700;
+        const left = window.screenX + (window.innerWidth - width) / 2;
+        const top = window.screenY + (window.innerHeight - height) / 2;
+        const popup = window.open(
+          url,
+          "Stripe Connect",
+          `width=${width},height=${height},top=${top},left=${left}`
+        );
+
+        const checkPopup = setInterval(() => {
+          if (!popup || popup.closed) {
+            clearInterval(checkPopup);
+            // Refresh user data if needed, but for now we rely on the next refresh/reload
+            window.location.reload(); 
+          }
+        }, 1000);
+      }
+    } catch (error) {
+      console.error("Stripe connect error:", error);
+      toast.error(t("Failed to connect Stripe."));
+    } finally {
+      setLoadingStripe(false);
+    }
+  };
+
   const [myActionCount, setMyActionCount] = useState(0);
   const [myDestinationCount, setMyDestinationCount] = useState(0);
   const [myTeamCount, setMyTeamCount] = useState(0);
@@ -80,68 +130,178 @@ const ActionTabs = () => {
   const [selectedMoment, setSelectedMoment] = useState(null);
 
   // Options with labels
-  const missionTypeOptions = [
-    { value: "Business opportunity", label: t("destination.businessOppurtunity") },
-    { value: "Study", label: t("destination.study") },
-    { value: "Audit", label: t("destination.audit") },
-    { value: "Project", label: t("destination.project") },
-    { value: "Accompagnement", label: t("destination.accompagnement") },
-    { value: "Event", label: t("destination.event") },
-    { value: "Formation", label: t("destination.formation") },
-    { value: "Recruitment", label: t("destination.recruitment") },
-    { value: "Objective", label: t("destination.objective") },
-    { value: "Agenda", label: t("destination.Agenda") },
-    { value: "Messagerie", label: t("destination.messaging") },
-    { value: "Other", label: t("destination.other") },
-  ];
+   // Options with labels
+  const [missionTypeOptions, setMissionTypeOptions] = useState([]);
+  const [isLoadingMissionTypes, setIsLoadingMissionTypes] = useState(false);
 
-  const getIcon = (value) => {
+  useEffect(() => {
+    const fetchMissionTypes = async () => {
+      const token = CookieService.get("token");
+      try {
+        setIsLoadingMissionTypes(true);
+        const { data } = await axios.get(`${API_BASE_URL}/mission-types`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (data && data.data) {
+          const contractMissions = (() => {
+            const raw = userContext?.contract?.mission_types || userContext?.enterprise?.contract?.mission_types;
+            if (Array.isArray(raw)) return raw;
+            if (typeof raw === "string") {
+              try {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) return parsed;
+              } catch (e) {}
+              return [raw];
+            }
+            return [];
+          })();
+
+          // Filter mission types based on contract
+          const filtered = data.data.filter(t =>
+            contractMissions.includes(t.id) ||
+            contractMissions.includes(String(t.id)) ||
+            contractMissions.includes(t.title)
+          );
+
+          const options = filtered.map((type) => ({
+            value: type.title,
+            id: type.id,
+            label: type.title,
+            logo_file_url: type.mission_icon ? (type.mission_icon.startsWith('http') ? type.mission_icon : `${Assets_URL}/${type.mission_icon}`) : type.logo_file_url,
+            logo_key: type.logo,
+          }));
+          setMissionTypeOptions(options);
+        }
+      } catch (error) {
+        console.error("Failed to fetch mission types", error);
+      } finally {
+        setIsLoadingMissionTypes(false);
+      }
+    };
+
+    if (showStepperModal) {
+      fetchMissionTypes();
+    }
+  }, [showStepperModal, userContext]);
+
+  const getIcon = (value, option = null) => {
     const commonStyle = { marginRight: 8 };
+    const size = 20;
 
-    switch (value) {
+    if (option?.logo_file_url) {
+      return (
+        <img
+          src={option.logo_file_url}
+          alt=""
+          style={{
+            width: size,
+            height: size,
+            ...commonStyle,
+            objectFit: "contain",
+          }}
+        />
+      );
+    }
+
+    const iconKey = option?.logo_key || value;
+    switch (iconKey) {
       case "Business opportunity":
-        return <IoIosBusiness size={20} style={commonStyle} />;
-
+        return <IoIosBusiness size={size} style={commonStyle} />;
       case "Study":
-        return <FaBookOpen size={20} style={commonStyle} />;
-
+        return <FaBookOpen size={size} style={commonStyle} />;
       case "Audit":
-        return <AiOutlineAudit size={20} style={commonStyle} />;
-
+        return <AiOutlineAudit size={size} style={commonStyle} />;
       case "Project":
-        return <IoIosRocket size={20} style={commonStyle} />;
-
+        return <IoIosRocket size={size} style={commonStyle} />;
       case "Accompagnement":
-        return <MdOutlineSupport size={20} style={commonStyle} />;
-
+        return <MdOutlineSupport size={size} style={commonStyle} />;
       case "Event":
-        return <MdEventAvailable size={20} style={commonStyle} />;
-
+        return <MdEventAvailable size={size} style={commonStyle} />;
       case "Formation":
-        return <FaChalkboardTeacher size={20} style={commonStyle} />;
-
+        return <FaChalkboardTeacher size={size} style={commonStyle} />;
       case "Recruitment":
-        return <MdWork size={20} style={commonStyle} />;
-
+        return <MdWork size={size} style={commonStyle} />;
       case "Objective":
-        return <FaBullseye size={20} style={commonStyle} />;
-
+        return <FaBullseye size={size} style={commonStyle} />;
       case "Agenda":
+        return <MdEvent size={size} style={commonStyle} />;
       case "Messagerie":
-        return (
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#F19C38" style={commonStyle}>
-            <path d="M7.5 5.6L10 0L12.5 5.6L18.1 8.1L12.5 10.6L10 16.2L7.5 10.6L1.9 8.1L7.5 5.6Z"/>
-            <path d="M17.5 15.6L19.1 12.1L20.7 15.6L24.2 17.2L20.7 18.8L19.1 22.3L17.5 18.8L14 17.2L17.5 15.6Z"/>
-          </svg>
-        );
-
+        return <MdMessage size={size} style={commonStyle} />;
+      case "Absences":
+        return <IoIosBusiness size={size} style={commonStyle} />;
+      case "Assistant Conversation":
+        return <FaRobot size={size} style={commonStyle} />;
       case "Other":
         return <span style={commonStyle}>✨</span>;
-
       default:
-        return null;
+        return <span style={commonStyle}>✨</span>;
     }
   };
+
+  // const [missionTypeOptions, setMissionTypeOptions] = useState([]);
+
+  // useEffect(() => {
+  //   const fetchMissionTypes = async () => {
+  //     const token = CookieService.get("token");
+  //     try {
+  //       const { data } = await axios.get(`${API_BASE_URL}/mission-types`, {
+  //         headers: { Authorization: `Bearer ${token}` },
+  //       });
+  //       if (data && data.data) {
+  //         const options = data.data.map((type) => ({
+  //           value: type.title,
+  //           label: t(`des_type.${type.title}`, type.title),
+  //           logo_file_url: type.logo_file_url || type.mission_icon,
+  //           logo_key: type.logo,
+  //         }));
+  //         setMissionTypeOptions(options);
+  //       }
+  //     } catch (error) {
+  //       console.error("Failed to fetch mission types", error);
+  //     }
+  //   };
+  //   fetchMissionTypes();
+  // }, []);
+
+  // const getIcon = (value, option = null) => {
+  //   const commonStyle = { marginRight: 8 };
+
+  //   // Priority 1: API provided image URL
+  //   const iconUrl = option?.logo_file_url;
+  //   if (iconUrl) {
+  //     return <img src={iconUrl} alt="" style={{ width: 20, height: 20, objectFit: "contain", ...commonStyle }} />;
+  //   }
+
+  //   // Priority 2: System icons based on logo_key or value
+  //   const key = option?.logo_key || value;
+  //   switch (key) {
+  //     case "Business opportunity": return <IoIosBusiness size={20} style={commonStyle} />;
+  //     case "Study": return <FaBookOpen size={20} style={commonStyle} />;
+  //     case "Audit": return <AiOutlineAudit size={20} style={commonStyle} />;
+  //     case "Project": return <IoIosRocket size={20} style={commonStyle} />;
+  //     case "Accompagnement": return <MdOutlineSupport size={20} style={commonStyle} />;
+  //     case "Event": return <MdEventAvailable size={20} style={commonStyle} />;
+  //     case "Formation": return <FaChalkboardTeacher size={20} style={commonStyle} />;
+  //     case "Recruitment": return <MdWork size={20} style={commonStyle} />;
+  //     case "Objective": return <FaBullseye size={20} style={commonStyle} />;
+  //     case "Agenda":
+  //     case "Messagerie":
+  //       return (
+  //         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#F19C38" style={commonStyle}>
+  //           <path d="M7.5 5.6L10 0L12.5 5.6L18.1 8.1L12.5 10.6L10 16.2L7.5 10.6L1.9 8.1L7.5 5.6Z"/>
+  //           <path d="M17.5 15.6L19.1 12.1L20.7 15.6L24.2 17.2L20.7 18.8L19.1 22.3L17.5 18.8L14 17.2L17.5 15.6Z"/>
+  //         </svg>
+  //       );
+  //     case "Other": return <span style={commonStyle}>✨</span>;
+  //     default:
+  //       return (
+  //         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 512 512" fill="#DAE6ED" style={commonStyle}>
+  //           <path d="M432,336h-10.84c16.344-13.208,26.84-33.392,26.84-56v-32c0-30.872-25.128-56-56-56h-32c-2.72,0-5.376,0.264-8,0.64V48h16V0H0v48h16v232H0v48h187.056l40,80H304v88h192v-96C496,364.712,467.288,336,432,336z" />
+  //         </svg>
+  //       );
+  //   }
+  // };
 
   // Client state
   const [clients, setClients] = useState([]);
@@ -498,6 +658,13 @@ const ActionTabs = () => {
           toast.error(t("meeting.formState.type") || "Please select a moment type");
           return;
         }
+
+        // 💳 Stripe Connection Check for Registration Solutions
+        if (momentType?.solution?.casting_type === "Registration" && !isStripeConnected) {
+          toast.error(t("stripe_not_connected_error") || "Veuillez connecter votre compte Stripe pour créer un moment avec inscription.");
+          return;
+        }
+
         if (!selectedDateTime) {
           toast.error(t("meeting.formState.date") || "Please select a date and time");
           return;
@@ -526,6 +693,7 @@ const ActionTabs = () => {
           destination_id: !isNewMission ? selectedMission?.value : null,
           destination: isNewMission ? selectedMission?.label : null,
           destination_type: isNewMission ? destinationType : null,
+          destination_type_id: isNewMission ? destinationTypeId : null,
           ...(isNewMoment && {
             type: momentType?.value,
             date: dateTime.toISOString().split("T")[0],
@@ -572,6 +740,7 @@ const ActionTabs = () => {
   };
 
   const [destinationType, setDestinationType] = useState(null);
+  const [destinationTypeId, setDestinationTypeId] = useState(null);
   const { language } = useDraftMeetings();
   let [locale, setLocale] = useState(null);
   if (language === "en") {
@@ -593,8 +762,6 @@ const ActionTabs = () => {
   };
   const [momentType, setMomentType] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState(null);
-console.log("momentType",momentType)
-  const user = JSON.parse(CookieService.get("user"));
   const roleId = parseInt(user?.role_id);
       const [solutions, setSolutions] = useState([])
 
@@ -812,10 +979,13 @@ console.log("momentType",momentType)
                   value={missionTypeOptions.find(
                     (opt) => opt.value === destinationType
                   )}
-                  onChange={(option) => setDestinationType(option.value)}
+                  onChange={(option) => {
+                    setDestinationType(option?.value || null);
+                    setDestinationTypeId(option?.id || null);
+                  }}
                   formatOptionLabel={(option) => (
                     <div style={{ display: "flex", alignItems: "center" }}>
-                      {getIcon(option)}
+                      {getIcon(option.value, option)}
                       <span>{option.label}</span>
                     </div>
                   )}
@@ -977,19 +1147,6 @@ console.log("momentType",momentType)
           </div>
         );
 
-      // case 4: // Action step
-      //   return (
-      //     <div className="step-content">
-      //       <div className="form-group">
-      //         <h4>{t("Create Action")}</h4>
-      //         <p>Client: {selectedClient?.label}</p>
-      //         <p>Mission: {selectedMission?.label}</p>
-      //         <p>Moment: {selectedMoment?.label}</p>
-      //         {/* Add action-specific form fields here */}
-      //       </div>
-      //     </div>
-      //   );
-
       default:
         return null;
     }
@@ -1127,6 +1284,8 @@ console.log("momentType",momentType)
                 }}
                 onClick={() => {
                   setShowStepperModal(true);
+                  setDestinationType(null);
+                  setDestinationTypeId(null);
                 }}
               >
                 <svg
@@ -1229,8 +1388,46 @@ console.log("momentType",momentType)
                       </div>
                     </>
                   </div>
-                </div>
 
+                  {/* {currentStep === 3 && momentType?.solution?.casting_type === "Registration" && (
+                    <div className="col-12 mb-3">
+                      {!isStripeConnected ? (
+                        <div className="d-flex align-items-center justify-content-between p-3 rounded bg-light border border-warning">
+                          <div className="d-flex align-items-center">
+                            <div className="me-3 bg-white p-2 rounded-circle d-flex align-items-center justify-content-center border" style={{ width: "40px", height: "40px" }}>
+                              <SiStripe size={24} color="#635BFF" />
+                            </div>
+                            <div>
+                              <h6 className="mb-0 fw-bold text-dark">{t("Stripe Integration Required")}</h6>
+                              <small className="text-muted">{t("Connect your Stripe account to enable registration.")}</small>
+                            </div>
+                          </div>
+                          <button
+                            className="btn text-white fw-bold px-4"
+                            style={{ backgroundColor: "#635BFF", borderRadius: "8px" }}
+                            onClick={handleStripeConnect}
+                            disabled={loadingStripe}
+                          >
+                            {loadingStripe ? <Spinner size="sm" /> : t("Connect Stripe")}
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="d-flex align-items-center justify-content-between p-3 rounded" style={{ backgroundColor: "rgba(47, 187, 103, 0.1)", border: "1px solid #2fa25d" }}>
+                          <div className="d-flex align-items-center">
+                            <div className="me-3 bg-white p-2 rounded-circle d-flex align-items-center justify-content-center" style={{ width: "40px", height: "40px" }}>
+                              <SiStripe size={24} color="#635BFF" />
+                            </div>
+                            <div>
+                              <h6 className="mb-0 fw-bold" style={{ color: "#2fa25d" }}>{t("Stripe Account Connected")}</h6>
+                              <small className="text-muted">{t("You can now receive payments for this registration.")}</small>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div> */}
+                </div>
                 {renderStepContent()}
               </div>
 
@@ -1279,15 +1476,21 @@ console.log("momentType",momentType)
                       lineHeight: "24px",
                       textAlign: "left",
                       color: " #FFFFFF",
-                      background: !selectedMoment || (selectedMoment.__isNew__ && !momentType) || isSubmitting || isLoading ? "#ccc" : "#2C48AE",
+                      background: !selectedMoment || (selectedMoment.__isNew__ && !momentType) || 
+                        (selectedMoment.__isNew__ && momentType?.solution?.casting_type === "Registration" && !isStripeConnected) ||
+                        isSubmitting || isLoading ? "#ccc" : "#2C48AE",
                       border: 0,
                       outline: 0,
                       padding: "10px 16px",
                       borderRadius: "9px",
-                      cursor: !selectedMoment || (selectedMoment.__isNew__ && !momentType) || isSubmitting || isLoading ? "not-allowed" : "pointer"
+                      cursor: !selectedMoment || (selectedMoment.__isNew__ && !momentType) || 
+                        (selectedMoment.__isNew__ && momentType?.solution?.casting_type === "Registration" && !isStripeConnected) ||
+                        isSubmitting || isLoading ? "not-allowed" : "pointer"
                     }}
                     onClick={handleContinue}
-                    disabled={!selectedMoment || (selectedMoment.__isNew__ && !momentType) || isSubmitting || isLoading}
+                    disabled={!selectedMoment || (selectedMoment.__isNew__ && !momentType) || 
+                      (selectedMoment.__isNew__ && momentType?.solution?.casting_type === "Registration" && !isStripeConnected) ||
+                      isSubmitting || isLoading}
                   >
                     {isSubmitting || isLoading ? (
                       <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />

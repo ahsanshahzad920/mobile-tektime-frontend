@@ -1,4 +1,4 @@
-import CookieService from '../../../../Utils/CookieService';
+import CookieService from "../../../../Utils/CookieService";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -23,9 +23,10 @@ import moment from "moment";
 import Creatable from "react-select/creatable";
 import Select from "react-select";
 import { IoIosBusiness, IoIosRocket } from "react-icons/io";
-import { FaBookOpen, FaBullseye, FaChalkboardTeacher } from "react-icons/fa";
 import { AiOutlineAudit } from "react-icons/ai";
-import { MdEventAvailable, MdOutlineSupport, MdWork } from "react-icons/md";
+import { FaBookOpen, FaBullseye, FaChalkboardTeacher, FaRobot, FaCode, FaBullhorn, FaShoppingCart, FaUserTie, FaSearch, FaChessKnight } from "react-icons/fa";
+import { MdEventAvailable, MdOutlineSupport, MdWork, MdBrush, MdMessage, MdEvent } from "react-icons/md";
+import { useHeaderTitle } from "../../../../../context/HeaderTitleContext";
 function extractBase64SrcFromHTML(htmlString) {
   const base64SrcArray = [];
 
@@ -108,6 +109,7 @@ const MomentDetail = ({
 
   const { getMeetings } = useMeetings();
   const [t] = useTranslation("global");
+  const { user } = useHeaderTitle();
   const [objectives, setObjectives] = useState([]);
   const [options, setOptions] = useState([]);
   const [errors, setErrors] = useState({});
@@ -120,56 +122,129 @@ const MomentDetail = ({
 
   const editorRef = useRef(null);
   const [content, setContent] = useState("");
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
-  const missionTypeOptions = [
-    { value: "Business opportunity", label: "destination.businessOppurtunity" },
-    { value: "Study", label: "destination.study" },
-    { value: "Audit", label: "destination.audit" },
-    { value: "Project", label: "destination.project" },
-    { value: "Accompagnement", label: "destination.accompagnement" },
-    { value: "Event", label: "destination.event" },
-    { value: "Formation", label: "destination.formation" },
-    { value: "Recruitment", label: "destination.recruitment" },
-    { value: "Objective", label: "destination.objective" },
-    { value: "Other", label: "destination.other" },
-  ];
 
-  const getIcon = (value) => {
+  const [missionTypeOptions, setMissionTypeOptions] = useState([]);
+  const [isLoadingMissionTypes, setIsLoadingMissionTypes] = useState(false);
+
+  useEffect(() => {
+    const fetchMissionTypes = async () => {
+      const token = CookieService.get("token");
+      try {
+        setIsLoadingMissionTypes(true);
+        const { data } = await axios.get(`${API_BASE_URL}/mission-types`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (data && data.data) {
+          const contractMissions = (() => {
+            const raw = user?.contract?.mission_types || user?.enterprise?.contract?.mission_types;
+            if (Array.isArray(raw)) return raw;
+            if (typeof raw === "string") {
+              try {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) return parsed;
+              } catch (e) {}
+              return [raw];
+            }
+            return [];
+          })();
+
+          const filteredMissions = data.data.filter(t =>
+            contractMissions.includes(t.id) ||
+            contractMissions.includes(String(t.id)) ||
+            contractMissions.includes(t.title)
+          );
+
+          const source = filteredMissions.length > 0 ? filteredMissions : data.data;
+
+          const options = source.map((type) => ({
+            value: type.title,
+            id: type.id,
+            label: type.title,
+            logo_file_url: type.mission_icon ? (type.mission_icon.startsWith('http') ? type.mission_icon : `${Assets_URL}/${type.mission_icon}`) : type.logo_file_url,
+            logo_key: type.logo,
+          }));
+          setMissionTypeOptions(options);
+        }
+      } catch (error) {
+        console.error("Failed to fetch mission types", error);
+      } finally {
+        setIsLoadingMissionTypes(false);
+      }
+    };
+    fetchMissionTypes();
+  }, [user]);
+
+  const getIcon = (value, option = null) => {
     const commonStyle = { marginRight: 8 };
+    const size = 20;
 
-    switch (value) {
+    if (option?.logo_file_url) {
+      return (
+        <img
+          src={option.logo_file_url}
+          alt=""
+          style={{
+            width: size,
+            height: size,
+            ...commonStyle,
+            objectFit: "contain",
+          }}
+        />
+      );
+    }
+
+    const iconKey = option?.logo_key || value;
+    switch (iconKey) {
       case "Business opportunity":
-        return <IoIosBusiness size={20} style={commonStyle} />;
-
+        return <IoIosBusiness size={size} style={commonStyle} />;
       case "Study":
-        return <FaBookOpen size={20} style={commonStyle} />;
-
+        return <FaBookOpen size={size} style={commonStyle} />;
       case "Audit":
-        return <AiOutlineAudit size={20} style={commonStyle} />;
-
+        return <AiOutlineAudit size={size} style={commonStyle} />;
       case "Project":
-        return <IoIosRocket size={20} style={commonStyle} />;
-
+        return <IoIosRocket size={size} style={commonStyle} />;
       case "Accompagnement":
-        return <MdOutlineSupport size={20} style={commonStyle} />;
-
+        return <MdOutlineSupport size={size} style={commonStyle} />;
       case "Event":
-        return <MdEventAvailable size={20} style={commonStyle} />;
-
+        return <MdEventAvailable size={size} style={commonStyle} />;
       case "Formation":
-        return <FaChalkboardTeacher size={20} style={commonStyle} />;
-
+        return <FaChalkboardTeacher size={size} style={commonStyle} />;
       case "Recruitment":
-        return <MdWork size={20} style={commonStyle} />;
-
+        return <MdWork size={size} style={commonStyle} />;
       case "Objective":
-        return <FaBullseye size={20} style={commonStyle} />;
+        return <FaBullseye size={size} style={commonStyle} />;
+      case "Design": return <MdBrush size={size} style={commonStyle} />;
+      case "Development": return <FaCode size={size} style={commonStyle} />;
+      case "Marketing": return <FaBullhorn size={size} style={commonStyle} />;
+      case "Sales": return <FaShoppingCart size={size} style={commonStyle} />;
+      case "Consulting": return <FaUserTie size={size} style={commonStyle} />;
+      case "Research": return <FaSearch size={size} style={commonStyle} />;
+      case "Strategy": return <FaChessKnight size={size} style={commonStyle} />;
+      case "Assistant Conversation":
+        return <FaRobot size={size} style={commonStyle} />;
+      case "Agenda":
+      case "Messagerie":
+        return (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width={size}
+            height={size}
+            viewBox="0 0 24 24"
+            fill="#F19C38"
+            style={commonStyle}
+          >
+            <path d="M7.5 5.6L10 0L12.5 5.6L18.1 8.1L12.5 10.6L10 16.2L7.5 10.6L1.9 8.1L7.5 5.6Z" />
+            <path d="M17.5 15.6L19.1 12.1L20.7 15.6L24.2 17.2L20.7 18.8L19.1 22.3L17.5 18.8L14 17.2L17.5 15.6Z" />
+          </svg>
+        );
 
       case "Other":
         return <span style={commonStyle}>✨</span>;
 
       default:
-        return null;
+        return <span style={commonStyle}>✨</span>;
     }
   };
   const cleanText = (text) => {
@@ -266,7 +341,8 @@ const MomentDetail = ({
   // }, [checkId]);
 
   const [value, setValue] = useState("");
-
+  const isEditMode = isUpdated || isDuplicate || changeContext || !!checkId;
+  
   useEffect(() => {
     if (meeting) {
       const objectiveValue =
@@ -296,8 +372,13 @@ const MomentDetail = ({
           { value: objectiveValue, label: objectiveValue },
         ]);
       }
+  setIsDataLoaded(true);
+    } else {
+      if (!isEditMode) {
+        setIsDataLoaded(true);
+      }
     }
-  }, [meeting, fromDestination, fromDestinationName, setFormState]);
+  }, [meeting, fromDestination, fromDestinationName, setFormState, isEditMode]);
 
   useEffect(() => {
     if (fromDestinationName) {
@@ -478,22 +559,22 @@ const MomentDetail = ({
                             : []
                         }
                         isDisabled={true}
-                               formatOptionLabel={(option) => (
-                                 <div className="option-with-logo">
-                                   {option.data?.client_logo && (
-                                     <img
-                                       src={
-                                         option.data.client_logo.startsWith("http")
-                                           ? option.data.client_logo
-                                           : `${Assets_URL}/${option.data.client_logo}`
-                                       }
-                                       alt={option.label}
-                                       className="client-logo"
-                                     />
-                                   )}
-                                   <span>{option.label}</span>
-                                 </div>
-                               )}
+                        formatOptionLabel={(option) => (
+                          <div className="option-with-logo">
+                            {option.data?.client_logo && (
+                              <img
+                                src={
+                                  option.data.client_logo.startsWith("http")
+                                    ? option.data.client_logo
+                                    : `${Assets_URL}/${option.data.client_logo}`
+                                }
+                                alt={option.label}
+                                className="client-logo"
+                              />
+                            )}
+                            <span>{option.label}</span>
+                          </div>
+                        )}
                       />
                     ) : (
                       <Creatable
@@ -623,10 +704,17 @@ const MomentDetail = ({
                           if (missionType) {
                             setMissionTypeOption({
                               value: missionType.value,
+                              id: missionType.id,
                               label: (
-                                <div>
-                                  {getIcon(missionType.value)}
-                                  {t(missionType.label)}
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 8,
+                                  }}
+                                >
+                                  {getIcon(missionType.value, missionType)}
+                                  <span>{t(missionType.label)}</span>
                                 </div>
                               ),
                             });
@@ -652,6 +740,14 @@ const MomentDetail = ({
                               ? selectedMission.destination_type
                               : selected?.__isNew__
                                 ? prev.destination_type
+                                : null,
+                          destination_type_id:
+                            selected &&
+                            !selected.__isNew__ &&
+                            selectedMission?.destination_type_id
+                              ? selectedMission.destination_type_id
+                              : selected?.__isNew__
+                                ? prev.destination_type_id
                                 : null,
                         }));
                       }}
@@ -686,14 +782,21 @@ const MomentDetail = ({
                           setFormState((prev) => ({
                             ...prev,
                             destination_type: selected?.value,
+                            destination_type_id: selected?.id,
                           }));
                         }}
                         options={missionTypeOptions.map((opt) => ({
                           ...opt,
                           label: (
-                            <div>
-                              {getIcon(opt.value)}
-                              {t(opt.label)}
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 8,
+                              }}
+                            >
+                              {getIcon(opt.value, opt)}
+                              <span>{t(opt.label)}</span>
                             </div>
                           ),
                         }))}
@@ -742,8 +845,7 @@ const MomentDetail = ({
                 {t("meeting.newMeeting.labels.context")}
                 {/* <small style={{ color: "red", fontSize: "15px" }}>*</small> */}
               </label>
-
-              {isMarkdownContent(content) ? (
+          {meeting?.type === "Strategy" ? (
                 <div
                   style={{
                     border: "1px solid #ddd",
@@ -752,18 +854,21 @@ const MomentDetail = ({
                     minHeight: "400px",
                   }}
                 >
-                  <MDXEditor
-                    markdown={cleanText(content)}
-                    onChange={(newValue) => {
-                      handleEditorChange(newValue);
-                    }}
-                    plugins={[
-                      headingsPlugin(),
-                      listsPlugin(),
-                      markdownShortcutPlugin(),
-                    ]}
-                    contentEditableClassName="french-content-editor"
-                  />
+                  {isDataLoaded && (
+                    <MDXEditor
+                      key={meeting?.id || "new-meeting"}
+                      markdown={cleanText(content)}
+                      onChange={(newValue) => {
+                        handleEditorChange(newValue);
+                      }}
+                      plugins={[
+                        headingsPlugin(),
+                        listsPlugin(),
+                        markdownShortcutPlugin(),
+                      ]}
+                      contentEditableClassName="french-content-editor"
+                    />
+                  )}
                 </div>
               ) : (
                 <Editor

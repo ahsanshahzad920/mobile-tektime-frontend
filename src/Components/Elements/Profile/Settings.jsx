@@ -78,7 +78,12 @@ const Settings = ({ }) => {
     team_id: [],
     needs: [],
     profile: "",
+    job: "",
+    job_id: "",
   });
+
+  const [roleOptions, setRoleOptions] = useState([]);
+  const [isLoadingRoles, setIsLoadingRoles] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -107,7 +112,22 @@ const Settings = ({ }) => {
   };
   useEffect(() => {
     getUserDataFromAPI();
+    fetchRoles();
   }, []);
+
+  const fetchRoles = async () => {
+    try {
+      setIsLoadingRoles(true);
+      const { data } = await axios.get(`${API_BASE_URL}/public/role-types`);
+      if (data && data.data) {
+        setRoleOptions(data.data);
+      }
+    } catch (err) {
+      console.error("Error fetching roles:", err);
+    } finally {
+      setIsLoadingRoles(false);
+    }
+  };
   const handleNeedsChange = (e) => {
     const { value, checked } = e.target;
 
@@ -148,6 +168,8 @@ const Settings = ({ }) => {
         team_id: user?.teams?.map((team) => team.id),
         needs: user?.user_needs?.map((need) => need.need),
         job: user?.job,
+        role_id:user?.role_id,
+        job_id: user?.job_id || "",
       });
       setTitle(user?.title);
       setSelectedTeams(
@@ -206,7 +228,8 @@ const Settings = ({ }) => {
       formDataInstance.append("enterprise_id", formData.enterprise_id || "");
       formDataInstance.append("bio", formData.bio || "");
       formDataInstance.append("post", formData.post || "");
-      formDataInstance.append("role_id", user?.role_id || "");
+      formDataInstance.append("role_id", formData.role_id || user?.role_id || "");
+      formDataInstance.append("job_id", formData.job_id  || "");
       formDataInstance.append("timezone", userTimeZone || "Europe/Paris");
 
       socialLinks.forEach((link, index) => {
@@ -432,304 +455,105 @@ const Settings = ({ }) => {
                             </div>
 
                             <Row className="g-3">
-                              {[
-                                {
-                                  emoji: "🧠",
-                                  title: "Chef de projet / Product Owner",
-                                  desc: "Je planifie, j'organise, je pilote.",
-                                                                    value: "Project Manager / Product Owner",
-                                  defaultNeeds: ["mission_need", "meeting_need"],
-
-                                  // Add tabs that should be shown for this role
-                                  tabs: [
-                                    {
-                                      icon: (
-                                        <img
-                                          src="/Assets/sidebar_active_destination.svg"
-                                          alt="mission"
-                                        />
-                                      ),
-                                      name: "Mission",
-                                    },
-                                    {
-                                      icon: (
-                                        <img
-                                          src="/Assets/sidebar_meeting_active.svg"
-                                          alt="meeting"
-                                        />
-                                      ),
-                                      name: "Meeting",
-                                    },
-                                  ],
-                                },
-                                {
-                                  emoji: "💼",
-                                  title: "Chargé de relation client / Commercial",
-                                  desc: "Je gère les clients, je prépare les rendez-vous, je suis les actions et je m’assure que tout avance côté client comme en interne.",
-                                  value:
-                                                                        "Customer Relations Officer / Sales Representative",
-                                  defaultNeeds: ["mission_need", "meeting_need"],
-
-                                  tabs: [
-                                    {
-                                      icon: (
-                                        <img
-                                          src="/Assets/sidebar_active_destination.svg"
-                                          alt="mission"
-                                        />
-                                      ),
-                                      name: "Mission",
-                                    },
-                                    {
-                                      icon: (
-                                        <img
-                                          src="/Assets/sidebar_meeting_active.svg"
-                                          alt="meeting"
-                                        />
-                                      ),
-                                      name: "Meeting",
-                                    },
-                                  ],
-                                },
-                                {
-                                  emoji: "🎯",
-                                  title: "Manager / Responsable d'équipe",
-                                  desc: "Je supervise les personnes, les objectifs, les résultats.",
-                                                                    value: "Manager / Team Leader",
-                                  defaultNeeds: ["casting_need", "meeting_need"],
-
-                                  tabs: [
-                                    {
-                                      icon: (
-                                        <img
-                                          src="/Assets/sidebar_team_active.svg"
-                                          alt="team"
-                                        />
-                                      ),
-                                      name: "Team",
-                                    },
-                                    {
-                                      icon: (
-                                        <img
-                                          src="/Assets/sidebar_meeting_active.svg"
-                                          alt="meeting"
-                                        />
-                                      ),
-                                      name: "Meeting",
-                                    },
-                                  ],
-                                },
-                                {
-                                  emoji: "💻",
-                                  title:
-                                    "Développeur / Contributeur opérationnel",
-                                  desc: "Je veux de la clarté sur mes tâches, mon temps, mes priorités.",
-                                                                    value: "Developer / Operational Contributor",
-                                  defaultNeeds: ["action_need", "meeting_need"],
-
-                                  tabs: [
-                                    {
-                                      icon: (
-                                        <img
-                                          src="/Assets/sidebar-action-active.svg"
-                                          alt="action"
-                                        />
-                                      ),
-                                      name: "Action",
-                                    },
-                                    {
-                                      icon: (
-                                        <img
-                                          src="/Assets/sidebar_meeting_active.svg"
-                                          alt="meeting"
-                                        />
-                                      ),
-                                      name: "Meeting",
-                                    },
-                                  ],
-                                },
-                                {
-                                  emoji: "🎓",
-                                  title: "Formateur / Coach",
-                                  desc: "J'organise des sessions, je produis du contenu, je suis des participants.",
-                                                                    value: "Trainer / Coach",
-                                  defaultNeeds: ["meeting_need", "solution_need"],
-
-                                  tabs: [
-                                    {
-                                      icon: (
-                                        <img
-                                          src="/Assets/sidebar_meeting_active.svg"
-                                          alt="meeting"
-                                        />
-                                      ),
-                                      name: "Meeting",
-                                    },
-                                    {
-                                      icon: (
-                                        <img
-                                          src="/Assets/Tek.png"
-                                          alt="solution"
-                                          width="30px"
-                                        />
-                                      ),
-                                      name: "Solution",
-                                    },
-                                  ],
-                                },
-                                {
-                                  emoji: "🛠️",
-                                  title: "Consultant / Freelance",
-                                  desc: "Je facture mon temps, j'enchaîne les missions, je veux aller à l'essentiel.",
-                                                                    value: "Consultant / Freelance",
-                                  defaultNeeds: ["mission_need", "meeting_need"],
-
-                                  tabs: [
-                                    {
-                                      icon: (
-                                        <img
-                                          src="/Assets/sidebar_active_destination.svg"
-                                          alt="mission"
-                                        />
-                                      ),
-                                      name: "Mission",
-                                    },
-                                    {
-                                      icon: (
-                                        <img
-                                          src="/Assets/sidebar_meeting_active.svg"
-                                          alt="meeting"
-                                        />
-                                      ),
-                                      name: "Meeting",
-                                    },
-                                  ],
-                                },
-                                {
-                                  emoji: "🧪",
-                                  title: "Autre / Explorateur",
-                                  desc: "Je teste pour comprendre ce que TekTIME peut m'apporter.",
-                                                                    value: "Other / Explorer",
-                                  defaultNeeds: ["mission_need", "meeting_need", "action_need", "casting_need", "discussion_need", "solution_need"],
-
-                                  tabs: [
-                                    {
-                                      icon: (
-                                        <img
-                                          src="/Assets/Tek.png"
-                                          alt="solution"
-                                          width="30px"
-                                        />
-                                      ),
-                                      name: "Solution",
-                                    },
-
-                                    
-                                    {
-                                      icon: (
-                                        <img
-                                          src="/Assets/sidebar_active_destination.svg"
-                                          alt="mission"
-                                        />
-                                      ),
-                                      name: "Mission",
-                                    },
-                                    {
-                                      icon: (
-                                        <img
-                                          src="/Assets/sidebar_meeting_active.svg"
-                                          alt="meeting"
-                                        />
-                                      ),
-                                      name: "Meeting",
-                                    },
-                                    {
-                                      icon: (
-                                        <img
-                                          src="/Assets/sidebar-action-active.svg"
-                                          alt="action"
-                                        />
-                                      ),
-                                      name: "Action",
-                                    },
-                                    {
-                                      icon: (
-                                        <img
-                                          src="/Assets/sidebar_team_active.svg"
-                                          alt="team"
-                                        />
-                                      ),
-                                      name: "Team",
-                                    }, {
-                                      icon: (
-                                        <img
-                                          src="/Assets/sidebar_active_discussion.svg"
-                                          alt="discussion"
-                                          width="23px"
-
-                                        />
-                                      ),
-                                      name: "Discussion",
-                                    },
-                                  ],
-                                },
-                              ].map((role, index) => (
-                                <Col md={6} key={index}>
-                                  <Card
-                                    className={`h-100 profile-card ${formData.job === role.value
-                                        ? "border-primary shadow-sm"
-                                        : ""
-                                      }`}
-                                    style={{ cursor: "pointer" }}
-                                    onClick={() =>
-                                      setFormData((prev) => ({
-                                        ...prev,
-                                                                                job: role.value,
-                                        needs: role.defaultNeeds || [],
-
-                                      }))
-                                    }
-                                  >
-                                    <Card.Body className="p-3 d-flex flex-column">
-                                      <div className="text-center">
-                                        <div className="emoji-display mb-2 fs-3">
-                                          {role.emoji}
-                                        </div>
-                                        <h6 className="mb-1 fw-medium">
-                                          {role.title}
-                                        </h6>
-                                      </div>
-                                      <small className="text-muted text-center">
-                                        {role.desc}
-                                      </small>
-
-                                      {/* Show tabs for this role */}
-                                      {/* {formData.job === role.value && ( */}
-                                      <div className="mt-2">
-                                        <div className="d-flex justify-content-center gap-2">
-                                          {role.tabs.map((tab, tabIndex) => (
-                                            <div
-                                              key={tabIndex}
-                                              className="d-flex flex-column align-items-center"
-                                            >
-                                              <div
-                                                style={{
-                                                  width: "24px",
-                                                  height: "24px",
-                                                }}
-                                              >
-                                                {tab.icon}
-                                              </div>
-                                              {/* <small className="text-muted">{tab.name}</small> */}
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </div>
-                                      {/* )} */}
-                                    </Card.Body>
-                                  </Card>
+                              {isLoadingRoles ? (
+                                <Col xs={12} className="text-center py-5">
+                                  <Spinner animation="border" variant="primary" />
+                                  <p className="mt-2">{t("loading", "Loading roles...")}</p>
                                 </Col>
-                              ))}
+                              ) : (
+                                roleOptions
+                                  .filter((role) => {
+                                    const contractRoles = user?.enterprise?.contract?.roles_data;
+                                    if (!contractRoles || !Array.isArray(contractRoles)) return true;
+                                    return contractRoles.some((cr) => cr.id === role.id);
+                                  })
+                                  .map((role, index) => {
+                                  const needIconMap = {
+                                    casting_need: "/Assets/sidebar_team_active.svg",
+                                    mission_need: "/Assets/sidebar_active_destination.svg",
+                                    meeting_need: "/Assets/sidebar_meeting_active.svg",
+                                    action_need: "/Assets/sidebar-action-active.svg",
+                                    solution_need: "/Assets/Tek.png",
+                                    discussion_need: "/Assets/sidebar_active_discussion.svg",
+                                  };
+                                  // Find the role in the contract's roles_data
+                                  const contractRole = user?.enterprise?.contract?.roles_data?.find((cr) => cr.id === role.id);
+                                  const targetRole = contractRole || role;
+
+                                  // Build list of active needs from boolean fields on the contract role (roles_data)
+                                  const activeNeeds = Object.keys(needIconMap).filter(
+                                    (key) => targetRole[key] === true
+                                  );
+                                  return (
+                                    <Col md={6} key={index}>
+                                      <Card
+                                        className={`h-100 profile-card ${
+                                          formData.job_id === role.id
+                                            ? "border-primary shadow-sm"
+                                            : ""
+                                        }`}
+                                        style={{ cursor: "pointer" }}
+                                        onClick={() =>
+                                          setFormData((prev) => ({
+                                            ...prev,
+                                            job: role.title,
+                                            job_id: role.id,
+                                            needs: activeNeeds,
+                                          }))
+                                        }
+                                      >
+                                        <Card.Body className="p-3 d-flex flex-column">
+                                          <div className="text-center">
+                                            <div className="emoji-display mb-2 fs-3">
+                                              {role.role_icon ? (
+                                                <img
+                                                  src={
+                                                    role.role_icon.startsWith("http")
+                                                      ? role.role_icon
+                                                      : `${Assets_URL}/${role.role_icon}`
+                                                  }
+                                                  alt=""
+                                                  style={{ width: 40, height: 40, objectFit: "contain" }}
+                                                />
+                                              ) : (
+                                                role.emoji || "🧠"
+                                              )}
+                                            </div>
+                                            <h6 className="mb-1 fw-medium">{role.title}</h6>
+                                          </div>
+                                          <small className="text-muted text-center">
+                                            {role.description}
+                                          </small>
+
+                                          {/* Module icons derived from boolean _need fields */}
+                                          <div className="mt-2">
+                                            <div className="d-flex justify-content-center gap-2">
+                                              {activeNeeds.map((need, needIndex) => (
+                                                <div
+                                                  key={needIndex}
+                                                  className="d-flex flex-column align-items-center"
+                                                >
+                                                  <div style={{ width: "24px", height: "24px" }}>
+                                                    <img
+                                                      src={needIconMap[need]}
+                                                      alt={need}
+                                                      style={{
+                                                        width: "100%",
+                                                        height: "100%",
+                                                        objectFit: "contain",
+                                                      }}
+                                                    />
+                                                  </div>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        </Card.Body>
+                                      </Card>
+                                    </Col>
+                                  );
+                                })
+                              )}
                             </Row>
                           </Card.Body>
                         </Card>
@@ -810,11 +634,10 @@ const Settings = ({ }) => {
                                   value: "discussion_need",
                                 },
                               ]
-                                .filter(
-                                  (need) =>
-                                    user?.enterprise?.contract?.[need.value] ===
-                                    true
-                                )
+                                .filter((need) => {
+                                  // Must be enabled in enterprise contract
+                                  return user?.enterprise?.contract?.[need.value] === true;
+                                })
                                 .map((need, index) => (
                                   <div className="col-md-6" key={index}>
                                     <div

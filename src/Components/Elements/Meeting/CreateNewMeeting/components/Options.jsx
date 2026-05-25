@@ -141,6 +141,8 @@ const Options = ({ setActiveTab, meeting }) => {
         automatic_instruction: meeting?.automatic_instruction || false,
         whatsapp_in: meeting?.whatsapp_in || false,
         presentation: meeting?.presentation || false,
+        show_participants: meeting?.show_participants || false,
+        show_discussion: meeting?.show_discussion || false,
       }));
 
       setIsToggled(isAutomatic);
@@ -166,6 +168,8 @@ const Options = ({ setActiveTab, meeting }) => {
         automatic_instruction: prev.automatic_instruction || !!formState?.automatic_instruction,
         whatsapp_in: prev.whatsapp_in || !!formState?.whatsapp_in,
         presentation: prev.presentation || !!formState?.presentation,
+        show_participants: prev.show_participants || !!formState?.show_participants,
+        show_discussion: prev.show_discussion || !!formState?.show_discussion,
       }));
     } else {
       setAllowedOptions({});
@@ -272,6 +276,24 @@ const Options = ({ setActiveTab, meeting }) => {
     setFormState((prevFormState) => ({
       ...prevFormState,
       presentation: !prevFormState.presentation,
+    }));
+  };
+
+  const toggleHideParticipants = () => {
+    if (formState?.type === "Special" || formState?.type === "Law") return;
+
+    setFormState((prevFormState) => ({
+      ...prevFormState,
+      show_participants: !prevFormState.show_participants,
+    }));
+  };
+
+  const toggleHideDiscussion = () => {
+    if (formState?.type === "Special" || formState?.type === "Law") return;
+
+    setFormState((prevFormState) => ({
+      ...prevFormState,
+      show_discussion: !prevFormState.show_discussion,
     }));
   };
 
@@ -1998,6 +2020,177 @@ const Options = ({ setActiveTab, meeting }) => {
                     style={{ cursor: "pointer" }}
                   >
                     {formState.presentation ? (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="48"
+                        height="27"
+                        viewBox="0 0 48 27"
+                        fill="none"
+                      >
+                        <rect
+                          x="2"
+                          y="4"
+                          width="44"
+                          height="16"
+                          rx="8"
+                          fill="#6BD27B"
+                          fillOpacity="0.77"
+                        />
+                        <g filter="url(#filter0_d_1_1194)">
+                          <circle cx="35" cy="12" r="11" fill="white" />
+                          <circle cx="35" cy="12" r="10.5" stroke="#E0E6F1" />
+                        </g>
+                      </svg>
+                    ) : (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="49"
+                        height="27"
+                        viewBox="0 0 49 27"
+                        fill="none"
+                      >
+                        <rect
+                          x="2"
+                          y="4"
+                          width="44"
+                          height="16"
+                          rx="8"
+                          fill="#ECECF9"
+                        />
+                        <g filter="url(#filter0_d_1_625)">
+                          <circle cx="13" cy="12" r="11" fill="white" />
+                          <circle cx="13" cy="12" r="10.5" stroke="#E0E6F1" />
+                        </g>
+                      </svg>
+                    )}
+                  </div>
+                </div>
+              </Tooltip>
+            </Col>
+          )}
+        </Row>
+
+        <Row className="mb-4">
+          {(!isFromTemplate || allowedOptions.show_participants) && (
+            <Col xs={12} md={6}>
+              <Tooltip title={t("show_participants_tooltip")}>
+                <div
+                  className="d-flex justify-content-between align-items-center modal-tab-button"
+                  onClick={toggleHideParticipants}
+                  style={{ padding: "15px" }}
+                >
+                  <div>
+                    <svg
+                      width="25"
+                      height="24px"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M16 11C17.66 11 19 9.66 19 8C19 6.34 17.66 5 16 5C14.34 5 13 6.34 13 8C13 9.66 14.34 11 16 11ZM8 11C9.66 11 11 9.66 11 8C11 6.34 9.66 5 8 5C6.34 5 5 6.34 5 8C5 9.66 6.34 11 8 11ZM8 13C5.67 13 1 14.17 1 16.5V19H15V16.5C15 14.17 10.33 13 8 13ZM16 13C15.71 13 15.38 13.02 15.03 13.05C16.19 13.89 17 15.02 17 16.5V19H23V16.5C23 14.17 18.33 13 16 13Z"
+                        fill="#3D57B5"
+                      />
+                    </svg>
+                    <span
+                      className="solutioncards"
+                      style={{ color: "#3D57B5" }}
+                    >
+                      {t("meeting.formState.Hide Participants")}
+                    </span>
+                  </div>
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleHideParticipants();
+                    }}
+                    style={{ cursor: "pointer" }}
+                  >
+                    {formState.show_participants ? (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="48"
+                        height="27"
+                        viewBox="0 0 48 27"
+                        fill="none"
+                      >
+                        <rect
+                          x="2"
+                          y="4"
+                          width="44"
+                          height="16"
+                          rx="8"
+                          fill="#6BD27B"
+                          fillOpacity="0.77"
+                        />
+                        <g filter="url(#filter0_d_1_1194)">
+                          <circle cx="35" cy="12" r="11" fill="white" />
+                          <circle cx="35" cy="12" r="10.5" stroke="#E0E6F1" />
+                        </g>
+                      </svg>
+                    ) : (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="49"
+                        height="27"
+                        viewBox="0 0 49 27"
+                        fill="none"
+                      >
+                        <rect
+                          x="2"
+                          y="4"
+                          width="44"
+                          height="16"
+                          rx="8"
+                          fill="#ECECF9"
+                        />
+                        <g filter="url(#filter0_d_1_625)">
+                          <circle cx="13" cy="12" r="11" fill="white" />
+                          <circle cx="13" cy="12" r="10.5" stroke="#E0E6F1" />
+                        </g>
+                      </svg>
+                    )}
+                  </div>
+                </div>
+              </Tooltip>
+            </Col>
+          )}
+          {(!isFromTemplate || allowedOptions.show_discussion) && (
+            <Col xs={12} md={6}>
+              <Tooltip title={t("show_discussion_tooltip")}>
+                <div
+                  className="d-flex justify-content-between align-items-center modal-tab-button"
+                  onClick={toggleHideDiscussion}
+                  style={{ padding: "15px" }}
+                >
+                  <div>
+                    <svg
+                      width="25"
+                      height="24px"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2ZM20 16H5.17L4 17.17V4H20V16Z"
+                        fill="#3D57B5"
+                      />
+                    </svg>
+                    <span
+                      className="solutioncards"
+                      style={{ color: "#3D57B5" }}
+                    >
+                      {t("meeting.formState.Hide Discussion")}
+                    </span>
+                  </div>
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleHideDiscussion();
+                    }}
+                    style={{ cursor: "pointer" }}
+                  >
+                    {formState.show_discussion ? (
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         width="48"

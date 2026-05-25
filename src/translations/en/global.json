@@ -1,4 +1,77 @@
 {
+  "roleTypes": {
+    "title": "Roles",
+    "new": "New Role",
+    "edit": "Edit Role",
+    "titleField": "Title",
+    "titlePlaceholder": "e.g. Project Manager",
+    "iconField": "Role Icon (optional)",
+    "uploadIcon": "Click to upload role icon",
+    "uploadSub": "PNG, JPG, SVG – max 2 MB",
+    "removeImage": "Remove image",
+    "descriptionField": "Description (optional)",
+    "descriptionPlaceholder": "Describe this role...",
+    "deleteTitle": "Delete Role",
+    "deleteConfirm1": "Are you sure you want to delete",
+    "deleteConfirm2": "? This action cannot be undone.",
+    "cardView": "Card View",
+    "listView": "List View",
+    "noItems": "No Roles Yet",
+    "noItemsDesc": "Create your first role to get started.",
+    "noDescription": "No description",
+    "createBtn": "Create Role",
+    "toasts": {
+      "titleReq": "Role title is required.",
+      "created": "Role created!",
+      "updated": "Role updated!",
+      "deleted": "Role deleted.",
+      "loadFailed": "Failed to load roles.",
+      "deleteFailed": "Failed to delete role."
+    }
+  },
+  "missionTypes": {
+    "title": "Mission Types",
+    "new": "New Mission Type",
+    "edit": "Edit Mission Type",
+    "titleField": "Title",
+    "titlePlaceholder": "e.g. Business Development",
+    "iconField": "Mission Icon (optional)",
+    "uploadIcon": "Click to upload mission icon",
+    "uploadSub": "PNG, JPG, SVG – max 2 MB",
+    "removeImage": "Remove image",
+    "descriptionField": "Description (optional)",
+    "descriptionPlaceholder": "Describe this mission type...",
+    "deleteTitle": "Delete Mission Type",
+    "deleteConfirm1": "Are you sure you want to delete",
+    "deleteConfirm2": "? This action cannot be undone.",
+    "cardView": "Card View",
+    "listView": "List View",
+    "noItems": "No Mission Types Yet",
+    "noItemsDesc": "Create your first mission type to get started.",
+    "noDescription": "No description",
+    "createBtn": "Create Mission Type",
+    "toasts": {
+      "titleReq": "Mission type title is required.",
+      "created": "Mission type created!",
+      "updated": "Mission type updated!",
+      "deleted": "Mission type deleted.",
+      "loadFailed": "Failed to load mission types.",
+      "deleteFailed": "Failed to delete mission type."
+    }
+  },
+  "searchEngine": {
+    "subtitle": "FRENCH B2B SOLUTIONS ENGINE",
+    "placeholder": "What's on your mind?",
+    "button": "Search",
+    "suggestions": [
+      "Manage client meetings",
+      "Automate my invoicing",
+      "Train my teams remotely",
+      "Improve my customer service",
+      "Track my projects in a team",
+      "Recruit tech talent"
+    ]
+  },
   "whatsapp_in_tooltip": "Enable WhatsApp",
   "presentation_tooltip": "Enable Presentation",
   "header": {
@@ -366,6 +439,8 @@
           "sprint": "Sprint",
           "other": "Other",
           "newsletter": "Newsletter",
+          "socialMediaNewsletter": "Social Media Newsletter",
+          "aiSocialMediaNewsletter": "AI Social Media Newsletter",
           "jobInterview": "Job Interview",
           "Prestation Client": "Prestation Client",
           "oneOnOne": "One-on-One",
@@ -531,6 +606,8 @@
       "Whatsapp In": "WhatsApp In",
       "Presentation": "Presentation",
       "Lecture playback": "Lecture playback",
+      "Hide Participants": "Hide Participants",
+      "Hide Discussion": "Hide Discussion",
       "Gestion des messages": "Message Management",
       "Autostart": "Autostart",
       "Beep alarm": "Beep alarm",
@@ -1112,6 +1189,8 @@
   "profile": {
     "customizeRole": "Customize TekTIME according to your role",
     "customizeRoleDesc": "TekTIME will activate the right modules and suggest the right models according to your priorities.",
+    "connect": "Connect",
+    "connected": "Connected",
     "needs": {
       "casting_need": "I want to manage my clients, my colleagues or my team easily",
       "mission_need": "I want to plan my projects, track budgets and stay on track with my deadlines",
@@ -1182,7 +1261,12 @@
     "TeamSubText": "Only people in your team can see your information.",
     "teamsAdded": "Teams added",
     "missionsAdded": "Missions added",
-    "missionTypes": "Mission Types",
+    "rolesAdded": "Roles added",
+    "noRolesAdded": "No roles added",
+    "missionTypes": "Mission types",
+    "missionTypesSubText": "This solution will be available only to users with access to the selected mission types.",
+    "roles": "Roles",
+    "rolesSubText": "This solution will be available only to users with access to the selected roles.",
     "selectEnterprise": " Select Enterprise",
     "enterprisesAdded": "Enterprises added",
     "noEnterprisesAdded": "No Enterprises added",
@@ -1317,9 +1401,8 @@
     "Select Currency": "Select Currency",
     "are you sure you want to close this meeting?": "Are you sure you want to close this moment?"
   },
-
   "badge": {
-    "to_accept":"To accept",
+    "to_accept": "To accept",
     "active": "Active",
     "draft": "Draft",
     "late": "Late",
@@ -1583,8 +1666,8 @@
   "Exit Moment": "Exit",
   "Abort Moment": "Cancel",
   "Full Screen": "Full Screen",
-  "Start At":"Start at ",
-  "Remaining":"Remaining",
+  "Start At": "Start at ",
+  "Remaining": "Remaining",
   "Remaining time of stage": "Stage Time",
   "The meeting started with": "started",
   "Minutes in Advance": "minutes in advance",
@@ -1658,6 +1741,8 @@
     "Suivi de projet": "Project Follow-up",
     "Task": "Task",
     "Newsletter": "Newsletter",
+    "Social Media Newsletter": "Social Media Newsletter",
+    "AI Social Media Newsletter": "AI Social Media Newsletter",
     "Séminaire": "Seminar",
     "Réseautage": "Networking",
     "Embauche": "Hiring",
@@ -1677,8 +1762,8 @@
     "Conversation Gmail": "Conversation Gmail"
   },
   "destinationTypes": {
-    "assistant conversation":"Assistant Conversation",
-    "Assistant Conversation":"Assistant Conversation",
+    "assistant conversation": "Assistant Conversation",
+    "Assistant Conversation": "Assistant Conversation",
     "Project": "Project",
     "Study": "Study",
     "Audit": "Audit",
@@ -1716,8 +1801,8 @@
   "addMoment": "Add moment",
   "addMomentbtninmission": "Add Moment",
   "addQuickMomentbtninmission": "Planning",
-  "addQuickMomentbtninmission_mission":"Planning",
-  "For the Agenda Creation At least one step is required":"For the Agenda Creation At least one step is required",
+  "addQuickMomentbtninmission_mission": "Planning",
+  "For the Agenda Creation At least one step is required": "For the Agenda Creation At least one step is required",
   "areYouSure": "Are you sure?",
   "Summary of": "Summary of",
   "unsavedChangesWarning": "Are you sure you want to close this modal?",
@@ -1867,8 +1952,8 @@
   "Add Mission": "Add Mission",
   "Created on": "Created on",
   "destination_types": {
-    "assistant conversation":"Assistant Conversation",
-    "Assistant Conversation":"Assistant Conversation",
+    "assistant conversation": "Assistant Conversation",
+    "Assistant Conversation": "Assistant Conversation",
     "opportunity": "Business Opportunity",
     "study": "Study",
     "audit": "Audit",
@@ -1907,8 +1992,8 @@
     "Google Agenda": "Google Agenda",
     "Agenda": "Agenda",
     "agenda": "Agenda",
-    "assistant conversation":"Assistant Conversation",
-    "Assistant Conversation":"Assistant Conversation"
+    "assistant conversation": "Assistant Conversation",
+    "Assistant Conversation": "Assistant Conversation"
   },
   "mission-badge": {
     "new": "New missions",
@@ -2135,6 +2220,8 @@
     "url": "Youtube Videos",
     "photo": "Photo",
     "email": "Email",
+    "socialMedia": "Social Media",
+    "publication": "Publication",
     "video": "Video",
     "excel": "Excel",
     "message": "Message",
@@ -2145,7 +2232,11 @@
     "microsoftteamsLink": "Microsoft Teams Link",
     "powerpoint": "PowerPoint",
     "validation": "Validation",
-    "subtask": "Subtask"
+    "subtask": "Subtask",
+    "aiInstruction": "AI Instruction",
+    "aiInstructionPrompt": "Instruction / Prompt",
+    "aiInstructionPromptPlaceholder": "Write the AI prompt or instructions here...",
+    "mediaInstruction": "Media / Instruction"
   },
   "invities": {
     "client_name": "Organisation / Name",
@@ -2400,44 +2491,44 @@
       ]
     }
   },
-   "features-discussions": {
-        "badge": "Next-Level Customer Support",
-        "title": "Everything you need to scale",
-        "card1": {
-            "title": "Smart Ticketing & Management",
-            "desc": "Automate ticket routing and prioritization with AI."
-        },
-        "card2": {
-            "title": "Smart Ticketing & Task Management",
-            "desc": "Manage every task efficiently with our centralized smart system."
-        },
-        "card3": {
-            "title": "AI Labelling",
-            "desc": "Automatically categorize and tag discussions for faster resolution."
-        },
-        "card4": {
-            "title": "We draft your responses",
-            "desc": "Speed up replies with intelligent, context-aware suggestions."
-        }
+  "features-discussions": {
+    "badge": "Next-Level Customer Support",
+    "title": "Everything you need to scale",
+    "card1": {
+      "title": "Smart Ticketing & Management",
+      "desc": "Automate ticket routing and prioritization with AI."
     },
-      "how_it_works": {
-        "title_part1": "How to start in",
-        "title_part2": "3 Steps?",
-        "subtitle": "TekTIME AI is one stop all solution for your automating your customer service flow.",
-        "step1": {
-            "title": "Signup",
-            "subtitle": "Signup for free trial",
-            "desc": "Create your TekTIME account in seconds—no credit card required."
-        },
-        "step2": {
-            "title": "Integration",
-            "subtitle": "Integrate your channels",
-            "desc": "Easily integrate your email, chat, and support tools with one click."
-        },
-        "step3": {
-            "desc": "Set-up and start delivering instant, AI-powered customer service."
-        }
+    "card2": {
+      "title": "Smart Ticketing & Task Management",
+      "desc": "Manage every task efficiently with our centralized smart system."
     },
+    "card3": {
+      "title": "AI Labelling",
+      "desc": "Automatically categorize and tag discussions for faster resolution."
+    },
+    "card4": {
+      "title": "We draft your responses",
+      "desc": "Speed up replies with intelligent, context-aware suggestions."
+    }
+  },
+  "how_it_works": {
+    "title_part1": "How to start in",
+    "title_part2": "3 Steps?",
+    "subtitle": "TekTIME AI is one stop all solution for your automating your customer service flow.",
+    "step1": {
+      "title": "Signup",
+      "subtitle": "Signup for free trial",
+      "desc": "Create your TekTIME account in seconds—no credit card required."
+    },
+    "step2": {
+      "title": "Integration",
+      "subtitle": "Integrate your channels",
+      "desc": "Easily integrate your email, chat, and support tools with one click."
+    },
+    "step3": {
+      "desc": "Set-up and start delivering instant, AI-powered customer service."
+    }
+  },
   "features": {
     "title": "Features of TektTIME",
     "subtitle": "Enhance your team's productivity and streamline your workflow with TekTIME.",
@@ -2465,117 +2556,117 @@
       "alt": "Border Line"
     }
   },
-   "testimonials-discussions": {
-        "badge": "Success Stories",
-        "title": "Loved by industry leaders",
-        "list": [
-            {
-                "text": "We implemented TekTIME within Transeco2 to better track our salespeople's commercial presentations and get real feedback from interviews without possible interpretations. By integrating our sales journey, TekTIME has become a true daily tool.",
-                "author": "Davy CHOUMILLE",
-                "role": "President at TRANSECO 2",
-                "title": "Sales pipeline finally working",
-                "avatar": "https://cdn.prod.website-files.com/68da9e32f495b6801915d287/68dd206fe26164171a153498_1564908244965.jpg"
-            },
-            {
-                "text": "TekTIME not only decided to donate a percentage of its revenue but rationalized its approach to choosing the most effective charities. This evidence-based commitment testifies to their seriousness and sincere desire to have a lasting positive impact.",
-                "author": "Romain Barbe",
-                "role": "Founder of Mieux Donner",
-                "title": "Growth that felt effortless",
-                "avatar": "https://cdn.prod.website-files.com/68da9e32f495b6801915d287/68dd21198b370c3d67647de0_testimonial3.png"
-            }
-        ]
-    },
-    "cta": {
-        "title": "Ready to supercharge your support?",
-        "text": "Join all the teams",
-        "button": "Schedule Demo"
-    },
-    "security": {
-        "title": "Bank-level security for your peace of mind",
-        "subtitle": "Secure. Private. Encrypted. Your data is safe with us.",
-        "list": [
-            {
-                "title": "SOC2 Type 1",
-                "desc": "We’ve completed SOC 2 Type 1 examination, independently audited for security, availability, and confidentiality."
-            },
-            {
-                "title": "Encryption",
-                "desc": "Your emails are encrypted in transit and at rest using industry-leading protocols."
-            },
-            {
-                "title": "Enterprise-Grade Infrastructure",
-                "desc": "Built on secure cloud infrastructure with 99.9% uptime and redundant backups."
-            },
-            {
-                "title": "Privacy First",
-                "desc": "We never train AI models on your data. Your information stays yours and is never shared."
-            }
-        ]
-    },
-     "faq": {
-        "title": "Frequently Asked Questions",
-        "subtitle": "Everything you need to know about the product and billing.",
-        "list": [
-            {
-                "question": "Is there a free trial available?",
-                "answer": "Yes, you can try us for free for 8 days. If you want, we’ll provide you with a free, personalized 30-minute onboarding call to get you up and running as soon as possible."
-            },
-            {
-                "question": "Can I change my plan later?",
-                "answer": "Of course. Our pricing scales with your company. Chat to our friendly team to find a solution that works for you."
-            },
-            {
-                "question": "What is your cancellation policy?",
-                "answer": "We understand that things change. You can cancel your plan at any time and we’ll refund you the difference already paid."
-            },
-            {
-                "question": "Can other info be added to an invoice?",
-                "answer": "Yes, you can add your VAT details or any other information effectively to your invoices from the billing section."
-            },
-            {
-                "question": "How does billing work?",
-                "answer": "Plans are per workspace, not per account. You can upgrade one workspace, and still have any number of free workspaces."
-            },
-            {
-                "question": "How do I change my account email?",
-                "answer": "You can change the email address associated with your account by going to your account settings."
-            }
-        ]
-    },
-    "integrations": {
-        "title": "Reclaim 90% of your email time",
-        "subtitle": "Email in. Task done. Integrate your entire support stack."
-    },
-    "logo_cloud": {
-        "title": "TRUSTED AND USED BY"
-    },
-    "pricing-discussions": {
-        "title": "Simple, Flexible Pricing",
-        "subtitle": "Choose the plan that fits your needs.",
-        "loading": "Loading pricing...",
-        "unavailable": "Currently unavailable.",
-        "most_popular": "Most Popular",
-        "subscribe": "Try it free for 8 days",
-        "contact_sales": "Contact Sales",
-        "per_month": "per month",
-        "per_year": "per year",
-        "monthly": "Monthly",
-        "annual": "Annual",
-        "license": "License",
-        "licenses": "Licenses",
-        "for_license": "for {{count}} license",
-        "for_licenses": "for {{count}} licenses",
-        "monthly_billing": "Monthly billing",
-        "annual_billing": "Annual billing",
-        "enterprise": {
-            "title": "Enterprise",
-            "subtitle": "For organizations that need scale and dedicated support. Best for 50+ team members.",
-            "bespoke_pricing": "Bespoke pricing",
-            "price_text": "Get in touch",
-            "speak_to_sales": "Speak to sales",
-            "features": []
-        }
-    },
+  "testimonials-discussions": {
+    "badge": "Success Stories",
+    "title": "Loved by industry leaders",
+    "list": [
+      {
+        "text": "We implemented TekTIME within Transeco2 to better track our salespeople's commercial presentations and get real feedback from interviews without possible interpretations. By integrating our sales journey, TekTIME has become a true daily tool.",
+        "author": "Davy CHOUMILLE",
+        "role": "President at TRANSECO 2",
+        "title": "Sales pipeline finally working",
+        "avatar": "https://cdn.prod.website-files.com/68da9e32f495b6801915d287/68dd206fe26164171a153498_1564908244965.jpg"
+      },
+      {
+        "text": "TekTIME not only decided to donate a percentage of its revenue but rationalized its approach to choosing the most effective charities. This evidence-based commitment testifies to their seriousness and sincere desire to have a lasting positive impact.",
+        "author": "Romain Barbe",
+        "role": "Founder of Mieux Donner",
+        "title": "Growth that felt effortless",
+        "avatar": "https://cdn.prod.website-files.com/68da9e32f495b6801915d287/68dd21198b370c3d67647de0_testimonial3.png"
+      }
+    ]
+  },
+  "cta": {
+    "title": "Ready to supercharge your support?",
+    "text": "Join all the teams",
+    "button": "Schedule Demo"
+  },
+  "security": {
+    "title": "Bank-level security for your peace of mind",
+    "subtitle": "Secure. Private. Encrypted. Your data is safe with us.",
+    "list": [
+      {
+        "title": "SOC2 Type 1",
+        "desc": "We’ve completed SOC 2 Type 1 examination, independently audited for security, availability, and confidentiality."
+      },
+      {
+        "title": "Encryption",
+        "desc": "Your emails are encrypted in transit and at rest using industry-leading protocols."
+      },
+      {
+        "title": "Enterprise-Grade Infrastructure",
+        "desc": "Built on secure cloud infrastructure with 99.9% uptime and redundant backups."
+      },
+      {
+        "title": "Privacy First",
+        "desc": "We never train AI models on your data. Your information stays yours and is never shared."
+      }
+    ]
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "subtitle": "Everything you need to know about the product and billing.",
+    "list": [
+      {
+        "question": "Is there a free trial available?",
+        "answer": "Yes, you can try us for free for 8 days. If you want, we’ll provide you with a free, personalized 30-minute onboarding call to get you up and running as soon as possible."
+      },
+      {
+        "question": "Can I change my plan later?",
+        "answer": "Of course. Our pricing scales with your company. Chat to our friendly team to find a solution that works for you."
+      },
+      {
+        "question": "What is your cancellation policy?",
+        "answer": "We understand that things change. You can cancel your plan at any time and we’ll refund you the difference already paid."
+      },
+      {
+        "question": "Can other info be added to an invoice?",
+        "answer": "Yes, you can add your VAT details or any other information effectively to your invoices from the billing section."
+      },
+      {
+        "question": "How does billing work?",
+        "answer": "Plans are per workspace, not per account. You can upgrade one workspace, and still have any number of free workspaces."
+      },
+      {
+        "question": "How do I change my account email?",
+        "answer": "You can change the email address associated with your account by going to your account settings."
+      }
+    ]
+  },
+  "integrations": {
+    "title": "Reclaim 90% of your email time",
+    "subtitle": "Email in. Task done. Integrate your entire support stack."
+  },
+  "logo_cloud": {
+    "title": "TRUSTED AND USED BY"
+  },
+  "pricing-discussions": {
+    "title": "Simple, Flexible Pricing",
+    "subtitle": "Choose the plan that fits your needs.",
+    "loading": "Loading pricing...",
+    "unavailable": "Currently unavailable.",
+    "most_popular": "Most Popular",
+    "subscribe": "Try it free for 8 days",
+    "contact_sales": "Contact Sales",
+    "per_month": "per month",
+    "per_year": "per year",
+    "monthly": "Monthly",
+    "annual": "Annual",
+    "license": "License",
+    "licenses": "Licenses",
+    "for_license": "for {{count}} license",
+    "for_licenses": "for {{count}} licenses",
+    "monthly_billing": "Monthly billing",
+    "annual_billing": "Annual billing",
+    "enterprise": {
+      "title": "Enterprise",
+      "subtitle": "For organizations that need scale and dedicated support. Best for 50+ team members.",
+      "bespoke_pricing": "Bespoke pricing",
+      "price_text": "Get in touch",
+      "speak_to_sales": "Speak to sales",
+      "features": []
+    }
+  },
   "streamlineMeeting": {
     "title": "Ready to take action?",
     "description": "You will have the compass that allows you to say what you do and do what you say"
@@ -3445,6 +3536,8 @@
       "title2": "designed for your unique challenges.",
       "desc": "See how we’ve helped brands grow and succeed.",
       "button": "Learn more →",
+      "cta": "Ready to see these solutions in action?",
+      "startTrial": "Start Your Free Trial",
       "card1": {
         "title": "Meeting with automatic note taking",
         "desc": "Use AI to turn your meetings into clear, actionable notes."
@@ -3646,7 +3739,7 @@
     "moment-heading": "Inbox",
     "Subject": "Subject",
     "To": "To",
-    "Message":"Message",
+    "Message": "Message",
     "Attachments": "Attachments",
     "Cancel": "Cancel",
     "Send Email": "Send Email",
@@ -3668,15 +3761,15 @@
     "gateName": "Gate Name",
     "landingPageType": "Landing Page URL",
     "existingImage": "Existing Image",
-    "selectedContract":"Selected Contract",
+    "selectedContract": "Selected Contract",
     "selectGateType": "Select Gate Type",
     "gateType": "Gate Type",
     "gateTypeOptions": {
       "Entreprises": "Enterprise",
       "Profession": "Profession",
       "Applications": "Applications",
-      "Prestations":"Prestations",
-      "Services":"Services"
+      "Prestations": "Prestations",
+      "Services": "Services"
     },
     "sections": {
       "hero": {
@@ -3694,7 +3787,7 @@
         "youtubeUrl": "Youtube URL",
         "autoplay": "Autoplay",
         "altText": "Alt Text (SEO)",
-        "upload":"Upload"
+        "upload": "Upload"
       },
       "problem": {
         "title": "2. USER PROBLEM",
@@ -3757,7 +3850,7 @@
       "integrations": {
         "title": "7. INTEGRATIONS & SECURITY",
         "sectionTitle": "Section Title",
-        "sectionDescription":"Section Description",
+        "sectionDescription": "Section Description",
         "list": "Integrations",
         "example": "Ex: Gmail, Outlook, Ionos...",
         "placeholder": "Tool",
@@ -3873,5 +3966,86 @@
     "estimateTitle": "Set Action Duration",
     "validate": "Validate Duration",
     "cancel": "Back"
-  }
+  },
+  "Registration successful!": "Registration successful!",
+  "Event Registration": "Event Registration",
+  "Tickets": "Tickets",
+  "Details": "Details",
+  "Payment": "Payment",
+  "How many tickets do you need?": "How many tickets do you need?",
+  "Select the number of participants you want to register.": "Select the number of participants you want to register.",
+  "places remaining": "places remaining",
+  "Price per ticket": "Price per ticket",
+  "Want to register faster?": "Want to register faster?",
+  "Log in to pre-fill your details": "Log in to pre-fill your details",
+  "Participant Information": "Participant Information",
+  "Participant": "Participant",
+  "Enter first name": "Enter first name",
+  "Enter last name": "Enter last name",
+  "Email Address": "Email Address",
+  "Enter email address": "Enter email address",
+  "Registration Summary": "Registration Summary",
+  "Event": "Event",
+  "Total Amount": "Total Amount",
+  "Secure Payment": "Secure Payment",
+  "Your payment is processed securely via our provider.": "Your payment is processed securely via our provider.",
+  "By completing this registration, you agree to the event's terms and conditions.": "By completing this registration, you agree to the event's terms and conditions.",
+  "Processing...": "Processing...",
+  "Complete Registration": "Complete Registration",
+  "Please fill all fields for participant ": "Please fill all fields for participant ",
+  "Invalid email for participant ": "Invalid email for participant ",
+  "The email ": "The email ",
+  " is already used for another participant.": " is already used for another participant.",
+  "Not enough places available": "Not enough places available",
+  "Meeting ID is missing.": "Meeting ID is missing.",
+  "An error occurred during registration.": "An error occurred during registration.",
+  "Stripe connection initiated!": "Stripe connection initiated!",
+  "Failed to connect Stripe.": "Failed to connect Stripe.",
+  "Stripe account disconnected successfully.": "Stripe account disconnected successfully.",
+  "Failed to disconnect Stripe.": "Failed to disconnect Stripe.",
+  "stripe_disconnect_title": "Disconnect Stripe",
+  "stripe_disconnect_message": "Are you sure you want to disconnect your Stripe account? You will no longer be able to receive payments for registrations.",
+  "stripe_disconnect_confirm": "Yes, Disconnect",
+  "stripe_disconnect_cancel": "Cancel",
+  "stripe_disconnect_btn": "Disconnect",
+  "linkedin_disconnect_title": "Disconnect LinkedIn",
+  "linkedin_disconnect_message": "Are you sure you want to disconnect your LinkedIn account? You will need to reconnect it later to sync your information.",
+  "linkedin_disconnect_confirm": "Yes, Disconnect",
+  "linkedin_disconnect_cancel": "Cancel",
+  "linkedin_disconnect_btn": "Disconnect",
+  "stripe_payment": {
+    "verifying_title": "Verifying Payment...",
+    "verifying_text": "Please wait while we confirm your transaction with Stripe.",
+    "success_title": "Payment Successful!",
+    "success_text": "Thank you for your registration. Your payment has been processed successfully.",
+    "goto_meetings": "Go to the Meeting",
+    "failed_title": "Payment Failed",
+    "failed_text": "We couldn't verify your payment session. If you believe this is an error, please contact support.",
+    "back": "Back",
+    "retry_btn": "Retry Verification",
+    "stripe_not_connected_error": "Please connect your Stripe account to manage steps for registration moments.",
+    "stripe_connect_title": "Connect Stripe Account",
+    "stripe_connect_required_msg": "Stripe integration is required to manage steps for registration moments.",
+    "secure_footer": "Secure payment powered by Stripe"
+  },
+  "profile-visibility": {
+    "gates": "Gates",
+    "gatesSubText": "Restrict visibility to specific landing page gates",
+    "selectGates": "Select gates",
+    "gatesAdded": "Gates added",
+    "contracts": "Subscriptions",
+    "contractsSubText": "Restrict visibility to specific subscriptions",
+    "selectContracts": "Select subscriptions",
+    "contractsAdded": "Subscriptions added",
+    "roles": "Roles",
+    "rolesSubText": "Restrict visibility to specific roles",
+    "selectRoles": "Select roles",
+    "rolesAdded": "Roles added",
+    "missionTypes": "Mission Types",
+    "missionTypesSubText": "Restrict visibility to specific mission types",
+    "missionsAdded": "Missions added"
+  },
+  "Mission History": "Mission History",
+  "Failed to update mission history.": "Failed to update mission history.",
+  "Error updating mission history.": "Error updating mission history."
 }

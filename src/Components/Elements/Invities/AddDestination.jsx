@@ -19,6 +19,7 @@ import { IoImages } from "react-icons/io5";
 import Select from "react-select";
 import { useNavigate } from "react-router-dom";
 // import { useDraftMeetings } from "../../../context/DraftMeetingContext";
+import { useHeaderTitle } from "../../../context/HeaderTitleContext";
 import Creatable from "react-select/creatable";
 
 
@@ -28,10 +29,9 @@ import { registerLocale } from "react-datepicker";
 import fr from "date-fns/locale/fr"; // replace with your locale if needed
 import { RxCross2 } from "react-icons/rx";
 import { IoIosBusiness, IoIosRocket } from "react-icons/io";
-import { FaBookOpen } from "react-icons/fa6";
+import { FaBookOpen, FaBullseye, FaChalkboardTeacher, FaRobot, FaCode, FaBullhorn, FaShoppingCart, FaUserTie, FaSearch, FaChessKnight } from "react-icons/fa";
 import { AiOutlineAudit } from "react-icons/ai";
-import { MdEventAvailable, MdOutlineSupport, MdWork } from "react-icons/md";
-import { FaBullseye, FaChalkboardTeacher, FaRobot } from "react-icons/fa";
+import { MdEventAvailable, MdOutlineSupport, MdWork, MdBrush, MdMessage, MdEvent } from "react-icons/md";
 import { getUserRoleID } from "../../Utils/getSessionstorageItems";
 
 // Optional: register the locale
@@ -56,6 +56,10 @@ const AddDestination = ({
   const [currency, setCurrency] = useState("EUR");
   const [type, setType] = useState(null);
   const [t] = useTranslation("global");
+
+  const { user } = useHeaderTitle();
+  const [contractMissionTypes, setContractMissionTypes] = useState([]);
+  const [isLoadingMissionTypes, setIsLoadingMissionTypes] = useState(false);
 
   // const userId = parseInt(CookieService.get("user_id"));
   const [image, setImage] = useState(null);
@@ -104,6 +108,48 @@ const AddDestination = ({
     fetchVisibleMissions();
   }, [show]);
 
+  useEffect(() => {
+    if (!show) return;
+
+    const fetchContractMissionTypes = async () => {
+      setIsLoadingMissionTypes(true);
+      try {
+        const { data } = await axios.get(`${API_BASE_URL}/mission-types`, {
+          headers: { Authorization: `Bearer ${CookieService.get("token")}` },
+        });
+
+        if (data && data.data) {
+          const contractMissions = (() => {
+            const raw = user?.contract?.mission_types || user?.enterprise?.contract?.mission_types;
+            if (Array.isArray(raw)) return raw;
+            if (typeof raw === "string") {
+              try {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) return parsed;
+              } catch (e) {}
+              return [raw];
+            }
+            return [];
+          })();
+
+          // Filter mission types based on contract
+          const filtered = data.data.filter(t =>
+            contractMissions.includes(t.id) ||
+            contractMissions.includes(String(t.id)) ||
+            contractMissions.includes(t.title)
+          );
+          setContractMissionTypes(filtered);
+        }
+      } catch (error) {
+        console.error("Failed to fetch mission types", error);
+      } finally {
+        setIsLoadingMissionTypes(false);
+      }
+    };
+
+    fetchContractMissionTypes();
+  }, [show, user]);
+
   const [clientImage, setClientImage] = useState(null);
   const clientImageFileInputRef = useRef(null);
 
@@ -112,7 +158,7 @@ const AddDestination = ({
   // };
 
   // const { language } = useDraftMeetings();
-  const typeOptions = useMemo(() => [
+  const allTypeOptions = useMemo(() => [
     {
       value: "Business opportunity",
       label: t("destination.businessOppurtunity"),
@@ -157,10 +203,6 @@ const AddDestination = ({
       value: "Agenda",
       label: t("destination.Agenda"),
     },
-    // {
-    //   value: "Google Agenda",
-    //   label: t("destination.googleAgenda"),
-    // },
     {
       value: "Messagerie",
       label: t("destination.messaging"),
@@ -170,6 +212,24 @@ const AddDestination = ({
       label: t("destination.assistantConversation"),
     },
   ], [t]);
+
+  const typeOptions = useMemo(() => {
+    // If we have mission types defined in contract, only show those
+    if (contractMissionTypes.length > 0) {
+      return contractMissionTypes.map(ct => {
+        const base = allTypeOptions.find(opt => opt.value === ct.title);
+        return {
+          value: ct.title,
+          id: ct.id,
+          label: base ? base.label : ct.title,
+          logo_file_url: ct.mission_icon ? (ct.mission_icon.startsWith('http') ? ct.mission_icon : `${Assets_URL}/${ct.mission_icon}`) : ct.logo_file_url,
+          logo_key: ct.logo
+        };
+      });
+    }
+    // Fallback: show all if contract not loaded or empty
+    return allTypeOptions;
+  }, [allTypeOptions, contractMissionTypes]);
   const [createAnother, setCreateAnother] = useState(false);
   const handleCheckboxChange = (e) => {
     setCreateAnother(e.target.checked);
@@ -397,6 +457,7 @@ const AddDestination = ({
       formData.append("destination_name", clientNeed);
       formData.append("client_need", clientNeed);
       formData.append("destination_type", type.value || "");
+      formData.append("destination_type_id", type.id || "");
       formData.append("destination_description", destinationDescription || "");
       formData.append("destination_end_date_time", destinationTime || "");
       formData.append("initial_budget", budgetInitial || 0);
@@ -495,6 +556,7 @@ const AddDestination = ({
       formData.append("destination_name", clientNeed);
       formData.append("client_need", clientNeed);
       formData.append("destination_type", type?.value || "");
+      formData.append("destination_type_id", type?.id || "");
       formData.append("destination_description", destinationDescription || "");
       formData.append("destination_end_date_time", destinationTime || "");
       formData.append("initial_budget", budgetInitial || 0);
@@ -681,8 +743,9 @@ const AddDestination = ({
 
 
 
-  const handleTypeSelect = (type, index) => {
-    setType(typeOptions.find((opt) => opt.value === type));
+  const handleTypeSelect = (typeName, index) => {
+    const selectedOption = typeOptions.find((opt) => opt.value === typeName);
+    setType(selectedOption);
     setSelectedCard(index);
     setStep(2);
   };
@@ -719,121 +782,64 @@ const AddDestination = ({
 
         <Modal.Body style={{ maxHeight: "calc(100vh - 200px)", overflowY: "auto" }}>
           {step === 1 ? (
+            isLoadingMissionTypes ? (
+              <div className="d-flex justify-content-center align-items-center" style={{ height: "300px" }}>
+                <Spinner animation="border" variant="primary" />
+              </div>
+            ) : (
             <Row className="g-3">
               {typeOptions.map((option, index) => {
                 // Get the appropriate icon for each option
-                const getIcon = () => {
-                  switch (option.value) {
+                const getIcon = (size = "37px", color = "#DAE6ED") => {
+                  if (option.icon) {
+                    return <img src={option.icon} style={{ width: size, height: size, objectFit: "contain" }} alt="" />;
+                  }
+
+                  const iconKey = option.logo_key || option.value;
+                  switch (iconKey) {
                     case "Business opportunity":
-                      return (
-                        <IoIosBusiness
-                          style={{ width: "37px", height: "36px" }}
-                          color="#DAE6ED"
-                        />
-                      );
-
+                      return <IoIosBusiness style={{ width: size, height: size }} color={color} />;
                     case "Study":
-                      return (
-                        <FaBookOpen
-                          style={{ width: "37px", height: "36px" }}
-                          color="#DAE6ED"
-                        />
-                      );
-
+                      return <FaBookOpen style={{ width: size, height: size }} color={color} />;
                     case "Audit":
-                      return (
-                        <AiOutlineAudit
-                          style={{ width: "37px", height: "36px" }}
-                          color="#DAE6ED"
-                        />
-                      );
-
+                      return <AiOutlineAudit style={{ width: size, height: size }} color={color} />;
                     case "Project":
-                      return (
-                        <IoIosRocket
-                          style={{ width: "37px", height: "36px" }}
-                          color="#DAE6ED"
-                        />
-                      );
-
+                      return <IoIosRocket style={{ width: size, height: size }} color={color} />;
                     case "Accompagnement":
-                      return (
-                        <MdOutlineSupport
-                          style={{ width: "37px", height: "36px" }}
-                          color="#DAE6ED"
-                        />
-                      );
-
+                      return <MdOutlineSupport style={{ width: size, height: size }} color={color} />;
                     case "Event":
-                      return (
-                        <MdEventAvailable
-                          style={{ width: "37px", height: "36px" }}
-                          color="#DAE6ED"
-                        />
-                      );
-
+                      return <MdEventAvailable style={{ width: size, height: size }} color={color} />;
                     case "Formation":
-                      return (
-                        <FaChalkboardTeacher
-                          style={{ width: "37px", height: "36px" }}
-                          color="#DAE6ED"
-                        />
-                      );
-
+                      return <FaChalkboardTeacher style={{ width: size, height: size }} color={color} />;
                     case "Recruitment":
-                      return (
-                        <MdWork
-                          style={{ width: "37px", height: "36px" }}
-                          color="#DAE6ED"
-                        />
-                      );
-
+                      return <MdWork style={{ width: size, height: size }} color={color} />;
                     case "Objective":
-                      return (
-                        <FaBullseye
-                          style={{ width: "37px", height: "36px" }}
-                          color="#DAE6ED"
-                        />
-                      );
-
+                      return <FaBullseye style={{ width: size, height: size }} color={color} />;
+                    case "Design": return <MdBrush style={{ width: size, height: size }} color={color} />;
+                    case "Development": return <FaCode style={{ width: size, height: size }} color={color} />;
+                    case "Marketing": return <FaBullhorn style={{ width: size, height: size }} color={color} />;
+                    case "Sales": return <FaShoppingCart style={{ width: size, height: size }} color={color} />;
+                    case "Consulting": return <FaUserTie style={{ width: size, height: size }} color={color} />;
+                    case "Research": return <FaSearch style={{ width: size, height: size }} color={color} />;
+                    case "Strategy": return <FaChessKnight style={{ width: size, height: size }} color={color} />;
                     case "Assistant Conversation":
-                      return (
-                        <FaRobot
-                          style={{ width: "37px", height: "36px" }}
-                          color="#DAE6ED"
-                        />
-                      );
-
+                      return <FaRobot style={{ width: size, height: size }} color={color} />;
                     case "Agenda":
                     case "Messagerie":
                       return (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="37"
-                          height="36"
-                          viewBox="0 0 24 24"
-                          fill="#F19C38"
-                        >
-                          <path d="M7.5 5.6L10 0L12.5 5.6L18.1 8.1L12.5 10.6L10 16.2L7.5 10.6L1.9 8.1L7.5 5.6Z"/>
-                          <path d="M17.5 15.6L19.1 12.1L20.7 15.6L24.2 17.2L20.7 18.8L19.1 22.3L17.5 18.8L14 17.2L17.5 15.6Z"/>
+                        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="#F19C38">
+                          <path d="M7.5 5.6L10 0L12.5 5.6L18.1 8.1L12.5 10.6L10 16.2L7.5 10.6L1.9 8.1L7.5 5.6Z" />
+                          <path d="M17.5 15.6L19.1 12.1L20.7 15.6L24.2 17.2L20.7 18.8L19.1 22.3L17.5 18.8L14 17.2L17.5 15.6Z" />
                         </svg>
                       );
-
                     case "Other":
                       return (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="37"
-                          height="36"
-                          viewBox="0 0 512 512"
-                          fill="#DAE6ED"
-                        >
+                        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 512 512" fill={color}>
                           <path d="M432,336h-10.84c16.344-13.208,26.84-33.392,26.84-56v-32c0-30.872-25.128-56-56-56h-32c-2.72,0-5.376,0.264-8,0.64V48h16V0H0v48h16v232H0v48h187.056l40,80H304v88h192v-96C496,364.712,467.288,336,432,336z" />
                         </svg>
                       );
-
                     default:
-                      return "✨";
+                      return <span style={{ fontSize: size }}>✨</span>;
                   }
                 };
 
@@ -873,6 +879,7 @@ const AddDestination = ({
                 );
               })}
             </Row>
+            )
           ) : (
             <form className="form">
               {/* ==== TYPE DROPDOWN – visible ONLY on edit ==== */}
@@ -911,7 +918,12 @@ const AddDestination = ({
                     // ----------------------------------------------------
                     formatOptionLabel={(option) => {
                       const Icon = (() => {
-                        switch (option.value) {
+                        if (option.icon) {
+                          return <img src={option.icon} style={{ width: 22, height: 22, objectFit: "contain" }} alt="" />;
+                        }
+
+                        const iconKey = option.logo_key || option.value;
+                        switch (iconKey) {
                           case "Business opportunity":
                             return (
                               <IoIosBusiness
@@ -956,6 +968,13 @@ const AddDestination = ({
                             return (
                               <FaBullseye style={{ width: 22, height: 22 }} />
                             );
+                          case "Design": return <MdBrush style={{ width: 22, height: 22 }} />;
+                          case "Development": return <FaCode style={{ width: 22, height: 22 }} />;
+                          case "Marketing": return <FaBullhorn style={{ width: 22, height: 22 }} />;
+                          case "Sales": return <FaShoppingCart style={{ width: 22, height: 22 }} />;
+                          case "Consulting": return <FaUserTie style={{ width: 22, height: 22 }} />;
+                          case "Research": return <FaSearch style={{ width: 22, height: 22 }} />;
+                          case "Strategy": return <FaChessKnight style={{ width: 22, height: 22 }} />;
                           case "Assistant Conversation":
                             return (
                               <FaRobot style={{ width: 22, height: 22 }} />
@@ -970,24 +989,10 @@ const AddDestination = ({
                                 viewBox="0 0 24 24"
                                 fill="#F19C38"
                               >
-                                <path d="M7.5 5.6L10 0L12.5 5.6L18.1 8.1L12.5 10.6L10 16.2L7.5 10.6L1.9 8.1L7.5 5.6Z"/>
-                                <path d="M17.5 15.6L19.1 12.1L20.7 15.6L24.2 17.2L20.7 18.8L19.1 22.3L17.5 18.8L14 17.2L17.5 15.6Z"/>
+                                <path d="M7.5 5.6L10 0L12.5 5.6L18.1 8.1L12.5 10.6L10 16.2L7.5 10.6L1.9 8.1L7.5 5.6Z" />
+                                <path d="M17.5 15.6L19.1 12.1L20.7 15.6L24.2 17.2L20.7 18.8L19.1 22.3L17.5 18.8L14 17.2L17.5 15.6Z" />
                               </svg>
                             );
-
-                          case "Assistant Conversation":
-                            return (
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="22"
-                                height="22"
-                                viewBox="0 0 24 24"
-                                fill="#F19C38"
-                              >
-                                <path d="M7.5 5.6L10 0L12.5 5.6L18.1 8.1L12.5 10.6L10 16.2L7.5 10.6L1.9 8.1L7.5 5.6Z"/>
-                                <path d="M17.5 15.6L19.1 12.1L20.7 15.6L24.2 17.2L20.7 18.8L19.1 22.3L17.5 18.8L14 17.2L17.5 15.6Z"/>
-                              </svg>
-                            );  
 
                           case "Other":
                             return (
@@ -1002,7 +1007,7 @@ const AddDestination = ({
                               </svg>
                             );
                           default:
-                            return null;
+                            return <span style={{ fontSize: "14px" }}>✨</span>;
                         }
                       })();
 
@@ -1070,16 +1075,21 @@ const AddDestination = ({
                         }}
                         value={
                           destinationClientId
-                            ? groupedOptions.find(
-                              (opt) =>
-                                Number(opt.value) ===
-                                Number(destinationClientId)
-                            )
+                            ? groupedOptions
+                                .flatMap((group) => group.options)
+                                .find(
+                                  (opt) =>
+                                    Number(opt.value) ===
+                                    Number(destinationClientId)
+                                ) || {
+                                  label: destinationClient,
+                                  value: destinationClientId,
+                                }
                             : destinationClient
                               ? {
-                                label: destinationClient,
-                                value: destinationClient,
-                              }
+                                  label: destinationClient,
+                                  value: destinationClient,
+                                }
                               : null
                         }
                         options={groupedOptions}

@@ -1,4 +1,4 @@
-import CookieService from '../../Utils/CookieService';
+import CookieService from "../../Utils/CookieService";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Link,
@@ -57,29 +57,37 @@ function SolutionTabs() {
 
   // Count solutions for each tab
   const draftSolutionsCount = draftSolutions?.filter(
-    (solution) => solution.status === "draft"
+    (solution) => solution.status === "draft",
   ).length;
 
   const privateSolutionsCount = privateSolutions?.filter(
     (solution) =>
-      solution.status === "active" && (solution?.solution_privacy === "private" || solution?.solution_privacy === "enterprise" || solution?.solution_privacy === "team" || solution?.solution_privacy === "participant only")
+      solution.status === "active" &&
+      (solution?.solution_privacy === "private" ||
+        solution?.solution_privacy === "enterprise" ||
+        solution?.solution_privacy === "team" ||
+        solution?.solution_privacy === "subscriptions" ||
+        solution?.solution_privacy === "gates" || 
+        solution?.solution_privacy === "missions" ||
+        solution?.solution_privacy === "roles" ||
+        solution?.solution_privacy === "participant only"),
   ).length;
 
   const publicSolutionsCount = publicSolutions?.filter(
     (solution) =>
       solution.solution_privacy === "public" ||
-      solution?.solution_privacy === "tektime members"
+      solution?.solution_privacy === "tektime members",
   ).length;
 
   // Solution types for private and public tabs
   const privateSolutionTypes = [
     ...new Set(
-      privateSolutions?.map((solution) => solution.type).filter((type) => type)
+      privateSolutions?.map((solution) => solution.type).filter((type) => type),
     ),
   ];
   const publicSolutionTypes = [
     ...new Set(
-      publicSolutions?.map((solution) => solution.type).filter((type) => type)
+      publicSolutions?.map((solution) => solution.type).filter((type) => type),
     ),
   ];
 
@@ -89,7 +97,14 @@ function SolutionTabs() {
       (solution) =>
         solution.type === type &&
         solution.status === "active" &&
-        (solution?.solution_privacy === "private" || solution?.solution_privacy === "enterprise" || solution?.solution_privacy === "team" || solution?.solution_privacy === "participant only")
+        (solution?.solution_privacy === "private" ||
+          solution?.solution_privacy === "enterprise" ||
+          solution?.solution_privacy === "team" ||
+          solution?.solution_privacy === "subscriptions" ||
+          solution?.solution_privacy === "gates" || 
+          solution?.solution_privacy === "missions" ||
+          solution?.solution_privacy === "roles" ||
+          solution?.solution_privacy === "participant only"),
     ).length;
     return acc;
   }, {});
@@ -99,7 +114,7 @@ function SolutionTabs() {
       (solution) =>
         solution.type === type &&
         (solution.solution_privacy === "public" ||
-          solution?.solution_privacy === "tektime members")
+          solution?.solution_privacy === "tektime members"),
     ).length;
     return acc;
   }, {});
@@ -109,18 +124,18 @@ function SolutionTabs() {
   const { activeTab, setActiveTab } = useTabs();
   const [activeSubTab, setActiveSubTab] = useState("");
 
-  // const handleScroll = () => {
-  //   if (tabsRef.current) {
-  //     setIsSticky(window.scrollY > 150);
-  //   }
-  // };
+  const handleScroll = () => {
+    if (tabsRef.current) {
+      setIsSticky(window.scrollY > 150);
+    }
+  };
 
-  // useEffect(() => {
-  //   window.addEventListener("scroll", handleScroll);
-  //   return () => {
-  //     window.removeEventListener("scroll", handleScroll);
-  //   };
-  // }, []);
+  useEffect(() => {
+    window.addEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
 
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState("all");
@@ -142,47 +157,55 @@ function SolutionTabs() {
 
     if (selectedFilter === "thisMonth") {
       filtered = filtered.filter((solution) =>
-        moment(solution.date).isSame(now, "month")
+        moment(solution.date).isSame(now, "month"),
       );
     } else if (selectedFilter === "previousMonth") {
       const previousMonth = moment().subtract(1, "month");
       filtered = filtered.filter((solution) =>
-        moment(solution.date).isSame(previousMonth, "month")
+        moment(solution.date).isSame(previousMonth, "month"),
       );
     } else if (selectedFilter === "previousYear") {
       const previousYear = moment().subtract(1, "year");
       filtered = filtered.filter((solution) =>
-        moment(solution.date).isSame(previousYear, "year")
+        moment(solution.date).isSame(previousYear, "year"),
       );
     }
 
     filtered = filtered.filter(
       (solution) =>
-        solution.status == "active" && (solution?.solution_privacy === "private" || solution?.solution_privacy === "enterprise" || solution?.solution_privacy === "team" || solution?.solution_privacy === "participant only")
+        solution.status == "active" &&
+        (solution?.solution_privacy === "private" ||
+          solution?.solution_privacy === "enterprise" ||
+          solution?.solution_privacy === "team" ||
+          solution?.solution_privacy === "subscriptions" ||
+          solution?.solution_privacy === "gates" || 
+          solution?.solution_privacy === "missions" ||
+          solution?.solution_privacy === "roles" ||
+          solution?.solution_privacy === "participant only"),
     );
 
     let draftSolutions1 = draftSolutions?.filter(
-      (solution) => solution.status === "draft"
+      (solution) => solution.status === "draft",
     );
     let publicSolutions1 = publicSolutions?.filter(
       (solution) =>
         solution.solution_privacy === "public" ||
-        solution?.solution_privacy === "tektime members"
+        solution?.solution_privacy === "tektime members",
     );
 
     if (searchTerm) {
       filtered = filtered.filter((solution) =>
-        solution.title.toLowerCase().includes(searchTerm.toLowerCase())
+        solution.title.toLowerCase().includes(searchTerm.toLowerCase()),
       );
       draftSolutions1 = draftSolutions?.filter(
         (solution) =>
           solution?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          solution?.objective?.toLowerCase().includes(searchTerm.toLowerCase())
+          solution?.objective?.toLowerCase().includes(searchTerm.toLowerCase()),
       );
       publicSolutions1 = publicSolutions1?.filter(
         (solution) =>
           solution?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          solution?.objective?.toLowerCase().includes(searchTerm.toLowerCase())
+          solution?.objective?.toLowerCase().includes(searchTerm.toLowerCase()),
       );
     }
 
@@ -229,14 +252,21 @@ function SolutionTabs() {
         (solution) =>
           solution.type === type &&
           solution.status === "active" &&
-          (solution?.solution_privacy === "private" || solution?.solution_privacy === "enterprise" || solution?.solution_privacy === "team" || solution?.solution_privacy === "participant only")
+          (solution?.solution_privacy === "private" ||
+            solution?.solution_privacy === "enterprise" ||
+            solution?.solution_privacy === "team" ||
+                solution?.solution_privacy === "subscriptions" ||
+          solution?.solution_privacy === "gates" || 
+          solution?.solution_privacy === "missions" ||
+          solution?.solution_privacy === "roles" ||
+            solution?.solution_privacy === "participant only"),
       );
     }
     return publicSolutionsList?.filter(
       (solution) =>
         solution.type === type &&
         (solution.solution_privacy === "public" ||
-          solution?.solution_privacy === "tektime members")
+          solution?.solution_privacy === "tektime members"),
     );
   };
 
@@ -254,7 +284,7 @@ function SolutionTabs() {
               onClick={() => {
                 window.open(
                   "https://tektime.io/destination/uKnsk22F2gvNxC5F5a2s2jp5pts8XbxPk22zZ9qf/167482 ",
-                  "_blank"
+                  "_blank",
                 );
               }}
             >
@@ -326,8 +356,9 @@ function SolutionTabs() {
 
               {/* Create Button Section */}
               <div
-                className={`col-lg-1 col-md-2 col-12 d-flex ${isSticky ? "sticky-button" : "justify-content-end p-0"
-                  }`}
+                className={`col-lg-1 col-md-2 col-12 d-flex ${
+                  isSticky ? "sticky-button" : "justify-content-end p-0"
+                }`}
               >
                 <button
                   className={`btn moment-btn d-flex`}
@@ -368,8 +399,9 @@ function SolutionTabs() {
                             privateTypeCounts[type] > 0 && (
                               <button
                                 key={type}
-                                className={`tab ${activeSubTab === type ? "active" : ""
-                                  }`}
+                                className={`tab ${
+                                  activeSubTab === type ? "active" : ""
+                                }`}
                                 onClick={() => setActiveSubTab(type)}
                               >
                                 {t(`types.${type}`)}
@@ -382,7 +414,7 @@ function SolutionTabs() {
                                   {privateTypeCounts[type]}
                                 </span>
                               </button>
-                            )
+                            ),
                         )}
                       </div>
                     </div>
@@ -401,8 +433,9 @@ function SolutionTabs() {
                             publicTypeCounts[type] > 0 && (
                               <button
                                 key={type}
-                                className={`tab ${activeSubTab === type ? "active" : ""
-                                  }`}
+                                className={`tab ${
+                                  activeSubTab === type ? "active" : ""
+                                }`}
                                 onClick={() => setActiveSubTab(type)}
                               >
                                 {t(`types.${type}`)}
@@ -415,7 +448,7 @@ function SolutionTabs() {
                                   {publicTypeCounts[type]}
                                 </span>
                               </button>
-                            )
+                            ),
                         )}
                       </div>
                     </div>

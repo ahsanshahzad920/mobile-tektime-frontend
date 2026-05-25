@@ -25,7 +25,7 @@ import DestinationMap from "./DestinationMap";
 
 function DestinationTabs() {
   const { searchTerm } = useOutletContext();
-  const { resetHeaderTitle } = useHeaderTitle();
+  const { resetHeaderTitle, user } = useHeaderTitle();
 
   React.useEffect(() => {
     resetHeaderTitle();
@@ -152,52 +152,86 @@ function DestinationTabs() {
     getClients();
   }, []);
 
-  const DESTINATION_TYPES = [
-    "Audit",
-    "Study",
-    "Other",
-    "Accompagnement",
-    "Business opportunity",
-    "Project",
-    "Event",
-    "Objective",
-    "Recruitment",
-    "Formation",
-    "Messagerie",
-    "Agenda",
-    "Assistant Conversation"
-  ];
+  const [destinationTypes, setDestinationTypes] = useState([]);
 
-  const [tabsWithData, setTabsWithData] = useState(
-    DESTINATION_TYPES.reduce((acc, type) => {
-      acc[type] = [];
-      return acc;
-    }, {})
-  );
+  useEffect(() => {
+    const fetchTypes = async () => {
+      try {
+        const { data } = await axios.get(`${API_BASE_URL}/mission-types`, {
+          headers: { Authorization: `Bearer ${CookieService.get("token")}` },
+        });
+        if (data && data.data) {
+          const contractMissions = (() => {
+            const raw = user?.contract?.mission_types || user?.enterprise?.contract?.mission_types;
+            if (Array.isArray(raw)) return raw;
+            if (typeof raw === "string") {
+              try {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) return parsed;
+              } catch (e) {}
+              return [raw];
+            }
+            return [];
+          })();
+
+          // Filter mission types based on contract (by title or id)
+          const filteredMissions = data.data.filter(t => 
+            contractMissions.includes(t.id) || 
+            contractMissions.includes(String(t.id)) ||
+            contractMissions.includes(t.title)
+          );
+
+          const types = filteredMissions.map(t => ({ id: t.id, title: t.title }));
+          setDestinationTypes(types);
+        }
+      } catch (error) {
+        console.error("Failed to fetch mission types", error);
+      }
+    };
+    fetchTypes();
+  }, [user]);
+
+  const [tabsWithData, setTabsWithData] = useState({});
+
+  useEffect(() => {
+    if (destinationTypes.length > 0) {
+      setTabsWithData(destinationTypes.reduce((acc, type) => {
+        acc[type] = [];
+        return acc;
+      }, {}));
+      
+      destinationTypes.forEach(typeObj => fetchDataForType(typeObj));
+    }
+  }, [destinationTypes]);
 
   const [progressByType, setProgressByType] = useState({});
   const [progressBarVisibleByType, setProgressBarVisibleByType] = useState({});
 
-  const fetchDataForType = async (type) => {
+  const fetchDataForType = async (typeOrObj) => {
+    const typeTitle = typeof typeOrObj === "string" ? typeOrObj : typeOrObj.title;
+    const typeId = typeof typeOrObj === "string" 
+      ? (destinationTypes.find(t => t.title === typeOrObj)?.id || typeOrObj)
+      : typeOrObj.id;
+
     // Start progress bar at 0
-    setProgressByType((prev) => ({ ...prev, [type]: 0 }));
-    setProgressBarVisibleByType((prev) => ({ ...prev, [type]: true }));
+    setProgressByType((prev) => ({ ...prev, [typeTitle]: 0 }));
+    setProgressBarVisibleByType((prev) => ({ ...prev, [typeTitle]: true }));
 
     // Simulate progress increment
     const interval = setInterval(() => {
       setProgressByType((prev) => {
-        const current = prev[type] || 0;
+        const current = prev[typeTitle] || 0;
         if (current >= 90) {
           clearInterval(interval);
-          return { ...prev, [type]: 90 };
+          return { ...prev, [typeTitle]: 90 };
         }
-        return { ...prev, [type]: current + 10 };
+        return { ...prev, [typeTitle]: current + 10 };
       });
     }, 200);
 
     try {
       const res = await axios.get(
-        `${API_BASE_URL}/get-destination-by-type/${type}`,
+        `${API_BASE_URL}/get-destination-by-type-id/${typeId}`,
         {
           headers: {
             Authorization: `Bearer ${CookieService.get("token")}`,
@@ -222,7 +256,7 @@ function DestinationTabs() {
       if (combinedMissions.length > 0) {
         setTabsWithData((prev) => ({
           ...prev,
-          [type]: {
+          [typeTitle]: {
             new_missions,
             current_missions,
             closed_missions,
@@ -231,34 +265,16 @@ function DestinationTabs() {
         }));
       }
 
-      setProgressByType((prev) => ({ ...prev, [type]: 100 }));
+      setProgressByType((prev) => ({ ...prev, [typeTitle]: 100 }));
     } catch (err) {
-      console.error(`Failed to load ${type}`, err);
-      setProgressByType((prev) => ({ ...prev, [type]: 100 }));
+      console.error(`Failed to load ${typeTitle}`, err);
+      setProgressByType((prev) => ({ ...prev, [typeTitle]: 100 }));
     } finally {
       clearInterval(interval);
-      setProgressBarVisibleByType((prev) => ({ ...prev, [type]: false }));
+      setProgressBarVisibleByType((prev) => ({ ...prev, [typeTitle]: false }));
     }
   };
-  useEffect(() => {
-    DESTINATION_TYPES.forEach(fetchDataForType);
-  }, []);
 
-  const typeOrder = [
-    "Business opportunity",
-    "Study",
-    "Audit",
-    "Project",
-    "Accompagnement",
-    "Other",
-    "Event",
-    "Objective",
-    "Recruitment",
-    "Formation",
-    "Messagerie",
-    "Agenda",
-    "Assistant Conversation"
-  ];
   // -----------------------------------------MIssion ROADMAP FUnctions------------------
   // -----------------------------------------MIssion ROADMAP Functions------------------
   const [durationMonths, setDurationMonths] = useState(3); // New state for duration, default 3 months
@@ -322,12 +338,7 @@ function DestinationTabs() {
     fetchRoadmapData();
   }, [fetchRoadmapData]);
 
-  const [filteredTabsWithData, setFilteredTabsWithData] = useState(
-    DESTINATION_TYPES.reduce((acc, type) => {
-      acc[type] = [];
-      return acc;
-    }, {})
-  );
+  const [filteredTabsWithData, setFilteredTabsWithData] = useState({});
 
   useEffect(() => {
     if (!searchTerm) {
@@ -449,19 +460,20 @@ function DestinationTabs() {
                       </span>
                     </button>
                     {/* Dynamically render buttons for only the types that have data */}
-                    {typeOrder.map((type) => {
-                      return filteredTabsWithData[type] &&
-                        Object.values(filteredTabsWithData[type])?.some(
+                    {destinationTypes.map((typeObj) => {
+                      const { id, title } = typeObj;
+                      return filteredTabsWithData[title] &&
+                        Object.values(filteredTabsWithData[title])?.some(
                           (arr) => Array.isArray(arr) && arr.length > 0
                         ) ? (
                         <button
-                          key={type}
-                          className={`tab ${activeTab === type ? "active" : ""}`}
-                          onClick={() => setActiveTab(type)}
+                          key={id}
+                          className={`tab ${activeTab === title ? "active" : ""}`}
+                          onClick={() => setActiveTab(title)}
                         >
-                          {t(`des_type.${type}`)}
-                          <span className={activeTab === type ? "future" : "draft"}>
-                            {Object.values(filteredTabsWithData[type]).reduce(
+                          {t(`des_type.${title}`, title)}
+                          <span className={activeTab === title ? "future" : "draft"}>
+                            {Object.values(filteredTabsWithData[title]).reduce(
                               (acc, arr) => acc + arr.length,
                               0
                             )}
@@ -476,7 +488,7 @@ function DestinationTabs() {
                 className={`col-lg-1 col-md-2 col d-flex justify-content-end p-0 ${isSticky ? "sticky-button" : ""
                   }`}
               >
-                {typeOrder.includes(activeTab) || activeTab === "Roadmap" ? (
+                {destinationTypes.includes(activeTab) || activeTab === "Roadmap" ? (
                   <button
                     className={`btn moment-btn`}
                     style={{ whiteSpace: "nowrap" }}
@@ -581,16 +593,16 @@ function DestinationTabs() {
           )}
           {(activeTab !== "My Clients" || activeTab !== "Roadmap") && (
             <>
-              {typeOrder.map(
-                (type) =>
-                  activeTab === type &&
-                  filteredTabsWithData[type] && (
-                    <div key={type}>
+              {destinationTypes.map(
+                (typeObj) =>
+                  activeTab === typeObj.title &&
+                  filteredTabsWithData[typeObj.title] && (
+                    <div key={typeObj.id}>
                       <DestinationMap
-                        type={type}
-                        data={filteredTabsWithData[type]}
-                        Progress={progressByType[type] || 0}
-                        showProgressBar={progressBarVisibleByType[type] || false}
+                        type={typeObj.title}
+                        data={filteredTabsWithData[typeObj.title]}
+                        Progress={progressByType[typeObj.title] || 0}
+                        showProgressBar={progressBarVisibleByType[typeObj.title] || false}
                       />
                     </div>
                   )

@@ -61,6 +61,7 @@ import QuickMomentForm from "./QuickMomentForm";
 import FacturationForm from "./FacturationForm";
 import NewMeetingModal from "../../Meeting/CreateNewMeeting/NewMeetingModal";
 import KanbanMissionBoard from "./KanbanMissionBoard";
+import MissionHistoryTab from "./MissionHistoryTab";
 
 const Tabs = ({ quick }) => {
   const { id } = useParams();
@@ -1253,7 +1254,7 @@ const navigate = useNavigate();
                 <div className="row second-row mt-4 mt-md-5">
                   <div className="col-12">
                     {/* Destination Type */}
-                    {destination?.destination_type && (
+                    {destination?.mission_type?.title && (
                       <div className="d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-1 gap-sm-2 mb-3">
                         <span
                           className="label-text"
@@ -1262,9 +1263,10 @@ const navigate = useNavigate();
                           {t("destination_type")}:
                         </span>
                         <span className="fw-bold value-text">
-                          {t(
-                            `destinationTypes.${destination?.destination_type}`
-                          )}
+                          {destination?.mission_type?.title ||
+                            t(
+                              `destinationTypes.${destination?.destination_type}`
+                            )}
                         </span>
                       </div>
                     )}
@@ -1632,8 +1634,8 @@ const navigate = useNavigate();
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {t("destination_tracking_btn")}
-                      {destination?.destination_type ||
+                      {t("destination_tracking_btn")}{" "}
+                      {destination?.mission_types?.title ||
                         t(
                           `destinationTypes.${destination?.destination_type}`
                         ) ||
@@ -1707,6 +1709,10 @@ const navigate = useNavigate();
                               { 
                                 value: "My working days", 
                                 label: <><FaClock className="me-2" /> {t("destination.destinationToMeeting.My working days")}</> 
+                              },
+                              {
+                                value: "Mission History",
+                                label: <><FaFolderOpen className="me-2" /> {t("Mission History")}</>
                               }
                             ]}
                           />
@@ -1777,9 +1783,12 @@ const navigate = useNavigate();
                                 <Tooltip
                                 title={`${t(
                                   "destination.destinationToMeeting.My working days"
-                                )}: ${t(
-                                  `destinationTypes.${destination?.destination_type}`
-                                )} ${destination?.destination_name}`}
+                                )}: ${
+                                  destination?.mission_types?.title ||
+                                  t(
+                                    `destinationTypes.${destination?.destination_type}`
+                                  )
+                                } ${destination?.destination_name}`}
                                 placement="bottom"
                               >
                                 <button
@@ -1809,9 +1818,10 @@ const navigate = useNavigate();
                                     "destination.destinationToMeeting.My working days"
                                   )}
                                   :{" "}
-                                  {t(
-                                    `destinationTypes.${destination?.destination_type}`
-                                  )}{" "}
+                                  {destination?.mission_types?.title ||
+                                    t(
+                                      `destinationTypes.${destination?.destination_type}`
+                                    )}{" "}
                                   {destination?.destination_name}
                                 </button>
                               </Tooltip>
@@ -1847,6 +1857,20 @@ const navigate = useNavigate();
                               <FaFileInvoiceDollar className="me-2" />
                               <span className="d-none d-sm-inline">
                                 {t("destination.destinationToMeeting.Facturation Tab")}
+                              </span>
+                            </button>
+
+                            <button
+                              className={`tab ${activeTab === "Mission History" ? "active" : ""}`}
+                              onClick={() => {
+                                setActiveTab("Mission History");
+                                CookieService.set("missionTab", "Mission History");
+                              }}
+                              style={{ borderRadius: "0px" }}
+                            >
+                              <FaFolderOpen className="me-2" />
+                              <span className="d-none d-sm-inline">
+                                {t("Mission History") || "Mission History"}
                               </span>
                             </button>
                           </>
@@ -1948,6 +1972,11 @@ const navigate = useNavigate();
                     showProgress={showMomentProgress}
                     progress={momentProgress}
                   />
+                </div>
+              )}
+              {activeTab === "Mission History" && (
+                <div className="invite">
+                  <MissionHistoryTab destinationId={id} />
                 </div>
               )}
               {activeTab === "Participants" && (

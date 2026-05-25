@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react";
 import { useOutletContext } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { PiMicrosoftOutlookLogoFill } from "react-icons/pi";
@@ -37,6 +43,7 @@ import AssistantChatTab from "./Tabs/AssistantChatTab";
 import AddAccountModal from "./Modals/AddAccountModal";
 import AddEmailOptionsModal from "./Modals/AddEmailOptionsModal";
 import useOutlookAuth from "./Hooks/useOutlookAuth";
+import GoogleConnectFlow from "../Profile/GoogleConnectFlow";
 import {
   getAllChatbots,
   getAllEmailDestinations,
@@ -121,6 +128,7 @@ const DiscussionTabs = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAddEmail, setShowAddEmail] = useState(false);
   const [showAddGmail, setShowAddGmail] = useState(false);
+  const [showGmailConnect, setShowGmailConnect] = useState(false);
   const [showAddIonosEmail, setShowAddIonosEmail] = useState(false);
 
   const triggerRefresh = useCallback(() => setRefreshTrigger((p) => p + 1), []);
@@ -331,8 +339,8 @@ const DiscussionTabs = () => {
         //   label: <Space><FaWhatsapp color="#25D366" size={18} /> WhatsApp</Space>,
         //   mobileLabel: "WhatsApp",
         //   children: <WhatsappTab isActive={activeTab === "whatsapp"} userData={userData} />
-        // }  
-          ].filter(Boolean),
+        // }
+      ].filter(Boolean),
     [
       activeTab,
       assistantProfile,
@@ -485,7 +493,15 @@ const DiscussionTabs = () => {
           setShowAddEmailOptions(false);
           if (o === "outlook") loginOutlookAndSaveProfileData();
           else if (o === "ionos") setShowAddModal(true);
-          else if (o === "gmail") setShowAddGmail(true);
+          else if (o === "gmail") {
+            if (hasGmail) {
+              // Already connected → open compose modal
+              setShowAddGmail(true);
+            } else {
+              // Not connected → open Gmail App Password integration flow
+              setShowGmailConnect(true);
+            }
+          }
         }}
       />
 
@@ -498,6 +514,23 @@ const DiscussionTabs = () => {
         <AddAccountModal
           handleClose={() => setShowAddModal(false)}
           triggerRefresh={fetchUserDetail}
+        />
+      </Modal>
+      <Modal
+        open={showGmailConnect}
+        onCancel={() => setShowGmailConnect(false)}
+        footer={null}
+        width={700}
+        centered
+        destroyOnClose
+      >
+        <GoogleConnectFlow
+          user={userData}
+          onUpdate={() => {
+            setShowGmailConnect(false);
+            fetchUserDetail();
+            triggerRefresh();
+          }}
         />
       </Modal>
       <AddNewEmail

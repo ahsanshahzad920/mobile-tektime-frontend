@@ -115,6 +115,8 @@ const Options = ({ setActiveTab }) => {
         automatic_instruction: solution?.automatic_instruction || false,
         whatsapp_in: solution?.whatsapp_in || false,
         presentation: solution?.presentation || false,
+        show_participants: solution?.show_participants || false,
+        show_discussion: solution?.show_discussion || false,
       }));
 
       setautostartToggle(solution?.autostart);
@@ -249,6 +251,24 @@ const Options = ({ setActiveTab }) => {
     setFormState((prevFormState) => ({
       ...prevFormState,
       presentation: !prevFormState.presentation,
+    }));
+  };
+
+  const toggleHideParticipants = () => {
+    if (solution?.type === "Special" || solution?.type === "Law") return;
+
+    setFormState((prevFormState) => ({
+      ...prevFormState,
+      show_participants: !prevFormState.show_participants,
+    }));
+  };
+
+  const toggleHideDiscussion = () => {
+    if (solution?.type === "Special" || solution?.type === "Law") return;
+
+    setFormState((prevFormState) => ({
+      ...prevFormState,
+      show_discussion: !prevFormState.show_discussion,
     }));
   };
 
@@ -1960,6 +1980,163 @@ const Options = ({ setActiveTab }) => {
                 </div>
               </div>
             </Tooltip>
+          </Col>
+        </Row>
+
+        <Row className="mb-4">
+          <Col xs={12} md={6}>
+            <div
+              className="d-flex justify-content-between align-items-center modal-tab-button"
+              onClick={toggleHideParticipants}
+              style={{ padding: "15px" }}
+            >
+              <div>
+                <svg
+                  width="25"
+                  height="24px"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12ZM12 14C9.33 14 4 15.34 4 18V20H20V18C20 15.34 14.67 14 12 14Z"
+                    fill="#3D57B5"
+                  />
+                </svg>
+                <span className="solutioncards" style={{ color: "#3D57B5" }}>
+                  {t("meeting.formState.Hide Participants")}
+                </span>
+              </div>
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleHideParticipants();
+                }}
+                style={{ cursor: "pointer" }}
+              >
+                {formState.show_participants ? (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="48"
+                    height="27"
+                    viewBox="0 0 48 27"
+                    fill="none"
+                  >
+                    <rect
+                      x="2"
+                      y="4"
+                      width="44"
+                      height="16"
+                      rx="8"
+                      fill="#6BD27B"
+                      fillOpacity="0.77"
+                    />
+                    <g filter="url(#filter0_d_1_1194)">
+                      <circle cx="35" cy="12" r="11" fill="white" />
+                      <circle cx="35" cy="12" r="10.5" stroke="#E0E6F1" />
+                    </g>
+                  </svg>
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="49"
+                    height="27"
+                    viewBox="0 0 49 27"
+                    fill="none"
+                  >
+                    <rect
+                      x="2"
+                      y="4"
+                      width="44"
+                      height="16"
+                      rx="8"
+                      fill="#ECECF9"
+                    />
+                    <g filter="url(#filter0_d_1_625)">
+                      <circle cx="13" cy="12" r="11" fill="white" />
+                      <circle cx="13" cy="12" r="10.5" stroke="#E0E6F1" />
+                    </g>
+                  </svg>
+                )}
+              </div>
+            </div>
+          </Col>
+          <Col xs={12} md={6}>
+            <div
+              className="d-flex justify-content-between align-items-center modal-tab-button"
+              onClick={toggleHideDiscussion}
+              style={{ padding: "15px" }}
+            >
+              <div>
+                <svg
+                  width="25"
+                  height="24px"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z"
+                    fill="#3D57B5"
+                  />
+                </svg>
+                <span className="solutioncards" style={{ color: "#3D57B5" }}>
+                  {t("meeting.formState.Hide Discussion")}
+                </span>
+              </div>
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleHideDiscussion();
+                }}
+                style={{ cursor: "pointer" }}
+              >
+                {formState.show_discussion ? (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="48"
+                    height="27"
+                    viewBox="0 0 48 27"
+                    fill="none"
+                  >
+                    <rect
+                      x="2"
+                      y="4"
+                      width="44"
+                      height="16"
+                      rx="8"
+                      fill="#6BD27B"
+                      fillOpacity="0.77"
+                    />
+                    <g filter="url(#filter0_d_1_1194)">
+                      <circle cx="35" cy="12" r="11" fill="white" />
+                      <circle cx="35" cy="12" r="10.5" stroke="#E0E6F1" />
+                    </g>
+                  </svg>
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="49"
+                    height="27"
+                    viewBox="0 0 49 27"
+                    fill="none"
+                  >
+                    <rect
+                      x="2"
+                      y="4"
+                      width="44"
+                      height="16"
+                      rx="8"
+                      fill="#ECECF9"
+                    />
+                    <g filter="url(#filter0_d_1_625)">
+                      <circle cx="13" cy="12" r="11" fill="white" />
+                      <circle cx="13" cy="12" r="10.5" stroke="#E0E6F1" />
+                    </g>
+                  </svg>
+                )}
+              </div>
+            </div>
           </Col>
         </Row>
       </div>

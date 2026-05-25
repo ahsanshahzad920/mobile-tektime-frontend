@@ -1,6 +1,6 @@
 import CookieService from "../../../Utils/CookieService";
 import { createPortal } from "react-dom";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { RxCross2 } from "react-icons/rx";
 import {
   Modal,
@@ -33,27 +33,34 @@ import {
   formatTime,
 } from "../../Meeting/GetMeeting/Helpers/functionHelper";
 import { useNavigate } from "react-router-dom";
-import { MdEventAvailable, MdOutlineSupport, MdWork } from "react-icons/md";
+import {
+  FaBookOpen,
+  FaBullseye,
+  FaChalkboardTeacher,
+  FaRobot,
+  FaCode,
+  FaBullhorn,
+  FaShoppingCart,
+  FaUserTie,
+  FaSearch,
+  FaChessKnight,
+  FaLinkedin,
+} from "react-icons/fa";
+import {
+  MdEventAvailable,
+  MdOutlineSupport,
+  MdWork,
+  MdBrush,
+  MdMessage,
+  MdEvent,
+} from "react-icons/md";
 import { IoIosBusiness, IoIosRocket } from "react-icons/io";
-import {
-  HiOutlineLocationMarker,
-  HiOutlinePhone,
-  HiOutlineMap,
-} from "react-icons/hi";
-import {
-  AiOutlineAudit,
-  AiOutlineFileText,
-  AiOutlineBell,
-  AiOutlineMessage,
-  AiOutlineClockCircle,
-  AiOutlinePlayCircle,
-  AiOutlinePlaySquare,
-} from "react-icons/ai";
-import { FaBookOpen, FaBullseye, FaChalkboardTeacher } from "react-icons/fa";
+import { AiOutlineAudit } from "react-icons/ai";
 import {
   SiGooglecalendar,
   SiGooglemeet,
   SiMicrosoftoutlook,
+  SiStripe,
 } from "react-icons/si";
 import Solution from "../../Meeting/CreateNewMeeting/components/Template";
 import CalendlySettings from "../../Meeting/CreateNewMeeting/components/CalendlySettings";
@@ -89,6 +96,16 @@ const QuickMomentForm = ({
   const { user } = useHeaderTitle();
   const { setCallApi, setFromTektime } = useMeetings();
   const sessionUser = CookieService.get("email")?.toLowerCase()?.trim();
+  const [loadingStripe, setLoadingStripe] = useState(false);
+  const isStripeConnected = !!(
+    user?.stripe_onboarding_completed &&
+    user?.stripe_charges_enabled &&
+    user?.stripe_payouts_enabled
+  );
+  const [showStripeDisconnectConfirm, setShowStripeDisconnectConfirm] =
+    useState(false);
+  // Ref to prevent location/agenda defaults from re-running on Stripe user updates
+  const locationAgendaDefaultsSetRef = useRef(false);
   // Client and mission states
   const [client, setClient] = useState(null);
   const [clientId, setClientId] = useState(null);
@@ -126,6 +143,9 @@ const QuickMomentForm = ({
   const [selectedClient, setSelectedClient] = useState(null);
   const [selectedMission, setSelectedMission] = useState(null);
   const [destinationType, setDestinationType] = useState(null);
+  const [destinationTypeId, setDestinationTypeId] = useState(null);
+  const [missionTypeOptions, setMissionTypeOptions] = useState([]);
+  const [isLoadingMissionTypes, setIsLoadingMissionTypes] = useState(false);
   const [usersArray, setUsersArray] = useState([]);
   const [missionOptions, setMissionOptions] = useState([]);
 
@@ -232,7 +252,10 @@ const QuickMomentForm = ({
         }
       }
 
-      if (meetingData?.solution && meetingData?.created_from_whatsapp === true) {
+      if (
+        meetingData?.solution &&
+        meetingData?.created_from_whatsapp === true
+      ) {
         setFormState((prev) => ({
           ...prev,
           solution_id: meetingData.solution.id,
@@ -241,7 +264,10 @@ const QuickMomentForm = ({
       }
 
       // Map Template (Solution)
-      if (meetingData.solution_suggestion && meetingData?.created_from_whatsapp === true) {
+      if (
+        meetingData.solution_suggestion &&
+        meetingData?.created_from_whatsapp === true
+      ) {
         const matchSolution = async () => {
           try {
             const response = await axios.get(
@@ -336,6 +362,17 @@ const QuickMomentForm = ({
           repetition_end_date:
             meetingData.repetition_end_date || prev.repetition_end_date,
           selected_days: meetingData.selected_days || prev.selected_days || [],
+        }));
+      }
+      // Map Registration fields
+      if (meetingData.casting_type) {
+        setFormState((prev) => ({
+          ...prev,
+          casting_type: meetingData.casting_type,
+          max_participant: meetingData.max_participant || prev.max_participant,
+          max_participants_register:
+            meetingData.max_participant || prev.max_participants_register,
+          price: meetingData.price || prev.price,
         }));
       }
     }
@@ -442,6 +479,61 @@ const QuickMomentForm = ({
       return false;
     }) || [];
 
+  const googleMeetLink = user?.visioconference_links?.find(
+    (link) => link.platform === "Google Meet",
+  );
+  const teamsLink = user?.visioconference_links?.find(
+    (link) => link.platform === "Microsoft Teams",
+  );
+  const googleAgendaLink = user?.integration_links?.find(
+    (link) => link.platform === "Google Agenda",
+  );
+  const outlookAgendaLink = user?.integration_links?.find(
+    (link) => link.platform === "Outlook Agenda",
+  );
+
+  const linkedinLink = user?.linkedin_id || user?.integration_links?.find(
+    (link) => link.platform === "LinkedIn",
+  );
+
+  const isTemplateActive = !!formState?.solution_id;
+  const templateHasLocation = !!selectedSolution?.location;
+  const templateHasAgenda = !!selectedSolution?.agenda;
+
+  // If a template restricts the location/agenda, only show the allowed one.
+  // Otherwise, ALWAYS show all options so the user can connect and select them.
+  const showGoogleMeet =
+    isTemplateActive && templateHasLocation
+      ? selectedSolution?.location === "Google Meet"
+      : true;
+
+  const showMicrosoftTeams =
+    isTemplateActive && templateHasLocation
+      ? selectedSolution?.location === "Microsoft Teams"
+      : true;
+
+  const showLinkedIn =
+    isTemplateActive && templateHasLocation
+      ? selectedSolution?.location === "LinkedIn"
+      : true;
+
+  const showGoogleAgenda =
+    isTemplateActive && templateHasAgenda
+      ? selectedSolution?.agenda === "Google Agenda"
+      : true;
+
+  const showOutlookAgenda =
+    isTemplateActive && templateHasAgenda
+      ? selectedSolution?.agenda === "Outlook Agenda"
+      : true;
+
+  const hasLocationOrIntegrationOptions = !!(
+    showGoogleMeet ||
+    showMicrosoftTeams ||
+    showLinkedIn ||
+    showGoogleAgenda ||
+    showOutlookAgenda
+  );
 
   const getFilteredMissions = () => {
     if (!selectedClient) return []; // No client selected, show empty
@@ -453,7 +545,124 @@ const QuickMomentForm = ({
 
   const [isProcessingOutlookLogin, setIsProcessingOutlookLogin] =
     useState(false);
+  const [isProcessingLinkedinLogin, setIsProcessingLinkedinLogin] =
+    useState(false);
   const { setUser: setGlobalUser, setCallUser } = useHeaderTitle();
+
+  const linkedinLogin = async () => {
+    if (isProcessingLinkedinLogin) {
+      console.log("LinkedIn login already in progress, skipping.");
+      return;
+    }
+
+    setIsProcessingLinkedinLogin(true);
+    setShowProgressBar(true);
+    setProgress(10);
+
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/auth/linkedin`,
+        {
+          headers: {
+            Authorization: `Bearer ${CookieService.get("token")}`,
+          },
+        },
+      );
+
+      setProgress(30);
+
+      const redirectUrl = response.data?.login_url || response.data?.data?.url;
+      if (redirectUrl) {
+        const width = 600;
+        const height = 700;
+        const left = window.screenX + (window.innerWidth - width) / 2;
+        const top = window.screenY + (window.innerHeight - height) / 2;
+
+        const popup = window.open(
+          redirectUrl,
+          "LinkedIn Login",
+          `width=${width},height=${height},top=${top},left=${left}`,
+        );
+
+        if (!popup) {
+          toast.error("Popup was blocked. Please allow popups for this site.");
+          setIsProcessingLinkedinLogin(false);
+          setShowProgressBar(false);
+          return;
+        }
+
+        setProgress(50);
+
+        const messageHandler = async (event) => {
+          const { type } = event.data || {};
+          if (
+            type === "linkedin-success" ||
+            type === "linkedin-login-success"
+          ) {
+            console.log("✅ LinkedIn login success");
+            window.removeEventListener("message", messageHandler);
+            clearInterval(interval);
+
+            if (!popup.closed) popup.close();
+
+            try {
+              const userId = CookieService.get("user_id");
+              const token = CookieService.get("token");
+              const userRes = await axios.get(
+                `${API_BASE_URL}/users/${userId}`,
+                {
+                  headers: { Authorization: `Bearer ${token}` },
+                },
+              );
+              const updatedUser = userRes.data?.data;
+              if (updatedUser && setGlobalUser) {
+                setGlobalUser(updatedUser);
+              }
+              if (setCallUser) setCallUser((prev) => !prev);
+              toast.success("LinkedIn connected successfully!");
+
+              setFormState((prev) => ({
+                ...prev,
+                location: "LinkedIn",
+              }));
+            } catch (err) {
+              console.error(
+                "Failed to refresh user after LinkedIn connect:",
+                err,
+              );
+              toast.error("Failed to complete LinkedIn login.");
+            } finally {
+              setIsProcessingLinkedinLogin(false);
+              setProgress(100);
+              setTimeout(() => {
+                setShowProgressBar(false);
+              }, 1000);
+            }
+          }
+        };
+
+        window.addEventListener("message", messageHandler);
+
+        const interval = setInterval(() => {
+          if (!popup || popup.closed) {
+            clearInterval(interval);
+            window.removeEventListener("message", messageHandler);
+            setIsProcessingLinkedinLogin(false);
+            setShowProgressBar(false);
+          }
+        }, 1000);
+      } else {
+        toast.error("Could not get LinkedIn login URL.");
+        setIsProcessingLinkedinLogin(false);
+        setShowProgressBar(false);
+      }
+    } catch (error) {
+      console.error("LinkedIn connect error:", error);
+      toast.error("Failed to connect LinkedIn.");
+      setIsProcessingLinkedinLogin(false);
+      setShowProgressBar(false);
+    }
+  };
 
   const outlookLoginAndSaveProfile = async () => {
     if (isProcessingOutlookLogin) {
@@ -540,6 +749,111 @@ const QuickMomentForm = ({
       toast.error("Something went wrong during Outlook login.");
       setIsProcessingOutlookLogin(false);
       setShowProgressBar(false);
+    }
+  };
+
+  const handleStripeConnect = async (e) => {
+    e.preventDefault();
+    setLoadingStripe(true);
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/stripe/connect`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${CookieService.get("token")}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      const url = response.data?.url || response.data?.data?.url;
+
+      if (url) {
+        const width = 600;
+        const height = 700;
+        const left = window.screenX + (window.innerWidth - width) / 2;
+        const top = window.screenY + (window.innerHeight - height) / 2;
+        const popup = window.open(
+          url,
+          "Stripe Connect",
+          `width=${width},height=${height},top=${top},left=${left}`,
+        );
+
+        const messageHandler = async (event) => {
+          if (event.data?.type === "stripe-success") {
+            if (popup && !popup.closed) popup.close();
+            window.removeEventListener("message", messageHandler);
+            clearInterval(checkPopup);
+            // Directly fetch updated user to refresh stripe_onboarding_completed
+            // WITHOUT triggering setCallUser (which causes ReactBigCalendar to re-fetch agenda)
+            try {
+              const userId = CookieService.get("user_id");
+              const token = CookieService.get("token");
+              const userRes = await axios.get(
+                `${API_BASE_URL}/users/${userId}`,
+                {
+                  headers: { Authorization: `Bearer ${token}` },
+                },
+              );
+              const updatedUser = userRes.data?.data;
+              if (updatedUser && setGlobalUser) {
+                setGlobalUser(updatedUser);
+              }
+            } catch (err) {
+              console.error(
+                "Failed to refresh user after Stripe connect:",
+                err,
+              );
+            }
+          }
+        };
+
+        window.addEventListener("message", messageHandler);
+
+        const checkPopup = setInterval(() => {
+          if (!popup || popup.closed) {
+            clearInterval(checkPopup);
+            window.removeEventListener("message", messageHandler);
+            // if (setCallUser) setCallUser((prev) => !prev);
+          }
+        }, 1000);
+      } else {
+        toast.success(t("Stripe connection initiated!"));
+      }
+    } catch (error) {
+      console.error("Stripe connect error:", error);
+      toast.error(t("Failed to connect Stripe."));
+    } finally {
+      setLoadingStripe(false);
+    }
+  };
+
+  const handleStripeDisconnect = () => {
+    setShowStripeDisconnectConfirm(true);
+  };
+
+  const handleConfirmStripeDisconnect = async () => {
+    setShowStripeDisconnectConfirm(false);
+    setLoadingStripe(true);
+    try {
+      await axios.post(
+        `${API_BASE_URL}/stripe/disconnect`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${CookieService.get("token")}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+      toast.success(t("Stripe account disconnected successfully."));
+      if (setCallUser) setCallUser((prev) => !prev);
+    } catch (error) {
+      console.error("Stripe disconnect error:", error);
+      toast.error(t("Failed to disconnect Stripe."));
+    } finally {
+      setLoadingStripe(false);
     }
   };
 
@@ -1066,13 +1380,23 @@ const QuickMomentForm = ({
 
   useEffect(() => {
     if (destination || meeting || meetingData) {
-      setMissionId(destination?.id || meeting?.destination_id || meetingData?.destination_id);
-      setClientId(destination?.client_id || meeting?.destination?.client_id || meetingData?.destination?.client_id);
+      setMissionId(
+        destination?.id ||
+          meeting?.destination_id ||
+          meetingData?.destination_id,
+      );
+      setClientId(
+        destination?.client_id ||
+          meeting?.destination?.client_id ||
+          meetingData?.destination?.client_id,
+      );
       setDestinationType(
-        destination?.destination_type || meeting?.destination?.destination_type || meetingData?.destination?.destination_type,
+        destination?.destination_type ||
+          meeting?.destination?.destination_type ||
+          meetingData?.destination?.destination_type,
       );
     }
-  }, [destination, meeting,meetingData]);
+  }, [destination, meeting, meetingData]);
   // Fetch users on component mount
   useEffect(() => {
     const fetchUsers = async () => {
@@ -1163,6 +1487,8 @@ const QuickMomentForm = ({
           label: item?.name,
           client_id: item?.client_id,
           status: item?.status,
+          type: item?.destination_type,
+          type_id: item?.destination_type_id,
         }));
         setMissionOptions(newOptions);
 
@@ -1187,12 +1513,65 @@ const QuickMomentForm = ({
 
   useEffect(() => {
     getObjectives();
-  }, []);
+    const fetchMissionTypes = async () => {
+      const token = CookieService.get("token");
+      try {
+        setIsLoadingMissionTypes(true);
+        const { data } = await axios.get(`${API_BASE_URL}/mission-types`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (data && data.data) {
+          const contractMissions = (() => {
+            const raw =
+              user?.contract?.mission_types ||
+              user?.enterprise?.contract?.mission_types;
+            if (Array.isArray(raw)) return raw;
+            if (typeof raw === "string") {
+              try {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) return parsed;
+              } catch (e) {}
+              return [raw];
+            }
+            return [];
+          })();
+
+          const filteredMissions = data.data.filter(
+            (t) =>
+              contractMissions.includes(t.id) ||
+              contractMissions.includes(String(t.id)) ||
+              contractMissions.includes(t.title),
+          );
+
+          const source =
+            filteredMissions.length > 0 ? filteredMissions : data.data;
+
+          const options = source.map((type) => ({
+            value: type.title,
+            id: type.id,
+            label: t(`des_type.${type.title}`, type.title),
+            logo_file_url: type.mission_icon
+              ? type.mission_icon.startsWith("http")
+                ? type.mission_icon
+                : `${Assets_URL}/${type.mission_icon}`
+              : type.logo_file_url,
+            logo_key: type.logo,
+          }));
+          setMissionTypeOptions(options);
+        }
+      } catch (error) {
+        console.error("Failed to fetch mission types", error);
+      } finally {
+        setIsLoadingMissionTypes(false);
+      }
+    };
+    fetchMissionTypes();
+  }, [user]);
 
   // Mission defaults effect
   useEffect(() => {
     if (!selectedClient?.label || isManualMission) return;
-    if(meetingData?.created_from_whatsapp) return;
+    if (meetingData?.created_from_whatsapp) return;
 
     // Determine default mission label based on user profile
     let defaultMissionLabel = `projet ${selectedClient.label.toLowerCase()}`;
@@ -1258,7 +1637,7 @@ const QuickMomentForm = ({
     missionOptions,
     isManualMission,
     openedFrom,
-    meetingData
+    meetingData,
   ]);
 
   // Title defaults effect
@@ -1286,52 +1665,59 @@ const QuickMomentForm = ({
   ]);
 
   useEffect(() => {
-    if (show && user && !meetingData) {
-      const gAgenda = user?.integration_links?.some(
-        (link) => link.platform === "Google Agenda",
-      );
-      const oAgenda = user?.integration_links?.some(
-        (link) => link.platform === "Outlook Agenda",
-      );
-      const gMeet = user?.visioconference_links?.some(
-        (link) => link.platform === "Google Meet",
-      );
-      const oTeams = user?.visioconference_links?.some(
-        (link) => link.platform === "Microsoft Teams",
-      );
-
-      setFormState((prev) => {
-        // Only set defaults if they are currently null or empty
-        const newAgenda = !prev.agenda
-          ? gAgenda
-            ? "Google Agenda"
-            : oAgenda
-              ? "Outlook Agenda"
-              : prev.agenda
-          : prev.agenda;
-
-        let newLocation = !prev.location
-          ? gMeet
-            ? "Google Meet"
-            : prev.location
-          : prev.location;
-
-        // JB Outlook se kar rahay hain, toh location null rahay gi as requested
-        if (newAgenda === "Outlook Agenda") {
-          newLocation = null;
-        }
-
-        if (prev.agenda === newAgenda && prev.location === newLocation)
-          return prev;
-
-        return {
-          ...prev,
-          agenda: newAgenda,
-          location: newLocation,
-        };
-      });
+    // Reset defaults flag when form closes
+    if (!show) {
+      locationAgendaDefaultsSetRef.current = false;
+      return;
     }
-  }, [show, user, setFormState]);
+
+    // Only run once per form-open session — skip Stripe & other user updates
+    if (!user || meetingData || locationAgendaDefaultsSetRef.current) return;
+    if (formState?.solution_id) return;
+
+    locationAgendaDefaultsSetRef.current = true;
+
+    const gAgenda = user?.integration_links?.some(
+      (link) => link.platform === "Google Agenda",
+    );
+    const oAgenda = user?.integration_links?.some(
+      (link) => link.platform === "Outlook Agenda",
+    );
+    const gMeet = user?.visioconference_links?.some(
+      (link) => link.platform === "Google Meet",
+    );
+
+    setFormState((prev) => {
+      // Only set defaults if they are currently null or empty
+      const newAgenda = !prev.agenda
+        ? gAgenda
+          ? "Google Agenda"
+          : oAgenda
+            ? "Outlook Agenda"
+            : prev.agenda
+        : prev.agenda;
+
+      let newLocation = !prev.location
+        ? gMeet
+          ? "Google Meet"
+          : prev.location
+        : prev.location;
+
+      // JB Outlook se kar rahay hain, toh location null rahay gi as requested
+      if (newAgenda === "Outlook Agenda") {
+        newLocation = null;
+      }
+
+      if (prev.agenda === newAgenda && prev.location === newLocation)
+        return prev;
+
+      return {
+        ...prev,
+        agenda: newAgenda,
+        location: newLocation,
+      };
+    });
+  }, [show, user, meetingData, setFormState]);
 
   // Initialize defaults for Calendly fields
   useEffect(() => {
@@ -1533,6 +1919,7 @@ const QuickMomentForm = ({
           client_id: destination?.clients?.id || destination?.client_id,
           destination_id: destination?.id || destination?.client_id,
           destination_type: destination?.type || null,
+          destination_type_id: destination?.destination_type_id || null,
         };
       }
     } else if (step === 2 && openedFrom !== "mission") {
@@ -1552,6 +1939,7 @@ const QuickMomentForm = ({
         destination_id: !isNewMission ? selectedMission?.value : null,
         destination: isNewMission ? selectedMission?.label : null,
         destination_type: isNewMission ? destinationType : null,
+        destination_type_id: isNewMission ? destinationTypeId : null,
 
         status: "draft", // Keep as draft until final submit
         timezone: userTimezone,
@@ -1692,6 +2080,7 @@ const QuickMomentForm = ({
         ? {
             destination: selectedMission.label,
             destination_type: destinationType,
+            destination_type_id: destinationTypeId,
           }
         : {
             destination_id:
@@ -1699,6 +2088,8 @@ const QuickMomentForm = ({
                 ? destination?.id
                 : selectedMission.value,
             destination_type: selectedMission.type || destinationType,
+            destination_type_id:
+              selectedMission.destination_type_id || destinationTypeId,
           }),
       title: momentName,
       date: dateTime.toISOString().split("T")[0],
@@ -1734,7 +2125,9 @@ const QuickMomentForm = ({
         }
         if (meetingData) {
           // Assistant Flow: Check actual meeting data for steps
-          const hasSteps = (responseData?.steps?.length > 0) || (responseData?.meeting_steps_count > 0);
+          const hasSteps =
+            responseData?.steps?.length > 0 ||
+            responseData?.meeting_steps_count > 0;
           if (hasSteps) {
             navigate(`/invite/${targetId}`);
             if (isTemplate) {
@@ -1848,7 +2241,6 @@ const QuickMomentForm = ({
     }
   };
 
-
   const handleMeetingUpdate = async () => {
     if (!meetingData?.id) return;
 
@@ -1887,6 +2279,7 @@ const QuickMomentForm = ({
         ? {
             destination: selectedMission?.label,
             destination_type: destinationType,
+            destination_type_id: destinationTypeId,
           }
         : {
             destination_id:
@@ -1894,6 +2287,7 @@ const QuickMomentForm = ({
                 ? destination?.id
                 : selectedMission?.value,
             destination_type: selectedMission?.type || destinationType,
+            destination_type_id: selectedMission?.type_id || destinationTypeId,
           }),
       steps: formState?.steps?.length > 0 ? formState?.steps : [],
     };
@@ -1912,13 +2306,14 @@ const QuickMomentForm = ({
       if (res.status === 200 || res?.status === 201) {
         toast.success(t("meeting.formState.Meeting updated successfully"));
 
-            const hasSteps =
-      (meetingData?.steps?.length > 0) || (meetingData?.meeting_steps_count > 0);
+        const hasSteps =
+          meetingData?.steps?.length > 0 ||
+          meetingData?.meeting_steps_count > 0;
 
-    if (!hasSteps) {
-      setShowStepsModal(true);
-      // return;
-    }
+        if (!hasSteps) {
+          setShowStepsModal(true);
+          // return;
+        }
       }
     } catch (error) {
       console.error("Error updating meeting:", error);
@@ -2123,10 +2518,12 @@ const QuickMomentForm = ({
         ? {
             destination: selectedMission.label,
             destination_type: destinationType,
+            destination_type_id: destinationTypeId,
           }
         : {
             destination_id: selectedMission.value,
             destination_type: selectedMission.type || destinationType,
+            destination_type_id: selectedMission.type_id || destinationTypeId,
           }),
       title: momentName,
       date: dateTime.toISOString().split("T")[0],
@@ -2247,61 +2644,74 @@ const QuickMomentForm = ({
     }
   };
 
-  const missionTypeOptions = [
-    {
-      value: "Business opportunity",
-      label: t("destination.businessOppurtunity"),
-    },
-    { value: "Study", label: t("destination.study") },
-    { value: "Audit", label: t("destination.audit") },
-    { value: "Project", label: t("destination.project") },
-    { value: "Accompagnement", label: t("destination.accompagnement") },
-    { value: "Event", label: t("destination.event") },
-    { value: "Formation", label: t("destination.formation") },
-    { value: "Recruitment", label: t("destination.recruitment") },
-    { value: "Objective", label: t("destination.objective") },
-    { value: "Agenda", label: t("destination.Agenda") },
-    { value: "Messagerie", label: t("destination.messaging") },
-    { value: "Other", label: t("destination.other") },
-  ];
-
-  const getIcon = (value) => {
+  const getIcon = (value, option = null) => {
     const commonStyle = { marginRight: 8 };
+    const size = 20;
 
-    switch (value) {
+    if (option?.logo_file_url) {
+      return (
+        <img
+          src={option.logo_file_url}
+          alt=""
+          style={{
+            width: size,
+            height: size,
+            ...commonStyle,
+            objectFit: "contain",
+          }}
+        />
+      );
+    }
+
+    const iconKey = option?.logo_key || value;
+    switch (iconKey) {
       case "Business opportunity":
-        return <IoIosBusiness size={20} style={commonStyle} />;
-
+        return <IoIosBusiness size={size} style={commonStyle} />;
       case "Study":
-        return <FaBookOpen size={20} style={commonStyle} />;
-
+        return <FaBookOpen size={size} style={commonStyle} />;
       case "Audit":
-        return <AiOutlineAudit size={20} style={commonStyle} />;
-
+        return <AiOutlineAudit size={size} style={commonStyle} />;
       case "Project":
-        return <IoIosRocket size={20} style={commonStyle} />;
-
+        return <IoIosRocket size={size} style={commonStyle} />;
       case "Accompagnement":
-        return <MdOutlineSupport size={20} style={commonStyle} />;
-
+        return <MdOutlineSupport size={size} style={commonStyle} />;
       case "Event":
-        return <MdEventAvailable size={20} style={commonStyle} />;
-
+        return <MdEventAvailable size={size} style={commonStyle} />;
       case "Formation":
-        return <FaChalkboardTeacher size={20} style={commonStyle} />;
-
+        return <FaChalkboardTeacher size={size} style={commonStyle} />;
       case "Recruitment":
-        return <MdWork size={20} style={commonStyle} />;
-
+        return <MdWork size={size} style={commonStyle} />;
       case "Objective":
-        return <FaBullseye size={20} style={commonStyle} />;
-
+        return <FaBullseye size={size} style={commonStyle} />;
+      case "Design":
+        return <MdBrush size={size} style={commonStyle} />;
+      case "Development":
+        return <FaCode size={size} style={commonStyle} />;
+      case "Marketing":
+        return <FaBullhorn size={size} style={commonStyle} />;
+      case "Sales":
+        return <FaShoppingCart size={size} style={commonStyle} />;
+      case "Consulting":
+        return <FaUserTie size={size} style={commonStyle} />;
+      case "Research":
+        return <FaSearch size={size} style={commonStyle} />;
+      case "Strategy":
+        return <FaChessKnight size={size} style={commonStyle} />;
+      case "Assistant Conversation":
+        return <FaRobot size={size} style={commonStyle} />;
       case "Agenda":
       case "Messagerie":
         return (
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#F19C38" style={commonStyle}>
-            <path d="M7.5 5.6L10 0L12.5 5.6L18.1 8.1L12.5 10.6L10 16.2L7.5 10.6L1.9 8.1L7.5 5.6Z"/>
-            <path d="M17.5 15.6L19.1 12.1L20.7 15.6L24.2 17.2L20.7 18.8L19.1 22.3L17.5 18.8L14 17.2L17.5 15.6Z"/>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width={size}
+            height={size}
+            viewBox="0 0 24 24"
+            fill="#F19C38"
+            style={commonStyle}
+          >
+            <path d="M7.5 5.6L10 0L12.5 5.6L18.1 8.1L12.5 10.6L10 16.2L7.5 10.6L1.9 8.1L7.5 5.6Z" />
+            <path d="M17.5 15.6L19.1 12.1L20.7 15.6L24.2 17.2L20.7 18.8L19.1 22.3L17.5 18.8L14 17.2L17.5 15.6Z" />
           </svg>
         );
 
@@ -2309,9 +2719,61 @@ const QuickMomentForm = ({
         return <span style={commonStyle}>✨</span>;
 
       default:
-        return null;
+        return <span style={commonStyle}>✨</span>;
     }
   };
+
+  // const getIcon = (value, option = null) => {
+  //   const commonStyle = { marginRight: 8 };
+
+  //   if (option?.logo_file_url) {
+  //     return <img src={option.logo_file_url} alt="" style={{ width: 20, height: 20, ...commonStyle, objectFit: "contain" }} />;
+  //   }
+
+  //   switch (value) {
+  //     case "Business opportunity":
+  //       return <IoIosBusiness size={20} style={commonStyle} />;
+
+  //     case "Study":
+  //       return <FaBookOpen size={20} style={commonStyle} />;
+
+  //     case "Audit":
+  //       return <AiOutlineAudit size={20} style={commonStyle} />;
+
+  //     case "Project":
+  //       return <IoIosRocket size={20} style={commonStyle} />;
+
+  //     case "Accompagnement":
+  //       return <MdOutlineSupport size={20} style={commonStyle} />;
+
+  //     case "Event":
+  //       return <MdEventAvailable size={20} style={commonStyle} />;
+
+  //     case "Formation":
+  //       return <FaChalkboardTeacher size={20} style={commonStyle} />;
+
+  //     case "Recruitment":
+  //       return <MdWork size={20} style={commonStyle} />;
+
+  //     case "Objective":
+  //       return <FaBullseye size={20} style={commonStyle} />;
+
+  //     case "Agenda":
+  //     case "Messagerie":
+  //       return (
+  //         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#F19C38" style={commonStyle}>
+  //           <path d="M7.5 5.6L10 0L12.5 5.6L18.1 8.1L12.5 10.6L10 16.2L7.5 10.6L1.9 8.1L7.5 5.6Z"/>
+  //           <path d="M17.5 15.6L19.1 12.1L20.7 15.6L24.2 17.2L20.7 18.8L19.1 22.3L17.5 18.8L14 17.2L17.5 15.6Z"/>
+  //         </svg>
+  //       );
+
+  //     case "Other":
+  //       return <span style={commonStyle}>✨</span>;
+
+  //     default:
+  //       return null;
+  //   }
+  // };
 
   const renderStepContent = () => {
     if (openedFrom === "mission") {
@@ -2784,9 +3246,8 @@ const QuickMomentForm = ({
                 </div>
 
                 {/* Location & Integration info */}
-                {(displayAgendaLinks.length > 0 ||
-                  displayVisioLinks.length > 0) &&
-                  !((meetingData?.created_from_whatsapp || meeting?.created_from_whatsapp) && !meetingData?.location && !meetingData?.agenda) && (
+                  {(meetingData?.location || meeting?.location || meeting?.agenda || meetingData?.agenda) && (
+
                   <div className="form-group mb-3">
                     <label className="form-label">
                       {t("Location & Integration")}
@@ -2799,90 +3260,500 @@ const QuickMomentForm = ({
                         border: "1px solid #E2E8F0",
                       }}
                     >
-                      {/* Visioconference */}
-                      {displayVisioLinks.map((link, idx) => (
+                      {/* Google Meet */}
+                      {meeting?.location === "Google Meet" && (
                         <div
-                          key={`visio-${idx}`}
                           className="d-flex align-items-center gap-2"
-                          style={{ cursor: "pointer" }}
+                          style={{
+                            cursor: "pointer",
+                            opacity: googleMeetLink ? 1 : 0.6,
+                          }}
+                          title={
+                            !googleMeetLink
+                              ? t("Click to connect Google Meet")
+                              : ""
+                          }
                           onClick={() => {
-                            setFormState((prev) => ({
-                              ...prev,
-                              location: prev.location === link.platform ? null : link.platform,
-                            }));
+                            if (!googleMeetLink) {
+                              // Not integrated — trigger OAuth only, don't select
+                              googleLoginAndSaveProfileScheduled();
+                            } else {
+                              setFormState((prev) => ({
+                                ...prev,
+                                location:
+                                  prev.location === "Google Meet"
+                                    ? null
+                                    : "Google Meet",
+                              }));
+                            }
                           }}
                         >
                           <input
                             type="radio"
-                            checked={formState.location === link.platform}
+                            checked={
+                              !!googleMeetLink &&
+                              formState.location === "Google Meet"
+                            }
                             readOnly
                           />
-                          {link.platform === "Google Meet" ? (
-                            <SiGooglemeet size={20} color="#00897b" />
-                          ) : (
-                            <SiMicrosoftoutlook size={20} color="#0078d4" />
-                          )}
+                          <SiGooglemeet size={20} color="#00897b" />
                           <span style={{ fontSize: "14px", fontWeight: "500" }}>
-                            {link.value}
+                            {googleMeetLink
+                              ? googleMeetLink.value
+                              : "Connect your Google Meet"}
                           </span>
+                          {!googleMeetLink && (
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                color: "#94a3b8",
+                                marginLeft: 2,
+                              }}
+                            >
+                              ({t("Connect")})
+                            </span>
+                          )}
                         </div>
-                      ))}
+                      )}
 
-                      {/* Agenda */}
-                      {displayAgendaLinks.map((link, idx) => (
+                      {/* Microsoft Teams */}
+                      {meeting?.location === "Microsoft Teams" && (
                         <div
-                          key={`agenda-${idx}`}
                           className="d-flex align-items-center gap-2"
-                          style={{ cursor: "pointer" }}
+                          style={{
+                            cursor: "pointer",
+                            opacity: teamsLink ? 1 : 0.6,
+                          }}
+                          title={
+                            !teamsLink
+                              ? t("Click to connect Microsoft Teams")
+                              : ""
+                          }
                           onClick={() => {
-                            setFormState((prev) => ({
-                              ...prev,
-                              agenda: prev.agenda === link.platform ? null : link.platform,
-                            }));
+                            if (!teamsLink) {
+                              outlookLoginAndSaveProfile();
+                            } else {
+                              setFormState((prev) => ({
+                                ...prev,
+                                location:
+                                  prev.location === "Microsoft Teams"
+                                    ? null
+                                    : "Microsoft Teams",
+                              }));
+                            }
                           }}
                         >
                           <input
                             type="radio"
-                            checked={formState.agenda === link.platform}
+                            checked={
+                              !!teamsLink &&
+                              formState.location === "Microsoft Teams"
+                            }
                             readOnly
                           />
-                          {link.platform === "Google Agenda" ? (
-                            <SiGooglecalendar size={20} color="#4285f4" />
-                          ) : (
-                            <SiMicrosoftoutlook size={20} color="#0078d4" />
-                          )}
+                          <SiMicrosoftoutlook size={20} color="#0078d4" />
                           <span style={{ fontSize: "14px", fontWeight: "500" }}>
-                            {link.value}
+                            {teamsLink ? teamsLink.value : "Microsoft Teams"}
+                          </span>
+                          {!teamsLink && (
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                color: "#94a3b8",
+                                marginLeft: 2,
+                              }}
+                            >
+                              ({t("Connect")})
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* LinkedIn (Social Media) — no OAuth needed, just toggle */}
+                      {meeting?.location === "LinkedIn" && (
+                        <div
+                          className="d-flex align-items-center gap-2"
+                          style={{ cursor: "pointer" }}
+                          onClick={() => {
+                            if (!linkedinLink) {
+                              linkedinLogin();
+                            } else {
+                              setFormState((prev) => ({
+                                ...prev,
+                                location:
+                                  prev.location === "LinkedIn"
+                                    ? null
+                                    : "LinkedIn",
+                              }));
+                            }
+                          }}
+                        >
+                          <input
+                            type="radio"
+                            checked={!!linkedinLink && formState.location === "LinkedIn"}
+                            readOnly
+                          />
+                          <FaLinkedin size={20} color="#0A66C2" />
+                          <span style={{ fontSize: "14px", fontWeight: "500" }}>
+                            {linkedinLink ? user?.linkedin_name : "Connect YourLinkedIn"}
+                            {linkedinLink && (
+                              <span style={{ fontSize: "11px", color: "#2fb36b", marginLeft: "6px" }}>✓ Connecté</span>
+                            )}
                           </span>
                         </div>
-                      ))}
+                      )}
+
+                      {/* Google Agenda */}
+                      {meeting?.agenda === "Google Agenda" && (
+                        <div
+                          className="d-flex align-items-center gap-2"
+                          style={{
+                            cursor: "pointer",
+                            opacity: googleAgendaLink ? 1 : 0.6,
+                          }}
+                          title={
+                            !googleAgendaLink
+                              ? t("Click to connect Google Agenda")
+                              : ""
+                          }
+                          onClick={() => {
+                            if (!googleAgendaLink) {
+                              googleLoginAndSaveProfileScheduled();
+                            } else {
+                              setFormState((prev) => ({
+                                ...prev,
+                                agenda:
+                                  prev.agenda === "Google Agenda"
+                                    ? null
+                                    : "Google Agenda",
+                              }));
+                            }
+                          }}
+                        >
+                          <input
+                            type="radio"
+                            checked={
+                              !!googleAgendaLink &&
+                              formState.agenda === "Google Agenda"
+                            }
+                            readOnly
+                          />
+                          <SiGooglecalendar size={20} color="#4285f4" />
+                          <span style={{ fontSize: "14px", fontWeight: "500" }}>
+                            {googleAgendaLink
+                              ? googleAgendaLink.value
+                              : "Google Agenda"}
+                          </span>
+                          {!googleAgendaLink && (
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                color: "#94a3b8",
+                                marginLeft: 2,
+                              }}
+                            >
+                              ({t("Connect")})
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Outlook Agenda */}
+                      {meeting?.agenda === "Outlook Agenda" && (
+                        <div
+                          className="d-flex align-items-center gap-2"
+                          style={{
+                            cursor: "pointer",
+                            opacity: outlookAgendaLink ? 1 : 0.6,
+                          }}
+                          title={
+                            !outlookAgendaLink
+                              ? t("Click to connect Outlook Agenda")
+                              : ""
+                          }
+                          onClick={() => {
+                            if (!outlookAgendaLink) {
+                              outlookLoginAndSaveProfile();
+                            } else {
+                              setFormState((prev) => ({
+                                ...prev,
+                                agenda:
+                                  prev.agenda === "Outlook Agenda"
+                                    ? null
+                                    : "Outlook Agenda",
+                              }));
+                            }
+                          }}
+                        >
+                          <input
+                            type="radio"
+                            checked={
+                              !!outlookAgendaLink &&
+                              formState.agenda === "Outlook Agenda"
+                            }
+                            readOnly
+                          />
+                          <SiMicrosoftoutlook size={20} color="#0078d4" />
+                          <span style={{ fontSize: "14px", fontWeight: "500" }}>
+                            {outlookAgendaLink
+                              ? outlookAgendaLink.value
+                              : "Outlook Agenda"}
+                          </span>
+                          {!outlookAgendaLink && (
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                color: "#94a3b8",
+                                marginLeft: 2,
+                              }}
+                            >
+                              ({t("Connect")})
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
 
-                <div className="form-group">
-                  <label className="form-label">
-                    {t("invities.participants") || "Participants"}
-                  </label>
-                  <Creatable
-                    isMulti
-                    isClearable
-                    isLoading={isFetchingParticipants}
-                    options={participantOptions}
-                    value={getSelectValue()}
-                    onChange={handleSelectionChange}
-                    placeholder={
-                      t("Type email or select from list...") ||
-                      "Type email or select from list..."
-                    }
-                    formatCreateLabel={(inputValue) =>
-                      `Add new: "${inputValue}"`
-                    }
-                    styles={customStyles}
-                    menuPortalTarget={document.body}
-                    className="my-select"
-                  />
-                </div>
+                {/* Physical Location Details */}
+                {(formState.address ||
+                  formState.room_details ||
+                  formState.phone) && (
+                  <div className="row mt-2 g-2">
+                    {formState.address && (
+                      <div className="form-group col-md-12 mb-3">
+                        <label className="form-label">
+                          {t("meeting.formState.address")}
+                        </label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={formState.address}
+                          onChange={(e) =>
+                            setFormState((prev) => ({
+                              ...prev,
+                              address: e.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+                    )}
+                    {formState.room_details && (
+                      <div className="form-group col-md-6 mb-3">
+                        <label className="form-label">
+                          {t("meeting.formState.RoomDetail")}
+                        </label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={formState.room_details}
+                          onChange={(e) =>
+                            setFormState((prev) => ({
+                              ...prev,
+                              room_details: e.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+                    )}
+                    {formState.phone && (
+                      <div className="form-group col-md-6 mb-3">
+                        <label className="form-label">
+                          {t("meeting.formState.phone")}
+                        </label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={formState.phone}
+                          onChange={(e) =>
+                            setFormState((prev) => ({
+                              ...prev,
+                              phone: e.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {formState?.casting_type === "Registration" ? (
+                  <div className="row g-2">
+                    <div className="col-12 mb-3">
+                      {isStripeConnected ? (
+                        <div
+                          className="d-flex align-items-center justify-content-between p-3 rounded"
+                          style={{
+                            backgroundColor: "rgba(47, 187, 103, 0.1)",
+                            border: "1px solid #2fa25d",
+                          }}
+                        >
+                          <div className="d-flex align-items-center">
+                            <div
+                              className="me-3 bg-white p-2 rounded-circle d-flex align-items-center justify-content-center"
+                              style={{ width: "40px", height: "40px" }}
+                            >
+                              <SiStripe size={24} color="#635BFF" />
+                            </div>
+                            <div>
+                              <h6
+                                className="mb-0 fw-bold"
+                                style={{ color: "#2fa25d" }}
+                              >
+                                {t("Stripe Account Connected")}
+                              </h6>
+                              <small className="text-muted">
+                                {t(
+                                  "You can now receive payments for this registration.",
+                                )}
+                              </small>
+                            </div>
+                          </div>
+                          <button
+                            style={{
+                              background: "none",
+                              border: "none",
+                              color: "#dc3545",
+                              fontWeight: "bold",
+                              padding: "6px 16px",
+                              borderRadius: "6px",
+                              cursor: loadingStripe ? "not-allowed" : "pointer",
+                              transition: "background-color 0.2s ease",
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!loadingStripe)
+                                e.currentTarget.style.backgroundColor =
+                                  "rgba(220,53,69,0.12)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor =
+                                "transparent";
+                            }}
+                            onClick={handleStripeDisconnect}
+                            disabled={loadingStripe}
+                          >
+                            {loadingStripe ? (
+                              <Spinner size="sm" />
+                            ) : (
+                              t("Disconnect")
+                            )}
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="d-flex align-items-center justify-content-between p-3 rounded bg-light border border-warning">
+                          <div className="d-flex align-items-center">
+                            <div
+                              className="me-3 bg-white p-2 rounded-circle d-flex align-items-center justify-content-center border"
+                              style={{ width: "40px", height: "40px" }}
+                            >
+                              <SiStripe size={24} color="#635BFF" />
+                            </div>
+                            <div>
+                              <h6 className="mb-0 fw-bold text-dark">
+                                {t("Stripe Integration Required")}
+                              </h6>
+                              <small className="text-muted">
+                                {t(
+                                  "Connect your Stripe account to enable registration.",
+                                )}
+                              </small>
+                            </div>
+                          </div>
+                          <button
+                            className="btn text-white fw-bold px-4"
+                            style={{
+                              backgroundColor: "#635BFF",
+                              borderRadius: "8px",
+                            }}
+                            onClick={handleStripeConnect}
+                            disabled={loadingStripe}
+                          >
+                            {loadingStripe ? (
+                              <Spinner size="sm" />
+                            ) : (
+                              t("Connect Stripe")
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="col-md-6 mb-2 form">
+                      <div className="form-group">
+                        <label className="form-label">
+                          {t("meeting.formState.Max_Participant") ||
+                            "Maximum Participants"}
+                        </label>
+                        <input
+                          type="number"
+                          className="form-control"
+                          placeholder={t("meeting.formState.Max_Participant")}
+                          value={formState.max_participant || ""}
+                          min="1"
+                          onChange={(e) => {
+                            const val = Math.max(
+                              1,
+                              parseInt(e.target.value) || 1,
+                            );
+                            setFormState((prev) => ({
+                              ...prev,
+                              max_participant: val,
+                              max_participants_register: val,
+                            }));
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div className="col-md-6 mb-2 form">
+                      <div className="form-group">
+                        <label className="form-label">
+                          {t("meeting.formState.Max_Price") || "Price"}
+                        </label>
+                        <input
+                          type="number"
+                          className="form-control"
+                          placeholder={t("meeting.formState.Max_Price")}
+                          value={formState.price || ""}
+                          min="0"
+                          onChange={(e) => {
+                            const val = Math.max(
+                              0,
+                              parseInt(e.target.value) || 0,
+                            );
+                            setFormState((prev) => ({
+                              ...prev,
+                              price: val,
+                            }));
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="form-group">
+                    <label className="form-label">
+                      {t("invities.participants") || "Participants"}
+                    </label>
+                    <Creatable
+                      isMulti
+                      isClearable
+                      isLoading={isFetchingParticipants}
+                      options={participantOptions}
+                      value={getSelectValue()}
+                      onChange={handleSelectionChange}
+                      placeholder={
+                        t("Type email or select from list...") ||
+                        "Type email or select from list..."
+                      }
+                      formatCreateLabel={(inputValue) =>
+                        `Add new: "${inputValue}"`
+                      }
+                      styles={customStyles}
+                      menuPortalTarget={document.body}
+                      className="my-select"
+                    />
+                  </div>
+                )}
 
                 {/* Conditional Date/Time or Calendly Config */}
                 {formState?.type === "Calendly" ? (
@@ -3120,28 +3991,76 @@ const QuickMomentForm = ({
                   {t("destination_type")}
                   <span className="required-asterisk">*</span>
                 </label>
-                <Select
-                  className="my-select "
-                  classNamePrefix="select"
-                  styles={{
-                    control: (provided, state) => ({
-                      ...provided,
-                      zIndex: 9, // Ensure dropdown is above other elements
-                    }),
-                  }}
-                  options={missionTypeOptions}
-                  value={missionTypeOptions.find(
-                    (opt) => opt.value === destinationType,
-                  )}
-                  onChange={(option) => setDestinationType(option.value)}
-                  formatOptionLabel={(option) => (
-                    <div style={{ display: "flex", alignItems: "center" }}>
-                      {getIcon(option)}
-                      <span>{option.label}</span>
-                    </div>
-                  )}
-                  isClearable
-                />
+                {isLoadingMissionTypes ? (
+                  <div
+                    className="d-flex align-items-center gap-2 text-muted"
+                    style={{ fontSize: "0.9rem" }}
+                  >
+                    <Spinner animation="border" size="sm" />
+                    <span>{t("messages.loading") || "Loading..."}</span>
+                  </div>
+                ) : (
+                  <Select
+                    className="my-select "
+                    classNamePrefix="select"
+                    styles={{
+                      control: (provided, state) => ({
+                        ...provided,
+                        zIndex: 9, // Ensure dropdown is above other elements
+                      }),
+                    }}
+                    options={missionTypeOptions}
+                    value={missionTypeOptions.find(
+                      (opt) => opt.value === destinationType,
+                    )}
+                    onChange={(option) => {
+                      setDestinationType(option?.value || null);
+                      setDestinationTypeId(option?.id || null);
+                    }}
+                    formatOptionLabel={(option) => (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                        }}
+                      >
+                        {getIcon(option.value, option)}
+                        <span>{t(option.label)}</span>
+                      </div>
+                    )}
+                    isClearable
+                  />
+                )}
+                {/* {isLoadingMissionTypes ? (
+                  <div className="d-flex align-items-center gap-2 text-muted" style={{ fontSize: "0.9rem" }}>
+                    <Spinner animation="border" size="sm" />
+                    <span>{t("messages.loading") || "Loading..."}</span>
+                  </div>
+                ) : (
+                  <Select
+                    className="my-select "
+                    classNamePrefix="select"
+                    styles={{
+                      control: (provided, state) => ({
+                        ...provided,
+                        zIndex: 9, // Ensure dropdown is above other elements
+                      }),
+                    }}
+                    options={missionTypeOptions}
+                    value={missionTypeOptions.find(
+                      (opt) => opt.value === destinationType,
+                    )}
+                    onChange={(option) => setDestinationType(option.value)}
+                    formatOptionLabel={(option) => (
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        {getIcon(option.value, option)}
+                        <span>{t(option.label)}</span>
+                      </div>
+                    )}
+                    isClearable
+                  />
+                )} */}
               </div>
             )}
 
@@ -3538,9 +4457,7 @@ const QuickMomentForm = ({
                 )}
 
                 {/* Location & Integration info */}
-                {(displayAgendaLinks.length > 0 ||
-                  displayVisioLinks.length > 0) &&
-                  !((meetingData?.created_from_whatsapp || meeting?.created_from_whatsapp) && !meetingData?.location && !meetingData?.agenda) && (
+                {(meetingData?.location || meeting?.location || meeting?.agenda || meetingData?.agenda) && (
                   <div className="form-group mb-3">
                     <label className="form-label">
                       {t("meeting.NewMeetingTabs.tab4")}
@@ -3553,64 +4470,320 @@ const QuickMomentForm = ({
                         border: "1px solid #E2E8F0",
                       }}
                     >
-                      {/* Visioconference */}
-                      {displayVisioLinks.map((link, idx) => (
+                      {/* Google Meet */}
+                      {meeting?.location === "Google Meet" && (
                         <div
-                          key={`visio-${idx}`}
                           className="d-flex align-items-center gap-2"
-                          style={{ cursor: "pointer" }}
+                          style={{
+                            cursor: "pointer",
+                            opacity: googleMeetLink ? 1 : 0.6,
+                          }}
+                          title={
+                            !googleMeetLink
+                              ? t("Click to connect Google Meet")
+                              : ""
+                          }
                           onClick={() => {
-                            setFormState((prev) => ({
-                              ...prev,
-                              location: prev.location === link.platform ? null : link.platform,
-                            }));
+                            if (!googleMeetLink) {
+                              googleLoginAndSaveProfileScheduled();
+                            } else {
+                              setFormState((prev) => ({
+                                ...prev,
+                                location:
+                                  prev.location === "Google Meet"
+                                    ? null
+                                    : "Google Meet",
+                              }));
+                            }
                           }}
                         >
                           <input
                             type="radio"
-                            checked={formState.location === link.platform}
+                            checked={
+                              !!googleMeetLink &&
+                              formState.location === "Google Meet"
+                            }
                             readOnly
                           />
-                          {link.platform === "Google Meet" ? (
-                            <SiGooglemeet size={20} color="#00897b" />
-                          ) : (
-                            <SiMicrosoftoutlook size={20} color="#0078d4" />
-                          )}
+                          <SiGooglemeet size={20} color="#00897b" />
                           <span style={{ fontSize: "14px", fontWeight: "500" }}>
-                            {link.value}
+                            {googleMeetLink
+                              ? googleMeetLink.value
+                              : "Google Meet"}
                           </span>
+                          {!googleMeetLink && (
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                color: "#94a3b8",
+                                marginLeft: 2,
+                              }}
+                            >
+                              ({t("Connect")})
+                            </span>
+                          )}
                         </div>
-                      ))}
+                      )}
 
-                      {/* Agenda */}
-                      {displayAgendaLinks.map((link, idx) => (
+                      {/* Microsoft Teams */}
+                      {meeting?.location === "Microsoft Teams" && (
                         <div
-                          key={`agenda-${idx}`}
                           className="d-flex align-items-center gap-2"
-                          style={{ cursor: "pointer" }}
+                          style={{
+                            cursor: "pointer",
+                            opacity: teamsLink ? 1 : 0.6,
+                          }}
+                          title={
+                            !teamsLink
+                              ? t("Click to connect Microsoft Teams")
+                              : ""
+                          }
                           onClick={() => {
-                            setFormState((prev) => ({
-                              ...prev,
-                              agenda: prev.agenda === link.platform ? null : link.platform,
-                            }));
+                            if (!teamsLink) {
+                              outlookLoginAndSaveProfile();
+                            } else {
+                              setFormState((prev) => ({
+                                ...prev,
+                                location:
+                                  prev.location === "Microsoft Teams"
+                                    ? null
+                                    : "Microsoft Teams",
+                              }));
+                            }
                           }}
                         >
                           <input
                             type="radio"
-                            checked={formState.agenda === link.platform}
+                            checked={
+                              !!teamsLink &&
+                              formState.location === "Microsoft Teams"
+                            }
                             readOnly
                           />
-                          {link.platform === "Google Agenda" ? (
-                            <SiGooglecalendar size={20} color="#4285f4" />
-                          ) : (
-                            <SiMicrosoftoutlook size={20} color="#0078d4" />
-                          )}
+                          <SiMicrosoftoutlook size={20} color="#0078d4" />
                           <span style={{ fontSize: "14px", fontWeight: "500" }}>
-                            {link.value}
+                            {teamsLink ? teamsLink.value : "Microsoft Teams"}
+                          </span>
+                          {!teamsLink && (
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                color: "#94a3b8",
+                                marginLeft: 2,
+                              }}
+                            >
+                              ({t("Connect")})
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* LinkedIn (Social Media) — no OAuth needed, just toggle */}
+                      {meeting?.location === "LinkedIn" && (
+                        <div
+                          className="d-flex align-items-center gap-2"
+                          style={{ cursor: "pointer" }}
+                          onClick={() => {
+                            if (!linkedinLink) {
+                              linkedinLogin();
+                            } else {
+                              setFormState((prev) => ({
+                                ...prev,
+                                location:
+                                  prev.location === "LinkedIn"
+                                    ? null
+                                    : "LinkedIn",
+                              }));
+                            }
+                          }}
+                        >
+                          <input
+                            type="radio"
+                            checked={!!linkedinLink && formState.location === "LinkedIn"}
+                            readOnly
+                          />
+                          <FaLinkedin size={20} color="#0A66C2" />
+                          <span style={{ fontSize: "14px", fontWeight: "500" }}>
+                            {linkedinLink ? user?.linkedin_name : "Connect Your LinkedIn"}
+                            {linkedinLink && (
+                              <span style={{ fontSize: "11px", color: "#2fb36b", marginLeft: "6px" }}>✓ Connecté</span>
+                            )}
                           </span>
                         </div>
-                      ))}
+                      )}
+
+                      {/* Google Agenda */}
+                      {meeting?.agenda === "Google Agenda" && (
+                        <div
+                          className="d-flex align-items-center gap-2"
+                          style={{
+                            cursor: "pointer",
+                            opacity: googleAgendaLink ? 1 : 0.6,
+                          }}
+                          title={
+                            !googleAgendaLink
+                              ? t("Click to connect Google Agenda")
+                              : ""
+                          }
+                          onClick={() => {
+                            if (!googleAgendaLink) {
+                              googleLoginAndSaveProfileScheduled();
+                            } else {
+                              setFormState((prev) => ({
+                                ...prev,
+                                agenda:
+                                  prev.agenda === "Google Agenda"
+                                    ? null
+                                    : "Google Agenda",
+                              }));
+                            }
+                          }}
+                        >
+                          <input
+                            type="radio"
+                            checked={
+                              !!googleAgendaLink &&
+                              formState.agenda === "Google Agenda"
+                            }
+                            readOnly
+                          />
+                          <SiGooglecalendar size={20} color="#4285f4" />
+                          <span style={{ fontSize: "14px", fontWeight: "500" }}>
+                            {googleAgendaLink
+                              ? googleAgendaLink.value
+                              : "Google Agenda"}
+                          </span>
+                          {!googleAgendaLink && (
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                color: "#94a3b8",
+                                marginLeft: 2,
+                              }}
+                            >
+                              ({t("Connect")})
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Outlook Agenda */}
+                      {meeting?.agenda === "Outlook Agenda" && (
+                        <div
+                          className="d-flex align-items-center gap-2"
+                          style={{
+                            cursor: "pointer",
+                            opacity: outlookAgendaLink ? 1 : 0.6,
+                          }}
+                          title={
+                            !outlookAgendaLink
+                              ? t("Click to connect Outlook Agenda")
+                              : ""
+                          }
+                          onClick={() => {
+                            if (!outlookAgendaLink) {
+                              outlookLoginAndSaveProfile();
+                            } else {
+                              setFormState((prev) => ({
+                                ...prev,
+                                agenda:
+                                  prev.agenda === "Outlook Agenda"
+                                    ? null
+                                    : "Outlook Agenda",
+                              }));
+                            }
+                          }}
+                        >
+                          <input
+                            type="radio"
+                            checked={
+                              !!outlookAgendaLink &&
+                              formState.agenda === "Outlook Agenda"
+                            }
+                            readOnly
+                          />
+                          <SiMicrosoftoutlook size={20} color="#0078d4" />
+                          <span style={{ fontSize: "14px", fontWeight: "500" }}>
+                            {outlookAgendaLink
+                              ? outlookAgendaLink.value
+                              : "Outlook Agenda"}
+                          </span>
+                          {!outlookAgendaLink && (
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                color: "#94a3b8",
+                                marginLeft: 2,
+                              }}
+                            >
+                              ({t("Connect")})
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
+                  </div>
+                )}
+
+                {/* Physical Location Details */}
+                {(formState.address ||
+                  formState.room_details ||
+                  formState.phone) && (
+                  <div className="row mt-2 g-2">
+                    {formState.address && (
+                      <div className="form-group col-md-12 mb-3">
+                        <label className="form-label">
+                          {t("meeting.formState.address")}
+                        </label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={formState.address}
+                          onChange={(e) =>
+                            setFormState((prev) => ({
+                              ...prev,
+                              address: e.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+                    )}
+                    {formState.room_details && (
+                      <div className="form-group col-md-6 mb-3">
+                        <label className="form-label">
+                          {t("meeting.formState.RoomDetail")}
+                        </label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={formState.room_details}
+                          onChange={(e) =>
+                            setFormState((prev) => ({
+                              ...prev,
+                              room_details: e.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+                    )}
+                    {formState.phone && (
+                      <div className="form-group col-md-6 mb-3">
+                        <label className="form-label">
+                          {t("meeting.formState.phone")}
+                        </label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={formState.phone}
+                          onChange={(e) =>
+                            setFormState((prev) => ({
+                              ...prev,
+                              phone: e.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -3628,29 +4801,182 @@ const QuickMomentForm = ({
                   />
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label">
-                    {t("invities.participants") || "Participants"}
-                  </label>
-                  <Creatable
-                    isMulti
-                    isClearable
-                    isLoading={isFetchingParticipants}
-                    options={participantOptions}
-                    value={getSelectValue()}
-                    onChange={handleSelectionChange}
-                    placeholder={
-                      t("Type email or select from list...") ||
-                      "Type email or select from list..."
-                    }
-                    formatCreateLabel={(inputValue) =>
-                      `Add new: "${inputValue}"`
-                    }
-                    styles={customStyles}
-                    menuPortalTarget={document.body}
-                    className="my-select"
-                  />
-                </div>
+                {formState?.casting_type === "Registration" ? (
+                  <div className="row g-2">
+                    <div className="col-12 mb-3">
+                      {isStripeConnected ? (
+                        <div
+                          className="d-flex align-items-center justify-content-between p-3 rounded"
+                          style={{
+                            backgroundColor: "rgba(47, 187, 103, 0.1)",
+                            border: "1px solid #2fa25d",
+                          }}
+                        >
+                          <div className="d-flex align-items-center">
+                            <div
+                              className="me-3 bg-white p-2 rounded-circle d-flex align-items-center justify-content-center"
+                              style={{ width: "40px", height: "40px" }}
+                            >
+                              <SiStripe size={24} color="#635BFF" />
+                            </div>
+                            <div>
+                              <h6
+                                className="mb-0 fw-bold"
+                                style={{ color: "#2fa25d" }}
+                              >
+                                {t("Stripe Account Connected")}
+                              </h6>
+                              <small className="text-muted">
+                                {t(
+                                  "You can now receive payments for this registration.",
+                                )}
+                              </small>
+                            </div>
+                          </div>
+                          <button
+                            style={{
+                              background: "none",
+                              border: "none",
+                              color: "#dc3545",
+                              fontWeight: "bold",
+                              padding: "6px 16px",
+                              borderRadius: "6px",
+                              cursor: loadingStripe ? "not-allowed" : "pointer",
+                              transition: "background-color 0.2s ease",
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!loadingStripe)
+                                e.currentTarget.style.backgroundColor =
+                                  "rgba(220,53,69,0.12)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor =
+                                "transparent";
+                            }}
+                            onClick={handleStripeDisconnect}
+                            disabled={loadingStripe}
+                          >
+                            {loadingStripe ? (
+                              <Spinner size="sm" />
+                            ) : (
+                              t("Disconnect")
+                            )}
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="d-flex align-items-center justify-content-between p-3 rounded bg-light border border-warning">
+                          <div className="d-flex align-items-center">
+                            <div
+                              className="me-3 bg-white p-2 rounded-circle d-flex align-items-center justify-content-center border"
+                              style={{ width: "40px", height: "40px" }}
+                            >
+                              <SiStripe size={24} color="#635BFF" />
+                            </div>
+                            <div>
+                              <h6 className="mb-0 fw-bold text-dark">
+                                {t("Stripe Integration Required")}
+                              </h6>
+                              <small className="text-muted">
+                                {t(
+                                  "Connect your Stripe account to enable registration.",
+                                )}
+                              </small>
+                            </div>
+                          </div>
+                          <button
+                            className="btn text-white fw-bold px-4"
+                            style={{
+                              backgroundColor: "#635BFF",
+                              borderRadius: "8px",
+                            }}
+                            onClick={handleStripeConnect}
+                            disabled={loadingStripe}
+                          >
+                            {loadingStripe ? (
+                              <Spinner size="sm" />
+                            ) : (
+                              t("Connect Stripe")
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="col-md-6 mb-2 form">
+                      <div className="form-group">
+                        <label className="form-label">
+                          {t("meeting.formState.Max_Participant") ||
+                            "Maximum Participants"}
+                        </label>
+                        <input
+                          type="number"
+                          className="form-control"
+                          placeholder={t("meeting.formState.Max_Participant")}
+                          value={formState.max_participant || ""}
+                          min="1"
+                          onChange={(e) => {
+                            const val = Math.max(
+                              1,
+                              parseInt(e.target.value) || 1,
+                            );
+                            setFormState((prev) => ({
+                              ...prev,
+                              max_participant: val,
+                              max_participants_register: val,
+                            }));
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div className="col-md-6 mb-2 form">
+                      <div className="form-group">
+                        <label className="form-label">
+                          {t("meeting.formState.Max_Price") || "Price"}
+                        </label>
+                        <input
+                          type="number"
+                          className="form-control"
+                          placeholder={t("meeting.formState.Max_Price")}
+                          value={formState.price || ""}
+                          min="0"
+                          onChange={(e) => {
+                            const val = Math.max(
+                              0,
+                              parseInt(e.target.value) || 0,
+                            );
+                            setFormState((prev) => ({
+                              ...prev,
+                              price: val,
+                            }));
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="form-group">
+                    <label className="form-label">
+                      {t("invities.participants") || "Participants"}
+                    </label>
+                    <Creatable
+                      isMulti
+                      isClearable
+                      isLoading={isFetchingParticipants}
+                      options={participantOptions}
+                      value={getSelectValue()}
+                      onChange={handleSelectionChange}
+                      placeholder={
+                        t("Type email or select from list...") ||
+                        "Type email or select from list..."
+                      }
+                      formatCreateLabel={(inputValue) =>
+                        `Add new: "${inputValue}"`
+                      }
+                      styles={customStyles}
+                      menuPortalTarget={document.body}
+                      className="my-select"
+                    />
+                  </div>
+                )}
 
                 {/* Conditional Date/Time or Calendly Config */}
                 {formState?.type === "Calendly" ? (
@@ -3716,8 +5042,10 @@ const QuickMomentForm = ({
           <div className="modal-nav">
             <h4>
               {t("addQuickMomentbtninmission")}
-              {(meetingData?.solution && meetingData?.created_from_whatsapp ) ? ` - ${meetingData?.solution?.title}` :meetingData?.solution_suggestion &&
-                ` - ${meetingData.solution_suggestion}`}
+              {meetingData?.solution && meetingData?.created_from_whatsapp
+                ? ` - ${meetingData?.solution?.title}`
+                : meetingData?.solution_suggestion &&
+                  ` - ${meetingData.solution_suggestion}`}
             </h4>
             <button className="cross-btn" onClick={handleCancel}>
               <RxCross2 size={18} />
@@ -3839,8 +5167,17 @@ const QuickMomentForm = ({
                       <button
                         className="btn btn-primary"
                         style={{ outline: 0, borderRadius: "9px" }}
-                        onClick={()=>meetingData?.created_from_whatsapp ? handleMeetingUpdate() : handleFinalSubmit()}
-                        disabled={!momentName || loading}
+                        onClick={() =>
+                          meetingData?.created_from_whatsapp
+                            ? handleMeetingUpdate()
+                            : handleFinalSubmit()
+                        }
+                        disabled={
+                          !momentName ||
+                          loading ||
+                          (formState?.casting_type === "Registration" &&
+                            !isStripeConnected)
+                        }
                       >
                         {loading ? (
                           <Spinner as="span" animation="border" size="sm" />
@@ -3856,7 +5193,12 @@ const QuickMomentForm = ({
                             className="btn btn-primary"
                             style={{ outline: 0, borderRadius: "9px" }}
                             onClick={createAndPlay}
-                            disabled={!momentName}
+                            disabled={
+                              !momentName ||
+                              loadingPlay ||
+                              (formState?.casting_type === "Registration" &&
+                                !isStripeConnected)
+                            }
                           >
                             {loadingPlay ? (
                               <Spinner as="span" animation="border" size="sm" />
@@ -3883,8 +5225,17 @@ const QuickMomentForm = ({
                       <button
                         className="btn btn-primary"
                         style={{ outline: 0, borderRadius: "9px" }}
-                        onClick={()=>meetingData?.created_from_whatsapp ? handleMeetingUpdate() : handleFinalSubmit()}
-                        disabled={!momentName}
+                        onClick={() =>
+                          meetingData?.created_from_whatsapp
+                            ? handleMeetingUpdate()
+                            : handleFinalSubmit()
+                        }
+                        disabled={
+                          !momentName ||
+                          loading ||
+                          (formState?.casting_type === "Registration" &&
+                            !isStripeConnected)
+                        }
                       >
                         {loading ? (
                           <Spinner as="span" animation="border" size="sm" />
@@ -3901,7 +5252,12 @@ const QuickMomentForm = ({
                             className="btn btn-primary"
                             style={{ outline: 0, borderRadius: "9px" }}
                             onClick={createAndPlay}
-                            disabled={!momentName}
+                            disabled={
+                              !momentName ||
+                              loadingPlay ||
+                              (formState?.casting_type === "Registration" &&
+                                !isStripeConnected)
+                            }
                           >
                             {loadingPlay ? (
                               <Spinner as="span" animation="border" size="sm" />
@@ -4020,6 +5376,146 @@ const QuickMomentForm = ({
           z-index: 1050 !important;
         }
       `}</style>
+
+      {/* Stripe Disconnect Confirmation Modal */}
+      {showStripeDisconnectConfirm &&
+        createPortal(
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              backgroundColor: "rgba(0,0,0,0.55)",
+              zIndex: 99999,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "16px",
+            }}
+            onClick={() => setShowStripeDisconnectConfirm(false)}
+          >
+            <div
+              style={{
+                backgroundColor: "#fff",
+                borderRadius: "16px",
+                padding: "32px",
+                maxWidth: "420px",
+                width: "100%",
+                boxShadow: "0 24px 64px rgba(0,0,0,0.25)",
+                animation: "fadeInScale 0.18s ease",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Icon + Title */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  marginBottom: "16px",
+                  gap: "14px",
+                }}
+              >
+                <div
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                    borderRadius: "50%",
+                    backgroundColor: "rgba(220,53,69,0.1)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <SiStripe size={22} color="#dc3545" />
+                </div>
+                <h5 style={{ margin: 0, fontWeight: 700, color: "#1a1a2e" }}>
+                  {t("stripe_disconnect_title")}
+                </h5>
+              </div>
+
+              {/* Message */}
+              <p
+                style={{
+                  color: "#6c757d",
+                  fontSize: "14px",
+                  lineHeight: 1.6,
+                  marginBottom: "28px",
+                }}
+              >
+                {t("stripe_disconnect_message")}
+              </p>
+
+              {/* Buttons */}
+              <div
+                style={{
+                  display: "flex",
+                  gap: "12px",
+                  justifyContent: "flex-end",
+                }}
+              >
+                <button
+                  style={{
+                    padding: "10px 22px",
+                    borderRadius: "8px",
+                    border: "1px solid #dee2e6",
+                    backgroundColor: "#f8f9fa",
+                    color: "#495057",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    transition: "background 0.15s",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "#e9ecef";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "#f8f9fa";
+                  }}
+                  onClick={() => setShowStripeDisconnectConfirm(false)}
+                  disabled={loadingStripe}
+                >
+                  {t("stripe_disconnect_cancel")}
+                </button>
+                <button
+                  style={{
+                    padding: "10px 22px",
+                    borderRadius: "8px",
+                    border: "none",
+                    backgroundColor: "#dc3545",
+                    color: "#fff",
+                    fontWeight: 700,
+                    cursor: loadingStripe ? "not-allowed" : "pointer",
+                    fontSize: "14px",
+                    opacity: loadingStripe ? 0.75 : 1,
+                    transition: "background 0.15s, opacity 0.15s",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!loadingStripe)
+                      e.currentTarget.style.backgroundColor = "#b02a37";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "#dc3545";
+                  }}
+                  onClick={handleConfirmStripeDisconnect}
+                  disabled={loadingStripe}
+                >
+                  {loadingStripe ? (
+                    <Spinner size="sm" />
+                  ) : (
+                    t("stripe_disconnect_confirm")
+                  )}
+                </button>
+              </div>
+            </div>
+            <style>{`
+            @keyframes fadeInScale {
+              from { opacity: 0; transform: scale(0.94); }
+              to   { opacity: 1; transform: scale(1); }
+            }
+          `}</style>
+          </div>,
+          document.body,
+        )}
     </>
   );
 };

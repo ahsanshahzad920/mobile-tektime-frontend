@@ -767,7 +767,11 @@
       "public": "Publique",
       "password": "Mot de passe",
       "participantOnly": "Seulement les participants",
-      "membersOnly": "Membres de TekTIME"
+      "membersOnly": "Membres de TekTIME",
+      "subscriptions": "Abonnements",
+      "gates": "Portes",
+      "missions": "Types de mission",
+      "roles": "Rôles"
     },
     "Build Moment": "Construire",
     "solutionDuplicateMsg": "Solution dupliquée avec succès",

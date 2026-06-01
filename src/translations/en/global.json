@@ -765,7 +765,11 @@
       "public": "Public",
       "password": "Password",
       "participantOnly": "Participants Only",
-      "membersOnly": "TekTIME Members"
+      "membersOnly": "TekTIME Members",
+      "subscriptions": "Subscriptions",
+      "gates": "Gates",
+      "missions": "Mission Types",
+      "roles": "Roles"
     },
     "Build Moment": "Build Moment",
     "SolutionObjective": "Title",

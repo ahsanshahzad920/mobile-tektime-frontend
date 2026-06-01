@@ -134,21 +134,20 @@ const CardViewItem = ({
                   ? "solution-badge-red"
                   : item?.solution_privacy === "public"
                     ? "solution-badge-green"
-                    : item?.solution_privacy === "enterprise" ||
-                      item?.solution_privacy === "participant only"
-                      ? "solution-badge-blue"
-                      : "solution-badge-yellow"
+                    : item?.solution_privacy === "team"
+                      ? "solution-badge-yellow"
+                      : "solution-badge-blue"
                   }`}
               >
-                {item?.solution_privacy === "private"
-                  ? t("solution.badge.private")
-                  : item?.solution_privacy === "public"
-                    ? t("solution.badge.public")
-                    : item?.solution_privacy === "enterprise"
-                      ? t("solution.badge.enterprise")
-                      : item?.solution_privacy === "participant only"
-                        ? t("solution.badge.participantOnly")
-                        : t("solution.badge.team")}
+                {t(
+                  `solution.badge.${
+                    item?.solution_privacy === "participant only"
+                      ? "participantOnly"
+                      : item?.solution_privacy === "tektime members"
+                        ? "membersOnly"
+                        : item?.solution_privacy
+                  }`
+                ) || item?.solution_privacy}
               </span>
             </div>
           </div>

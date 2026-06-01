@@ -454,6 +454,106 @@ const ActiveSolutions = ({ allMeetings }) => {
                               }}
                             />
                           </Tooltip>
+                        ) : item?.solution_privacy === "missions" ? (
+                          <Avatar.Group>
+                            {item?.solution_privacy_mission_data?.map((m) => {
+                              const iconUrl = m?.mission_icon || m?.logo_file_url || m?.logo || m?.logo_url;
+                              return (
+                                <Tooltip title={m?.title || m?.name} placement="top" key={m?.id}>
+                                  {iconUrl ? (
+                                    <Avatar
+                                      size="large"
+                                      src={
+                                        iconUrl.startsWith("http")
+                                          ? iconUrl
+                                          : Assets_URL + "/" + iconUrl
+                                      }
+                                    />
+                                  ) : (
+                                    <Avatar size="large" style={{ backgroundColor: '#1890ff' }}>
+                                      {(m?.title || m?.name || "M")?.[0]?.toUpperCase()}
+                                    </Avatar>
+                                  )}
+                                </Tooltip>
+                              );
+                            })}
+                          </Avatar.Group>
+                        ) : item?.solution_privacy === "roles" ? (
+                          <Avatar.Group>
+                            {item?.solution_privacy_role_data?.map((r) => {
+                              const iconUrl = r?.role_icon || r?.logo_file_url || r?.logo || r?.logo_url;
+                              return (
+                                <Tooltip title={r?.title || r?.name} placement="top" key={r?.id}>
+                                  {iconUrl ? (
+                                    <Avatar
+                                      size="large"
+                                      src={
+                                        iconUrl.startsWith("http")
+                                          ? iconUrl
+                                          : Assets_URL + "/" + iconUrl
+                                      }
+                                    />
+                                  ) : r?.emoji ? (
+                                    <Avatar size="large" style={{ backgroundColor: '#87d068' }}>
+                                      {r.emoji}
+                                    </Avatar>
+                                  ) : (
+                                    <Avatar size="large" style={{ backgroundColor: '#87d068' }}>
+                                      {(r?.title || r?.name || "R")?.[0]?.toUpperCase()}
+                                    </Avatar>
+                                  )}
+                                </Tooltip>
+                              );
+                            })}
+                          </Avatar.Group>
+                        ) : item?.solution_privacy === "gates" ? (
+                          <Avatar.Group>
+                            {item?.solution_privacy_gate_data?.map((g) => {
+                              const iconUrl = g?.gate_icon || g?.logo_file_url || g?.logo || g?.logo_url || g?.gate_logo;
+                              return (
+                                <Tooltip title={g?.gate_name || g?.name || g?.label || g?.title} placement="top" key={g?.id || g?.value}>
+                                  {iconUrl ? (
+                                    <Avatar
+                                      size="large"
+                                      src={
+                                        iconUrl.startsWith("http")
+                                          ? iconUrl
+                                          : Assets_URL + "/" + iconUrl
+                                      }
+                                    />
+                                  ) : (
+                                    <Avatar size="large" style={{ backgroundColor: '#722ed1' }}>
+                                      {(g?.gate_name || g?.name || g?.label || g?.title || "G")?.[0]?.toUpperCase()}
+                                    </Avatar>
+                                  )}
+                                </Tooltip>
+                              );
+                            })}
+                          </Avatar.Group>
+                        ) : item?.solution_privacy === "subscriptions" ? (
+                          <Avatar.Group>
+                            {item?.solution_privacy_subscription_data?.map((s) => {
+                              const iconUrl = s?.logo || s?.logo_file_url || s?.logo_url || s?.contract_icon;
+                              return (
+                                <Tooltip title={s?.name || s?.label || s?.title} placement="top" key={s?.id || s?.value}>
+                                  {iconUrl ? (
+                                    <Avatar
+                                      size="large"
+                                      src={
+                                        iconUrl.startsWith("http")
+                                          ? iconUrl
+                                          : Assets_URL + "/" + iconUrl
+                                      }
+                                    />
+                                  ) : (
+                                    <Avatar size="large" style={{ backgroundColor: '#fa8c16' }}>
+                                      {(s?.name || s?.label || s?.title || "S")?.[0]?.toUpperCase()}
+                                    </Avatar>
+                                  )}
+                                </Tooltip>
+                              );
+                            })}
+                          </Avatar.Group>
                         ) : (
                           <Tooltip
                             title={item?.solution_creator?.full_name}
@@ -478,22 +578,21 @@ const ActiveSolutions = ({ allMeetings }) => {
                             ? "solution-badge-red"
                             : item?.solution_privacy === "public"
                               ? "solution-badge-green"
-                              : item?.solution_privacy === "enterprise" ||
-                                item?.solution_privacy === "participant only"
-                                ? "solution-badge-blue"
-                                : "solution-badge-yellow"
+                              : item?.solution_privacy === "team"
+                                ? "solution-badge-yellow"
+                                : "solution-badge-blue"
                             }`}
                           style={{ padding: "3px 8px 3px 8px" }}
                         >
-                          {item?.solution_privacy === "private"
-                            ? t("solution.badge.private")
-                            : item?.solution_privacy === "public"
-                              ? t("solution.badge.public")
-                              : item?.solution_privacy === "enterprise"
-                                ? t("solution.badge.enterprise")
-                                : item?.solution_privacy === "participant only"
-                                  ? t("solution.badge.participantOnly")
-                                  : t("solution.badge.team")}
+                          {t(
+                            `solution.badge.${
+                              item?.solution_privacy === "participant only"
+                                ? "participantOnly"
+                                : item?.solution_privacy === "tektime members"
+                                  ? "membersOnly"
+                                  : item?.solution_privacy
+                            }`,
+                          ) || item?.solution_privacy}
                         </span>
                       </div>
                     </div>

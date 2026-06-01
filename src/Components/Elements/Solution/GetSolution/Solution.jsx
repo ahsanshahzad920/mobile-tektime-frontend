@@ -1456,6 +1456,130 @@ const Solution = () => {
                                   },
                                 )}
                               </Avatar.Group>
+                            ) : meeting?.solution_privacy === "missions" ? (
+                              <Avatar.Group maxCount={8}>
+                                {meeting?.solution_privacy_mission_data?.map(
+                                  (item) => {
+                                    const iconUrl = item?.mission_icon || item?.logo_file_url || item?.logo || item?.logo_url;
+                                    return (
+                                      <Tooltip
+                                        title={item?.title || item?.name}
+                                        placement="top"
+                                        key={item?.id}
+                                      >
+                                        {iconUrl ? (
+                                          <Avatar
+                                            size="large"
+                                            src={
+                                              iconUrl.startsWith("http")
+                                                ? iconUrl
+                                                : Assets_URL + "/" + iconUrl
+                                            }
+                                          />
+                                        ) : (
+                                          <Avatar size="large" style={{ backgroundColor: '#1890ff' }}>
+                                            {(item?.title || item?.name || "M")?.[0]?.toUpperCase()}
+                                          </Avatar>
+                                        )}
+                                      </Tooltip>
+                                    );
+                                  },
+                                )}
+                              </Avatar.Group>
+                            ) : meeting?.solution_privacy === "roles" ? (
+                              <Avatar.Group maxCount={8}>
+                                {meeting?.solution_privacy_role_data?.map(
+                                  (item) => {
+                                    const iconUrl = item?.role_icon || item?.logo_file_url || item?.logo || item?.logo_url;
+                                    return (
+                                      <Tooltip
+                                        title={item?.title || item?.name}
+                                        placement="top"
+                                        key={item?.id}
+                                      >
+                                        {iconUrl ? (
+                                          <Avatar
+                                            size="large"
+                                            src={
+                                              iconUrl.startsWith("http")
+                                                ? iconUrl
+                                                : Assets_URL + "/" + iconUrl
+                                            }
+                                          />
+                                        ) : item?.emoji ? (
+                                          <Avatar size="large" style={{ backgroundColor: '#87d068' }}>
+                                            {item.emoji}
+                                          </Avatar>
+                                        ) : (
+                                          <Avatar size="large" style={{ backgroundColor: '#87d068' }}>
+                                            {(item?.title || item?.name || "R")?.[0]?.toUpperCase()}
+                                          </Avatar>
+                                        )}
+                                      </Tooltip>
+                                    );
+                                  },
+                                )}
+                              </Avatar.Group>
+                            ) : meeting?.solution_privacy === "gates" ? (
+                              <Avatar.Group maxCount={8}>
+                                {meeting?.solution_privacy_gate_data?.map(
+                                  (item) => {
+                                    const iconUrl = item?.gate_icon || item?.logo_file_url || item?.logo || item?.logo_url || item?.gate_logo;
+                                    return (
+                                      <Tooltip
+                                        title={item?.gate_name || item?.name || item?.label || item?.title}
+                                        placement="top"
+                                        key={item?.id || item?.value}
+                                      >
+                                        {iconUrl ? (
+                                          <Avatar
+                                            size="large"
+                                            src={
+                                              iconUrl.startsWith("http")
+                                                ? iconUrl
+                                                : Assets_URL + "/" + iconUrl
+                                            }
+                                          />
+                                        ) : (
+                                          <Avatar size="large" style={{ backgroundColor: '#722ed1' }}>
+                                            {(item?.gate_name || item?.name || item?.label || item?.title || "G")?.[0]?.toUpperCase()}
+                                          </Avatar>
+                                        )}
+                                      </Tooltip>
+                                    );
+                                  },
+                                )}
+                              </Avatar.Group>
+                            ) : meeting?.solution_privacy === "subscriptions" ? (
+                              <Avatar.Group maxCount={8}>
+                                {meeting?.solution_privacy_subscription_data?.map(
+                                  (item) => {
+                                    const iconUrl = item?.logo || item?.logo_file_url || item?.logo_url || item?.contract_icon;
+                                    return (
+                                      <Tooltip
+                                        title={item?.name || item?.label || item?.title}
+                                        placement="top"
+                                        key={item?.id || item?.value}
+                                      >
+                                        {iconUrl ? (
+                                          <Avatar
+                                            size="large"
+                                            src={
+                                              iconUrl.startsWith("http")
+                                                ? iconUrl
+                                                : Assets_URL + "/" + iconUrl
+                                            }
+                                          />
+                                        ) : (
+                                          <Avatar size="large" style={{ backgroundColor: '#fa8c16' }}>
+                                            {(item?.name || item?.label || item?.title || "S")?.[0]?.toUpperCase()}
+                                          </Avatar>
+                                        )}
+                                      </Tooltip>
+                                    );
+                                  },
+                                )}
+                              </Avatar.Group>
                             ) : null}
 
                             <span
@@ -1464,17 +1588,23 @@ const Solution = () => {
                                   ? "solution-badge-red"
                                   : meeting?.solution_privacy === "public"
                                     ? "solution-badge-green"
-                                    : meeting?.solution_privacy ===
-                                          "enterprise" ||
-                                        meeting?.solution_privacy ===
-                                          "participant only"
-                                      ? "solution-badge-blue"
-                                      : "solution-badge-yellow"
+                                    : meeting?.solution_privacy === "team"
+                                      ? "solution-badge-yellow"
+                                      : "solution-badge-blue"
                               }`}
                               style={{ padding: "3px 8px 3px 8px" }}
                             >
-                              {t(`profile.${meeting?.solution_privacy}`) ||
-                                meeting?.solution_privacy}
+                              {t(
+                                `solution.badge.${
+                                  meeting?.solution_privacy ===
+                                  "participant only"
+                                    ? "participantOnly"
+                                    : meeting?.solution_privacy ===
+                                        "tektime members"
+                                      ? "membersOnly"
+                                      : meeting?.solution_privacy
+                                }`,
+                              ) || meeting?.solution_privacy}
                             </span>
                           </div>
                         </div>

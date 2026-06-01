@@ -44,7 +44,7 @@ import { Avatar, Tooltip } from "antd";
 import { CiEdit } from "react-icons/ci";
 import ReportStepCard from "./ReportStepCard";
 import { FaChartGantt } from "react-icons/fa6";
-import { FaFilePdf, FaFileWord, FaList, FaPhoneAlt, FaRegFileAudio, FaRegFilePdf, FaRegFileWord, FaStar, FaSyncAlt } from "react-icons/fa";
+import { FaFilePdf, FaFileWord, FaLinkedin, FaList, FaPhoneAlt, FaRegFileAudio, FaRegFilePdf, FaRegFileWord, FaStar, FaSyncAlt } from "react-icons/fa";
 import ConfirmationModal from "../../../Utils/ConfirmationModal";
 import {
   IoArrowBackSharp,
@@ -1841,12 +1841,43 @@ Please categorize the relevant details into their corresponding sections.`;
   };
 
 
+  // Helper function to clean text for PDF generation by removing/replacing unsupported characters
+  const cleanTextForPDF = (text) => {
+    if (!text) return '';
+    return String(text)
+      .normalize("NFC")
+      .replace(/[\u200b-\u200d\u00ad\ufeff]/g, '') // Remove zero-width joiners/spaces and soft hyphens
+      .replace(/[\u00a0\u202f\u200a\u2000-\u2009]/g, ' ') // Standardize non-breaking/special spaces to regular space
+      .replace(/[\u2190-\u21ff\u27f0-\u27ff\u2900-\u297f\u2794-\u27be]/g, '->') // Replace Unicode arrows with standard ASCII arrows
+      .replace(/[\u2018\u2019\u02bc]/g, "'")
+      .replace(/[\u201c\u201d\u00ab\u00bb]/g, '"')
+      .replace(/[\u2010\u2011\u2012\u2013\u2014\u2015]/g, '-')
+      .replace(/[\u1d49]/g, 'e')
+      .replace(/[\u02e3\u02b3]/g, 'r')
+      .replace(/[\u1d52]/g, 'o')
+      .replace(/œ/g, 'oe')
+      .replace(/Œ/g, 'OE')
+      .replace(/€/g, 'EUR')
+      .replace(/[¹₁]/g, '1')
+      .replace(/[²₂]/g, '2')
+      .replace(/[³₃]/g, '3')
+      .replace(/[⁴₄]/g, '4')
+      .replace(/[⁵₅]/g, '5')
+      .replace(/[⁶₆]/g, '6')
+      .replace(/[⁷₇]/g, '7')
+      .replace(/[⁸₈]/g, '8')
+      .replace(/[⁹₉]/g, '9')
+      .replace(/[⁰₀]/g, '0');
+  };
+
   // Helper function to format content with proper bullets and spacing
   const formatContentForPDF = (content) => {
     if (!content) return '';
 
+    const cleanedContent = cleanTextForPDF(content);
+
     // Split by lines and process each
-    const lines = content.split('\n').map(line => line.trim()).filter(Boolean);
+    const lines = cleanedContent.split('\n').map(line => line.trim()).filter(Boolean);
     const formatted = [];
 
     for (let i = 0; i < lines.length; i++) {
@@ -1900,12 +1931,11 @@ Please categorize the relevant details into their corresponding sections.`;
   const parseMeetingChapters = (summary) => {
     if (!summary) return {};
 
+    const cleanedSummary = cleanTextForPDF(summary);
     const CHAPTERS = [
       { key: "GÉNÉRALITÉS", title: "1. GÉNÉRALITÉS", alternates: ["GENERALITES"] },
       { key: "POINT MOA", title: "2. POINT MOA (Maîtrise d'Ouvrage)", alternates: ["MOA", "POINT MOA (Maîtrise d'Ouvrage)"] },
       { key: "POINT HYGIÈNE ET SÉCURITÉ", title: "3. POINT HYGIÈNE ET SÉCURITÉ", alternates: ["HYGIENE", "SECURITE", "POINT HYGIENE ET SECURITE"] },
-      // { key: "POINT MOA", title: "2. POINT MOA (Maîtrise d'Ouvrage)", alternates: ["MOA"] },
-      // { key: "POINT HYGIÈNE ET SÉCURITÉ", title: "3. POINT HYGIÈNE ET SÉCURITÉ", alternates: ["HYGIENE", "SECURITE"] },
       { key: "POINT ÉTUDES", title: "4. POINT ÉTUDES", alternates: ["ETUDES", "POINT ETUDES"] },
       { key: "POINT CONTRÔLEUR TECHNIQUE", title: "5. POINT CONTRÔLEUR TECHNIQUE", alternates: ["CONTROLEUR", "TECHNIQUE", "POINT CONTROLEUR TECHNIQUE"] },
       { key: "POINT TRAVAUX", title: "6. POINT TRAVAUX", alternates: ["TRAVAUX"] },
@@ -1918,7 +1948,7 @@ Please categorize the relevant details into their corresponding sections.`;
     ];
 
     const chapters = {};
-    const lines = summary.split('\n');
+    const lines = cleanedSummary.split('\n');
     let currentChapter = null;
     let currentContent = [];
 
@@ -2038,7 +2068,7 @@ Please categorize the relevant details into their corresponding sections.`;
         doc.addImage(logoDataURL, "PNG", left, 12, 25, 25);
         doc.setFont("helvetica", "bold");
         doc.setFontSize(16);
-        doc.text(meeting?.objective || "", pageWidth - left, 25, { align: "right" });
+        doc.text(cleanTextForPDF(meeting?.objective || ""), pageWidth - left, 25, { align: "right" });
 
         // --- CHANGED TO BLUE ---
         doc.setDrawColor(THEME_COLOR[0], THEME_COLOR[1], THEME_COLOR[2]);
@@ -2134,12 +2164,12 @@ Please categorize the relevant details into their corresponding sections.`;
       addHeader();
       doc.setFontSize(18);
       doc.setFont("helvetica", "bold");
-      doc.text(meeting?.title || "Compte Rendu", left, y + 35);
-      doc.text(String(allMeetings?.no_of_moment ?? ""), pageWidth - left, y + 35, { align: "right" });
+      doc.text(cleanTextForPDF(meeting?.title || "Compte Rendu"), left, y + 35);
+      doc.text(cleanTextForPDF(String(allMeetings?.no_of_moment ?? "")), pageWidth - left, y + 35, { align: "right" });
       y += 47;
 
       doc.setFontSize(12);
-      doc.text(dateText, pageWidth / 2, y, { align: "center" });
+      doc.text(cleanTextForPDF(dateText), pageWidth / 2, y, { align: "center" });
       y += 20;
 
       // Information Table
@@ -2149,22 +2179,21 @@ Please categorize the relevant details into their corresponding sections.`;
         // --- CHANGED TO BLUE ---
         headStyles: { fillColor: THEME_COLOR, textColor: 255, fontStyle: "bold", cellPadding: 6 },
         head: [[
-          "Nature de la réunion :",
-          meeting?.solution ? meeting?.solution?.title : meeting?.type,
+          cleanTextForPDF("Nature de la réunion :"),
+          cleanTextForPDF(meeting?.solution ? meeting?.solution?.title : meeting?.type),
         ]],
         body: [
-          ["Date de la réunion :", dateText],
-          // [`${t("moment_type")} :`, meeting?.solution ? meeting?.solution?.title : meeting?.type],
-          [`${t("address")} :`, meeting?.address || "N/A"],
-          ["Date de la prochaine réunion :",
-            allMeetings?.date_of_next_moment
+          [cleanTextForPDF("Date de la réunion :"), cleanTextForPDF(dateText)],
+          [cleanTextForPDF(`${t("address")} :`), cleanTextForPDF(meeting?.address || "N/A")],
+          [cleanTextForPDF("Date de la prochaine réunion :"),
+            cleanTextForPDF(allMeetings?.date_of_next_moment
               ? formatDateTimeWithTimezone(
                 allMeetings.date_of_next_moment,
                 allMeetings.next_moment_timezone || meeting?.timezone
               )
-              : "N/A"
+              : "N/A")
           ],
-          ["Organisateur :", getFullName()],
+          [cleanTextForPDF("Organisateur :"), cleanTextForPDF(getFullName())],
         ],
         styles: { fontSize: 10, cellPadding: 4 },
       });
@@ -2189,11 +2218,10 @@ Please categorize the relevant details into their corresponding sections.`;
         const coords = `${p?.email || "N/A"}\n${phone}`;
 
         return [
-          // p?.team_names?.join(", ") || "Tektime Dev Team",
-          p?.job || "N/A",
-          p?.user_id ? p?.clients?.name : p?.contact?.clients?.name || "N/A",
-          name,
-          coords,
+          cleanTextForPDF(p?.job || "N/A"),
+          cleanTextForPDF(p?.user_id ? p?.clients?.name : p?.contact?.clients?.name || "N/A"),
+          cleanTextForPDF(name),
+          cleanTextForPDF(coords),
           p?.attandance === 1 ? "__CHECKMARK__" : "X",
         ];
       });
@@ -2203,7 +2231,7 @@ Please categorize the relevant details into their corresponding sections.`;
         theme: "grid",
         // --- CHANGED TO BLUE ---
         headStyles: { fillColor: THEME_COLOR, textColor: 255, fontStyle: "bold", fontSize: 9, cellPadding: 5 },
-        head: [["Fonction", "Société", "Représentants", "Coordonnées", "Prés."]],
+        head: [["Fonction", "Société", "Représentants", "Coordonnées", "Prés."].map(h => cleanTextForPDF(h))],
         body: participantsData,
         styles: { fontSize: 9, cellPadding: 3 },
         didParseCell: function (data) {
@@ -2239,7 +2267,7 @@ Please categorize the relevant details into their corresponding sections.`;
 
         doc.setFontSize(18);
         doc.setFont("helvetica", "bold");
-        doc.text("Comptes Rendus par Chapitre", pageWidth / 2, y, { align: "center" });
+        doc.text(cleanTextForPDF("Comptes Rendus par Chapitre"), pageWidth / 2, y, { align: "center" });
         y += 15;
 
         // Iterate through each chapter in order
@@ -2265,14 +2293,14 @@ Please categorize the relevant details into their corresponding sections.`;
 
           doc.rect(left, y, pageWidth - 2 * left, 12, "F"); // Background box
           doc.setTextColor(255, 255, 255); // White text
-          doc.text(chapter.title, left + 5, y + 8, { baseline: "middle" }); // Centered vertically
+          doc.text(cleanTextForPDF(chapter.title), left + 5, y + 8, { baseline: "middle" }); // Centered vertically
           y += 14;
           doc.setTextColor(0, 0, 0); // Reset to black
 
           // Prepare table data for this chapter with formatted content
           const tableData = chapterData.map(meetingData => {
             return [
-              `Réunion du ${meetingData.date}`,
+              cleanTextForPDF(`Réunion du ${meetingData.date}`),
               formatContentForPDF(meetingData.content)
             ];
           });
@@ -2298,22 +2326,21 @@ Please categorize the relevant details into their corresponding sections.`;
                 fontSize: 10,
               },
               1: {
-                // cellWidth: "auto", // Removed fixed calculation to let it fill remaining space
                 halign: "left",
                 valign: "top",
-                fontSize: 10,  // Increased from 8 to 10
-                lineHeight: 1.5,  // Better line spacing
+                fontSize: 10,
+                lineHeight: 1.5,
               },
             },
             styles: {
-              cellPadding: 6,  // Increased padding
+              cellPadding: 6,
               overflow: "linebreak",
               valign: "top",
               lineColor: [200, 200, 200],
               lineWidth: 0.1,
-              minCellHeight: 15,  // Minimum cell height
+              minCellHeight: 15,
             },
-            head: [["Date de Réunion", "Contenu"]],
+            head: [["Date de Réunion", "Contenu"].map(h => cleanTextForPDF(h))],
             body: tableData,
             pageBreak: "auto",
             rowPageBreak: "auto",
@@ -2347,8 +2374,8 @@ Please categorize the relevant details into their corresponding sections.`;
         // Title + Meeting No
         doc.setFontSize(18);
         doc.setFont("helvetica", "bold");
-        doc.text(meeting?.title || "Compte Rendu", left, y);
-        doc.text(String(allMeetings?.no_of_moment ?? ""), pageWidth - left, y, {
+        doc.text(cleanTextForPDF(meeting?.title || "Compte Rendu"), left, y);
+        doc.text(cleanTextForPDF(String(allMeetings?.no_of_moment ?? "")), pageWidth - left, y, {
           align: "right",
         });
         y += 12;
@@ -2356,7 +2383,7 @@ Please categorize the relevant details into their corresponding sections.`;
         // Date text in center
         doc.setFontSize(12);
         doc.setFont("helvetica", "normal");
-        doc.text(dateText, pageWidth / 2, y, { align: "center" });
+        doc.text(cleanTextForPDF(dateText), pageWidth / 2, y, { align: "center" });
         y += 20;
 
         if (allMeetingsList.length > 0) {
@@ -2371,7 +2398,7 @@ Please categorize the relevant details into their corresponding sections.`;
                 .replace(/`/g, "")
                 .trim();
             }
-            return [dateTime, summary];
+            return [cleanTextForPDF(dateTime), cleanTextForPDF(summary)];
           });
 
           autoTable(doc, {
@@ -2396,7 +2423,6 @@ Please categorize the relevant details into their corresponding sections.`;
                 fontSize: 7,
               },
               1: {
-                // cellWidth: "auto", // Removed fixed calculation
                 valign: "top",
                 cellPadding: 2,
               },
@@ -2407,7 +2433,7 @@ Please categorize the relevant details into their corresponding sections.`;
               overflow: "linebreak",
               valign: "top",
             },
-            head: [["Date & Heure", "Résumé"]], // Updated header to reflect time
+            head: [["Date & Heure", "Résumé"].map(h => cleanTextForPDF(h))], // Updated header to reflect time
             body: meetingsData,
             pageBreak: "auto",
             rowPageBreak: "auto",
@@ -2426,7 +2452,7 @@ Please categorize the relevant details into their corresponding sections.`;
         } else {
           doc.setFontSize(11);
           doc.setFont("helvetica", "italic");
-          doc.text("Aucune réunion précédente disponible.", left, y);
+          doc.text(cleanTextForPDF("Aucune réunion précédente disponible."), left, y);
           y += 20;
         }
       }
@@ -2448,7 +2474,7 @@ Please categorize the relevant details into their corresponding sections.`;
         if (imageFiles.length > 0) {
           doc.setFontSize(14);
           doc.setFont("helvetica", "bold");
-          doc.text("Images", left, y);
+          doc.text(cleanTextForPDF("Images"), left, y);
           y += 10;
 
           let x = left;
@@ -2471,7 +2497,7 @@ Please categorize the relevant details into their corresponding sections.`;
               imagesPerRow = 0;
               doc.setFontSize(14);
               doc.setFont("helvetica", "bold");
-              doc.text("Images (suite)", left, y);
+              doc.text(cleanTextForPDF("Images (suite)"), left, y);
               y += 10;
             }
 
@@ -2501,11 +2527,11 @@ Please categorize the relevant details into their corresponding sections.`;
               doc.setTextColor(100);
               const fileName = file.original_name || file.file_name || "Unnamed Image";
               const truncatedName = fileName.length > 20 ? fileName.substring(0, 20) + "..." : fileName;
-              doc.text(truncatedName, x + 42.5, y + 67, { align: "center" });
+              doc.text(cleanTextForPDF(truncatedName), x + 42.5, y + 67, { align: "center" });
 
               doc.setFontSize(6);
               const fileSize = file.file_size ? formatFileSize(file.file_size) : "Size unknown";
-              doc.text(fileSize, x + 42.5, y + 72, { align: "center" });
+              doc.text(cleanTextForPDF(fileSize), x + 42.5, y + 72, { align: "center" });
               doc.setTextColor(0, 0, 0);
             } catch (error) {
               doc.setDrawColor(200, 200, 200);
@@ -2514,11 +2540,11 @@ Please categorize the relevant details into their corresponding sections.`;
               doc.rect(x, y, 85, 60);
               doc.setFontSize(8);
               doc.setTextColor(150, 150, 150);
-              doc.text("Image non disponible", x + 42.5, y + 25, { align: "center" });
+              doc.text(cleanTextForPDF("Image non disponible"), x + 42.5, y + 25, { align: "center" });
 
               const fileName = file.original_name || file.file_name || "Unnamed";
               const truncatedName = fileName.length > 20 ? fileName.substring(0, 20) + "..." : fileName;
-              doc.text(truncatedName, x + 42.5, y + 35, { align: "center" });
+              doc.text(cleanTextForPDF(truncatedName), x + 42.5, y + 35, { align: "center" });
               doc.setTextColor(0, 0, 0);
             }
 
@@ -2541,7 +2567,7 @@ Please categorize the relevant details into their corresponding sections.`;
 
           doc.setFontSize(14);
           doc.setFont("helvetica", "bold");
-          doc.text("Autres Fichiers", left, y);
+          doc.text(cleanTextForPDF("Autres Fichiers"), left, y);
           y += 10;
 
           // Array to store link positions (x, y, width, height, url)
@@ -2556,10 +2582,10 @@ Please categorize the relevant details into their corresponding sections.`;
 
             return [
               index + 1,
-              file.original_name || file.file_name || "Fichier sans nom",
-              fileType,
-              file.file_size ? formatFileSize(file.file_size) : "Inconnue",
-              "Cliquez ici"  // Plain text— we'll make it clickable via hook
+              cleanTextForPDF(file.original_name || file.file_name || "Fichier sans nom"),
+              cleanTextForPDF(fileType),
+              cleanTextForPDF(file.file_size ? formatFileSize(file.file_size) : "Inconnue"),
+              cleanTextForPDF("Cliquez ici")  // Plain text— we'll make it clickable via hook
             ];
           });
 
@@ -2585,7 +2611,7 @@ Please categorize the relevant details into their corresponding sections.`;
               3: { cellWidth: 25 },
               4: { cellWidth: 40, halign: "center" }  // Link column
             },
-            head: [["#", "Nom du Fichier", "Type", "Taille", "Télécharger"]],
+            head: [["#", "Nom du Fichier", "Type", "Taille", "Télécharger"].map(h => cleanTextForPDF(h))],
             body: body,
             // Magic hook: Capture positions for the 5th column (Télécharger) cells
             didDrawCell: function (data) {
@@ -2608,7 +2634,7 @@ Please categorize the relevant details into their corresponding sections.`;
           y = doc.lastAutoTable.finalY + 10;
           doc.setFontSize(8);
           doc.setTextColor(100);
-          doc.text("* Cliquez sur « Cliquez ici » pour ouvrir/télécharger le fichier", left, y);
+          doc.text(cleanTextForPDF("* Cliquez sur « Cliquez ici » pour ouvrir/télécharger le fichier"), left, y);
           doc.setTextColor(0, 0, 0);
         }
       }
@@ -2683,13 +2709,9 @@ Please categorize the relevant details into their corresponding sections.`;
       }
 
       const addHeader = () => {
-        let logoDataURL = null;
-        // In this scope we need to make sure we have logoDataURL
-        // Since it's a bit complex with async loadImage, we simplified it for single report
-        // but let's try to reuse the logic
         doc.setFont("helvetica", "bold");
         doc.setFontSize(16);
-        doc.text(meeting?.objective || "", pageWidth - left, 25, { align: "right" });
+        doc.text(cleanTextForPDF(meeting?.objective || ""), pageWidth - left, 25, { align: "right" });
         doc.setDrawColor(THEME_COLOR[0], THEME_COLOR[1], THEME_COLOR[2]);
         doc.setLineWidth(1.5);
         doc.line(left, 40, pageWidth - left, 40);
@@ -2704,22 +2726,22 @@ Please categorize the relevant details into their corresponding sections.`;
       addHeader();
       doc.setFontSize(18);
       doc.setFont("helvetica", "bold");
-      doc.text(meeting?.title || "Compte Rendu", left, y + 35);
+      doc.text(cleanTextForPDF(meeting?.title || "Compte Rendu"), left, y + 35);
       y += 47;
 
       doc.setFontSize(12);
-      doc.text(dateText, pageWidth / 2, y, { align: "center" });
+      doc.text(cleanTextForPDF(dateText), pageWidth / 2, y, { align: "center" });
       y += 20;
 
       autoTable(doc, {
         startY: y,
         theme: "grid",
         headStyles: { fillColor: THEME_COLOR, textColor: 255, fontStyle: "bold", cellPadding: 6 },
-        head: [["Nature de la réunion :", meeting?.solution ? meeting?.solution?.title : meeting?.type]],
+        head: [[cleanTextForPDF("Nature de la réunion :"), cleanTextForPDF(meeting?.solution ? meeting?.solution?.title : meeting?.type)]],
         body: [
-          ["Date de la réunion :", dateText],
-          [`${t("address")} :`, meeting?.address || "N/A"],
-          ["Organisateur :", getFullName()],
+          [cleanTextForPDF("Date de la réunion :"), cleanTextForPDF(dateText)],
+          [cleanTextForPDF(`${t("address")} :`), cleanTextForPDF(meeting?.address || "N/A")],
+          [cleanTextForPDF("Organisateur :"), cleanTextForPDF(getFullName())],
         ],
         styles: { fontSize: 10, cellPadding: 4 },
       });
@@ -2733,10 +2755,11 @@ Please categorize the relevant details into their corresponding sections.`;
         y = 50;
         doc.setFontSize(14);
         doc.setFont("helvetica", "bold");
-        doc.text("Compte Rendu", left, y);
+        doc.text(cleanTextForPDF("Compte Rendu"), left, y);
         y += 10;
 
-        const splitText = doc.splitTextToSize(summary.replace(/#{1,6}\s?/g, "").replace(/\*\*/g, "").replace(/\*/g, ""), pageWidth - 2 * left);
+        const cleanSummary = cleanTextForPDF(summary.replace(/#{1,6}\s?/g, "").replace(/\*\*/g, "").replace(/\*/g, ""));
+        const splitText = doc.splitTextToSize(cleanSummary, pageWidth - 2 * left);
         doc.setFontSize(10);
         doc.setFont("helvetica", "normal");
         doc.text(splitText, left, y);
@@ -3964,6 +3987,20 @@ Please categorize the relevant details into their corresponding sections.`;
                               )?.value || "Google Meet"}
                             </span>
                           </>
+                        ) : meeting?.location === "LinkedIn" ? (
+                          <>
+                            <FaLinkedin
+                              size={28}
+                              style={{ color: "#0A66C2" }}
+                            />
+                            <span className="solutioncards option-text">
+                              {meeting?.user?.linkedin_name ||
+                                meeting?.user?.integration_links?.find(
+                                  (item) => item.platform === "LinkedIn"
+                                )?.value ||
+                                "LinkedIn"}
+                            </span>
+                          </>
                         ) : null}
                       </p>
                     )}
@@ -4162,6 +4199,72 @@ Please categorize the relevant details into their corresponding sections.`;
                     >
                       {t("meeting.formState.Presentation")}
                     </span>
+                    </div>
+                  </>
+                )}
+                {meeting?.casting_type === "Registration" && (
+                  <>
+                    <div className="d-flex align-items-center gap-2">
+                      <svg
+                        width="25"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM17 15H7v2h10v-2zm0-4H7v2h10v-2zm0-4H7v2h10V7z"
+                          fill="#3D57B5"
+                        />
+                      </svg>
+                      <span
+                        className="solutioncards"
+                        style={{ color: "#3D57B5" }}
+                      >
+                        {t("Casting Type") || "Casting Type"}:{" "}
+                        {meeting?.casting_type}
+                      </span>
+                    </div>
+                    <div className="d-flex align-items-center gap-2">
+                      <svg
+                        width="25"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"
+                          fill="#3D57B5"
+                        />
+                      </svg>
+                      <span
+                        className="solutioncards"
+                        style={{ color: "#3D57B5" }}
+                      >
+                        {t("meeting.formState.Max_Participant")}:{" "}
+                        {meeting?.max_participants_register}
+                      </span>
+                    </div>
+                    <div className="d-flex align-items-center gap-2">
+                      <svg
+                        width="25"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"
+                          fill="#3D57B5"
+                        />
+                      </svg>
+                      <span
+                        className="solutioncards"
+                        style={{ color: "#3D57B5" }}
+                      >
+                        {t("meeting.formState.Max_Price")}: {meeting?.price} €
+                      </span>
                     </div>
                   </>
                 )}

@@ -73,11 +73,12 @@ export const getMeeting = async (
 
   const formattedTime = formatTime(timeInUserZone);
   const formattedDate = formatDate(timeInUserZone);
+  const userId = CookieService.get("user_id");
 
   setIsLoading(true);
   try {
     const response = await axios.get(
-      `${API_BASE_URL}/get-meeting/${id}?current_time=${formattedTime}&current_date=${formattedDate}`
+      `${API_BASE_URL}/get-meeting/${id}?current_time=${formattedTime}&current_date=${formattedDate}${userId ? `&user_id=${userId}` : ""}`
     );
 
     if (response.status) {

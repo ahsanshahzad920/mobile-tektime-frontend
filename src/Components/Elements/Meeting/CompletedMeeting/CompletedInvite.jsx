@@ -935,9 +935,10 @@ const CompletedInvite = () => {
 
       const formattedTime = formatTime(timeInUserZone);
       const formattedDate = formatDate(timeInUserZone);
+      const userId = CookieService.get("user_id");
 
       const response = await axios.get(
-        `${API_BASE_URL}/get-meeting/${id}?current_time=${formattedTime}&current_date=${formattedDate}&timezone=${userTimeZone}`,
+        `${API_BASE_URL}/get-meeting/${id}?current_time=${formattedTime}&current_date=${formattedDate}&timezone=${userTimeZone}${userId ? `&user_id=${userId}` : ""}`,
         {
           headers: {
             Authorization: `Bearer ${CookieService.get("token")}`,

@@ -2532,6 +2532,15 @@ const QuickMomentForm = ({
       status: "active",
       team_ids: (formState.teams || []).map((t) => t.id).filter((id) => id),
       ...(meeting?.id ? { _method: "put" } : {}),
+      // When opened from mission, include client_id and destination_id immediately
+      ...(openedFrom === "mission"
+        ? {
+            client_id: destination?.clients?.id || destination?.client_id,
+            destination_id: destination?.id || destination?.client_id,
+            destination_type: destination?.type || null,
+            destination_type_id: destination?.destination_type_id || null,
+          }
+        : {}),
     };
 
     try {
@@ -4457,7 +4466,7 @@ const QuickMomentForm = ({
                 )}
 
                 {/* Location & Integration info */}
-                {(meetingData?.location || meeting?.location || meeting?.agenda || meetingData?.agenda) && (
+               {(meetingData?.location || meeting?.location || meeting?.agenda || meetingData?.agenda) && (
                   <div className="form-group mb-3">
                     <label className="form-label">
                       {t("meeting.NewMeetingTabs.tab4")}

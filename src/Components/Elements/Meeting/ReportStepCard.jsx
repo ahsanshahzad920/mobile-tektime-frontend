@@ -16,9 +16,17 @@ import ReportMediaGallery from "./Report/ReportMediaGallery";
 // import "./ReportStepCard.scss";
 
 const ReportStepCard = ({ item, index, startTime, users, meeting, isTranscribing, transcriptionProgress, Assets_URL, t, isAccordion,stepMedias=[] }) => {
+  const hasStepMedias = (item?.step_medias && item.step_medias.length > 0) || 
+                        (stepMedias && stepMedias.filter(media => media.step_id === item.id).length > 0);
+
+  const isClosed = item?.step_status === "closed" || item?.step_status === "completed" || item?.step_status === "cancelled" || item?.step_status === "abort";
+
   const [dropdownVisible, setDropdownVisible] = useState(
-    !!(item.editor_content || item.note || item.editor_type === "File" || item.editor_type === "Url" || item?.editor_type === "Publication" || item?.editor_type === "AI Instruction"),
+    isClosed 
+      ? hasStepMedias 
+      : !!(item.editor_content || item.note || item.editor_type === "File" || item.editor_type === "Url" || item?.editor_type === "Publication" || item?.editor_type === "AI Instruction" || hasStepMedias)
   );
+  const [wasOpenedByMedia, setWasOpenedByMedia] = useState(false);
   const dropdownRef = useRef(null);
   const pdfIframeRef = useRef(null);
   const [excelData, setExcelData] = useState(null);
@@ -48,6 +56,12 @@ const ReportStepCard = ({ item, index, startTime, users, meeting, isTranscribing
       console.error("Error fetching Excel file:", error);
     }
   };
+  useEffect(() => {
+    if (hasStepMedias && !wasOpenedByMedia) {
+      setDropdownVisible(true);
+      setWasOpenedByMedia(true);
+    }
+  }, [hasStepMedias, wasOpenedByMedia]);
 
   useEffect(() => {
     if (item.editor_type === "Excel" && item.file) {
@@ -109,7 +123,8 @@ const ReportStepCard = ({ item, index, startTime, users, meeting, isTranscribing
     }
   }, [item.editor_type, isAccordion]);
 
-  const toggleDropdown = () => {
+  const toggleDropdown = (e) => {
+    if (e && e.stopPropagation) e.stopPropagation();
     setDropdownVisible((prev) => !prev);
   };
 
@@ -210,7 +225,7 @@ const ReportStepCard = ({ item, index, startTime, users, meeting, isTranscribing
       );
     } else if (item.editor_type === "Photo") {
       return (
-        <Image src={`${Assets_URL}/${item.file}`} style={commonStyles} alt="Step Photo" className="step-media hover-scale" />
+        <Image src={`${Assets_URL}/${item.file}`} style={commonStyles} alt="Step content" className="step-media hover-scale" />
       );
     } else if (item.url) {
       return (
@@ -287,7 +302,7 @@ const ReportStepCard = ({ item, index, startTime, users, meeting, isTranscribing
       return (
         <Image
           src={`${Assets_URL}/${item.file}`}
-          alt="Step Photo"
+          alt="Step content"
           fluid
           className="step-media"
           style={{ maxWidth: "100%", height: "auto", borderRadius: "12px" }}

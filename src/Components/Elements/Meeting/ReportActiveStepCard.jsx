@@ -45,9 +45,17 @@ const ReportActiveStepCard = ({
   const [ t ] = useTranslation("global");
   const [excelData, setExcelData] = useState(null);
   const [inProgressStep, setInProgressStep] = useState(null);
+  const hasStepMedias = (data?.step_medias && data.step_medias.length > 0) || 
+                        (stepMedias && stepMedias.filter(media => media.step_id === data.id).length > 0);
+
+  const isClosed = data?.step_status === "closed" || data?.step_status === "completed" || data?.step_status === "cancelled" || data?.step_status === "abort";
+
   const [dropdownVisible, setDropdownVisible] = useState(
-    !!(data?.editor_content || data?.note || data?.editor_type === "File")
+    isClosed 
+      ? hasStepMedias 
+      : !!(data?.editor_content || data?.note || data?.editor_type === "File" || data?.editor_type === "Url" || data?.editor_type === "Publication" || data?.editor_type === "AI Instruction" || hasStepMedias)
   );
+  const [wasOpenedByMedia, setWasOpenedByMedia] = useState(false);
   const dropdownRef = useRef(null);
   const pdfIframeRef = useRef(null);
   // const [pdfHeight, setPdfHeight] = useState(isAccordion ? "300px" : "600px");
@@ -169,6 +177,12 @@ const ReportActiveStepCard = ({
       }
     }
   }, [dropdownVisible]);
+  useEffect(() => {
+    if (hasStepMedias && !wasOpenedByMedia) {
+      setDropdownVisible(true);
+      setWasOpenedByMedia(true);
+    }
+  }, [hasStepMedias, wasOpenedByMedia]);
 
   useEffect(() => {
     const currentInProgressStep = meeting?.steps.find(
@@ -239,7 +253,8 @@ const ReportActiveStepCard = ({
   //   }
   // }, [data?.editor_type, isAccordion]);
 
-  const toggleDropdown = () => {
+  const toggleDropdown = (e) => {
+    if (e && e.stopPropagation) e.stopPropagation();
     setDropdownVisible((prev) => !prev);
   };
 
@@ -259,7 +274,7 @@ const ReportActiveStepCard = ({
     };
 
     if (
-      (data?.editor_type === "Editeur" || data?.editor_type === "Subtask") &&
+      (data?.editor_type === "Editeur" || data?.editor_type === "Subtask" || data?.editor_type === "Publication" || data?.editor_type === "AI Instruction" || data?.editor_type === "Story" || data?.editor_type === "Email") &&
       data?.editor_content &&
       data?.editor_content.trim() !== "<html><head></head><body></body></html>"
     ) {
@@ -308,7 +323,7 @@ const ReportActiveStepCard = ({
         <img
           src={`${Assets_URL}/${data?.file}`}
           style={commonStyles}
-          alt="Step Photo"
+          alt="Step content"
           className="step-media hover-scale"
         />
       );
@@ -328,7 +343,7 @@ const ReportActiveStepCard = ({
 
   const renderContent = () => {
     if (
-      (data?.editor_type === "Editeur" || data?.editor_type === "Subtask") &&
+      (data?.editor_type === "Editeur" || data?.editor_type === "Subtask" || data?.editor_type === "Publication" || data?.editor_type === "AI Instruction" || data?.editor_type === "Story" || data?.editor_type === "Email") &&
       data?.editor_content &&
       data?.editor_content.trim() !== "<html><head></head><body></body></html>"
     ) {
@@ -397,7 +412,7 @@ const ReportActiveStepCard = ({
       return (
         <img
           src={`${Assets_URL}/${data.file}`}
-          alt="Step Photo"
+          alt="Step content"
           className="step-media"
           style={{ maxWidth: "100%", height: "auto", borderRadius: "12px" }}
           loading="lazy"

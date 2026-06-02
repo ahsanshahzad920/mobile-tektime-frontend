@@ -537,6 +537,11 @@ const Login = () => {
 
     try {
       const response = await axios.post(api, payload);
+      // Check for pending payment status in successful response
+      if (response?.data?.status === "pending_payment" && response?.data?.payment_url) {
+        navigate(response.data.payment_url);
+        return;
+      }
 
       if (response) {
         const {

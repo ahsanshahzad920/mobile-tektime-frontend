@@ -16,7 +16,7 @@ import ReportMediaGallery from "./Report/ReportMediaGallery";
 // import "./ReportStepCard.scss";
 
 const ReportStepCard = ({ item, index, startTime, users, meeting, isTranscribing, transcriptionProgress, Assets_URL, t, isAccordion,stepMedias=[] }) => {
-  const hasStepMedias = (item?.step_medias && item.step_medias.length > 0) || 
+  const hasStepMedias = (item?.step_medias && item.step_medias.length > 0) ||  item?.step_status === "completed" ||
                         (stepMedias && stepMedias.filter(media => media.step_id === item.id).length > 0);
 
   const isClosed = item?.step_status === "closed" || item?.step_status === "completed" || item?.step_status === "cancelled" || item?.step_status === "abort";

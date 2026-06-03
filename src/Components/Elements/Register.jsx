@@ -124,7 +124,7 @@ const Register = () => {
     const fetchRoles = async () => {
       try {
         setIsLoadingRoles(true);
-        const { data } = await axios.get(`${API_BASE_URL}/public/role-types`);
+        const { data } = await axios.get(`${API_BASE_URL}/public/role-types?contract_id=${plan_id}`);
         if (data && data.data) {
           setRoleOptions(data.data);
         }

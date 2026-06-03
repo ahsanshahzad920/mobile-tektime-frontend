@@ -325,11 +325,7 @@ const DiscussionChat = ({
 
   const currentUserId = parseInt(CookieService.get("user_id"));
 
-  // When closing fullscreen, clear heavy state first so the DOM is lightweight
-  // during the position-fixed → normal-flow layout transition
   const handleCloseFullScreen = useCallback(() => {
-    setMessages([]);
-    setSelectedMoment(null);
     setIsFullScreen(false);
   }, []);
 

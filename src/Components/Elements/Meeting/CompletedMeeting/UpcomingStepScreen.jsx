@@ -1,5 +1,5 @@
 import CookieService from '../../../Utils/CookieService';
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { API_BASE_URL, Assets_URL } from "../../../Apicongfig";
@@ -51,6 +51,7 @@ import { useMeetings } from "../../../../context/MeetingsContext";
 import StepParticipant from "./StepParticipant";
 import MediaGallery from "./MediaGallery";
 import { BiCloudUpload } from "react-icons/bi";
+import { subscribeToMeeting, unsubscribeFromMeeting } from "../../../../Helpers/pusherHelper";
 
 function UpcomingStepScreen({
   meeting,
@@ -84,22 +85,36 @@ function UpcomingStepScreen({
   const formattedDate = formatDate(timeInUserZone);
   const { setCallApi } = useMeetings();
 
+  const getStepRef = useRef(getStep);
+  const stepRef = useRef(step);
+
   useEffect(() => {
-    let intervalId;
-    if (
-      meeting?.type === "AI Social Media Newsletter" &&
-      (!step?.editor_content || step.editor_content.trim() === "")
-    ) {
-      intervalId = setInterval(() => {
-        getStep(true); // silent fetch
-      }, 5000); // poll every 5 seconds
+    getStepRef.current = getStep;
+  });
+
+  useEffect(() => {
+    stepRef.current = step;
+  }, [step]);
+
+  useEffect(() => {
+    if (meeting?.type === "AI Social Media Newsletter" && meeting?.id) {
+      console.log(`[Pusher] Subscribing to meeting channel: meeting.${meeting.id}`);
+      
+      const channel = subscribeToMeeting(meeting.id, ({ type, data }) => {
+        if (type === "step.updated") {
+          if (!stepRef.current?.editor_content || stepRef.current.editor_content.trim() === "") {
+            console.log("[Pusher] step.updated received. Fetching step silently...");
+            getStepRef.current?.(true); // silent fetch
+          }
+        }
+      });
+
+      return () => {
+        console.log(`[Pusher] Unsubscribing from meeting channel: meeting.${meeting.id}`);
+        unsubscribeFromMeeting(meeting.id);
+      };
     }
-    return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
-    };
-  }, [id, meeting?.type, step?.editor_content, getStep]);
+  }, [meeting?.id, meeting?.type]);
 
   const renderStepFile = (file) => {
     if (!file) return null;

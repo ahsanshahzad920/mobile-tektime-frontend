@@ -485,6 +485,7 @@ function App() {
 
       <Routes>
         {/* <Route path="/" element={<Login onLogin={signin} />} /> */}
+        <Route path="/" element={<Login onLogin={signin} />} />
         <Route path="/login" element={<Login onLogin={signin} />} />
         <Route
           path="/heroes/:nick_name/emissary/:referral_id"
@@ -970,7 +971,7 @@ function App() {
       <BasePage>
         <Routes>
           {/* <Route path="/" element={<Home />} /> */}
-          <Route path="/" element={<SearchEngine />} />
+          {/* <Route path="/" element={<SearchEngine />} /> */}
           <Route path="/search-results" element={<SearchResultsPage />} />
           <Route path="/register/:referral_id?" element={<Register />} />
           <Route

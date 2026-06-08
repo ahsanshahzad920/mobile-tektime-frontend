@@ -7771,7 +7771,6 @@ Please categorize the relevant details into their corresponding sections.`;
                       </button>
                     </div>
 
-
                   {meetingData?.type === "Newsletter" ? (
                     <>
                      <div className="d-flex justify-content-center ">

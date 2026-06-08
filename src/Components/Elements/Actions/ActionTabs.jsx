@@ -597,10 +597,11 @@ const ActionTabs = () => {
 
     const formattedTime = formatTime(timeInUserZone);
     const formattedDate = formatDate(timeInUserZone);
+    const userId = CookieService.get("user_id");
     setIsLoading(true);
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/get-meeting/${id}?current_time=${formattedTime}&current_date=${formattedDate}`
+        `${API_BASE_URL}/get-meeting/${id}?current_time=${formattedTime}&current_date=${formattedDate}${userId ? `&user_id=${userId}` : ""}`
       );
       if (response) {
         const data = response?.data?.data;
@@ -1155,12 +1156,16 @@ const ActionTabs = () => {
   return (
     <div className="destination-tabs-container container-fluid px-2">
       <div ref={tabsRef} className={`tabs-header`}>
-        <div className="d-flex align-items-center justify-content-between">
-          <h4 className="meeting-title">{t("action.title")}</h4>
-
-
+        <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 pb-2">
+          <h4 className="meeting-title mb-0">{t("action.title")}</h4>
           <button
-            className={`btn moment-btn`}
+            className="btn moment-btn"
+            style={{
+              fontSize: "13px",
+              padding: "6px 12px",
+              borderRadius: "6px",
+              whiteSpace: "nowrap"
+            }}
             onClick={() => {
               window.open('https://tektime.io/destination/uKnsk22F2gvNxC5F5a2s2jp5pts8XbxPk22zZ9qf/167482 ', "_blank")
             }}
@@ -1168,63 +1173,43 @@ const ActionTabs = () => {
             {t("request a demo")}
           </button>
         </div>
-        <small style={{ padding: "15px 14px" }}>{t("action.subheading")}</small>
+        <small className="d-block text-muted" style={{ padding: "8px 10px", margin: "4px 0" }}>{t("action.subheading")}</small>
         <div className={`container-fluid`}>
-          <div               className="row align-items-center gutter-0"
-              style={{ padding: "0 10px" }}
-
->
+          <div className="row align-items-center gutter-0" style={{ padding: "0 10px" }}>
+            {/* Main Tabs Section (Desktop) */}
             <div
-              className="col-lg-9 col-md-8 col-12 destination-tab-row tabs-destinations border-bottom tabs-meeting"
+              className="col-lg-9 col-md-8 d-none d-md-block destination-tab-row tabs-destinations border-bottom tabs-meeting"
               style={{ borderBottom: "2px solid #F2F2F2" }}
             >
               <div className="tabs">
-                <div className="d-flex">
+                <div className="d-flex overflow-auto-custom">
                   <button
-                    className={`tab ${activeTab === "My Action" ? "active" : ""
-                      }`}
+                    className={`tab ${activeTab === "My Action" ? "active" : ""}`}
                     onClick={() => setActiveTab("My Action")}
-                            style={{borderRadius: "0px"}}
-
+                    style={{ borderRadius: "0px" }}
                   >
                     {t("action.MyActionTab")}
-                    <span
-                      className={activeTab === "My Action" ? "future" : "draft"}
-                    >
+                    <span className={activeTab === "My Action" ? "future" : "draft"}>
                       {myActionCount}
                     </span>
                   </button>
                   <button
-                    className={`tab ${activeTab === "Action by Destinations" ? "active" : ""
-                      }`}
+                    className={`tab ${activeTab === "Action by Destinations" ? "active" : ""}`}
                     onClick={() => setActiveTab("Action by Destinations")}
-                            style={{borderRadius: "0px"}}
-
+                    style={{ borderRadius: "0px" }}
                   >
                     {t("action.ActionByDestinationsTab")}
-                    <span
-                      className={
-                        activeTab === "Action by Destinations"
-                          ? "future"
-                          : "draft"
-                      }
-                    >
+                    <span className={activeTab === "Action by Destinations" ? "future" : "draft"}>
                       {myDestinationCount}
                     </span>
                   </button>
                   <button
-                    className={`tab ${activeTab === "Action by Teams" ? "active" : ""
-                      }`}
+                    className={`tab ${activeTab === "Action by Teams" ? "active" : ""}`}
                     onClick={() => setActiveTab("Action by Teams")}
-                            style={{borderRadius: "0px"}}
-
+                    style={{ borderRadius: "0px" }}
                   >
                     {t("action.ActionByTeamsTab")}
-                    <span
-                      className={
-                        activeTab === "Action by Teams" ? "future" : "draft"
-                      }
-                    >
+                    <span className={activeTab === "Action by Teams" ? "future" : "draft"}>
                       {myTeamCount}
                     </span>
                   </button>
@@ -1232,11 +1217,98 @@ const ActionTabs = () => {
               </div>
             </div>
 
+            {/* Main Tabs Section (Mobile Stacked) */}
+            <div className="col-12 d-block d-md-none mb-3">
+              <div className="mb-2">
+                <select
+                  className="form-select solution-select-custom w-100"
+                  value={activeTab}
+                  onChange={(e) => setActiveTab(e.target.value)}
+                >
+                  <option value="My Action">
+                    {t("action.MyActionTab")} ({myActionCount})
+                  </option>
+                  <option value="Action by Destinations">
+                    {t("action.ActionByDestinationsTab")} ({myDestinationCount})
+                  </option>
+                  <option value="Action by Teams">
+                    {t("action.ActionByTeamsTab")} ({myTeamCount})
+                  </option>
+                </select>
+              </div>
+              <div className="d-flex align-items-center gap-2">
+                <button
+                  className="btn d-flex align-items-center justify-content-center"
+                  style={{
+                    backgroundColor: "#FFFFFF",
+                    border: "1px solid #2C48AE",
+                    color: "#2C48AE",
+                    borderRadius: "8px",
+                    padding: "8px 16px",
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    height: "42px",
+                    flex: "0 0 50px"
+                  }}
+                  onClick={() =>
+                    setRefreshTrigger((prev) => ({
+                      count: prev.count + 1,
+                      calculation: true,
+                    }))
+                  }
+                  disabled={loading || destinationLoading || teamLoading}
+                >
+                  {loading || destinationLoading || teamLoading ? (
+                    <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
+                  ) : (
+                    <FaSync size={14} />
+                  )}
+                </button>
+                <button
+                  className="btn text-white d-flex align-items-center justify-content-center gap-1 flex-grow-1"
+                  style={{
+                    backgroundColor: "#2C48AE",
+                    borderRadius: "8px",
+                    padding: "8px 16px",
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    whiteSpace: "nowrap",
+                    height: "42px",
+                  }}
+                  onClick={() => {
+                    setShowStepperModal(true);
+                    setDestinationType(null);
+                    setDestinationTypeId(null);
+                  }}
+                >
+                  <span>
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M8 14.75V1.25M1.25 8H14.75"
+                        stroke="white"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </span>
+                  &nbsp;{t("action.addStep")}
+                </button>
+              </div>
+            </div>
+
+            {/* Action Buttons Section (Desktop Only) */}
             <div
-              className={`col-lg-3 col-md-4 col-12 d-flex justify-content-end p-0 align-items-center gap-2`}
+              className="col-lg-3 col-md-4 d-none d-md-flex justify-content-end p-0 align-items-center gap-2"
             >
               <button
-                className={`btn`}
+                className="btn"
                 style={{
                   whiteSpace: "nowrap",
                   backgroundColor: "#FFFFFF",
@@ -1267,7 +1339,7 @@ const ActionTabs = () => {
                 Refresh
               </button>
               <button
-                className={`btn`}
+                className="btn"
                 style={{
                   whiteSpace: "nowrap",
                   backgroundColor: "#2C48AE",
@@ -1389,7 +1461,7 @@ const ActionTabs = () => {
                     </>
                   </div>
 
-                  {/* {currentStep === 3 && momentType?.solution?.casting_type === "Registration" && (
+                  {currentStep === 3 && momentType?.solution?.casting_type === "Registration" && (
                     <div className="col-12 mb-3">
                       {!isStripeConnected ? (
                         <div className="d-flex align-items-center justify-content-between p-3 rounded bg-light border border-warning">
@@ -1426,7 +1498,6 @@ const ActionTabs = () => {
                       )}
                     </div>
                   )}
-                </div> */}
                 </div>
                 {renderStepContent()}
               </div>

@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import ReactToggle from "react-toggle";
 import { SiMicrosoftoutlook } from "react-icons/si";
 import { FcGoogle } from "react-icons/fc";
+import { FaLinkedin } from "react-icons/fa";
 
 function Location({ setActiveTab }) {
     const {
@@ -62,6 +63,7 @@ function Location({ setActiveTab }) {
         Address: false,
         phone: false,
         agenda: false,
+        social_media: false,
     });
 
     const handleToggleChange = (selectedToggle) => {
@@ -74,6 +76,15 @@ function Location({ setActiveTab }) {
             // Clear associated fields when the toggle is turned off
             if (!updatedState[selectedToggle]) {
                 if (selectedToggle === "Visioconference") {
+                    setSelectedLocation((prevState) => ({
+                        ...prevState,
+                        meeting: null,
+                    }));
+                    setFormState((prevState) => ({
+                        ...prevState,
+                        location: null,
+                    }));
+                } else if (selectedToggle === "social_media") {
                     setSelectedLocation((prevState) => ({
                         ...prevState,
                         meeting: null,
@@ -170,11 +181,12 @@ function Location({ setActiveTab }) {
             }));
 
             setToggleStates((prev) => ({
-                Visioconference: prev.Visioconference || !!location,
+                Visioconference: prev.Visioconference || (!!location && location !== "LinkedIn"),
                 Room: prev.Room || !!room_details,
                 Address: prev.Address || !!address,
                 phone: prev.phone || !!phone,
                 agenda: prev.agenda || !!agenda,
+                social_media: prev.social_media || location === "LinkedIn",
             }));
         }
     }, [formState]);
@@ -865,6 +877,69 @@ function Location({ setActiveTab }) {
                                     )}
                                 </div>
 
+                                {/* Social Media */}
+                                <div className="col-md-6 mt-3">
+                                    <button
+                                        className={`list-group-item list-group-item-action p-3 ${selectedLocation.meeting === "LinkedIn"
+                                            ? "border-primary"
+                                            : ""
+                                            }`}
+                                        onClick={() => handleToggleChange("social_media")}
+                                    >
+                                        <div className="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <span>
+                                                    <svg
+                                                        width="24"
+                                                        height="24"
+                                                        viewBox="0 0 24 24"
+                                                        fill="none"
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                    >
+                                                        <path
+                                                            d="M18 16.08C17.24 16.08 16.56 16.38 16.04 16.85L8.91 12.7C8.96 12.47 9 12.24 9 12C9 11.76 8.96 11.53 8.91 11.3L15.96 7.19C16.5 7.69 17.21 8 18 8C19.66 8 21 6.66 21 5C21 3.34 19.66 2 18 2C16.34 2 15 3.34 15 5C15 5.24 15.04 5.47 15.09 5.7L8.04 9.81C7.5 9.31 6.79 9 6 9C4.34 9 3 10.34 3 12C3 13.66 4.34 15 6 15C6.79 15 7.5 14.69 8.04 14.19L15.16 18.34C15.11 18.55 15.13 18.77 15.13 19C15.13 20.66 16.47 22 18.13 22C19.79 22 21.13 20.66 21.13 19C21.13 17.34 19.79 16.08 18 16.08Z"
+                                                            fill="#3D57B5"
+                                                        />
+                                                    </svg>
+                                                </span>
+                                                {t("stepModal.socialMedia")}
+                                            </div>
+                                            <div>
+                                                <ReactToggle
+                                                    checked={toggleStates.social_media}
+                                                    icons={false}
+                                                    className="toggle-playback"
+                                                    onChange={() => handleToggleChange("social_media")}
+                                                />
+                                            </div>
+                                        </div>
+                                    </button>
+
+                                    {toggleStates.social_media && (
+                                        <div className="p-4 pt-0 pb-1 create-moment-modal">
+                                            <div className="row form mt-3">
+                                                {/* LinkedIn */}
+                                                <div className="mb-3 col-md-6 d-flex align-items-center gap-2">
+                                                    <input
+                                                        type="radio"
+                                                        id="LinkedIn"
+                                                        name="socialPlatform"
+                                                        value="LinkedIn"
+                                                        checked={selectedLocation.meeting === "LinkedIn"}
+                                                        onChange={() => handleSelect("LinkedIn")}
+                                                    />
+                                                    <label htmlFor="LinkedIn" className="d-flex align-items-center gap-1 cursor-pointer">
+                                                        <FaLinkedin
+                                                            style={{ color: "#0A66C2" }}
+                                                            className="fs-5"
+                                                        /> LinkedIn
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
                             </div>
                         </div>
                     </Col>
@@ -907,7 +982,7 @@ function Location({ setActiveTab }) {
                         className="btn moment-btn"
                         onClick={handleSaveAndContinue}
                         disabled={loading}
-          style={{padding:'0px 10px '}}
+                        style={{ padding: '0px 10px ' }}
 
                     >
                         {loading ? (

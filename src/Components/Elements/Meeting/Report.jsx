@@ -110,6 +110,7 @@ import ReportSubscriberCard from "./ReportSubscriberCard";
 import ReportActiveStepCard from "./ReportActiveStepCard";
 import "./ReportDesign.scss";
 import FeedbackCards from "./CompletedMeeting/FeedbackCard";
+import ParticipantRegistrationModal from "./ParticipantRegistrationModal";
 import { SiMicrosoftoutlook, SiMicrosoftteams } from "react-icons/si";
 import { FcGoogle } from "react-icons/fc";
 import { BiDetail } from "react-icons/bi";
@@ -1741,8 +1742,8 @@ const Report = () => {
   };
   const handleCloseStepperModal = () => setShowStepperModal(false);
 
-  // const handleShowRegistrationModal = () => setShowRegistrationModal(true);
-  // const handleCloseRegistrationModal = () => setShowRegistrationModal(false);
+  const handleShowRegistrationModal = () => setShowRegistrationModal(true);
+  const handleCloseRegistrationModal = () => setShowRegistrationModal(false);
 
   const handleShowForgot = () => {
     setShowSignIn(false);
@@ -2183,7 +2184,7 @@ const Report = () => {
 
   const [play, setPlay] = useState(false);
   const loggedInUserId =
-    CookieService.get("user_id");
+    CookieService.get("user_id")
   const [workingHours, setWorkingHours] = useState([]);
   useEffect(() => {
     if (meetingData) {
@@ -2612,7 +2613,7 @@ const Report = () => {
   if (meetId) {
       fetchStepMedia();
     }
-  }, [meetId]); // ← Better dependency: step.id only
+    }, [meetId]); // ← Better dependency: step.id only
 
   const [isNavVisible, setIsNavVisible] = useState(false);
 
@@ -5034,7 +5035,7 @@ const Report = () => {
                                       )}
                                     </div>
 
-                                    {(meetingData?.type !== "Calendly" && meetingData?.presentation) && <div className="d-flex gap-3 play-meeting-button">
+                                    {(meetingData?.type !== "Calendly" && meetingData?.presentation) &&<div className="d-flex gap-3 play-meeting-button">
                                       <div className="d-flex w-100 play-btn-child">
                                         <AntdTooltip
                                           title={
@@ -6134,7 +6135,7 @@ const Report = () => {
                                         border: "1px solid #E2E2E2",
                                         color: "white",
                                       }}
-                                      onClick={() => handleShowStepperModal()}
+                                      onClick={() => handleShowRegistrationModal()}
                                     >
                                       {t("Register")}
                                     </button>
@@ -6412,14 +6413,14 @@ const Report = () => {
                       user={sessionUser}
                       calendlyData={calendlyData}
                     />
-                    {/* <ParticipantRegistrationModal
+                    <ParticipantRegistrationModal
                       show={showRegistrationModal}
                       handleClose={handleCloseRegistrationModal}
                       meetingData={meetingData}
                       refreshData={getMeetingReport}
                       user={sessionUser}
                       handleShowSignIn={handleShowSignIn}
-                    /> */}
+                    />
                     {/* Forgot Password Modal */}
                     <ForgotPassword
                       show={showForgot}

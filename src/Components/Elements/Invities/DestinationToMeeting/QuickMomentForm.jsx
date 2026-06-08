@@ -69,6 +69,7 @@ import { useFormContext } from "../../../../context/CreateMeetingContext";
 import { toast } from "react-toastify";
 import { useHeaderTitle } from "../../../../context/HeaderTitleContext";
 import { useMeetings } from "../../../../context/MeetingsContext";
+import GoogleConnectFlow from "../../Profile/GoogleConnectFlow";
 
 const QuickMomentForm = ({
   show,
@@ -2120,7 +2121,11 @@ const QuickMomentForm = ({
         setMeeting(responseData);
         // toast.success(t("meeting.formState.Meeting created successfully"));
 
-        if (formState.repetition) {
+        const hasSteps = meetingData
+          ? ((responseData?.steps && responseData.steps.length > 0) || responseData?.meeting_steps_count > 0)
+          : (isTemplate && selectedSolution?.is_step_exists !== false);
+
+        if (formState.repetition && hasSteps) {
           await recurrentMeetingAPI(targetId);
         }
         if (meetingData) {
@@ -2558,7 +2563,9 @@ const QuickMomentForm = ({
 
       if (res.status === 200 || res?.status === 201) {
         const response = res?.data?.data;
-        if (formState.repetition) {
+        const hasSteps = isTemplate && selectedSolution?.is_step_exists !== false;
+
+        if (formState.repetition && hasSteps) {
           await recurrentMeetingAPI(response.id);
         }
         // toast.success(t("Meeting created successfully"));
@@ -2613,6 +2620,7 @@ const QuickMomentForm = ({
           });
         } else {
           // For solutions, show steps modal
+          setMeeting(response);
           setShowStepsModal(true);
         }
       }
@@ -5374,6 +5382,7 @@ const QuickMomentForm = ({
                   meeting={meeting}
                   setMeeting={setMeeting}
                   closeMeeting={onClose}
+                  recurrentMeetingAPI={recurrentMeetingAPI}
                 />
               </div>
             </div>

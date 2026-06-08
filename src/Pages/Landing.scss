@@ -1,8 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
 
+
 body {
   margin: 0;
-  font-family: 'DM-sans', sans-serif;
+  font-family: 'DM Sans', sans-serif;
+}
+
+html, body {
+  overflow-x: hidden;
+  width: 100%;
 }
 
 
@@ -160,8 +166,8 @@ body {
 }
 
 .new-landing-page {
-
-
+  overflow-x: hidden;
+  width: 100%;
 
   /* Container */
   .container {
@@ -378,6 +384,17 @@ body {
     border-radius: 12px;
     border: none;
     transition: background-color 0.3s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    .ant-card-body {
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+      height: 100%;
+      padding: 24px !important;
+    }
   }
 
   .service-card:hover {
@@ -388,6 +405,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    flex-grow: 1;
   }
 
   .service-line {
@@ -543,7 +561,7 @@ body {
   .step-line {
     position: absolute;
     top: 45px;
-    left: 32px;
+    left: 24px;
     width: 2px;
     height: 0;
     background: rgba(255, 255, 255, 0.25);
@@ -856,6 +874,118 @@ body {
     .toggle-btn {
       &:hover:not(.active) {
         color: #0f172a;
+      }
+    }
+  }
+
+  /* Search Engine Landing Section Styling */
+  .search-engine-landing {
+    .search-logo {
+      height: 64px;
+      margin-bottom: 2rem;
+      object-fit: contain;
+    }
+
+    .search-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background-color: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 9999px;
+      padding: 6px 14px;
+      font-size: 0.825rem;
+      font-weight: 500;
+      color: #334155;
+      text-transform: none;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+
+      .france-flag-logo {
+        display: inline-flex;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        overflow: hidden;
+        position: relative;
+        border: 1px solid rgba(0, 0, 0, 0.15);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        flex-shrink: 0;
+
+        &::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 33.33%;
+          height: 100%;
+          background-color: #002395;
+        }
+
+        &::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 33.33%;
+          width: 33.33%;
+          height: 100%;
+          background-color: #ffffff;
+        }
+
+        .stripe-red {
+          position: absolute;
+          top: 0;
+          left: 66.66%;
+          width: 33.33%;
+          height: 100%;
+          background-color: #ed2939;
+          z-index: 2;
+        }
+      }
+
+      .badge-text {
+        font-family: 'DM Sans', sans-serif;
+      }
+    }
+
+    .search-title {
+      font-size: 3.25rem;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.2;
+      letter-spacing: -0.025em;
+      margin-bottom: 1.25rem;
+      font-family: 'DM Sans', sans-serif;
+      max-width: 900px;
+      margin-left: auto;
+      margin-right: auto;
+
+      .highlight-blue {
+        color: #0047FF;
+      }
+
+      @media (max-width: 768px) {
+        font-size: 2.5rem;
+      }
+      @media (max-width: 480px) {
+        font-size: 2rem;
+      }
+    }
+
+    .search-subtitle {
+      font-size: 1.15rem;
+      font-weight: 400;
+      color: #475569;
+      line-height: 1.6;
+      max-width: 680px;
+      margin-left: auto;
+      margin-right: auto;
+      margin-bottom: 2.5rem;
+      font-family: 'DM Sans', sans-serif;
+
+      @media (max-width: 768px) {
+        font-size: 1rem;
+        margin-bottom: 2rem;
       }
     }
   }

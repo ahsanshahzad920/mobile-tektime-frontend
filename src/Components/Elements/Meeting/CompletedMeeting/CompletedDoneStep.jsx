@@ -1,4 +1,4 @@
-import CookieService from '../../../Utils/CookieService';
+import CookieService from "../../../Utils/CookieService";
 import React, { useEffect, useState } from "react";
 import {
   Link,
@@ -95,18 +95,15 @@ function CompletedDoneStep() {
         {
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${
-              CookieService.get("token")
-            }`,
+            Authorization: `Bearer ${CookieService.get("token")}`,
           },
         },
       );
       if (response.status === 200) {
         if (response?.data?.data?.step_status === "in_progress") {
-          navigate(
-            `/actīon-play/${response?.data?.data?.meeting_id}/${id}`,
-            { replace: true }
-          );
+          navigate(`/actīon-play/${response?.data?.data?.meeting_id}/${id}`, {
+            replace: true,
+          });
           return;
         }
         setStep(response?.data?.data);
@@ -148,9 +145,7 @@ function CompletedDoneStep() {
           {
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${
-                CookieService.get("token")
-              }`,
+              Authorization: `Bearer ${CookieService.get("token")}`,
             },
           },
         );
@@ -194,9 +189,7 @@ function CompletedDoneStep() {
         `${API_BASE_URL}/summrize-step-transcription/${id}`,
         {
           headers: {
-            Authorization: `Bearer ${
-              CookieService.get("token")
-            }`,
+            Authorization: `Bearer ${CookieService.get("token")}`,
           },
         },
       );
@@ -255,9 +248,7 @@ function CompletedDoneStep() {
 
     return false;
   };
-  const sessionUser = JSON.parse(
-    CookieService.get("user")
-  );
+  const sessionUser = JSON.parse(CookieService.get("user"));
 
   const handleViewToggle = async (view) => {
     if (view === "prompt") {
@@ -288,9 +279,7 @@ function CompletedDoneStep() {
         payload,
         {
           headers: {
-            Authorization: `Bearer ${
-              CookieService.get("token")
-            }`,
+            Authorization: `Bearer ${CookieService.get("token")}`,
           },
         },
       );
@@ -353,9 +342,7 @@ function CompletedDoneStep() {
           `${API_BASE_URL}/meeting-prompts/${item?.meeting?.prompts[0]?.id}`,
           {
             headers: {
-              Authorization: `Bearer ${
-                CookieService.get("token")
-              }`,
+              Authorization: `Bearer ${CookieService.get("token")}`,
             },
           },
         );
@@ -386,9 +373,7 @@ function CompletedDoneStep() {
         payload,
         {
           headers: {
-            Authorization: `Bearer ${
-              CookieService.get("token")
-            }`,
+            Authorization: `Bearer ${CookieService.get("token")}`,
           },
         },
       );
@@ -493,9 +478,7 @@ function CompletedDoneStep() {
           `${API_BASE_URL}/step-media/${step?.id}`,
           {
             headers: {
-              Authorization: `Bearer ${
-                CookieService.get("token")
-              }`,
+              Authorization: `Bearer ${CookieService.get("token")}`,
             },
           },
         );
@@ -525,9 +508,7 @@ function CompletedDoneStep() {
       // Replace with your actual delete API endpoint
       await axios.delete(`${API_BASE_URL}/delete-media/${mediaId}`, {
         headers: {
-          Authorization: `Bearer ${
-            CookieService.get("token")
-          }`,
+          Authorization: `Bearer ${CookieService.get("token")}`,
         },
       });
 
@@ -744,9 +725,7 @@ function CompletedDoneStep() {
         {
           headers: {
             "Content-Type": "multipart/form-data",
-            Authorization: `Bearer ${
-              CookieService.get("token")
-            }`,
+            Authorization: `Bearer ${CookieService.get("token")}`,
           },
         },
       );
@@ -1621,7 +1600,9 @@ function CompletedDoneStep() {
                   Guide
                 </h4>
                 <div className="host">
-                  {meeting?.type === "Newsletter" ? (
+                  {meeting?.type === "Newsletter" ||
+                  meeting?.type === "Social Media Newsletter" ||
+                  meeting?.type === "AI Social Media Newsletter" ? (
                     <div className="row">
                       <div className="col-md-3">
                         <Card
@@ -1692,6 +1673,8 @@ function CompletedDoneStep() {
                 step?.editor_type === "Story" ||
                 step?.editor_type === "Email" ||
                 step?.editor_type === "Message" ||
+                step?.editor_type === "Publication" ||
+                step?.editor_type === "AI Instruction" ||
                 meeting?.type === "Absence" ? (
                   <>
                     <div

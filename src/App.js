@@ -87,6 +87,8 @@ import AccessDenied from "./Pages/AccessDenied";
 import HomeMessages from "./Pages/Discussion/HomeMessages.jsx";
 import CookieService from "./Components/Utils/CookieService";
 import { setupAxiosInterceptors } from "./Components/Utils/auth";
+import SearchEngine from "./Pages/SearchEngine.jsx";
+import SearchResultsPage from "./Pages/SearchResultsPage.jsx";
 
 i18next.init({
   interpolation: { escapevalue: false },
@@ -469,19 +471,9 @@ function App() {
     return () => clearInterval(intervalId);
   }, []);
 
-//  useEffect(() => {
-//     // Add a condition to prevent redirect loops
-//     if (
-//       window.location.href === "https://mobile.tektime.io/" &&
-//       window.location.href !== "https://mobile.tektime.io"
-//     ) {
-//       window.location.replace("https://mobile.tektime.io");
-//     }
-//   }, []);
 
   return (
     <div>
-      
       <ToastContainer
         autoClose={3000}
         closeOnClick
@@ -493,7 +485,6 @@ function App() {
 
       <Routes>
         {/* <Route path="/" element={<Login onLogin={signin} />} /> */}
-        <Route path="/" element={<Login onLogin={signin} />} />
         <Route path="/login" element={<Login onLogin={signin} />} />
         <Route
           path="/heroes/:nick_name/emissary/:referral_id"
@@ -979,6 +970,8 @@ function App() {
       <BasePage>
         <Routes>
           {/* <Route path="/" element={<Home />} /> */}
+          <Route path="/" element={<SearchEngine />} />
+          <Route path="/search-results" element={<SearchResultsPage />} />
           <Route path="/register/:referral_id?" element={<Register />} />
           <Route
             path="/gate/moment/:referral_id?"

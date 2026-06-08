@@ -233,7 +233,7 @@ const SolutionCasting = ({ setActiveTab }) => {
                                                         {t("meeting.formState.Invitation")}
                                                     </span>
                                                 </div>
-                                                {/* SVG Arrow */}
+                                                
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
                                                     <g clipPath="url(#clip0_1_1041)">
                                                         <path d="M20 11.3334H12.6667V4.00004C12.6667 3.82323 12.5964 3.65366 12.4714 3.52864C12.3464 3.40361 12.1768 3.33337 12 3.33337C11.8232 3.33337 11.6536 3.40361 11.5286 3.52864C11.4036 3.65366 11.3333 3.82323 11.3333 4.00004V11.3334H3.99999C3.82318 11.3334 3.65361 11.4036 3.52858 11.5286C3.40356 11.6537 3.33332 11.8232 3.33332 12C3.33003 12.0867 3.34535 12.173 3.37825 12.2532C3.41115 12.3335 3.46086 12.4057 3.52404 12.4651C3.58722 12.5245 3.66239 12.5696 3.74449 12.5975C3.82659 12.6254 3.91371 12.6353 3.99999 12.6267H11.3333V20C11.3333 20.1769 11.4036 20.3464 11.5286 20.4714C11.6536 20.5965 11.8232 20.6667 12 20.6667C12.1768 20.6667 12.3464 20.5965 12.4714 20.4714C12.5964 20.3464 12.6667 20.1769 12.6667 20V12.6667H20C20.1768 12.6667 20.3464 12.5965 20.4714 12.4714C20.5964 12.3464 20.6667 12.1769 20.6667 12C20.6667 11.8232 20.5964 11.6537 20.4714 11.5286C20.3464 11.4036 20.1768 11.3334 20 11.3334Z" fill={selectedTab === "Invitation" ? "#3D57B5" : "#687691"} />
@@ -272,160 +272,6 @@ const SolutionCasting = ({ setActiveTab }) => {
                                 </>
                             )}
                         </Row>
-                        {(selectedTab === "Invitation" || selectedTab === "Subscription") && (
-                            <>
-                                {/* <h4
-                                    className="mt-2 mb-2 solutioncards"
-                                    style={{ fontSize: "16px" }}
-                                >
-                                    {t("meeting.formState.Invitation")}
-                                </h4> */}
-                                <SolutionAddNewGuest show={show} handleClose={handleClose} editModal={editModal} />
-                                <SolutionEditGuest show={editModal} handleClose={handleEditClose} guest={selectedGuest} />
-                            </>
-                        )}
-
-                        {selectedTab === "Registration" && (
-                            <SolutionRegistrationModal />
-                        )}
-
-                        {(selectedTab === "Invitation" || selectedTab === "Subscription") && (
-                            <>
-
-                                <h4
-                                    className="mt-3 mb-2 solutioncards"
-                                    style={{ fontSize: "18px", fontWeight: "600" }}
-                                >
-                                    {solution?.participants?.length > 0
-                                        ? solution?.participants?.length
-                                        : t("meeting.formState.step.No")}{" "}
-                                    {t("meeting.formState.Guest List")}
-                                </h4>
-                                <Table
-                                    className="add-guest-table align-middle"
-                                    style={{ marginBottom: "0px" }}
-                                    responsive
-                                >
-                                    <tbody>
-                                        {solution?.participants?.length > 0 &&
-                                            solution?.participants?.map((guest, index) => (
-                                                <tr key={index}>
-                                                    <td width="3%">{index + 1}.</td>
-                                                    <td width={"20%"}>
-                                                        {guest?.participant_image?.startsWith("http") ? (
-                                                            <img
-                                                                src={guest.participant_image}
-                                                                alt=""
-                                                                className="rounded-circle me-2"
-                                                                width="30"
-                                                                height="30"
-                                                            />
-                                                        ) : guest?.participant_image ? (
-                                                            <img
-                                                                src={`${Assets_URL}/${guest.participant_image}`}
-                                                                alt=""
-                                                                className="rounded-circle me-2"
-                                                                width="30"
-                                                                height="30"
-                                                            />
-                                                        ) : (
-                                                            <HiUserCircle size={"30px"} className="me-2" />
-                                                        )}
-                                                        {guest.first_name} {guest.last_name}
-                                                    </td>
-                                                    <td width="30%">
-                                                        <div className="text-muted small">{guest.email}</div>
-                                                    </td>
-
-                                                    <td style={{ textAlign: "center" }}>
-                                                        {guest?.client?.client_logo && (
-                                                            <img
-                                                                src={
-                                                                    guest?.client?.client_logo?.startsWith("http")
-                                                                        ? guest?.client?.client_logo
-                                                                        : Assets_URL + "/" + guest?.client?.client_logo
-                                                                }
-                                                                alt={`${guest?.client?.name}'s avatar`}
-                                                                className="rounded-circle"
-                                                                style={{
-                                                                    width: "30px",
-                                                                    height: "30px",
-                                                                    objectFit: "cover",
-                                                                    objectPosition: "top",
-                                                                }}
-                                                            />
-                                                        )}
-                                                    </td>
-                                                    <td style={{ textAlign: "start" }}>
-                                                        {guest?.client?.name}
-                                                    </td>
-                                                    <td style={{ textAlign: "center" }}>
-                                                        {guest?.post || "N/A"}
-                                                    </td>
-                                                    <td width="10%">
-                                                        <span
-                                                            style={{
-                                                                padding: "8px 5px",
-                                                                borderRadius: "8px",
-                                                                textAlign: "center",
-                                                                margin: "3px",
-                                                                backgroundColor: "#F5F8FF",
-                                                                color: "#3D57B5",
-                                                                cursor: "pointer",
-                                                                display: "inline-block",
-                                                            }}
-                                                            onClick={() => handleEdit(guest)}
-                                                            title={t("Edit")}
-                                                        >
-                                                            <svg
-                                                                xmlns="http://www.w3.org/2000/svg"
-                                                                width="20"
-                                                                height="20"
-                                                                viewBox="0 0 24 24"
-                                                                fill="none"
-                                                                stroke="currentColor"
-                                                                strokeWidth="2"
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                            >
-                                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                                            </svg>
-                                                        </span>
-                                                        <span
-                                                            style={{
-                                                                padding: "8px 5px",
-                                                                borderRadius: "8px",
-                                                                textAlign: "center",
-                                                                margin: "3px",
-                                                                backgroundColor: "#ffe5e5",
-                                                                color: "red",
-                                                                cursor: "pointer",
-                                                                display: "inline-block",
-                                                            }}
-                                                            onClick={() => handleDelete(guest)}
-                                                            title={t("Delete")}
-                                                        >
-                                                            <svg
-                                                                xmlns="http://www.w3.org/2000/svg"
-                                                                width="20"
-                                                                height="20"
-                                                                viewBox="0 0 20 20"
-                                                                fill="none"
-                                                            >
-                                                                <path
-                                                                    d="M8.4375 4.0625V4.375H11.5625V4.0625C11.5625 3.6481 11.3979 3.25067 11.1049 2.95765C10.8118 2.66462 10.4144 2.5 10 2.5C9.5856 2.5 9.18817 2.66462 8.89515 2.95765C8.60212 3.25067 8.4375 3.6481 8.4375 4.0625ZM7.1875 4.375V4.0625C7.1875 3.31658 7.48382 2.60121 8.01126 2.07376C8.53871 1.54632 9.25408 1.25 10 1.25C10.7459 1.25 11.4613 1.54632 11.9887 2.07376C12.5162 2.60121 12.8125 3.31658 12.8125 4.0625V4.375H17.5C17.6658 4.375 17.8247 4.44085 17.9419 4.55806C18.0592 4.67527 18.125 4.83424 18.125 5C18.125 5.16576 18.0592 5.32473 17.9419 5.44194C17.8247 5.55915 17.6658 5.625 17.5 5.625H16.5575L15.375 15.98C15.2878 16.7426 14.923 17.4465 14.3501 17.9573C13.7772 18.4682 13.0363 18.7504 12.2687 18.75H7.73125C6.96366 18.7504 6.22279 18.4682 5.64991 17.9573C5.07702 17.4465 4.7122 16.7426 4.625 15.98L3.4425 5.625H2.5C2.33424 5.625 2.17527 5.55915 2.05806 5.44194C1.94085 5.32473 1.875 5.16576 1.875 5C1.875 4.83424 1.94085 4.67527 2.05806 4.55806C2.17527 4.44085 2.33424 4.375 2.5 4.375H7.1875ZM5.8675 15.8375C5.91968 16.2949 6.13835 16.7172 6.48183 17.0238C6.82531 17.3304 7.26959 17.4999 7.73 17.5H12.2694C12.7298 17.4999 13.1741 17.3304 13.5175 17.0238C13.861 16.7172 14.0797 16.2949 14.1319 15.8375L15.3 5.625H4.70062L5.8675 15.8375ZM8.125 7.8125C8.29076 7.8125 8.44973 7.87835 8.56694 7.99556C8.68415 8.11277 8.75 8.27174 8.75 8.4375V14.6875C8.75 14.8533 8.68415 15.0122 8.56694 15.1294C8.44973 15.2467 8.29076 15.3125 8.125 15.3125C7.95924 15.3125 7.80027 15.2467 7.68306 15.1294C7.56585 15.0122 7.5 14.8533 7.5 14.6875V8.4375C7.5 8.27174 7.56585 8.11277 7.68306 7.99556C7.80027 7.87835 7.95924 7.8125 8.125 7.8125ZM12.5 8.4375C12.5 8.27174 12.4342 8.11277 12.3169 7.99556C12.1997 7.87835 12.0408 7.8125 11.875 7.8125C11.7092 7.8125 11.5503 7.87835 11.4331 7.99556C11.3158 8.11277 11.25 8.27174 11.25 8.4375V14.6875C11.25 14.8533 11.3158 15.0122 11.4331 15.1294C11.5503 15.2467 11.7092 15.3125 11.875 15.3125C12.0408 15.3125 12.1997 15.2467 12.3169 15.1294C12.4342 15.0122 12.5 14.8533 12.5 14.6875V8.4375Z"
-                                                                    fill="#BB372F"
-                                                                />
-                                                            </svg>
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                    </tbody>
-                                </Table>
-                            </>
-                        )}
                     </div>
                 </div>
                 <div
@@ -467,8 +313,6 @@ const SolutionCasting = ({ setActiveTab }) => {
                         className="btn moment-btn"
                         onClick={handleSaveAndContinue}
                         disabled={loading}
-          style={{padding:'0px 10px '}}
-
                     >
                         {loading ? (
                             <>

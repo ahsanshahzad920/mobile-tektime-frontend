@@ -602,7 +602,7 @@ function MeetingTabs() {
           />
         )}
         {activeTab.startsWith("type-") && (
-           <MeetingSubTab 
+          <MeetingSubTab 
             fetchCounts={fetchMeetingCounts} 
             unreadCounts={unreadMeetingCounts} 
           />

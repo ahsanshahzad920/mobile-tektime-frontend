@@ -17,8 +17,9 @@ import { RiFileExcel2Line, RiFolderVideoLine } from "react-icons/ri";
 import * as XLSX from "xlsx";
 import Spreadsheet from "react-spreadsheet";
 import { read, utils } from "xlsx";
-import { FaRegFileAudio } from "react-icons/fa";
+import { FaRegFileAudio, FaLinkedin } from "react-icons/fa";
 import { SiGooglemeet } from "react-icons/si";
+import { FiEdit } from "react-icons/fi";
 
 import {
   DocumentIcon,
@@ -187,6 +188,20 @@ const StepChartAction = ({
   const newsletterOption = [
     { value: "Email", label: t("stepModal.email"), icon: <CgMail /> },
   ];
+  const socialMediaOption = [
+    {
+      value: "Publication",
+      label: t("stepModal.publication") || "Publication",
+      icon: <FaLinkedin className="fs-5" style={{ color: "#0a66c2" }} />,
+    },
+  ];
+  const aiSocialMediaOption = [
+    {
+      value: "AI Instruction",
+      label: t("stepModal.aiInstruction") || "AI Instruction",
+      icon: <FaLinkedin className="fs-5" style={{ color: "#0a66c2" }} />,
+    },
+  ];
   const taskOption = [
     { value: "Subtask", label: t("stepModal.subtask"), icon: <DocumentIcon /> },
   ];
@@ -249,6 +264,24 @@ const StepChartAction = ({
     setIsOpen(false);
     setFileName("");
     setExcelData(null);
+    setLink(null);
+    if (meeting?.type === "AI Social Media Newsletter") {
+      if (option.value === "File") {
+        setAiOutputFormat("PDF");
+      } else if (option.value === "PowerPoint") {
+        setAiOutputFormat("PowerPoint");
+      } else if (option.value === "Excel") {
+        setAiOutputFormat("Excel");
+      } else if (option.value === "Video") {
+        setAiOutputFormat("Video");
+      } else if (option.value === "Photo") {
+        setAiOutputFormat("Photo");
+      } else if (option.value === "Url") {
+        setAiOutputFormat("URL");
+      } else {
+        setAiOutputFormat("Text");
+      }
+    }
   };
 
   const [selectedValue, setSelectedValue] = useState(null);
@@ -262,6 +295,31 @@ const StepChartAction = ({
   const [storedStartDate, setStoredStartDate] = useState(null);
   const [storedStartDateForHour, setStoredStartDateForHour] = useState(null);
   const [modifiedFileText, setModifiedFileText] = useState();
+  const [stepMedia, setStepMedia] = useState([]);
+
+  const handleDeleteMedia = async (mediaId) => {
+    const getCookie = (name) => {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+      return null;
+    };
+    const token = getCookie("token");
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+    const hasTranslation = typeof t === 'function';
+    if (!window.confirm(hasTranslation ? t("Delete this media permanently?") : "Delete this media permanently?")) return;
+
+    try {
+      await axios.delete(`${API_BASE_URL}/delete-media/${mediaId}`, { headers });
+      toast.success(hasTranslation ? t("Média supprimé avec succès !") : "Média supprimé avec succès !");
+      setStepMedia((prev) => prev.filter((item) => item.id !== mediaId));
+    } catch (error) {
+      console.error("Error deleting media:", error);
+      toast.error(hasTranslation ? t("Failed to delete media") : "Échec de la suppression.");
+    }
+  }
+
   const [modalType, setModalType] = useState("");
   const [assignUser, setAssignUser] = useState(null);
   const [assignTeam, setAssignTeam] = useState(null);
@@ -279,6 +337,18 @@ const StepChartAction = ({
   const [timeUnit, setTimeUnit] = useState("minutes");
 
   const [createAnother, setCreateAnother] = useState(false);
+  const [instructionPrompt, setInstructionPrompt] = useState("");
+  const [aiSourceType, setAiSourceType] = useState("Text");
+  const [aiSourceText, setAiSourceText] = useState("");
+  const [aiSourceFile, setAiSourceFile] = useState(null);
+  const [aiRole, setAiRole] = useState("");
+  const [aiAction, setAiAction] = useState("");
+  const [aiObjective, setAiObjective] = useState("");
+  const [aiRules, setAiRules] = useState("");
+  const [aiOutputFormat, setAiOutputFormat] = useState("Text");
+  const [aiPowerPointTemplate, setAiPowerPointTemplate] = useState(null);
+  const [aiPdfTemplate, setAiPdfTemplate] = useState(null);
+  const [aiOutputText, setAiOutputText] = useState("");
   const handleCheckboxChange = (e) => {
     setCreateAnother(e.target.checked);
   };
@@ -436,21 +506,26 @@ const StepChartAction = ({
   useEffect(() => {
     if (meeting?.type) {
       setModalType(
-        meeting?.type === "Law"
-          ? "Question"
-          : meeting?.type === "Newsletter"
-            ? "Email"
-            : meeting?.type === "Task"
-              ? "Subtask"
-              : meeting?.type === "Sprint"
-                ? "Story"
-                : meeting?.type === "Special"
-                  ? "Audio Report"
-                  : meeting?.type === "Absence"
-                    ? "Absence CET non payable"
-                    : modalType
-                      ? modalType
-                      : "Editeur",
+        meeting?.type === "AI Social Media Newsletter"
+          ? "AI Instruction"
+          : meeting?.type === "Social Media Newsletter" ||
+            meeting?.location === "LinkedIn"
+            ? "Publication"
+            : meeting?.type === "Law"
+              ? "Question"
+              : meeting?.type === "Newsletter"
+                ? "Email"
+                : meeting?.type === "Task"
+                  ? "Subtask"
+                  : meeting?.type === "Sprint"
+                    ? "Story"
+                    : meeting?.type === "Special"
+                      ? "Audio Report"
+                      : meeting?.type === "Absence"
+                        ? "Absence CET non payable"
+                        : modalType
+                          ? modalType
+                          : "Editeur",
       );
     }
   }, [meeting?.type, show]);
@@ -462,7 +537,16 @@ const StepChartAction = ({
   const [selectedFile, setSelectedFile] = useState(null);
   const [fileDuration, setFileDuration] = useState(null);
   const onDrop = async (acceptedFiles) => {
-    const file = acceptedFiles[0];
+    if (!selectedValue?.trim() || selectedCount === 0) {
+      const hasTranslation = typeof t === 'function';
+      toast.error(hasTranslation ? t("Please enter the step title and time first") : "Please enter the step title and time first");
+      return;
+    }
+    const files =
+      modalType === "Publication" || modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter"
+        ? acceptedFiles
+        : [acceptedFiles[0]];
+    const file = files[0];
     setSelectedFile(file);
     setIsUpload(true);
     let allowedFileTypes = [];
@@ -493,7 +577,6 @@ const StepChartAction = ({
         "image/gif",
         "image/bmp",
         "image/webp",
-        // Add other image MIME types if needed
       ];
     } else if (modalType === "Excel") {
       allowedFileTypes = [
@@ -517,15 +600,59 @@ const StepChartAction = ({
         "audio/x-ms-wma",
         "audio/aac",
       ];
+    } else if (modalType === "Publication") {
+      allowedFileTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/bmp",
+        "image/webp",
+        "video/mp4",
+        "video/x-msvideo",
+        "video/x-matroska",
+        "video/mpeg",
+        "video/quicktime",
+      ];
+    } else if (modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter") {
+      allowedFileTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/bmp",
+        "image/webp",
+        "video/mp4",
+        "video/x-msvideo",
+        "video/x-matroska",
+        "video/mpeg",
+        "video/quicktime",
+        "application/pdf",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-powerpoint",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "text/plain",
+      ];
     }
 
     // Check file size (10 MB = 10 * 1024 * 1024 bytes)
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error(t("meeting.chart.error.file"));
-      setIsUpload(false);
-      return;
+    for (let f of files) {
+      if (f.size > 10 * 1024 * 1024) {
+        toast.error(t("meeting.chart.error.file"));
+        setIsUpload(false);
+        return;
+      }
+      if (!allowedFileTypes.includes(f.type)) {
+        alert(
+          `Please select a valid file type for ${modalType}: ${allowedFileTypes.join(", ")}`,
+        );
+        setIsUpload(false);
+        return;
+      }
     }
-    if (file && allowedFileTypes.includes(file.type)) {
+
+    if (files.length > 0) {
       if (file && modalType === "Excel") {
         let reader = new FileReader();
 
@@ -585,12 +712,16 @@ const StepChartAction = ({
                     ? "Photo"
                     : modalType,
             file: file,
-            editor_content: null,
+            editor_content:
+              modalType === "Publication" || modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter"
+                ? modifiedFileText || null
+                : null,
             meeting_id: meetingId,
             assigned_to: assignedToUser,
             // assigned_to_team: meeting?.type === "Newsletter" ? team : null,
             assigned_to_team: meeting?.type === "Newsletter" ? null : null,
-            status: "active",
+            status:  meeting?.type === "AI Social Media Newsletter" ||  meeting?.type === "Social Media Newsletter" ? "draft" : "active",
+            step_status:  meeting?.type === "AI Social Media Newsletter" ||  meeting?.type === "Social Media Newsletter" ? "draft" : null,
             url: null,
             created_by: userID,
             // _method: "put",
@@ -603,10 +734,17 @@ const StepChartAction = ({
           formData.append("time", filePayload.time);
           formData.append("editor_type", filePayload.editor_type);
           formData.append("time_unit", filePayload.time_unit);
-          formData.append("file", filePayload.file);
+          if (modalType === "Publication" || modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter") {
+            files.forEach((f, index) => {
+              formData.append(`file[]`, f);
+            });
+          } else {
+            formData.append("file", filePayload.file);
+          }
           formData.append("editor_content", filePayload.editor_content);
           formData.append("meeting_id", filePayload.meeting_id);
           formData.append("status", filePayload.status);
+          formData.append("step_status", filePayload.step_status);
           formData.append("assigned_to", filePayload.assigned_to);
           formData.append("assigned_to_team", filePayload.assigned_to_team);
           formData.append("created_by", filePayload.created_by);
@@ -627,6 +765,7 @@ const StepChartAction = ({
             setIsUpdate(false);
             setIsDrop(true);
             setDisabled(false);
+            setStepMedia(response?.data?.data?.media);
 
             setFileUploaded(true); // Add this line
           }
@@ -673,12 +812,16 @@ const StepChartAction = ({
                     ? "Photo"
                     : modalType,
             file: file,
-            editor_content: null,
+            editor_content:
+              modalType === "Publication" || modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter"
+                ? modifiedFileText || null
+                : null,
             meeting_id: meetingId,
             assigned_to: assignedToUser,
             // assigned_to_team: meeting?.type === "Newsletter" ? team : null,
             assigned_to_team: meeting?.type === "Newsletter" ? null : null,
-            status: "active",
+             status:  meeting?.type === "AI Social Media Newsletter" ||  meeting?.type === "Social Media Newsletter" ? "draft" : "active",
+            step_status:  meeting?.type === "AI Social Media Newsletter" ||  meeting?.type === "Social Media Newsletter" ? "draft" : null,
             url: null,
             _method: "put",
           };
@@ -690,10 +833,17 @@ const StepChartAction = ({
           formData.append("time", filePayload.time);
           formData.append("editor_type", filePayload.editor_type);
           formData.append("time_unit", filePayload.time_unit);
-          formData.append("file", filePayload.file);
+          if (modalType === "Publication" || modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter") {
+            files.forEach((f, index) => {
+              formData.append(`file[]`, f);
+            });
+          } else {
+            formData.append("file", filePayload.file);
+          }
           formData.append("editor_content", filePayload.editor_content);
           formData.append("meeting_id", filePayload.meeting_id);
           formData.append("status", filePayload.status);
+          formData.append("step_status", filePayload.step_status);
           formData.append("assigned_to", filePayload.assigned_to);
           formData.append("assigned_to_team", filePayload.assigned_to_team);
 
@@ -716,6 +866,7 @@ const StepChartAction = ({
             setIsUpload(false);
             // setId(response?.data?.data?.id);
             setIsDrop(false);
+            setStepMedia(response?.data?.data?.media);
 
             // setIsUpdate(false);
           }
@@ -1050,17 +1201,19 @@ const StepChartAction = ({
         ? { "video/*": [] } // Accept all video types
         : modalType === "Photo"
           ? { "image/*": [] } // Accept all image types
-          : modalType === "File"
-            ? { "application/pdf": [] } // Accept PDF files
-            : modalType === "Excel"
-              ? {
-                  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-                    [],
-                  "application/vnd.ms-excel": [],
-                }
-              : modalType === "Audio Report"
-                ? { "audio/*": [] }
-                : "",
+          : modalType === "Publication" || modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter"
+            ? { "image/*": [], "video/*": [] } // Accept image and video
+            : modalType === "File"
+              ? { "application/pdf": [] } // Accept PDF files
+              : modalType === "Excel"
+                ? {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+                      [],
+                    "application/vnd.ms-excel": [],
+                  }
+                : modalType === "Audio Report"
+                  ? { "audio/*": [] }
+                  : "",
     onDrop:
       modalType === "Video Report" || modalType === "Audio Report"
         ? handleMediaDrop
@@ -1474,7 +1627,10 @@ const StepChartAction = ({
           modalType === "Subtask" ||
           modalType === "Question" ||
           modalType === "Story" ||
-          modalType === "Email"
+          modalType === "Email" ||
+          modalType === "Publication" ||
+          modalType === "AI Instruction" ||
+          meeting?.type === "AI Social Media Newsletter"
             ? optimizedEditorContent || ""
             : [
                   "Absence CET non payable",
@@ -1488,6 +1644,22 @@ const StepChartAction = ({
                 ].includes(modalType)
               ? staticContents[modalType] // Include the static content
               : null,
+        prompt_ai:
+          modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter"
+            ? {
+                aiSourceType,
+                aiSourceText,
+                aiSourceFile: aiSourceType === "Document" ? aiSourceFile : null,
+                aiRole,
+                aiAction,
+                aiObjective,
+                aiRules,
+                aiOutputFormat,
+                aiOutputText,
+                aiPowerPointTemplate,
+                aiPdfTemplate,
+              }
+            : null,
         file:
           modalType === "File"
             ? fileName
@@ -1568,11 +1740,36 @@ const StepChartAction = ({
       // };
       try {
         setIsValidate(true);
-        const response = await axios.post(`${API_BASE_URL}/steps`, payload, {
+        let submitData = payload;
+        let config = {
           headers: {
+            "Content-Type": "application/json",
             Authorization: `Bearer ${CookieService.get("token")}`,
           },
-        });
+        };
+
+        if (modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter") {
+          const formData = new FormData();
+          Object.keys(payload).forEach((key) => {
+            if (key !== "prompt_ai") {
+              formData.append(key, payload[key] === null ? "" : payload[key]);
+            }
+          });
+          if (payload.prompt_ai) {
+            Object.keys(payload.prompt_ai).forEach((key) => {
+              const val = payload.prompt_ai[key];
+              if (val instanceof File || val instanceof Blob) {
+                formData.append(`prompt_ai[${key}]`, val);
+              } else if (val !== null && val !== undefined) {
+                formData.append(`prompt_ai[${key}]`, val);
+              }
+            });
+          }
+          submitData = formData;
+          config.headers["Content-Type"] = "multipart/form-data";
+        }
+
+        const response = await axios.post(`${API_BASE_URL}/steps`, submitData, config);
         if (response.status) {
           const stepData = response?.data?.data;
 
@@ -1594,11 +1791,30 @@ const StepChartAction = ({
         setFileName(null);
         setExcelData(null);
         setLink(null);
+
+        // Reset AI prompt fields
+        setInstructionPrompt("");
+        setAiSourceType("Text");
+        setAiSourceText("");
+        setAiSourceFile(null);
+        setAiRole("");
+        setAiAction("");
+        setAiObjective("");
+        setAiRules("");
+        setAiOutputFormat("PDF");
+        setAiOutputText("");
+        setAiPowerPointTemplate(null);
+        setAiPdfTemplate(null);
+
         setIsValidate(false);
         if (!createAnother) {
           closeModal();
         } else {
-          if (meeting?.type === "Newsletter") {
+          if (meeting?.type === "AI Social Media Newsletter") {
+            setModalType("Editeur");
+          } else if (meeting?.location === "LinkedIn" || meeting?.type === "Social Media Newsletter") {
+            setModalType("Publication");
+          } else if (meeting?.type === "Newsletter") {
             setModalType("Email");
           } else if (meeting?.type === "Special") {
             setModalType("Audio Report");
@@ -1616,7 +1832,9 @@ const StepChartAction = ({
         }
       } catch (error) {
         setIsValidate(false);
-        toast.error(t(`meeting.newMeeting.${error?.response?.data?.message}`));
+        toast.error(
+          t(`meeting.newMeeting.${error?.response?.data?.errors?.title[0] || error?.response?.data?.message}`),
+        );
       }
     } else {
       try {
@@ -1775,6 +1993,8 @@ const StepChartAction = ({
             setModalType("Subtask");
           } else if (meeting?.type === "Sprint") {
             setModalType("Story");
+          } else if (meeting?.type === "Social Media Newsletter") {
+            setModalType("Publication");
           } else {
             setModalType("Editeur");
           }
@@ -1900,7 +2120,10 @@ const StepChartAction = ({
         modalType === "Subtask" ||
         modalType === "Story" ||
         modalType === "Question" ||
-        modalType === "Email"
+        modalType === "Email" ||
+        modalType === "Publication" ||
+        modalType === "AI Instruction" ||
+        meeting?.type === "AI Social Media Newsletter"
           ? optimizedEditorContent || ""
           : [
                 "Absence CET non payable",
@@ -1914,6 +2137,22 @@ const StepChartAction = ({
               ].includes(modalType)
             ? staticContents[modalType] // Include the static content
             : null,
+      prompt_ai:
+        modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter"
+          ? {
+              aiSourceType,
+              aiSourceText,
+              aiSourceFile: aiSourceType === "Document" ? aiSourceFile : null,
+              aiRole,
+              aiAction,
+              aiObjective,
+              aiRules,
+              aiOutputFormat,
+              aiOutputText,
+              aiPowerPointTemplate,
+              aiPdfTemplate,
+            }
+          : null,
       file:
         modalType === "File"
           ? fileName
@@ -1939,11 +2178,36 @@ const StepChartAction = ({
 
     try {
       setIsValidate(true);
-      const response = await axios.post(`${API_BASE_URL}/steps`, payload, {
+      let submitData = payload;
+      let config = {
         headers: {
+          "Content-Type": "application/json",
           Authorization: `Bearer ${CookieService.get("token")}`,
         },
-      });
+      };
+
+      if (modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter") {
+        const formData = new FormData();
+        Object.keys(payload).forEach((key) => {
+          if (key !== "prompt_ai") {
+            formData.append(key, payload[key] === null ? "" : payload[key]);
+          }
+        });
+        if (payload.prompt_ai) {
+          Object.keys(payload.prompt_ai).forEach((key) => {
+            const val = payload.prompt_ai[key];
+            if (val instanceof File || val instanceof Blob) {
+              formData.append(`prompt_ai[${key}]`, val);
+            } else if (val !== null && val !== undefined) {
+              formData.append(`prompt_ai[${key}]`, val);
+            }
+          });
+        }
+        submitData = formData;
+        config.headers["Content-Type"] = "multipart/form-data";
+      }
+
+      const response = await axios.post(`${API_BASE_URL}/steps`, submitData, config);
       if (response.status) {
         const stepData = response?.data?.data;
 
@@ -1964,11 +2228,30 @@ const StepChartAction = ({
       setFileName(null);
       setExcelData(null);
       setLink(null);
+
+      // Reset AI prompt fields
+      setInstructionPrompt("");
+      setAiSourceType("Text");
+      setAiSourceText("");
+      setAiSourceFile(null);
+      setAiRole("");
+      setAiAction("");
+      setAiObjective("");
+      setAiRules("");
+      setAiOutputFormat("PDF");
+      setAiOutputText("");
+      setAiPowerPointTemplate(null);
+      setAiPdfTemplate(null);
+
       setIsValidate(false);
       if (!createAnother) {
         closeModal();
       } else {
-        if (meeting?.type === "Newsletter") {
+        if (meeting?.type === "AI Social Media Newsletter") {
+          setModalType("Editeur");
+        } else if (meeting?.location === "LinkedIn" || meeting?.type === "Social Media Newsletter") {
+          setModalType("Publication");
+        } else if (meeting?.type === "Newsletter") {
           setModalType("Email");
         } else if (meeting?.type === "Special") {
           setModalType("Audio Report");
@@ -1986,7 +2269,9 @@ const StepChartAction = ({
       }
     } catch (error) {
       setIsValidate(false);
-      toast.error(t(`meeting.newMeeting.${error?.response?.data?.message}`));
+      toast.error(
+        t(`meeting.newMeeting.${error?.response?.data?.errors?.title[0] || error?.response?.data?.message}`),
+      );
     }
   };
   const [progress, setProgress] = useState(0);
@@ -2293,7 +2578,9 @@ const StepChartAction = ({
   const [stepCreatorImg, setStepCreatorImg] = useState(null);
   const [step, setStep] = useState(null);
   useEffect(() => {
-    const getStep = async () => {
+    ;
+
+const getStep = async () => {
       const currentTime = new Date();
       const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
@@ -2343,7 +2630,32 @@ const StepChartAction = ({
           setUser(response.data?.data?.participant);
           setTeam(response.data?.data?.assigned_team);
           setTimeUnit(stepData?.time_unit);
-          setFileName(stepData?.file);
+          setFileName(stepData?.linkedin_media || stepData?.file);
+          setStepMedia(stepData?.media || []);
+
+          if (stepData?.prompt_ai) {
+            try {
+              const parsed = typeof stepData.prompt_ai === "string"
+                ? JSON.parse(stepData.prompt_ai)
+                : stepData.prompt_ai;
+              if (parsed) {
+                setInstructionPrompt(parsed.instructionPrompt || "");
+                setAiSourceType(parsed.aiSourceType || "Text");
+                setAiSourceText(parsed.aiSourceText || "");
+                setAiSourceFile(parsed.aiSourceFile || null);
+                setAiRole(parsed.aiRole || "");
+                setAiAction(parsed.aiAction || "");
+                setAiObjective(parsed.aiObjective || "");
+                setAiRules(parsed.aiRules || "");
+                setAiOutputFormat(parsed.aiOutputFormat || "Text");
+                setAiOutputText(parsed.aiOutputText || "");
+                setAiPowerPointTemplate(parsed.aiPowerPointTemplate || null);
+                setAiPdfTemplate(parsed.aiPdfTemplate || null);
+              }
+            } catch (e) {
+              console.error("Failed to parse prompt_ai", e);
+            }
+          }
           if (stepData?.editor_type === "Excel") {
             const fileResponse = await axios.get(
               Assets_URL + "/" + stepData?.file,
@@ -3006,7 +3318,7 @@ const StepChartAction = ({
                       <div className="p-0 timecard ">
                         <div className="d-flex justify-content-start">
                           <div className="Editor-custom-dropdown">
-                            {meeting?.type === "Newsletter" ? (
+                            {meeting?.type === "Newsletter" || meeting?.type === "Social Media Newsletter" || meeting?.type === "AI Social Media Newsletter" ? (
                               <>
                                 <p className="mb-2">
                                   {t("meeting.newMeeting.team")}
@@ -3306,7 +3618,44 @@ const StepChartAction = ({
                             </div>
                             {isOpen && (
                               <ul className="editor-dropdown-list">
-                                {meeting?.type === "Newsletter" ? (
+                                {meeting?.type === "AI Social Media Newsletter" ? (
+                                  <>
+                                    {options?.filter((item)=> item.value === "Editeur")?.map((option) => (
+                                      <li
+                                        key={option.value}
+                                        className="dropdown-item"
+                                        onClick={() => handleSelect(option)}
+                                      >
+                                        {option.icon} {option.label}
+                                      </li>
+                                    ))}
+                                  </>
+                                ) : modalType === "AI Instruction" ? (
+                                  <>
+                                    {aiSocialMediaOption.map((option) => (
+                                      <li
+                                        key={option.value}
+                                        className="dropdown-item"
+                                        onClick={() => handleSelect(option)}
+                                      >
+                                        {option.icon} {option.label}
+                                      </li>
+                                    ))}
+                                  </>
+                                ) : meeting?.type === "Social Media Newsletter" ||
+                                  meeting?.location === "LinkedIn" ? (
+                                  <>
+                                    {socialMediaOption.map((option) => (
+                                      <li
+                                        key={option.value}
+                                        className="dropdown-item"
+                                        onClick={() => handleSelect(option)}
+                                      >
+                                        {option.icon} {option.label}
+                                      </li>
+                                    ))}
+                                  </>
+                                ) : meeting?.type === "Newsletter" ? (
                                   <>
                                     {newsletterOption.map((option) => (
                                       <li
@@ -3427,7 +3776,743 @@ const StepChartAction = ({
                 )}
                 <div>
                   <div className="row">
-                    {modalType === "Editeur" ||
+                    {meeting?.type === "AI Social Media Newsletter" ||
+                    modalType === "Publication" ||
+                    modalType === "AI Instruction" ? (
+                      <>
+                        <div
+                          className="col-md-7"
+                          style={
+                            meeting?.type === "AI Social Media Newsletter" ||
+                            modalType === "AI Instruction"
+                              ? {
+                                  maxHeight: "calc(90vh - 40px)",
+                                  overflowY: "auto",
+                                  overflowX: "hidden",
+                                  paddingBottom: "100px",
+                                }
+                              : {}
+                          }
+                        >
+                          <div>
+                            {meeting?.type === "AI Social Media Newsletter" ||
+                            modalType === "AI Instruction" ? (
+                              <div
+                                className="p-3"
+                                style={{
+                                  background: "#fff",
+                                  borderRadius: "8px",
+                                  border: "1px solid #E4E7EC",
+                                }}
+                              >
+                                {/* Source Section */}
+                                <div className="mb-4">
+                                  <label
+                                    className="fw-semibold d-flex align-items-center mb-2"
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#344054",
+                                    }}
+                                  >
+                                    <DocumentIcon
+                                      className="me-2"
+                                      style={{ width: "16px", height: "16px" }}
+                                    />{" "}
+                                    Source
+                                  </label>
+                                  <p
+                                    className="text-muted mb-2"
+                                    style={{ fontSize: "12px" }}
+                                  >
+                                    Choose the input source for this instruction
+                                  </p>
+                                  <div className="d-flex gap-2 mb-3">
+                                    <Button
+                                      type="button"
+                                      variant={
+                                        aiSourceType === "Text"
+                                          ? "light"
+                                          : "outline-secondary"
+                                      }
+                                      className={
+                                        aiSourceType === "Text"
+                                          ? "border-primary text-primary fw-semibold"
+                                          : ""
+                                      }
+                                      onClick={() => setAiSourceType("Text")}
+                                      style={{
+                                        fontSize: "13px",
+                                        background:
+                                          aiSourceType === "Text"
+                                            ? "#F4F6FF"
+                                            : "#fff",
+                                      }}
+                                    >
+                                      📄 Text
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant={
+                                        aiSourceType === "Document"
+                                          ? "light"
+                                          : "outline-secondary"
+                                      }
+                                      className={
+                                        aiSourceType === "Document"
+                                          ? "border-primary text-primary fw-semibold"
+                                          : ""
+                                      }
+                                      onClick={() =>
+                                        setAiSourceType("Document")
+                                      }
+                                      style={{
+                                        fontSize: "13px",
+                                        background:
+                                          aiSourceType === "Document"
+                                            ? "#F4F6FF"
+                                            : "#fff",
+                                      }}
+                                    >
+                                      📄 Document
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant={
+                                        aiSourceType === "YouTube"
+                                          ? "light"
+                                          : "outline-secondary"
+                                      }
+                                      className={
+                                        aiSourceType === "YouTube"
+                                          ? "border-primary text-primary fw-semibold"
+                                          : ""
+                                      }
+                                      onClick={() => setAiSourceType("YouTube")}
+                                      style={{
+                                        fontSize: "13px",
+                                        background:
+                                          aiSourceType === "YouTube"
+                                            ? "#F4F6FF"
+                                            : "#fff",
+                                      }}
+                                    >
+                                      📺 YouTube
+                                    </Button>
+                                  </div>
+
+                                  {aiSourceType === "Text" && (
+                                    <textarea
+                                      className="form-control"
+                                      rows={3}
+                                      style={{
+                                        background: "#F9FAFB",
+                                        fontSize: "14px",
+                                      }}
+                                      value={aiSourceText}
+                                      onChange={(e) =>
+                                        setAiSourceText(e.target.value)
+                                      }
+                                      placeholder="Enter your source text here..."
+                                    />
+                                  )}
+
+                                  {aiSourceType === "Document" && (
+                                    <div
+                                      className="mt-2 p-3 rounded border"
+                                      style={{ background: "#F9FAFB" }}
+                                    >
+                                      <input
+                                        type="file"
+                                        className="form-control"
+                                        style={{ fontSize: "14px" }}
+                                        onChange={(e) => {
+                                          if (
+                                            e.target.files &&
+                                            e.target.files.length > 0
+                                          ) {
+                                            setAiSourceFile(e.target.files[0]);
+                                          }
+                                        }}
+                                      />
+                                      {aiSourceFile && (
+                                        <p
+                                          className="text-success mt-2 mb-0"
+                                          style={{
+                                            fontSize: "12px",
+                                            fontWeight: "500",
+                                          }}
+                                        >
+                                          ✓ File selected: {typeof aiSourceFile === 'string' ? aiSourceFile.split('/').pop() : aiSourceFile.name}
+                                        </p>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {aiSourceType === "YouTube" && (
+                                    <div className="mt-2">
+                                      <input
+                                        type="url"
+                                        className="form-control"
+                                        style={{
+                                          background: "#F9FAFB",
+                                          fontSize: "14px",
+                                        }}
+                                        value={aiSourceText}
+                                        onChange={(e) =>
+                                          setAiSourceText(e.target.value)
+                                        }
+                                        placeholder="https://youtube.com/watch?v=..."
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Role Section */}
+                                <div className="mb-4">
+                                  <label
+                                    className="fw-semibold d-flex align-items-center mb-2"
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#344054",
+                                    }}
+                                  >
+                                    <span className="me-2">👤</span> Rôle
+                                  </label>
+                                  <p
+                                    className="text-muted mb-2"
+                                    style={{ fontSize: "12px" }}
+                                  >
+                                    Define the AI persona for this instruction
+                                  </p>
+                                  <input
+                                    type="text"
+                                    className="form-control"
+                                    style={{
+                                      background: "#F9FAFB",
+                                      fontSize: "14px",
+                                    }}
+                                    value={aiRole}
+                                    onChange={(e) => setAiRole(e.target.value)}
+                                    placeholder="e.g. Expert marketing strategist, Senior developer, UX designer..."
+                                  />
+                                </div>
+
+                                <div className="row mb-4">
+                                  {/* Action Section */}
+                                  <div className="col-md-6">
+                                    <label
+                                      className="fw-semibold d-flex align-items-center mb-2"
+                                      style={{
+                                        fontSize: "14px",
+                                        color: "#344054",
+                                      }}
+                                    >
+                                      <span className="me-2">⚡</span> Action
+                                    </label>
+                                    <p
+                                      className="text-muted mb-2"
+                                      style={{ fontSize: "12px" }}
+                                    >
+                                      What should the AI do?
+                                    </p>
+                                    <textarea
+                                      className="form-control"
+                                      rows={4}
+                                      style={{
+                                        background: "#F9FAFB",
+                                        fontSize: "14px",
+                                      }}
+                                      value={aiAction}
+                                      onChange={(e) =>
+                                        setAiAction(e.target.value)
+                                      }
+                                      placeholder="Describe the action to perform..."
+                                    />
+                                  </div>
+
+                                  {/* Objective Section */}
+                                  <div className="col-md-6">
+                                    <label
+                                      className="fw-semibold d-flex align-items-center mb-2"
+                                      style={{
+                                        fontSize: "14px",
+                                        color: "#344054",
+                                      }}
+                                    >
+                                      <span className="me-2">🎯</span> Objectif
+                                      / Résultat
+                                    </label>
+                                    <p
+                                      className="text-muted mb-2"
+                                      style={{ fontSize: "12px" }}
+                                    >
+                                      What outcome do you expect?
+                                    </p>
+                                    <textarea
+                                      className="form-control"
+                                      rows={4}
+                                      style={{
+                                        background: "#F9FAFB",
+                                        fontSize: "14px",
+                                      }}
+                                      value={aiObjective}
+                                      onChange={(e) =>
+                                        setAiObjective(e.target.value)
+                                      }
+                                      placeholder="Describe the desired result..."
+                                    />
+                                  </div>
+                                </div>
+
+                                {/* Rules Section */}
+                                <div className="mb-4">
+                                  <label
+                                    className="fw-semibold d-flex align-items-center mb-2"
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#344054",
+                                    }}
+                                  >
+                                    <span className="me-2">🛡️</span> Règles
+                                  </label>
+                                  <p
+                                    className="text-muted mb-2"
+                                    style={{ fontSize: "12px" }}
+                                  >
+                                    Restrictions, limits or constraints to
+                                    respect
+                                  </p>
+                                  <textarea
+                                    className="form-control"
+                                    rows={3}
+                                    style={{
+                                      background: "#F9FAFB",
+                                      fontSize: "14px",
+                                    }}
+                                    value={aiRules}
+                                    onChange={(e) => setAiRules(e.target.value)}
+                                    placeholder="e.g. Keep it concise. No technical jargon. Always cite sources. Max 500 words..."
+                                  />
+                                </div>
+
+                                {/* Output Format Section */}
+                                {meeting?.type !== "AI Social Media Newsletter" && (
+                                  <div>
+                                  <label
+                                    className="fw-semibold d-flex align-items-center mb-2"
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#344054",
+                                    }}
+                                  >
+                                    <span className="me-2">📥</span> Sortie
+                                  </label>
+                                  <p
+                                    className="text-muted mb-2"
+                                    style={{ fontSize: "12px" }}
+                                  >
+                                    Select the output format for this
+                                    instruction
+                                  </p>
+                                  <div className="d-flex flex-wrap gap-3">
+                                    <Button
+                                      type="button"
+                                      variant={
+                                        aiOutputFormat === "PowerPoint"
+                                          ? "light"
+                                          : "outline-secondary"
+                                      }
+                                      className={`flex-fill ${aiOutputFormat === "PowerPoint" ? "border-primary text-primary fw-semibold" : ""}`}
+                                      onClick={() =>
+                                        setAiOutputFormat("PowerPoint")
+                                      }
+                                      style={{
+                                        fontSize: "13px",
+                                        padding: "12px",
+                                        background:
+                                          aiOutputFormat === "PowerPoint"
+                                            ? "#F4F6FF"
+                                            : "#fff",
+                                      }}
+                                    >
+                                      <div className="mb-1">📊</div>
+                                      <div>PowerPoint</div>
+                                      <div
+                                        className="text-muted fw-normal"
+                                        style={{ fontSize: "11px" }}
+                                      >
+                                        Slides deck
+                                      </div>
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant={
+                                        aiOutputFormat === "PDF"
+                                          ? "light"
+                                          : "outline-secondary"
+                                      }
+                                      className={`flex-fill ${aiOutputFormat === "PDF" ? "border-primary text-primary fw-semibold" : ""}`}
+                                      onClick={() => setAiOutputFormat("PDF")}
+                                      style={{
+                                        fontSize: "13px",
+                                        padding: "12px",
+                                        background:
+                                          aiOutputFormat === "PDF"
+                                            ? "#F4F6FF"
+                                            : "#fff",
+                                      }}
+                                    >
+                                      <div className="mb-1">📄</div>
+                                      <div>PDF</div>
+                                      <div
+                                        className="text-muted fw-normal"
+                                        style={{ fontSize: "11px" }}
+                                      >
+                                        Formatted document
+                                      </div>
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant={
+                                        aiOutputFormat === "Text"
+                                          ? "light"
+                                          : "outline-secondary"
+                                      }
+                                      className={`flex-fill ${aiOutputFormat === "Text" ? "border-primary text-primary fw-semibold" : ""}`}
+                                      onClick={() => setAiOutputFormat("Text")}
+                                      style={{
+                                        fontSize: "13px",
+                                        padding: "12px",
+                                        background:
+                                          aiOutputFormat === "Text"
+                                            ? "#F4F6FF"
+                                            : "#fff",
+                                      }}
+                                    >
+                                      <div className="mb-1">📝</div>
+                                      <div>Text</div>
+                                      <div
+                                        className="text-muted fw-normal"
+                                        style={{ fontSize: "11px" }}
+                                      >
+                                        Plain content
+                                      </div>
+                                    </Button>
+                                  </div>
+                                </div>
+                                )}
+                              </div>
+                            ) : (
+                              <Editor
+                                disabled={fromReport}
+                                className="editor-no-border text_editor"
+                                // id="text_editor"
+                                apiKey={TINYMCEAPI}
+                                value={modifiedFileText}
+                                name="text"
+                                init={{
+                                  statusbar: false,
+                                  branding: false,
+                                  height: 450,
+                                  border: "none",
+                                  menubar: true,
+                                  language: "fr_FR",
+                                  plugins:
+                                    meeting?.type === "Law"
+                                      ? "print preview paste searchreplace autolink directionality visualblocks visualchars fullscreen link template codesample table charmap hr pagebreak nonbreaking anchor toc insertdatetime advlist lists wordcount textpattern"
+                                      : "print preview paste searchreplace autolink directionality visualblocks visualchars fullscreen image link media template codesample table charmap hr pagebreak nonbreaking anchor toc insertdatetime advlist lists wordcount imagetools textpattern",
+                                  toolbar:
+                                    meeting?.type === "Law"
+                                      ? "formatselect | bold italic underline strikethrough | forecolor backcolor blockquote | alignleft aligncenter alignright alignjustify | numlist bullist outdent indent | removeformat"
+                                      : "formatselect | bold italic underline strikethrough | forecolor backcolor blockquote | image | link media | alignleft aligncenter alignright alignjustify | numlist bullist outdent indent | removeformat",
+                                  image_advtab: meeting?.type !== "Law",
+                                  file_picker_types:
+                                    meeting?.type === "Law" ? "" : "image media",
+                                  file_picker_callback: function (
+                                    callback,
+                                    value,
+                                    meta,
+                                  ) {
+                                    if (
+                                      meta.filetype === "image" &&
+                                      meeting?.type !== "Law"
+                                    ) {
+                                      const input = document.createElement("input");
+                                      input.setAttribute("type", "file");
+                                      input.setAttribute("accept", "image/*");
+
+                                      input.onchange = function () {
+                                        const file = input.files[0];
+                                        const reader = new FileReader();
+
+                                        reader.onload = function (e) {
+                                          const img = new Image();
+                                          img.src = e.target.result;
+
+                                          img.onload = function () {
+                                            const canvas =
+                                              document.createElement("canvas");
+                                            const ctx = canvas.getContext("2d");
+                                            const maxWidth = 700;
+                                            const maxHeight = 394;
+
+                                            let newWidth = img.width;
+                                            let newHeight = img.height;
+
+                                            if (img.width > maxWidth) {
+                                              newWidth = maxWidth;
+                                              newHeight =
+                                                (img.height * maxWidth) / img.width;
+                                            }
+
+                                            if (newHeight > maxHeight) {
+                                              newHeight = maxHeight;
+                                              newWidth =
+                                                (img.width * maxHeight) /
+                                                img.height;
+                                            }
+
+                                            canvas.width = newWidth;
+                                            canvas.height = newHeight;
+
+                                            ctx.drawImage(
+                                              img,
+                                              0,
+                                              0,
+                                              newWidth,
+                                              newHeight,
+                                            );
+
+                                            const resizedImageData =
+                                              canvas.toDataURL(file.type);
+                                            callback(resizedImageData, {
+                                              alt: file.name,
+                                            });
+                                          };
+
+                                          img.src = e.target.result;
+                                        };
+
+                                        reader.readAsDataURL(file);
+                                      };
+
+                                      input.click();
+                                    }
+                                  },
+                                  setup: (editor) => {
+                                    // Disable pasting images and media
+                                    editor.on("paste", (event) => {
+                                      if (meeting?.type === "Law") {
+                                        const clipboard =
+                                          event.clipboardData ||
+                                          window.clipboardData;
+                                        const items = clipboard.items || [];
+                                        for (const item of items) {
+                                          if (
+                                            item.type.startsWith("image") ||
+                                            item.type.startsWith("video")
+                                          ) {
+                                            event.preventDefault();
+                                            console.warn(
+                                              "Pasting images and videos is not allowed for 'Law' type content.",
+                                            );
+                                            return;
+                                          }
+                                        }
+                                      }
+                                    });
+                                  },
+                                }}
+                                onEditorChange={(content) => {
+                                  setModifiedFileText(content);
+                                }}
+                              />
+                            )}
+                          </div>
+                        </div>
+                        <div
+                          className="col-md-5 p-4"
+                          style={{ backgroundColor: "#F2F4FB" }}
+                        >
+                          {!isUpload ? (
+                            <>
+                              <div className="d-flex align-items-center gap-4 w-100">
+                                <div
+                                  {...getRootProps()}
+                                  style={{
+                                    border: "1px dashed #BAC3D4",
+                                    padding: "20px",
+                                    width: "100%",
+                                    borderRadius: "12px",
+                                    outline: "none",
+                                    margin: "0 auto",
+                                    height: fileName ? "auto" : "250px",
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    backgroundColor: "#fff",
+                                  }}
+                                >
+                                  <input {...getInputProps()} />
+                                  
+                                  <div style={{ textAlign: "center" }}>
+                                    <p
+                                      className="upload-container"
+                                      style={{ margin: 0 }}
+                                    >
+                                      <span
+                                        className="upload-text"
+                                        style={{
+                                          display: "block",
+                                          marginBottom: "8px",
+                                          fontWeight: "500",
+                                        }}
+                                      >
+                                        Drag and drop media here
+                                      </span>
+                                      <span
+                                        className="upload-or"
+                                        style={{
+                                          display: "block",
+                                          margin: "4px 0",
+                                          color: "#98A2B3",
+                                        }}
+                                      >
+                                        OR
+                                      </span>
+                                      <span
+                                        className="browse-button"
+                                        style={{
+                                          display: "inline-block",
+                                          padding: "6px 12px",
+                                          background: "#E6F0FA",
+                                          color: "#0026B1",
+                                          borderRadius: "20px",
+                                          fontWeight: "600",
+                                          fontSize: "14px",
+                                        }}
+                                      >
+                                        Browse
+                                      </span>
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                                                            {/* --- Saved Media Gallery from API --- */}
+                              {stepMedia.length > 0 && (
+                                <div
+                                  className="mt-3"
+                                  style={{
+                                    background: "#fff",
+                                    borderRadius: "12px",
+                                    border: "1px solid #E4E7EC",
+                                    padding: "12px",
+                                  }}
+                                >
+                                  <p style={{ fontSize: "12px", fontWeight: "600", color: "#344054", marginBottom: "8px" }}>
+                                    Uploaded Media ({stepMedia.length})
+                                  </p>
+                                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                                    {stepMedia.map((media, idx) => (
+                                      <div
+                                        key={media.id || idx}
+                                        style={{ width: "calc(50% - 4px)", position: "relative" }}
+                                        title={media.original_name}
+                                      >
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeleteMedia(media.id);
+                                          }}
+                                          style={{
+                                            position: "absolute",
+                                            top: "6px",
+                                            right: "6px",
+                                            width: "24px",
+                                            height: "24px",
+                                            borderRadius: "50%",
+                                            background: "#D92D20",
+                                            border: "none",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            cursor: "pointer",
+                                            boxShadow: "0px 2px 4px rgba(0,0,0,0.15)",
+                                            zIndex: 10,
+                                            padding: 0,
+                                          }}
+                                          title="Delete Media"
+                                        >
+                                          <RxCross2 size={14} style={{ color: "#fff" }} />
+                                        </button>
+                                        {media.file_type === "image" ? (
+                                          <img
+                                            src={media.file_url}
+                                            alt={media.original_name}
+                                            style={{
+                                              width: "100%",
+                                              height: "120px",
+                                              objectFit: "cover",
+                                              borderRadius: "8px",
+                                              border: "1px solid #E4E7EC",
+                                            }}
+                                          />
+                                        ) : media.file_type === "video" ? (
+                                          <video
+                                            src={media.file_url}
+                                            controls
+                                            style={{
+                                              width: "100%",
+                                              height: "120px",
+                                              borderRadius: "8px",
+                                              border: "1px solid #E4E7EC",
+                                            }}
+                                          />
+                                        ) : (
+                                          <a
+                                            href={media.file_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style={{
+                                              display: "flex",
+                                              alignItems: "center",
+                                              gap: "6px",
+                                              padding: "8px",
+                                              background: "#F9FAFB",
+                                              borderRadius: "8px",
+                                              border: "1px solid #E4E7EC",
+                                              color: "#0026B1",
+                                              fontSize: "12px",
+                                              textDecoration: "none",
+                                              wordBreak: "break-all",
+                                            }}
+                                          >
+                                            <FiEdit size={14} />
+                                            {media.original_name}
+                                          </a>
+                                        )}
+                                        <p style={{ fontSize: "10px", color: "#667085", marginTop: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                          {media.original_name}
+                                        </p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <Spinner
+                              animation="border"
+                              role="status"
+                              className="center-spinner"
+                            ></Spinner>
+                          )}
+                        </div>
+                      </>
+                    ) : modalType === "Editeur" ||
                     modalType === "Subtask" ||
                     modalType === "Story" ||
                     modalType === "Question" ||

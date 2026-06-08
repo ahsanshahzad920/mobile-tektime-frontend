@@ -277,10 +277,16 @@ function SolutionTabs() {
           ref={tabsRef}
           className={`tabs-header ${isSticky ? "sticky" : ""}`}
         >
-          <div className="d-flex align-items-center justify-content-between">
-            <h4 className="meeting-title">{t("solution.title")}</h4>
+          <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 pb-2">
+            <h4 className="meeting-title mb-0">{t("solution.title")}</h4>
             <button
-              className={`btn moment-btn`}
+              className="btn moment-btn"
+              style={{
+                fontSize: "13px",
+                padding: "6px 12px",
+                borderRadius: "6px",
+                whiteSpace: "nowrap"
+              }}
               onClick={() => {
                 window.open(
                   "https://tektime.io/destination/uKnsk22F2gvNxC5F5a2s2jp5pts8XbxPk22zZ9qf/167482 ",
@@ -291,7 +297,7 @@ function SolutionTabs() {
               {t("request a demo")}
             </button>
           </div>
-          <small style={{ padding: "15px 14px" }}>
+          <small className="d-block text-muted" style={{ padding: "8px 10px", margin: "4px 0" }}>
             {t("solution.description")}
           </small>
 
@@ -300,9 +306,9 @@ function SolutionTabs() {
               className="row align-items-center gutter-0"
               style={{ padding: "0 10px" }}
             >
-              {/* Main Tabs Section */}
+              {/* Main Tabs Section (Desktop) */}
               <div
-                className="col-lg-11 col-md-10 col-12 border-bottom tabs-meeting"
+                className="col-lg-11 col-md-10 d-none d-md-block border-bottom tabs-meeting"
                 style={{ borderBottom: "2px solid #F2F2F2" }}
               >
                 <div className="tabs">
@@ -354,14 +360,114 @@ function SolutionTabs() {
                 </div>
               </div>
 
-              {/* Create Button Section */}
+              {/* Main Tabs Section (Mobile Stacked) */}
+              <div className="col-12 d-block d-md-none mb-3">
+                <div className="mb-2">
+                  <select
+                    className="form-select solution-select-custom w-100"
+                    value={activeTab}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setActiveTab(val);
+                      if (val === "tab1") {
+                        setActiveSubTab("");
+                      } else if (val === "tab2") {
+                        setActiveSubTab(privateSolutionTypes[0] || "");
+                      } else if (val === "tab3") {
+                        setActiveSubTab(publicSolutionTypes[0] || "");
+                      }
+                    }}
+                  >
+                    <option value="tab1">
+                      {t("solution.draftTab")} ({draftSolutionsCount || 0})
+                    </option>
+                    <option value="tab2">
+                      {t("Mes solutions au sein de")}{" "}
+                      {USER_ENTERPRISE_NAME?.enterprise?.name} ({privateSolutionsCount || 0})
+                    </option>
+                    <option value="tab3">
+                      {t("Solutions publiques")} ({publicSolutionsCount || 0})
+                    </option>
+                  </select>
+                </div>
+
+                {/* Mobile Sub-tabs Select */}
+                {activeTab === "tab2" &&
+                  privateSolutionsCount > 0 &&
+                  privateSolutionTypes.length > 0 && (
+                    <div className="mb-2">
+                      <select
+                        className="form-select solution-select-custom w-100"
+                        value={activeSubTab}
+                        onChange={(e) => setActiveSubTab(e.target.value)}
+                      >
+                        {privateSolutionTypes.map(
+                          (type) =>
+                            privateTypeCounts[type] > 0 && (
+                              <option key={type} value={type}>
+                                {t(`types.${type}`)} ({privateTypeCounts[type]})
+                              </option>
+                            ),
+                        )}
+                      </select>
+                    </div>
+                  )}
+
+                {activeTab === "tab3" &&
+                  publicSolutionsCount > 0 &&
+                  publicSolutionTypes.length > 0 && (
+                    <div className="mb-2">
+                      <select
+                        className="form-select solution-select-custom w-100"
+                        value={activeSubTab}
+                        onChange={(e) => setActiveSubTab(e.target.value)}
+                      >
+                        {publicSolutionTypes.map(
+                          (type) =>
+                            publicTypeCounts[type] > 0 && (
+                              <option key={type} value={type}>
+                                {t(`types.${type}`)} ({publicTypeCounts[type]})
+                              </option>
+                            ),
+                        )}
+                      </select>
+                    </div>
+                  )}
+
+                <button
+                  className="btn moment-btn w-100 d-flex align-items-center justify-content-center"
+                  onClick={handleShow}
+                  style={{ height: "42px", borderRadius: "8px" }}
+                >
+                  <span>
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M8 14.75V1.25M1.25 8H14.75"
+                        stroke="white"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </span>
+                  &nbsp;{t("solution.buttons.create")}
+                </button>
+              </div>
+
+              {/* Create Button Section (Desktop Only) */}
               <div
-                className={`col-lg-1 col-md-2 col-12 d-flex ${
+                className={`col-lg-1 col-md-2 d-none d-md-flex ${
                   isSticky ? "sticky-button" : "justify-content-end p-0"
                 }`}
               >
                 <button
-                  className={`btn moment-btn d-flex`}
+                  className="btn moment-btn d-flex"
                   onClick={handleShow}
                 >
                   <span>
@@ -386,14 +492,14 @@ function SolutionTabs() {
               </div>
             </div>
 
-            {/* Second Level Tabs (Solution Types) */}
+            {/* Second Level Tabs (Solution Types) - Desktop Only */}
             {activeTab === "tab2" &&
               privateSolutionsCount > 0 &&
               privateSolutionTypes.length > 0 && (
-                <div className="row">
+                <div className="row d-none d-md-block">
                   <div className="col-12">
                     <div className="tabs">
-                      <div className="d-flex">
+                      <div className="overflow-auto-custom">
                         {privateSolutionTypes.map(
                           (type) =>
                             privateTypeCounts[type] > 0 && (
@@ -405,7 +511,6 @@ function SolutionTabs() {
                                 onClick={() => setActiveSubTab(type)}
                               >
                                 {t(`types.${type}`)}
-
                                 <span
                                   className={
                                     activeSubTab === type ? "future" : "draft"
@@ -421,13 +526,15 @@ function SolutionTabs() {
                   </div>
                 </div>
               )}
+
+            {/* Second Level Tabs (Solution Types) - Desktop Only */}
             {activeTab === "tab3" &&
               publicSolutionsCount > 0 &&
               publicSolutionTypes.length > 0 && (
-                <div className="row">
+                <div className="row d-none d-md-block">
                   <div className="col-12">
                     <div className="tabs">
-                      <div className="d-flex">
+                      <div className="overflow-auto-custom">
                         {publicSolutionTypes.map(
                           (type) =>
                             publicTypeCounts[type] > 0 && (
@@ -439,7 +546,6 @@ function SolutionTabs() {
                                 onClick={() => setActiveSubTab(type)}
                               >
                                 {t(`types.${type}`)}
-
                                 <span
                                   className={
                                     activeSubTab === type ? "future" : "draft"

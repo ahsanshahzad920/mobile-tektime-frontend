@@ -84,6 +84,55 @@ function UpcomingStepScreen({
   const formattedDate = formatDate(timeInUserZone);
   const { setCallApi } = useMeetings();
 
+  const renderStepFile = (file) => {
+    if (!file) return null;
+    const fileStr = typeof file === "string" ? file : "";
+    const isImg = fileStr.match(/\.(jpeg|jpg|gif|png|webp|bmp)$/i);
+    const isVideo = fileStr.match(/\.(mp4|webm|ogg|mov)$/i);
+
+    if (isImg) {
+      return (
+        <img
+          src={`${Assets_URL}/${fileStr}`}
+          alt="Step Media"
+          style={{
+            maxWidth: "100%",
+            maxHeight: "500px",
+            objectFit: "contain",
+            borderRadius: "8px",
+            display: "block",
+            margin: "0 auto",
+          }}
+        />
+      );
+    }
+
+    if (isVideo) {
+      return (
+        <video
+          src={`${Assets_URL}/${fileStr}`}
+          controls
+          style={{
+            maxWidth: "100%",
+            maxHeight: "500px",
+            borderRadius: "8px",
+            display: "block",
+            margin: "0 auto",
+          }}
+        />
+      );
+    }
+
+    return (
+      <iframe
+        src={`${Assets_URL}/${fileStr}#toolbar=0&view=fitH`}
+        width="100%"
+        height="500px"
+        style={{ border: "none", borderRadius: "8px" }}
+      />
+    );
+  };
+
   // const getStep = async () => {
   //   try {
   //     setLoading(true);
@@ -2413,7 +2462,7 @@ function UpcomingStepScreen({
               Guide
             </h4>
             <div className="host">
-              {meeting?.type === "Newsletter" ? (
+              {meeting?.type === "Newsletter" || meeting?.type === "Social Media Newsletter" || meeting?.type === "AI Social Media Newsletter" ? (
                 <div className="row">
                   <div className="col-md-3">
                     <Card
@@ -2484,6 +2533,8 @@ function UpcomingStepScreen({
             step?.editor_type === "Story" ||
             step?.editor_type === "Email" ||
             step?.editor_type === "Message" ||
+            step?.editor_type === "Publication" ||
+            step?.editor_type === "AI Instruction" ||
             meeting?.type === "Absence" ? (
               <>
                 <Editor
@@ -2638,11 +2689,7 @@ function UpcomingStepScreen({
               step?.editor_type === "Audio Report" ||
               step?.editor_type === "Video Report" ? (
               <div>
-                <iframe
-                  src={Assets_URL + "/" + (step?.file + "#toolbar=0&view=fitH")}
-                  width="100%"
-                  height="500px"
-                />
+                {renderStepFile(step?.file)}
               </div>
             ) : step?.editor_type === "Url" ? (
               <>

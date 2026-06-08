@@ -1888,7 +1888,60 @@ const StepCard = ({
                         </div>
 
                         <div className="step-images">
-                          {item.editor_content &&
+                          {item.editor_type === "Publication" || item.editor_type === "AI Instruction" ? (
+                            <div className="step-img-container" style={{ display: "flex", flexWrap: "wrap", gap: "4px", justifyContent: "center" }}>
+                              {(() => {
+                                let parsedFiles = [];
+                                if (item.file) {
+                                  try {
+                                    if (item.file.startsWith('[')) parsedFiles = JSON.parse(item.file);
+                                    else if (item.file.includes(',')) parsedFiles = item.file.split(',');
+                                    else parsedFiles = [item.file];
+                                  } catch(e) {
+                                    parsedFiles = [item.file];
+                                  }
+                                }
+                                if (parsedFiles.length === 0) {
+                                  return (
+                                    <FiEdit
+                                      className="file-img img-fluid"
+                                      style={{ padding: "12px" }}
+                                    />
+                                  );
+                                }
+                                return parsedFiles.map((fileItem, idx) => {
+                                  const isImg = fileItem.match(/\.(jpeg|jpg|gif|png|webp|bmp)$/i);
+                                  const isVideo = fileItem.match(/\.(mp4|webm|ogg|mov)$/i);
+                                  if (isImg) {
+                                    return (
+                                      <Card.Img
+                                        key={idx}
+                                        className="step-img report-step-img"
+                                        src={`${Assets_URL}/${fileItem}`}
+                                        style={{ width: parsedFiles.length > 1 ? "45%" : "100%", maxHeight: "120px", objectFit: "cover", borderRadius: "4px" }}
+                                      />
+                                    );
+                                  } else if (isVideo) {
+                                    return (
+                                      <div key={idx} style={{ width: parsedFiles.length > 1 ? "45%" : "100%", height: "120px", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "4px", position: "relative" }}>
+                                        <IoVideocamOutline size={24} style={{ color: "#fff" }} />
+                                      </div>
+                                    );
+                                  } else {
+                                    return (
+                                      <div key={idx} style={{ width: parsedFiles.length > 1 ? "45%" : "100%", height: "120px", background: "#f0f2f5", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", borderRadius: "4px", border: "1px solid #ddd", padding: "4px" }}>
+                                        <PiFilePdfLight size={24} style={{ color: "#0026B1" }} />
+                                        <span style={{ fontSize: "10px", wordBreak: "break-all", textAlign: "center", marginTop: "4px" }}>
+                                          {(fileItem.split('/').pop() || '').substring(0, 10)}
+                                        </span>
+                                      </div>
+                                    );
+                                  }
+                                });
+                              })()}
+                            </div>
+                          ) :
+                          item.editor_content &&
                           item.editor_content.trim() !==
                             "<html><head></head><body></body></html>" ? (
                             <div className="step-img-container">

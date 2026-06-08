@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { Drawer, Button, Dropdown, Switch } from "antd";
 import {
   DownOutlined,
@@ -25,14 +25,11 @@ const Navbar = () => {
 
   const showDrawer = () => setVisible(true);
   const onClose = () => setVisible(false);
-  const [isExploreOpen, setIsExploreOpen] = useState(false);
 
-  const menuItems = [
-    { key: "login", label: t("navbar.login") },
-    { key: "about", label: t("navbar.about_us") },
-    { key: "contact", label: t("footer.contact_us") },
-    { key: "privacy-policy", label: t("footer.privacy_policy") },
-    { key: "terms-and-conditions", label: t("footer.terms_conditions") },
+  const navButtons = [
+    { key: "solutions", label: "Solutions", link: "https://solutions.tektime.io/", type: "link" },
+    { key: "add-activity", label: t("navbar.add_activity"), link: "https://tektime.io/gate/annuaire", type: "link" },
+    { key: "login", label: t("navbar.login"), link: "/", type: "button" },
   ];
 
   const handleChangeLanguage = (lang) => {
@@ -41,198 +38,113 @@ const Navbar = () => {
 
   const navigate = useNavigate();
 
+  const handleNavClick = (link) => {
+    if (link.startsWith("http")) {
+      window.open(link, "_blank");
+    } else {
+      navigate(link);
+    }
+    onClose();
+  };
+
+  const location = useLocation();
+  const isOldHomePage = location.pathname === "/old-home";
+  const shouldShowDark = isScrolled || !isOldHomePage;
+
   return (
     <>
       {/* Header */}
       <header
-        className={`custom-header ${isScrolled ? "scrolled" : ""}`}
+        className={`custom-header ${shouldShowDark ? "scrolled" : ""}`}
         style={{
           position: "fixed",
           top: 0,
           left: 0,
           right: 0,
           zIndex: 1000,
-          background: isScrolled ? "#FFFFFF" : "transparent",
-          boxShadow: isScrolled ? "0 2px 4px rgba(0, 0, 0, 0.1)" : "none",
-          transition: "background 0.3s ease, box-shadow 0.3s ease",
-          paddingTop: 0,
+          background: shouldShowDark ? "rgba(255, 255, 255, 0.85)" : "transparent",
+          backdropFilter: shouldShowDark ? "blur(12px)" : "none",
+          boxShadow: shouldShowDark ? "0 4px 20px rgba(0, 0, 0, 0.08)" : "none",
+          transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+          height: 96,
+          paddingTop: 16,
         }}
       >
         <div
-          className="container custom-nav-container"
+          className="container"
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
             height: "100%",
-            paddingLeft: 16,
-            paddingRight: 16,
           }}
         >
-          {/* Logo and Text */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {/* Logo */}
+          <div style={{ display: "flex", alignItems: "center" }}>
             <img
               src="/Assets/landing/logo.png"
               alt="TekTIME Logo"
-              className="navbar-logo-img"
-              onClick={() => {
-                navigate("/");
+              style={{
+                width: 160,
+                height: 50,
+                borderRadius: 8,
+                objectFit: "contain",
+                cursor: "pointer",
+                filter: shouldShowDark ? "none" : "brightness(0) invert(1)",
               }}
+              onClick={() => navigate("/")}
             />
           </div>
 
-          {/* Menu Text and Hamburger */}
-          {/* <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <span
-              style={{
-                fontSize: 24,
-                fontWeight: 600,
-                color: isScrolled ? "#000000" : "#000000",
-                transition: "color 0.3s ease",
-              }}
-            >
-              MENU
-            </span>
-            <Button
-              type="text"
-              icon={
-                <img
-                  src="https://cdn.prod.website-files.com/6853ad30b113b68f674e59d8/6853d4aa99a1acadf62b126a_toggle.svg"
-                  alt="Menu Toggle"
-                  style={{
-                    width: 24,
-                    height: 24,
-                    // filter: isScrolled ? "invert(100%)" : "none",
-                    filter: "invert(100%)",
-                  }}
-                />
-              }
-              onClick={showDrawer}
-              style={{
-                padding: 0,
-                height: 40,
-                width: 40,
-              }}
-            />
-          </div> */}
-          {/* Login & Menu */}
+          {/* Desktop Nav */}
           <div
+            className="desktop-nav"
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 16,
+              gap: 24, // Increased gap for better breathing room
             }}
           >
-            {/* Login / Connexion Button */}
-            <Button
-              type="primary"
-              onClick={() => navigate("/")}
-              className="navbar-login-btn-desktop"
-              style={{
-                backgroundColor: "#0047FF",
-                borderColor: "#0047FF",
-                color: "#fff",
-                fontWeight: 600,
-                borderRadius: 6,
-                padding: "6px 20px",
-                fontSize: 15,
-                height: 38,
-                lineHeight: "20px",
-              }}
-            >
-              {t("navbar.login")}
-            </Button>
+            {navButtons.map((btn) => {
+              const isLink = btn.type === "link" || btn.key === "login";
+              const isPrimary = btn.key === "try-tektime";
+              const isGhost = btn.key === "book-appointment";
+              const isCTA = btn.type === "cta";
 
-            {/* Privacy Policy Button (Desktop only) */}
-            <Link to="https://solutions.tektime.io" className="privacy-desktop-btn">
-              <Button
-                type="primary"
-                style={{
-                  backgroundColor: "#0047FF",
-                  borderColor: "#0047FF",
-                  color: "#fff",
-                  fontWeight: 600,
-                  borderRadius: 6,
-                  padding: "6px 16px",
-                  fontSize: 15,
-                  height: 35,
-                }}
-              >
-                Solutions
-              </Button>
-            </Link>
+              let btnClass = "nav-btn";
+              if (isLink) btnClass += " nav-btn-link";
+              else if (isPrimary) btnClass += " nav-btn-primary";
+              else if (isGhost) btnClass += " nav-btn-outline";
+              else if (isCTA) btnClass += " nav-btn-cta";
 
-            <Link to="/privacy-policy" className="privacy-desktop-btn">
-              <Button
-                type="primary"
-                style={{
-                  backgroundColor: "#0047FF",
-                  borderColor: "#0047FF",
-                  color: "#fff",
-                  fontWeight: 600,
-                  borderRadius: 6,
-                  padding: "6px 16px",
-                  fontSize: 15,
-                  height: 35,
-                }}
-              >
-                {t("footer.privacy_policy")}
-              </Button>
-            </Link>
+              return (
+                <Button
+                  key={btn.key}
+                  type={isPrimary || isCTA ? "primary" : (isGhost ? "default" : "text")}
+                  onClick={() => handleNavClick(btn.link)}
+                  className={btnClass}
+                >
+                  {btn.label}
+                </Button>
+              );
+            })}
+          </div>
 
-            {/* Terms & Conditions Button (Desktop only) */}
-            <Link to="/terms-and-conditions" className="privacy-desktop-btn">
-              <Button
-                type="primary"
-                style={{
-                  backgroundColor: "#0047FF",
-                  borderColor: "#0047FF",
-                  color: "#fff",
-                  fontWeight: 600,
-                  borderRadius: 6,
-                  padding: "6px 16px",
-                  fontSize: 15,
-                  height: 35,
-                }}
-              >
-                {t("footer.terms_conditions")}
-              </Button>
-            </Link>
-            {/* Menu Text (hidden on mobile) */}
-            {/* Menu Text (hidden on mobile) */}
-            <span
-              className="menu-label-desktop"
-              style={{
-                fontSize: 22,
-                fontWeight: 600,
-                color: "#000",
-                transition: "color 0.3s ease",
-              }}
-            >
-              MENU
-            </span>
-
-            {/* Menu Icon */}
+          <div
+            className="menu-trigger"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+            }}
+          >
             <Button
               type="text"
               icon={
-                <img
-                  src="https://cdn.prod.website-files.com/6853ad30b113b68f674e59d8/6853d4aa99a1acadf62b126a_toggle.svg"
-                  alt="Menu Toggle"
-                  style={{ 
-                    width: 24, 
-                    height: 24, 
-                    filter: isScrolled ? "invert(100%)" : "invert(100%)" // Always invert if icon is black to make it white/gray or adjust based on theme
-                  }}
-                  className="menu-toggle-icon"
-                />
+                <MenuOutlined style={{ fontSize: 24, color: shouldShowDark ? "#000" : "#fff" }} />
               }
               onClick={showDrawer}
-              style={{
-                padding: 0,
-                height: 40,
-                width: 40,
-              }}
+              style={{ padding: 0, height: 40, width: 40, display: "flex", alignItems: "center", justifyContent: "center" }}
             />
           </div>
         </div>
@@ -249,143 +161,151 @@ const Navbar = () => {
         headerStyle={{ display: "none" }}
         zIndex={1001}
       >
-        <div className="drawer-content" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-          {/* Header with Logo + Close Button */}
-          <div className="drawer-header" style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eee' }}>
-            <img
-              src="/Assets/landing/logo.png"
-              alt="TekTIME"
-              className="drawer-logo"
-              style={{ height: '35px', objectFit: 'contain' }}
-            />
-            <button className="drawer-close-btn" onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer' }}>
-              <span className="drawer-close-icon">×</span>
-            </button>
+        <div className="drawer-content">
+          <div className="drawer-header" style={{ padding: "20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <img src="/Assets/landing/logo.png" alt="TekTIME" style={{ height: 40 }} />
+            <button className="drawer-close-btn" onClick={onClose} style={{ border: "none", background: "none", fontSize: 24, cursor: "pointer" }}>×</button>
           </div>
 
-          <nav className="drawer-nav" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            {/* Login button prominent in sidebar on mobile */}
-            <Button
-              type="primary"
-              onClick={() => {
-                navigate("/");
-                setVisible(false);
-              }}
-              className="drawer-login-btn-mobile"
-              style={{
-                backgroundColor: "#0047FF",
-                borderColor: "#0047FF",
-                width: '100%',
-                height: '45px',
-                fontWeight: 700,
-                fontSize: '16px',
-                borderRadius: '8px',
-                marginBottom: '10px'
-              }}
-            >
-              {t("navbar.login")}
-            </Button>
-
-            {menuItems.filter(item => item.key !== 'login').map((item) => (
-              <Link
-                key={item.key}
-                to={`/${item.key}`}
-                className="drawer-link"
-                style={{ fontSize: '18px', color: '#333', textDecoration: 'none', fontWeight: 500, padding: '10px 0' }}
-                onClick={() => {
-                  document
-                    .getElementById(item.key)
-                    ?.scrollIntoView({ behavior: "smooth" });
-                  setVisible(false);
+          <nav className="drawer-nav" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: 16 }}>
+            {navButtons.map((btn) => (
+              <div
+                key={btn.key}
+                onClick={() => handleNavClick(btn.link)}
+                style={{
+                  fontSize: 18,
+                  fontWeight: 600,
+                  color: "#111",
+                  cursor: "pointer",
+                  padding: "10px 0",
+                  borderBottom: "1px solid #f0f0f0"
                 }}
               >
-                {item.label}
-              </Link>
+                {btn.label}
+              </div>
             ))}
-          </nav>
-          
-          <div style={{ flexGrow: 1 }}></div>
-
-          {/* Footer Section (Localization) */}
-          <div
-            style={{
-              borderTop: "1px solid #eee",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "30px 20px",
-            }}
-          >
-            <span
+            <div
+              onClick={() => handleNavClick("/privacy-policy")}
               style={{
                 fontSize: 16,
                 fontWeight: 500,
-                color: "#333",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
+                color: "#666",
+                cursor: "pointer",
+                padding: "8px 0",
+                borderBottom: "1px solid #f0f0f0"
               }}
             >
+              {t("footer.privacy_policy")}
+            </div>
+            <div
+              onClick={() => handleNavClick("/terms-and-conditions")}
+              style={{
+                fontSize: 16,
+                fontWeight: 500,
+                color: "#666",
+                cursor: "pointer",
+                padding: "8px 0",
+                borderBottom: "1px solid #f0f0f0"
+              }}
+            >
+              {t("footer.terms_conditions")}
+            </div>
+          </nav>
+
+          {/* Localization */}
+          <div style={{ borderTop: "1px solid #eee", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "30px 20px" }}>
+            <span style={{ fontSize: 16, fontWeight: 500, color: "#333", display: "flex", alignItems: "center", gap: 8 }}>
               <GlobalOutlined /> {t("navbar.language")}
             </span>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span
-                style={{
-                  fontWeight: i18n.language === "en" ? "bold" : 400,
-                  color: "#4C4C4C",
-                }}
-              >
-                EN
-              </span>
+              <span style={{ fontWeight: i18n.language === "en" ? "bold" : 400, color: "#4C4C4C" }}>EN</span>
               <Switch
                 checked={i18n.language === "fr"}
-                onChange={() =>
-                  handleChangeLanguage(i18n.language === "fr" ? "en" : "fr")
-                }
+                onChange={() => handleChangeLanguage(i18n.language === "fr" ? "en" : "fr")}
                 size="small"
               />
-              <span
-                style={{
-                  fontWeight: i18n.language === "fr" ? "bold" : 400,
-                  color: "#4C4C4C",
-                }}
-              >
-                FR
-              </span>
+              <span style={{ fontWeight: i18n.language === "fr" ? "bold" : 400, color: "#4C4C4C" }}>FR</span>
             </div>
           </div>
         </div>
       </Drawer>
 
-      {/* ✅ CSS for hiding Menu text on mobile */}
       <style>
         {`
-          .custom-nav-container { height: 96px !important; transition: height 0.3s ease; }
-          .navbar-logo-img { width: 160px; height: 50px; border-radius: 8px; object-fit: contain; cursor: pointer; transition: all 0.3s ease; }
-          .menu-toggle-icon { transition: filter 0.3s ease; }
-
-          @media (max-width: 768px) {
-            .custom-nav-container { height: 70px; }
-            .navbar-logo-img { width: 110px; height: 35px; }
-            .menu-label-desktop { display: none; }
-            .navbar-login-btn-desktop { display: none !important; }
-            .privacy-desktop-btn { display: none !important; }
-            .drawer-login-btn-mobile { display: block !important; }
-            
-            /* Ensure menu icon is visible on small screen */
-            .menu-toggle-icon {
-                filter: ${isScrolled ? "invert(0%)" : "invert(100%)"} !important;
-                background: ${isScrolled ? "rgba(0,0,0,0.05)" : "transparent"};
-                border-radius: 4px;
-            }
+          @media (max-width: 992px) {
+            .desktop-nav { display: none !important; }
+            .menu-label-desktop { display: none !important; }
           }
+          .custom-header.scrolled .menu-label-desktop { color: #000 !important; }
+          .custom-header:not(.scrolled) .menu-label-desktop { color: #fff !important; }
 
-          @media (min-width: 769px) {
-            .menu-label-desktop { display: inline; }
-            .navbar-login-btn-desktop { display: inline-block !important; }
-            .privacy-desktop-btn { display: inline-block !important; }
-            .drawer-login-btn-mobile { display: none !important; }
-            .menu-toggle-icon { filter: invert(100%); }
+          .nav-btn {
+            font-size: 15px !important;
+            font-weight: 600 !important;
+            height: 44px !important;
+            border-radius: 50px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+            border: none !important;
+          }
+          
+          /* Link/Text buttons (Solutions, Connexion) */
+          .nav-btn-link {
+            color: ${shouldShowDark ? "#344054" : "#ffffff"} !important;
+            padding: 0 8px !important;
+            background: transparent !important;
+            border: none !important;
+            position: relative !important;
+          }
+          .nav-btn-link::after {
+            content: '';
+            position: absolute;
+            bottom: 6px;
+            left: 8px;
+            right: 8px;
+            height: 2px;
+            background-color: #0047FF;
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+          }
+          .nav-btn-link:hover {
+            color: #0047FF !important;
+            background: transparent !important;
+          }
+          .nav-btn-link:hover::after {
+            transform: scaleX(1);
+          }
+          
+          /* Primary button (Try Tektime) */
+          .nav-btn-primary {
+            background: linear-gradient(135deg, #0047FF 0%, #002db3 100%) !important;
+            border: none !important;
+            color: #ffffff !important;
+            padding: 0 24px !important;
+            box-shadow: 0 4px 14px rgba(0, 71, 255, 0.35) !important;
+          }
+          .nav-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 71, 255, 0.45) !important;
+            opacity: 0.95 !important;
+            color: #ffffff !important;
+          }
+          
+          /* Outline button (Book an appointment) */
+          .nav-btn-outline {
+            background: transparent !important;
+            border: 2px solid ${shouldShowDark ? "#0047FF" : "#ffffff"} !important;
+            color: ${shouldShowDark ? "#0047FF" : "#ffffff"} !important;
+            padding: 0 24px !important;
+          }
+          .nav-btn-outline:hover {
+            background: ${shouldShowDark ? "#0047FF" : "#ffffff"} !important;
+            color: ${shouldShowDark ? "#ffffff" : "#0047FF"} !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 14px ${shouldShowDark ? "rgba(0, 71, 255, 0.2)" : "rgba(255, 255, 255, 0.3)"} !important;
+            border-color: ${shouldShowDark ? "#0047FF" : "#ffffff"} !important;
           }
         `}
       </style>

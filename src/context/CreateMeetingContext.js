@@ -106,7 +106,7 @@ export const FormProvider = ({ children }) => {
     Address: false,
     phone: false,
     agenda: false,
-    // social_media: false,
+    social_media: false,
   });
   const [selectedToggle, setSelectedToggle] = useState(null);
   const [addParticipant, setAddParticipant] = useState(false);

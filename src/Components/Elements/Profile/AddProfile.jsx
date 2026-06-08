@@ -80,72 +80,167 @@ const AddProfile = ({ user, teams, refreshUserData, isLoading, setView }) => {
   } = useFormContext();
 
   const { profileImage, setProfileImage,setUser,setCallUser } = useHeaderTitle();
- const [addressSuggestions, setAddressSuggestions] = useState([]);
-const [showSuggestions, setShowSuggestions] = useState(false);
-const [isSearching, setIsSearching] = useState(false);
-const [isSelecting, setIsSelecting] = useState(false); // Selection track karne ke liye
-const addressTimeoutRef = useRef(null); // Timeout store karne ke liye
+  const [addressSuggestions, setAddressSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isSelecting, setIsSelecting] = useState(false); // Selection track karne ke liye
+  const addressTimeoutRef = useRef(null); // Timeout store karne ke liye
+  const [googleMapsLoaded, setGoogleMapsLoaded] = useState(false);
+  const autocompleteServiceRef = useRef(null);
   const navigate = useNavigate();
   const isAuth = JSON.parse(CookieService.get("is_google_login"));
 
- // 1. Handle Input with Debouncing
-const handleAddressChange = (e) => {
-  const value = e.target.value;
-  setFormData({ ...formData, address: value });
+  // Dynamic loading of Google Maps API script
+  useEffect(() => {
+    let scriptToCleanup = null;
+    let handleScriptLoad = () => setGoogleMapsLoaded(true);
 
-  // Agar selection abhi hui hai toh API call block karo
-  if (isSelecting) {
-    setIsSelecting(false);
-    return;
-  }
+    if (window.google && window.google.maps && window.google.maps.places) {
+      setGoogleMapsLoaded(true);
+      return;
+    }
 
-  // Purana pending timeout khatam karo
-  if (addressTimeoutRef.current) clearTimeout(addressTimeoutRef.current);
+    const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || "";
+    if (!apiKey) {
+      console.warn("Google Maps API Key missing. Falling back to Photon API.");
+      return;
+    }
 
-  if (value.length > 2) {
-    // 500ms wait karo typing khatam hone ka
-    addressTimeoutRef.current = setTimeout(async () => {
-      setIsSearching(true);
-      try {
-        const response = await fetch(
-          `https://photon.komoot.io/api/?q=${encodeURIComponent(value)}&limit=5`
-        );
-        const data = await response.json();
-        setAddressSuggestions(data.features || []);
-        setShowSuggestions(true);
-      } catch (error) {
-        console.error("Address API Error:", error);
-      } finally {
-        setIsSearching(false);
+    // Check if script is already added in the document
+    const existingScript = document.getElementById("google-maps-script");
+    if (existingScript) {
+      scriptToCleanup = existingScript;
+      existingScript.addEventListener("load", handleScriptLoad);
+      
+      // Safety check: if it loaded between our initial check and now
+      if (window.google && window.google.maps && window.google.maps.places) {
+        setGoogleMapsLoaded(true);
       }
-    }, 500);
-  } else {
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.id = "google-maps-script";
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    
+    script.onload = handleScriptLoad;
+    script.onerror = () => {
+      console.error("Failed to load Google Maps script. Falling back to Photon API.");
+    };
+    
+    document.head.appendChild(script);
+
+    // Component Cleanup to prevent memory leaks
+    return () => {
+      if (scriptToCleanup) {
+        scriptToCleanup.removeEventListener("load", handleScriptLoad);
+      }
+      // Clear any active typing timeouts when user leaves the page
+      if (addressTimeoutRef.current) {
+        clearTimeout(addressTimeoutRef.current);
+      }
+    };
+  }, []);
+
+
+  // 1. Handle Input with Debouncing
+  const handleAddressChange = (e) => {
+    const value = e.target.value;
+    setFormData((prev) => ({ ...prev, address: value }));
+
+    // Agar selection abhi hui hai toh API call block karo
+    if (isSelecting) {
+      setIsSelecting(false);
+      return;
+    }
+
+    // Purana pending timeout khatam karo
+    if (addressTimeoutRef.current) clearTimeout(addressTimeoutRef.current);
+
+    if (value.length > 2) {
+      // 500ms wait karo typing khatam hone ka
+      addressTimeoutRef.current = setTimeout(async () => {
+        setIsSearching(true);
+
+        // Checked directly against window to completely bypass stale state closures
+        const isGoogleReady = window.google && window.google.maps && window.google.maps.places;
+
+        if (isGoogleReady) {
+          try {
+            if (!autocompleteServiceRef.current) {
+              autocompleteServiceRef.current = new window.google.maps.places.AutocompleteService();
+            }
+            
+            autocompleteServiceRef.current.getPlacePredictions(
+              { input: value },
+              (predictions, status) => {
+                if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+                  const suggestions = predictions.map(p => ({
+                    description: p.description,
+                    mainText: p.structured_formatting?.main_text || p.description,
+                    secondaryText: p.structured_formatting?.secondary_text || ""
+                  }));
+                  setAddressSuggestions(suggestions);
+                  setShowSuggestions(true);
+                } else {
+                  setAddressSuggestions([]);
+                }
+                setIsSearching(false);
+              }
+            );
+          } catch (error) {
+            console.error("Google Places API Error:", error);
+            setIsSearching(false);
+          }
+        } else {
+          // Fallback to Nominatim API (OpenStreetMap)
+          try {
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(value)}&format=json&addressdetails=1&limit=5`
+            );
+            const data = await response.json();
+            const suggestions = data.map(item => {
+              // Nominatim provides a nicely formatted full address in display_name
+              const addressParts = item.display_name.split(", ");
+              const mainText = addressParts[0];
+              const subtext = addressParts.slice(1).join(", ");
+              
+              return {
+                description: item.display_name,
+                mainText: mainText || "Unknown Place",
+                secondaryText: subtext
+              };
+            });
+            setAddressSuggestions(suggestions);
+            setShowSuggestions(true);
+          } catch (error) {
+            console.error("Address API Fallback Error:", error);
+          } finally {
+            setIsSearching(false);
+          }
+        }
+      }, 500);
+    } else {
+      setAddressSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  // 2. Select Address
+  const selectAddress = (item) => {
+    setIsSelecting(true); // Flag set taake handleAddressChange agla execution bypass kare
+    
+    const fullAddress = item.description;
+
+    setFormData((prev) => ({ ...prev, address: fullAddress }));
     setAddressSuggestions([]);
     setShowSuggestions(false);
-  }
-};
 
-// 2. Select Address with Duplicate Cleaning
-const selectAddress = (item) => {
-  setIsSelecting(true); // Flag set taake handleAddressChange API call na kare
-  
-  const { name, city, state, country } = item.properties;
-
-  // Duplicate values remove karne ke liye logic (e.g., Chicago, Chicago fix)
-  const parts = [name, city, state, country]
-    .filter((val, index, self) => 
-      val && self.indexOf(val) === index // Sirf unique aur non-null values rakhein
-    );
-
-  const fullAddress = parts.join(", ");
-
-  setFormData((prev) => ({ ...prev, address: fullAddress }));
-  setAddressSuggestions([]);
-  setShowSuggestions(false);
-
-  // Clear any pending timeout
-  if (addressTimeoutRef.current) clearTimeout(addressTimeoutRef.current);
-};
+    // Clear any pending timeout immediately
+    if (addressTimeoutRef.current) clearTimeout(addressTimeoutRef.current);
+  };
   const options = [
     {
       value: "LinkedIn",
@@ -1491,7 +1586,7 @@ const selectAddress = (item) => {
   const logoutUser = () => {
     CookieService.remove("isSignedIn");
     CookieService.clear();
-    navigate("/");
+    navigate("/login");
   };
 
   const handleNextTab = () => {
@@ -2350,12 +2445,10 @@ const selectAddress = (item) => {
           <div className="d-flex align-items-start">
             <span className="me-2">📍</span>
             <div>
-              <strong style={{ display: 'block', color: '#333' }}>{item.properties.name}</strong>
-              <small style={{ color: '#6c757d' }}>
-                {[item.properties.city, item.properties.state, item.properties.country]
-                  .filter(v => v && v !== item.properties.name) // Sub-text mein main naam repeat na ho
-                  .join(", ")}
-              </small>
+              <strong style={{ display: 'block', color: '#333' }}>{item.mainText}</strong>
+              {item.secondaryText && (
+                <small style={{ color: '#6c757d' }}>{item.secondaryText}</small>
+              )}
             </div>
           </div>
         </div>

@@ -176,14 +176,21 @@ const ActiveReportStepCard = ({
   // const [dropdownVisible, setDropdownVisible] = useState(
   //   Array(data?.length).fill(true)
   // );
+  const hasStepMedias = (data?.step_medias && data.step_medias.length > 0) || 
+                        (stepMedias && stepMedias.filter(media => media.step_id === data.id).length > 0);
+
+  const isClosed = data?.step_status === "closed" || data?.step_status === "completed" || data?.step_status === "cancelled" || data?.step_status === "abort";
+
   const [dropdownVisible, setDropdownVisible] = useState(
-    data?.step_status === "in_progress", // Only in_progress steps open by default
+    data?.step_status === "in_progress" || (isClosed && hasStepMedias)
   );
+  const [wasOpenedByMedia, setWasOpenedByMedia] = useState(false);
 
   const dropdownRefs = useRef([]);
   const dropdownRef = useRef(null);
 
-  const toggleDropdown = () => {
+  const toggleDropdown = (e) => {
+    if (e && e.stopPropagation) e.stopPropagation();
     if (data?.step_status === "in_progress") return;
     if (data?.step_status === "completed" || data?.step_status === null) {
       setDropdownVisible((prev) => !prev);
@@ -233,6 +240,12 @@ const ActiveReportStepCard = ({
       }
     }
   }, [dropdownVisible]);
+  useEffect(() => {
+    if (hasStepMedias && !wasOpenedByMedia) {
+      setDropdownVisible(true);
+      setWasOpenedByMedia(true);
+    }
+  }, [hasStepMedias, wasOpenedByMedia]);
   useEffect(() => {
     const currentInProgressStep = meeting?.steps.find(
       (item) => item.step_status === "in_progress",
@@ -406,7 +419,7 @@ const ActiveReportStepCard = ({
         <img
           src={`${Assets_URL}/${data?.file}`}
           style={commonStyles}
-          alt="Step Photo"
+          alt="Step content"
           className="step-media hover-scale"
         />
       );
@@ -429,6 +442,7 @@ const ActiveReportStepCard = ({
       (data?.editor_type === "Editeur" ||
         data?.editor_type === "Subtask" ||
         data?.editor_type === "Email" ||
+        data?.editor_type === "Publication" ||
         data?.editor_type === "Story") &&
       data?.editor_content &&
       data?.editor_content.trim() !== "<html><head></head><body></body></html>"
@@ -518,7 +532,7 @@ const ActiveReportStepCard = ({
       return (
         <img
           src={`${Assets_URL}/${data?.file}`}
-          alt="Step Photo"
+          alt="Step content"
           className="step-media"
           style={{ maxWidth: "100%", height: "auto", borderRadius: "12px" }}
           loading="lazy"
@@ -921,6 +935,10 @@ const ActiveReportStepCard = ({
         {renderMediaPreview()}
         {renderContent()}
         {renderActionButton()}
+        <ReportMediaGallery
+          stepMedias={getStepMedias()}
+          fromReport={true}
+        />
       </Accordion.Body>
     </Accordion.Item>
   );

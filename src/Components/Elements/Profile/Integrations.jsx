@@ -1,5 +1,6 @@
 import CookieService from '../../Utils/CookieService';
 import React, { useEffect, useRef, useState } from "react";
+import ReactDOM from "react-dom";
 import {
   Container,
   Row,
@@ -15,7 +16,7 @@ import {
 } from "react-bootstrap";
 import { FcGoogle } from "react-icons/fc";
 import { PiMicrosoftOutlookLogoFill } from "react-icons/pi";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { FaEye, FaEyeSlash, FaLinkedin } from "react-icons/fa";
 import Select from "react-select";
 import { useFormContext } from "../../../context/CreateMeetingContext";
 import { IoMdSync } from "react-icons/io";
@@ -28,7 +29,7 @@ import { useHeaderTitle } from "../../../context/HeaderTitleContext";
 import { getUser } from "../../Utils/MeetingFunctions";
 import { toast } from "react-toastify";
 import GoogleConnectFlow from "./GoogleConnectFlow";
-import { SiIonos } from "react-icons/si";
+import { SiIonos, SiStripe } from "react-icons/si";
 
 
 
@@ -286,6 +287,186 @@ const Integrations = ({ teams }) => {
   const [ionosValidated, setIonosValidated] = useState(false);
   const [ionosForm, setIonosForm] = useState({ username: "", password: "", host: "imap.ionos.com", domain: "com" });
   const [showIonosPassword, setShowIonosPassword] = useState(false);
+
+  // Stripe States
+  const [loadingStripe, setLoadingStripe] = useState(false);
+  const [showStripeDisconnectConfirm, setShowStripeDisconnectConfirm] = useState(false);
+
+  // LinkedIn States
+  const [loadingLinkedIn, setLoadingLinkedIn] = useState(false);
+  const [showLinkedInDisconnectConfirm, setShowLinkedInDisconnectConfirm] = useState(false);
+
+  const handleLinkedInConnect = async () => {
+    setLoadingLinkedIn(true);
+    try {
+      const response = await axios.get(`${API_BASE_URL}/auth/linkedin`, {
+        headers: {
+          Authorization: `Bearer ${CookieService.get("token")}`,
+        },
+      });
+      const redirectUrl = response.data?.login_url || response.data?.data?.url;
+      if (redirectUrl) {
+        const width = 600;
+        const height = 700;
+        const left = window.screenX + (window.innerWidth - width) / 2;
+        const top = window.screenY + (window.innerHeight - height) / 2;
+        const popup = window.open(
+          redirectUrl,
+          "LinkedIn Login",
+          `width=${width},height=${height},top=${top},left=${left}`
+        );
+
+        const messageHandler = (event) => {
+          if (event.data?.type === "linkedin-success" || event.data?.type === "linkedin-login-success") {
+            getUserDataFromAPI();
+            if (setCallUser) setCallUser((prev) => !prev);
+            if (popup && !popup.closed) popup.close();
+            window.removeEventListener("message", messageHandler);
+            clearInterval(checkPopup);
+            toast.success("LinkedIn connected successfully!");
+          } else if (event.data?.type === "linkedin-failed") {
+            if (popup && !popup.closed) popup.close();
+            window.removeEventListener("message", messageHandler);
+            clearInterval(checkPopup);
+            toast.error("Failed to connect LinkedIn.");
+          }
+        };
+        window.addEventListener("message", messageHandler);
+
+        const checkPopup = setInterval(() => {
+          if (!popup || popup.closed) {
+            clearInterval(checkPopup);
+            window.removeEventListener("message", messageHandler);
+            getUserDataFromAPI();
+            if (setCallUser) setCallUser((prev) => !prev);
+          }
+        }, 1000);
+      } else {
+        toast.error("Could not get LinkedIn login URL.");
+      }
+    } catch (error) {
+      console.error("LinkedIn connect error:", error);
+      toast.error("Failed to connect LinkedIn.");
+    } finally {
+      setLoadingLinkedIn(false);
+    }
+  };
+
+  const handleLinkedInDisconnect = () => {
+    setShowLinkedInDisconnectConfirm(true);
+  };
+
+  const handleConfirmLinkedInDisconnect = async () => {
+    setShowLinkedInDisconnectConfirm(false);
+    setLoadingLinkedIn(true);
+    try {
+      await axios.post(
+        `${API_BASE_URL}/linkedin/disconnect`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${CookieService.get("token")}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      toast.success(t("LinkedIn account disconnected successfully.") || "LinkedIn account disconnected successfully.");
+      getUserDataFromAPI();
+      if (setCallUser) setCallUser((prev) => !prev);
+    } catch (error) {
+      console.error("LinkedIn disconnect error:", error);
+      toast.error(t("Failed to disconnect LinkedIn.") || "Failed to disconnect LinkedIn.");
+    } finally {
+      setLoadingLinkedIn(false);
+    }
+  };
+
+  const handleStripeConnect = async () => {
+    setLoadingStripe(true);
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/stripe/connect`,
+        {},
+        {
+          headers: {
+            'Authorization': `Bearer ${CookieService.get("token")}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      const url = response.data?.url || response.data?.data?.url;
+
+      if (url) {
+        const width = 600;
+        const height = 700;
+        const left = window.screenX + (window.innerWidth - width) / 2;
+        const top = window.screenY + (window.innerHeight - height) / 2;
+        const popup = window.open(
+          url,
+          "Stripe Connect",
+          `width=${width},height=${height},top=${top},left=${left}`
+        );
+
+        const messageHandler = (event) => {
+          if (event.data?.type === "stripe-success") {
+            getUserDataFromAPI();
+            if (setCallUser) setCallUser((prev) => !prev);
+            if (popup && !popup.closed) popup.close();
+            window.removeEventListener("message", messageHandler);
+            clearInterval(checkPopup);
+          }
+        };
+
+        window.addEventListener("message", messageHandler);
+
+        const checkPopup = setInterval(() => {
+          if (!popup || popup.closed) {
+            clearInterval(checkPopup);
+            window.removeEventListener("message", messageHandler);
+            getUserDataFromAPI();
+            if (setCallUser) setCallUser((prev) => !prev);
+          }
+        }, 1000);
+      } else {
+        toast.success(t("Stripe connection initiated!"));
+      }
+    } catch (error) {
+      console.error("Stripe connect error:", error);
+      toast.error(t("Failed to connect Stripe."));
+    } finally {
+      setLoadingStripe(false);
+    }
+  };
+
+  const handleStripeDisconnect = () => {
+    setShowStripeDisconnectConfirm(true);
+  };
+
+  const handleConfirmStripeDisconnect = async () => {
+    setShowStripeDisconnectConfirm(false);
+    setLoadingStripe(true);
+    try {
+      await axios.post(
+        `${API_BASE_URL}/stripe/disconnect`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${CookieService.get("token")}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      toast.success(t("Stripe account disconnected successfully."));
+      getUserDataFromAPI();
+      if (setCallUser) setCallUser((prev) => !prev);
+    } catch (error) {
+      console.error("Stripe disconnect error:", error);
+      toast.error(t("Failed to disconnect Stripe."));
+    } finally {
+      setLoadingStripe(false);
+    }
+  };
 
   const handleIonosSubmit = async (e) => {
     e.preventDefault();
@@ -1165,6 +1346,7 @@ const Integrations = ({ teams }) => {
 
 
   return (
+    <>
     <div className="visiting-card">
       <div className="add-profile">
         <Container fluid className="my-4">
@@ -1255,6 +1437,30 @@ const Integrations = ({ teams }) => {
                             >
                               <SiIonos size={20} color="#003D8F" />
                               Ionos
+                            </Nav.Link>
+                          </Nav.Item>
+                          <Nav.Item>
+                            <Nav.Link
+                              eventKey="stripe"
+                              className={`d-flex align-items-center gap-2 px-4 py-2 rounded-top ${subActiveKey === "stripe"
+                                ? "bg-white text-primary border border-bottom-0 shadow-sm"
+                                : "bg-light text-muted"
+                                }`}
+                            >
+                              <SiStripe size={20} color="#635BFF" />
+                              Stripe
+                            </Nav.Link>
+                          </Nav.Item>
+                          <Nav.Item>
+                            <Nav.Link
+                              eventKey="linkedin"
+                              className={`d-flex align-items-center gap-2 px-4 py-2 rounded-top ${subActiveKey === "linkedin"
+                                ? "bg-white text-primary border border-bottom-0 shadow-sm"
+                                : "bg-light text-muted"
+                                }`}
+                            >
+                              <FaLinkedin size={20} color="#0A66C2" />
+                              LinkedIn
                             </Nav.Link>
                           </Nav.Item>
                         </Nav>
@@ -1568,6 +1774,151 @@ const Integrations = ({ teams }) => {
                             </Row>
                           </Tab.Pane>
 
+                          <Tab.Pane eventKey="stripe" className="form">
+                            <h5 className="profile-font">Stripe Integration</h5>
+                            <small>Connect your Stripe account to receive payments.</small>
+                            <Row className="mt-3 social-info-row">
+                              <h6>Payment Gateway</h6>
+                              <Row className="mb-3 align-items-center">
+                                <Col md={10}>
+                                  <div className="d-flex align-items-center p-3 border rounded bg-light">
+                                    <SiStripe size={40} color="#635BFF" className="me-3" />
+                                    <div>
+                                      <h6 className="mb-1 m-0 fw-bold">Stripe Connect</h6>
+                                      <p className="mb-0 text-muted small">Enable secure payments for your events and services.</p>
+                                    </div>
+                                  </div>
+                                </Col>
+                                <Col md={2}>
+                                  {user?.stripe_onboarding_completed && user?.stripe_charges_enabled && user?.stripe_payouts_enabled ? (
+                                    <div className="d-flex flex-column gap-2">
+                                      <Button
+                                        disabled
+                                        className="w-100 py-2 fw-bold text-success bg-white border-success"
+                                        style={{ borderRadius: "8px" }}
+                                      >
+                                        {t("profile.connected") || "Connected"}
+                                      </Button>
+                                      <button
+                                        onClick={handleStripeDisconnect}
+                                        disabled={loadingStripe}
+                                        style={{
+                                          width: "100%",
+                                          padding: "8px 0",
+                                          borderRadius: "8px",
+                                          border: "1px solid #dc3545",
+                                          backgroundColor: "transparent",
+                                          color: "#dc3545",
+                                          fontWeight: 700,
+                                          cursor: loadingStripe ? "not-allowed" : "pointer",
+                                          fontSize: "14px",
+                                          opacity: loadingStripe ? 0.7 : 1,
+                                          transition: "background-color 0.15s, color 0.15s",
+                                        }}
+                                        onMouseEnter={(e) => {
+                                          if (!loadingStripe) {
+                                            e.currentTarget.style.backgroundColor = "#dc3545";
+                                            e.currentTarget.style.color = "#fff";
+                                          }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                          e.currentTarget.style.backgroundColor = "transparent";
+                                          e.currentTarget.style.color = "#dc3545";
+                                        }}
+                                      >
+                                        {loadingStripe ? <Spinner size="sm" /> : t("stripe_disconnect_btn")}
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <Button
+                                      onClick={handleStripeConnect}
+                                      disabled={loadingStripe}
+                                      className="w-100 py-2 fw-bold text-white"
+                                      style={{ background: "#635BFF", borderColor: "#635BFF", borderRadius: "8px" }}
+                                    >
+                                      {loadingStripe ? <Spinner size="sm" /> : "Connect"}
+                                    </Button>
+                                  )}
+                                </Col>
+                              </Row>
+                            </Row>
+                          </Tab.Pane>
+
+                          {/* LinkedIn Tab */}
+                          <Tab.Pane eventKey="linkedin" className="form">
+                            <h5 className="profile-font">LinkedIn</h5>
+                            <small>Connectez votre compte LinkedIn pour enrichir votre profil.</small>
+                            <Row className="mt-3 social-info-row">
+                              <h6>Compte LinkedIn</h6>
+                              <Row className="mb-3 align-items-center">
+                                <Col md={10}>
+                                  <div className="d-flex align-items-center p-3 border rounded bg-light">
+                                    <FaLinkedin size={40} color="#0A66C2" className="me-3" />
+                                    <div>
+                                      <h6 className="mb-1 m-0 fw-bold">LinkedIn</h6>
+                                      <p className="mb-0 text-muted small">
+                                        {user?.linkedin_id
+                                          ? `Connecté : ${user?.linkedin_name || user?.linkedin_email || user?.linkedin_id}`
+                                          : "Connectez votre compte LinkedIn pour synchroniser vos informations."}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </Col>
+                                <Col md={2}>
+                                  {user?.linkedin_id ? (
+                                    <div className="d-flex flex-column gap-2">
+                                      <Button
+                                        disabled
+                                        className="w-100 py-2 fw-bold text-success bg-white border-success"
+                                        style={{ borderRadius: "8px" }}
+                                      >
+                                        {t("profile.connected") || "Connected"}
+                                      </Button>
+                                      <button
+                                        onClick={handleLinkedInDisconnect}
+                                        disabled={loadingLinkedIn}
+                                        style={{
+                                          width: "100%",
+                                          padding: "8px 0",
+                                          borderRadius: "8px",
+                                          border: "1px solid #dc3545",
+                                          backgroundColor: "transparent",
+                                          color: "#dc3545",
+                                          fontWeight: 700,
+                                          cursor: loadingLinkedIn ? "not-allowed" : "pointer",
+                                          fontSize: "14px",
+                                          opacity: loadingLinkedIn ? 0.7 : 1,
+                                          transition: "background-color 0.15s, color 0.15s",
+                                        }}
+                                        onMouseEnter={(e) => {
+                                          if (!loadingLinkedIn) {
+                                            e.currentTarget.style.backgroundColor = "#dc3545";
+                                            e.currentTarget.style.color = "#fff";
+                                          }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                          e.currentTarget.style.backgroundColor = "transparent";
+                                          e.currentTarget.style.color = "#dc3545";
+                                        }}
+                                      >
+                                        {loadingLinkedIn ? <Spinner size="sm" /> : t("linkedin_disconnect_btn") || "Disconnect"}
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <Button
+                                      onClick={handleLinkedInConnect}
+                                      disabled={loadingLinkedIn}
+                                      className="w-100 py-2 fw-bold text-white"
+                                      style={{ background: "#0A66C2", borderColor: "#0A66C2", borderRadius: "8px" }}
+                                    >
+                                      {loadingLinkedIn ? <Spinner size="sm" /> : "Connect"}
+                                    </Button>
+                                  )}
+                                </Col>
+                              </Row>
+                            </Row>
+                          </Tab.Pane>
+
                         </Tab.Content>
                       </Tab.Container>
                     )}
@@ -1670,6 +2021,219 @@ const Integrations = ({ teams }) => {
         </Modal.Body>
       </Modal >
     </div>
+
+      {/* LinkedIn Disconnect Confirmation Modal */}
+      {showLinkedInDisconnectConfirm && ReactDOM.createPortal(
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0,0,0,0.55)",
+            zIndex: 99999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+          }}
+          onClick={() => setShowLinkedInDisconnectConfirm(false)}
+        >
+          <div
+            style={{
+              backgroundColor: "#fff",
+              borderRadius: "16px",
+              padding: "32px",
+              maxWidth: "420px",
+              width: "100%",
+              boxShadow: "0 24px 64px rgba(0,0,0,0.25)",
+              animation: "fadeInScale 0.18s ease",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Icon + Title */}
+            <div style={{ display: "flex", alignItems: "center", marginBottom: "16px", gap: "14px" }}>
+              <div
+                style={{
+                  width: "48px",
+                  height: "48px",
+                  borderRadius: "50%",
+                  backgroundColor: "rgba(220,53,69,0.1)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <FaLinkedin size={22} color="#dc3545" />
+              </div>
+              <h5 style={{ margin: 0, fontWeight: 700, color: "#1a1a2e" }}>
+                {t("linkedin_disconnect_title") || "Disconnect LinkedIn"}
+              </h5>
+            </div>
+
+            {/* Message */}
+            <p style={{ color: "#6c757d", fontSize: "14px", lineHeight: 1.6, marginBottom: "28px" }}>
+              {t("linkedin_disconnect_message") || "Are you sure you want to disconnect your LinkedIn account? You will need to reconnect it later to sync your information."}
+            </p>
+
+            {/* Buttons */}
+            <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
+              <button
+                style={{
+                  padding: "10px 22px",
+                  borderRadius: "8px",
+                  border: "1px solid #dee2e6",
+                  backgroundColor: "#f8f9fa",
+                  color: "#495057",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  transition: "background 0.15s",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#e9ecef"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#f8f9fa"; }}
+                onClick={() => setShowLinkedInDisconnectConfirm(false)}
+                disabled={loadingLinkedIn}
+              >
+                {t("linkedin_disconnect_cancel") || "Cancel"}
+              </button>
+              <button
+                style={{
+                  padding: "10px 22px",
+                  borderRadius: "8px",
+                  border: "none",
+                  backgroundColor: "#dc3545",
+                  color: "#fff",
+                  fontWeight: 700,
+                  cursor: loadingLinkedIn ? "not-allowed" : "pointer",
+                  fontSize: "14px",
+                  opacity: loadingLinkedIn ? 0.75 : 1,
+                  transition: "background 0.15s, opacity 0.15s",
+                }}
+                onMouseEnter={(e) => { if (!loadingLinkedIn) e.currentTarget.style.backgroundColor = "#b02a37"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#dc3545"; }}
+                onClick={handleConfirmLinkedInDisconnect}
+                disabled={loadingLinkedIn}
+              >
+                {loadingLinkedIn ? <Spinner size="sm" /> : t("linkedin_disconnect_confirm") || "Disconnect"}
+              </button>
+            </div>
+          </div>
+          <style>{`
+            @keyframes fadeInScale {
+              from { opacity: 0; transform: scale(0.94); }
+              to   { opacity: 1; transform: scale(1); }
+            }
+          `}</style>
+        </div>,
+        document.body
+      )}
+
+      {/* Stripe Disconnect Confirmation Modal */}
+      {showStripeDisconnectConfirm && ReactDOM.createPortal(
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0,0,0,0.55)",
+            zIndex: 99999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+          }}
+          onClick={() => setShowStripeDisconnectConfirm(false)}
+        >
+          <div
+            style={{
+              backgroundColor: "#fff",
+              borderRadius: "16px",
+              padding: "32px",
+              maxWidth: "420px",
+              width: "100%",
+              boxShadow: "0 24px 64px rgba(0,0,0,0.25)",
+              animation: "fadeInScale 0.18s ease",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Icon + Title */}
+            <div style={{ display: "flex", alignItems: "center", marginBottom: "16px", gap: "14px" }}>
+              <div
+                style={{
+                  width: "48px",
+                  height: "48px",
+                  borderRadius: "50%",
+                  backgroundColor: "rgba(220,53,69,0.1)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <SiStripe size={22} color="#dc3545" />
+              </div>
+              <h5 style={{ margin: 0, fontWeight: 700, color: "#1a1a2e" }}>
+                {t("stripe_disconnect_title")}
+              </h5>
+            </div>
+
+            {/* Message */}
+            <p style={{ color: "#6c757d", fontSize: "14px", lineHeight: 1.6, marginBottom: "28px" }}>
+              {t("stripe_disconnect_message")}
+            </p>
+
+            {/* Buttons */}
+            <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
+              <button
+                style={{
+                  padding: "10px 22px",
+                  borderRadius: "8px",
+                  border: "1px solid #dee2e6",
+                  backgroundColor: "#f8f9fa",
+                  color: "#495057",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  transition: "background 0.15s",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#e9ecef"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#f8f9fa"; }}
+                onClick={() => setShowStripeDisconnectConfirm(false)}
+                disabled={loadingStripe}
+              >
+                {t("stripe_disconnect_cancel")}
+              </button>
+              <button
+                style={{
+                  padding: "10px 22px",
+                  borderRadius: "8px",
+                  border: "none",
+                  backgroundColor: "#dc3545",
+                  color: "#fff",
+                  fontWeight: 700,
+                  cursor: loadingStripe ? "not-allowed" : "pointer",
+                  fontSize: "14px",
+                  opacity: loadingStripe ? 0.75 : 1,
+                  transition: "background 0.15s, opacity 0.15s",
+                }}
+                onMouseEnter={(e) => { if (!loadingStripe) e.currentTarget.style.backgroundColor = "#b02a37"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#dc3545"; }}
+                onClick={handleConfirmStripeDisconnect}
+                disabled={loadingStripe}
+              >
+                {loadingStripe ? <Spinner size="sm" /> : t("stripe_disconnect_confirm")}
+              </button>
+            </div>
+          </div>
+          <style>{`
+            @keyframes fadeInScale {
+              from { opacity: 0; transform: scale(0.94); }
+              to   { opacity: 1; transform: scale(1); }
+            }
+          `}</style>
+        </div>,
+        document.body
+      )}
+    </>
   );
 };
 

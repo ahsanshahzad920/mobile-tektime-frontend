@@ -22,6 +22,7 @@ const AddGuest = ({ meeting }) => {
     // meeting,
     setFormState,
     setSelectedTab: contextSetSelectedTab, // Alias for context method
+    addParticipant,
   } = useFormContext();
   const navigate = useNavigate();
   const [t] = useTranslation("global");
@@ -66,7 +67,9 @@ const AddGuest = ({ meeting }) => {
   const handleCloseSubscription = () => setShowSubscription(false);
 
   useEffect(() => {
-    if (meeting?.solution_id) {
+    if (addParticipant && meeting?.casting_type === "Registration") {
+      setSelectedTab("Invitation");
+    } else if (meeting?.solution_id) {
       const initialTab = meeting?.casting_type || "Invitation";
       setSelectedTab(initialTab);
       setFormState((prevState) => ({
@@ -94,7 +97,7 @@ const AddGuest = ({ meeting }) => {
         }));
       }
     }
-  }, [meeting]);
+  }, [meeting, addParticipant]);
 
   const iconStyle = {
     padding: " 8px 5px",
@@ -285,7 +288,7 @@ const AddGuest = ({ meeting }) => {
     <>
       <div className=" col-md-12 mt-1 modal-height">
         <Row className="mb-4">
-          {(!meeting?.solution_id || meeting?.casting_type === "Invitation") && meeting?.type !== "Newsletter" && (
+          {(addParticipant || !meeting?.solution_id || meeting?.casting_type === "Invitation") && meeting?.type !== "Newsletter" && (
             <Col xs={12} sm={6} md={6} lg={6}>
               <Tooltip title={t("invitation_tooltip")}>
                 <div
@@ -317,7 +320,8 @@ const AddGuest = ({ meeting }) => {
             </Col>
           )}
 
-          {(!meeting?.solution_id || meeting?.casting_type === "Registration") && meeting?.type !== "Newsletter" && meeting?.type !== "Google Agenda Event" && meeting?.type !== "Outlook Agenda Event" && meeting?.type !== "Calendly" && (
+
+          {!addParticipant && (!meeting?.solution_id || meeting?.casting_type === "Registration") && meeting?.type !== "Newsletter" && meeting?.type !== "Google Agenda Event" && meeting?.type !== "Outlook Agenda Event" && meeting?.type !== "Calendly" && (
             <Col xs={12} sm={6} md={6} lg={6}>
               <Tooltip title={t("registration_tooltip")}>
                 <div

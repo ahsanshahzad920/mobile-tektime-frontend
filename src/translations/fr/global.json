@@ -1,4 +1,24 @@
 {
+  "searches": {
+    "tabTitle": "Recherches",
+    "header": "RECHERCHES",
+    "detailsHeader": "DETAILS DE LA RECHERCHE",
+    "userLabel": "Utilisateur",
+    "assistantLabel": "Assistant de recherche",
+    "resultsIntro": "Voici les résultats pertinents trouvés pour cette recherche :",
+    "visitSite": "Visiter le site",
+    "advantages": "Avantages :",
+    "features": "Caractéristiques :",
+    "originalSource": "Source originale :",
+    "emptyDetails": "Sélectionnez une recherche dans la liste pour afficher les détails de la conversation",
+    "emptyList": "Aucune recherche trouvée",
+    "loading": "Chargement de l'historique des recherches...",
+    "refresh": "Rafraîchir",
+    "close": "Fermer",
+    "selectPlaceholder": "Sélectionnez une recherche...",
+    "question": "Question:",
+    "unknown": "Inconnu"
+  },
   "roleTypes": {
     "title": "Rôles",
     "new": "Nouveau Rôle",
@@ -58,19 +78,6 @@
       "loadFailed": "Échec du chargement des types de mission.",
       "deleteFailed": "Échec de la suppression du type de mission."
     }
-  },
-  "searchEngine": {
-    "subtitle": "MOTEUR DE SOLUTIONS B2B FRANÇAISES",
-    "placeholder": "A quoi pensez-vous ?",
-    "button": "Chercher",
-    "suggestions": [
-      "Gérer mes réunions clients",
-      "Automatiser ma facturation",
-      "Former mes équipes à distance",
-      "Améliorer mon service client",
-      "Suivre mes projets en équipe",
-      "Recruter des talents tech"
-    ]
   },
   
   "whatsapp_in_tooltip": "Activer WhatsApp",
@@ -193,7 +200,8 @@
     "Start moment": "Démarrer",
     "Restart": "Re-démarrer",
     "Force start": "Forcer le démarrage",
-    "goBack": "Retour"
+    "goBack": "Retour",
+    "retry": "Réessayer"
   },
   "sidebar": {
     "subscriptions": "Abonnements",
@@ -362,6 +370,7 @@
       "Edit a step": "Modifier une étape",
       "Add a step": "Ajouter une étape",
       "The stage starts at": "Début",
+      "Step title": "Titre de l'étape",
       "Step duration": "Durée de l'étape",
       "Step duration planify": "Durée",
       "Step creator": "Créateur d'étape",
@@ -469,7 +478,8 @@
           "Pomodoro": "Pomodoro",
           "Agile ritual": "Rituel agile",
           "absence": "Absence",
-          "assistantConversation": "Conversation de l'assistant"
+          "assistantConversation": "Conversation de l'assistant",
+          "conversation": "Conversation"
         },
         "priorities": {
           "priority": "Déterminer l'importance de ce moment",
@@ -803,6 +813,7 @@
       "Edit a step": "Modifier une étape",
       "Add a step": "Ajouter une étape",
       "The stage starts at": "Début",
+      "Step title": "Titre de l'étape",
       "Step duration": "Durée de l'étape",
       "Step creator": "Créateur d'étape",
       "Step presenter": "Guide",
@@ -898,7 +909,8 @@
           "Pomodoro": "Pomodoro",
           "Agile ritual": "Rituel agile",
           "absence": "Absence",
-          "assistantConversation": "Conversation de l'assistant"
+          "assistantConversation": "Conversation de l'assistant",
+          "conversation": "Conversation"
         },
         "priorities": {
           "priority": "Déterminer l'importance de ce moment",
@@ -1768,7 +1780,8 @@
     "Rendez-vous client": "Rendez-vous client",
     "Conversation Outlook": "Conversation Outlook",
     "Conversation IONOS": "Conversation IONOS",
-    "Conversation Gmail": "Conversation Gmail"
+    "Conversation Gmail": "Conversation Gmail",
+    "Conversation": "Conversation"
   },
   "destinationTypes": {
     "assistant conversation":"Assistant Conversation",
@@ -2782,6 +2795,7 @@
     "media": "Médias",
     "documents": "Documents",
     "solutions": "Solutions",
+    "add_activity": "Ajouter mon activité",
     "moment": "Moment",
     "mission": "Mission",
     "btp": "btp",
@@ -3447,7 +3461,7 @@
     "ecosystem": {
       "title1": "Votre plateforme sous forme de logiciel en ligne",
       "title2": "Moi, c’est TekTIME",
-      "desc1": "Je suis ton assistant personnel — celui qui t’aide à organiser ton temps, tes projets et tes réunions sans effort.",
+      "desc1": "Votre assistant personnel — celui qui vous aide à organiser votre temps, vos projets et vos réunions sans effort.",
       "desc2": "Je centralise tout : ton agenda, tes missions, ton équipe, tes clients, tes actions et tes process.",
       "desc3": "Avec moi, tu gagnes en clarté, en collaboration et en sérénité.",
       "desc4": "Je veille à ce que rien ne t’échappe et que chaque minute compte.",
@@ -3476,69 +3490,77 @@
     },
     "scaleBrand": {
       "title": "Prêt à reprendre le contrôle de votre temps ?",
-      "desc": "Avec TekTIME, déterminer ce qui vous fait perdre du temps et trouvons la solution idéale.",
+      "desc": "Avec TekTIME, déterminez ce qui vous fait perdre du temps et trouvons la solution idéale.",
       "desc2": "Déjà adopté par des freelances, agences et PME qui veulent gagner en efficacité."
     },
     "services": {
-      "title": "Voici mes services",
-      "subtitle1": "Nous vous aidons à évoluer avec",
+      "title": "Vos services",
+      "subtitle1": "Évoluez avec",
       "subtitle2": "des services clairs et éprouvés.",
       "card1": {
         "title": "Gestion de l’agenda",
-        "subtitle": "J'organise ton temps intelligemment et te donne le contrôle sur toutes tes activités.",
-        "l1": "Planification automatique de tes réunions et tâches",
-        "l2": "Synchronisation avec ton calendrier et ton équipe",
+        "subtitle": "Organisez votre temps intelligemment et gardez le contrôle sur toutes vos activités.",
+        "l1": "Planification automatique de vos réunions et tâches",
+        "l2": "Synchronisation avec votre calendrier et votre équipe",
         "l3": "Alertes intelligentes pour ne rien oublier",
-        "l4": "Vue globale : quotidienne, hebdomadaire et mensuelle"
+        "l4": "Vue globale : quotidienne, hebdomadaire et mensuelle",
+        "btn": "Découvrir l'agenda"
       },
       "card2": {
         "title": "Pilotage de projet",
-        "subtitle": "Je veille sur tes projets comme un copilote toujours à tes côtés.",
-        "l1": "Je t’alerte dès qu’un budget ou un délai dérape",
-        "l2": "Je synchronise ton planning, tes missions et ton équipe",
-        "l3": "Je calcule les écarts entre prévu et réalisé, en temps réel",
-        "l4": "Je t’aide à garder le cap pour livrer à temps et dans ton budget"
+        "subtitle": "TekTIME veille sur vos projets comme un copilote toujours à vos côtés.",
+        "l1": "Alertes dès qu’un budget ou un délai dérape",
+        "l2": "Synchronisation de votre planning, vos missions et votre équipe",
+        "l3": "Calcul des écarts entre prévu et réalisé, en temps réel",
+        "l4": "Gardez le cap pour livrer à temps et dans votre budget",
+        "btn": "Découvrir le pilotage"
       },
       "card3": {
-        "title": "J'assure le suivi de tes clients, contacts et équipes",
-        "subtitle": "",
-        "l1": "Je centralise tes contacts, prestataires et clients",
-        "l2": "Je mémorise vos échanges pour un suivi fluide et intelligent",
-        "l3": "Je coordonne les plannings de ton équipe en temps réel",
-        "l4": "Je facilite la collaboration entre collègues et partenaires",
-        "l5": "Je t’offre une vue claire sur ton réseau et la charge de chacun"
+        "title": "Suivi de vos clients, contacts et équipes",
+        "subtitle": "Centralisez et suivez votre écosystème pour un flux de travail fluide.",
+        "l1": "Centralisez vos contacts, prestataires et clients",
+        "l2": "Mémorisez vos échanges pour un suivi fluide et intelligent",
+        "l3": "Coordonnez les plannings de votre équipe en temps réel",
+        "l4": "Facilitez la collaboration entre collègues et partenaires",
+        "l5": "Vue claire sur votre réseau et la charge de chacun",
+        "btn": "Découvrir le suivi"
       },
       "card4": {
         "title": "Suivi des tâches",
-        "subtitle": "Je planifie tes tâches pour toi",
-        "l1": "J’organise tes tâches par priorité, équipe ou projet",
-        "l2": "Je t’indique où en est chaque mission, en temps réel",
-        "l3": "Je relie chaque action à ton planning et à ton budget",
-        "l4": "J’envoie des rappels intelligents pour que tout avance sans stress"
+        "subtitle": "Planifiez vos tâches sans effort.",
+        "l1": "Organisez vos tâches par priorité, équipe ou projet",
+        "l2": "Suivez l'état de chaque mission, en temps réel",
+        "l3": "Reliez chaque action à votre planning et à votre budget",
+        "l4": "Rappels intelligentes pour que tout avance sans stress",
+        "btn": "Découvrir les actions"
       },
       "card5": {
         "title": "Messagerie & Support",
-        "subtitle": "Je centralise toutes tes conversations pour que plus rien ne se perde.",
-        "l1": "Je regroupe tes échanges internes et externes au même endroit",
-        "l2": "Je t’aide à répondre plus vite grâce à un historique clair et organisé",
-        "l3": "Je transforme les messages en actions ou tickets de support en un clic",
-        "l4": "J’alerte ton équipe quand un client a besoin d’aide"
+        "subtitle": "Centralisez toutes vos conversations pour que plus rien ne se perde.",
+        "l1": "Regroupez vos échanges internes et externes au même endroit",
+        "l2": "Répondez plus vite grâce à un historique clair et organisé",
+        "l3": "Transformez les messages en actions ou tickets de support en un clic",
+        "l4": "Alertez votre équipe quand un client a besoin d’aide",
+        "btn": "Découvrir la messagerie"
       },
       "card6": {
         "title": "Process & ModOp",
-        "subtitle": "Je garde tes méthodes au carré pour que tout soit clair, partagé et réutilisable.",
-        "l1": "Je centralise tous tes process et modes opératoires au même endroit",
-        "l2": "Je transforme tes bonnes pratiques en modèles prêts à l’emploi",
-        "l3": "Je t’aide à standardiser les actions de ton équipe pour plus d’efficacité",
-        "l4": "Je facilite la transmission du savoir entre collaborateurs",
-        "l5": "Je garantis la continuité des projets, même quand les équipes changent"
+        "subtitle": "Gardez vos méthodes structurées, claires, partagées et réutilisables.",
+        "l1": "Centralisez tous vos process et modes opératoires au même endroit",
+        "l2": "Transformez vos bonnes pratiques en modèles prêts à l’emploi",
+        "l3": "Standardisez les actions de votre équipe pour plus d’efficacité",
+        "l4": "Facilitez la transmission du savoir entre collaborateurs",
+        "l5": "Garantissez la continuité des projets, même quand les équipes changent",
+        "btn": "Découvrir les process"
       }
     },
     "solution": {
       "title1": "Nous avons des solutions sur-mesure",
       "title2": "selon vos problématiques",
-      "desc": "See how we’ve helped brands grow and succeed.",
+      "desc": "Découvrez comment nous avons aidé les marques à croître et à réussir.",
       "button": "En savoir plus →",
+      "cta": "Prêt à voir ces solutions en action ?",
+      "startTrial": "Commencer votre essai gratuit",
       "card1": {
         "title": "Réunion avec prise de notes automatiques",
         "desc": "Utilisez l'IA pour transformer vos réunions en notes claires et exploitables."
@@ -3550,7 +3572,7 @@
     },
     "work": {
       "title": "Comment TekTIME vous fait gagner du temps",
-      "desc": "Notre approche est simple : centraliser, automatiser et rendre vos activités plus fluides. Voici comment TekTIME transforme vos journées",
+      "desc": "Notre approche est simple : centraliser, automatiser et rendre vos activités plus fluides. Voici comment TekTIME transforme vos journées.",
       "button": "Essayer TekTIME dès aujourd’hui",
       "step1": {
         "title": "Agenda",
@@ -3577,35 +3599,35 @@
       "title": "Témoignages",
       "desc": "Ce que disent nos clients",
       "review1": {
-        "title": "Sales pipeline finally working.",
+        "title": "Pipeline de vente enfin opérationnel.",
         "desc": "Nous avons mis en place TekTIME au sein de Transeco2 pour mieux suivre les présentations commerciales de nos vendeurs et avoir des retours réels des entretiens sans interprétations possibles. En intégrant notre parcours commercial, TekTIME est devenu un véritable outil quotidien.",
         "role": "Président chez TRANSECO 2"
       },
       "review2": {
-        "title": "Growth that felt effortless.",
-        "desc": "TekTIME a non seulement décidé de donner un pourcentage de ses revenus, mais a rationalisé son approche pour choisir les associations les plus efficaces. Cet engagement fondé sur les preuves témoigne de leur sérieux et de leur désir sincère d’avoir un impact positif durable.Their smart funnel optimization brought clarity, focus, and speed. We quickly saw a 40% lift in qualified signups without increasing our ad spend.",
+        "title": "Une croissance sans effort.",
+        "desc": "TekTIME a non seulement décidé de donner un pourcentage de ses revenus, mais a rationalisé son approche pour choisir les associations les plus efficaces. Cet engagement fondé sur les preuves témoigne de leur sérieux et de leur désir sincère d’avoir un impact positif durable. Leur optimisation intelligente du tunnel a apporté clarté, concentration et rapidité.",
         "role": "Fondateur de Mieux Donner"
       }
     },
     "values": {
-      "title": "Nos Valeurs",
-      "desc": "TekTIME n’est pas seulement un outil de gestion, c’est une philosophie : travailler mieux, ensemble, en toute sérénité.",
-      "button": "Rejoignez notre vision →",
+      "title": "Pourquoi TekTIME ?",
+      "desc": "Notre solution est conçue pour maximiser votre impact quotidien et fluidifier votre performance.",
+      "button": "Optimisez votre temps dès maintenant →",
       "value1": {
         "title": "Collaboration",
-        "desc": "Nous agissons ensemble Un espace unique pour préparer, animer et suivre vos activités en équipe."
+        "desc": "Un espace unique pour préparer, gérer et suivre vos activités en équipe en toute fluidité."
       },
       "value2": {
         "title": "Communication",
-        "desc": "Nous parlons ensemble Un canal centralisé pour fluidifier vos échanges sans perte d’information."
+        "desc": "Un canal centralisé pour fluidifier vos échanges sans aucune perte d'information."
       },
       "value3": {
         "title": "Cohésion",
-        "desc": "Nous avançons ensemble Un cadre structuré qui aligne vos équipes et vos projets dans la même direction."
+        "desc": "Un cadre structuré qui aligne vos équipes et vos projets dans la même direction."
       },
       "value4": {
         "title": "Confiance",
-        "desc": "Nous sommes ensemble Sécurité et conformité RGPD intégrées : vos données sont protégées, vos clients rassurés."
+        "desc": "Sécurité et conformité RGPD intégrées : vos données sont protégées et vos clients rassurés."
       }
     },
     "button1": "Essayer TekTIME",
@@ -3972,8 +3994,10 @@
     "cancel": "Retour"
   },
   "searchEngine": {
-    "subtitle": "MOTEUR DE SOLUTIONS B2B FRANÇAISES",
-    "placeholder": "Décrivez votre besoin ou problématique B2B...",
+    "titleNormal": "Trouvez la solution à n’importe quel problème pro ",
+    "titleHighlight": "en 30 secondes",
+    "subtitle": "TekTIME vous propose les meilleures solutions proches de vous : logiciels, prestataires, experts ou services.",
+    "placeholder": "De quoi avez-vous besoin aujourd’hui ?",
     "button": "Trouver",
     "suggestions": [
       "Gérer mes réunions clients",
@@ -3982,7 +4006,24 @@
       "Améliorer mon service client",
       "Suivre mes projets en équipe",
       "Recruter des talents tech"
-    ]
+    ],
+    "gateLabels": {
+      "detybel": "Se reconstruire & se relever",
+      "patrimoine": "Gestion de patrimoine",
+      "publique": "Collectivités publiques",
+      "tpe-pme": "Organisation pour TPE-PME",
+      "freelance": "Facturation Freelance",
+      "messages": "Centraliser mes messages",
+      "naturopathe": "Accompagnement Naturopathe",
+      "batiment": "Comptes-rendus de chantier",
+      "networking": "Cartes de visite digitales",
+      "pomodoro": "Gestion du temps",
+      "notes": "Prise de notes IA",
+      "projets": "Pilotage de projets",
+      "cabinets": "Avocats & Juristes"
+    },
+    "loadingSuggestions": "Chargement des suggestions...",
+    "noSuggestions": "Aucune suggestion trouvée"
   },
   "searchResults": {
     "title": "Résultats de recherche",
@@ -3990,8 +4031,14 @@
     "type": "Type",
     "location": "Localisation",
     "target": "Profil cible",
+    "found": "Environ {{count}} résultats",
     "noResults": "Aucune solution trouvée pour votre recherche.",
-    "aiDescription": "Analyse de Claude"
+    "aiDescription": "Analyse de TekTime",
+    "errorTitle": "Oups ! Quelque chose s'est mal passé",
+    "error": "Une erreur est survenue lors de la recherche.",
+    "loading": "TekTime recherche votre solution...",
+    "learnMore": "En savoir plus",
+    "advantages": "AVANTAGES"
   },
    "Registration successful!": "Inscription réussie !",
     "Event Registration": "Inscription à l'événement",

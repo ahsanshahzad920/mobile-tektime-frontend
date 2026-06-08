@@ -1,3 +1,4 @@
+import { FiEdit } from "react-icons/fi";
 import CookieService from '../../../Utils/CookieService';
 import React, { useState } from "react";
 import moment from "moment";
@@ -18,7 +19,7 @@ import { SiGooglemeet } from "react-icons/si";
 import * as XLSX from "xlsx";
 import Spreadsheet from "react-spreadsheet";
 import { read, utils } from "xlsx";
-import { FaRegFileAudio } from "react-icons/fa";
+import { FaRegFileAudio, FaLinkedin } from "react-icons/fa";
 import { PiMicrosoftPowerpointLogo } from "react-icons/pi";
 import {
   FaThumbtack,
@@ -154,17 +155,26 @@ const QuickStepChart = ({
   isCopied = false,
   createStepFromAction = false,
   closeMeeting,
+  recurrentMeetingAPI,
 }) => {
-  const { checkId, setCall } = useFormContext();
+  const { checkId, setCall, formState } = useFormContext();
   const userID = parseInt(CookieService.get("user_id"));
   const SessionUser = JSON.parse(CookieService.get("user"));
   const TINYMCEAPI = process.env.REACT_APP_TINYMCE_API;
   const location = window.location.href;
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+  const isMobileView = windowWidth < 991;
   const [isOpen, setIsOpen] = useState(false);
   const [StepPresentor, setStepPresentor] = useState(false);
   const [isUpdate, setIsUpdate] = useState(false);
   const [items, setItems] = useState([]);
   const [newItem, setNewItem] = useState("");
+  const [showMetadata, setShowMetadata] = useState(false);
   const navigate = useNavigate();
   const fromReport = location.includes("step-details")
     ? true
@@ -278,11 +288,46 @@ const QuickStepChart = ({
     },
   ];
 
+    const socialMediaOption = [
+    {
+      value: "Publication",
+      label: t("stepModal.publication") || "Publication",
+      icon: <FaLinkedin className="fs-5" style={{ color: "#0a66c2" }} />,
+    },
+  ];
+
+  const aiSocialMediaOption = [
+    {
+      value: "AI Instruction",
+      label: t("stepModal.aiInstruction") || "AI Instruction",
+      icon: <DocumentIcon />,
+    },
+  ];
+
+
   const handleSelect = (option) => {
     setModalType(option.value);
     setIsOpen(false);
     setFileName("");
     setExcelData(null);
+    setLink(null);
+    if (meeting?.type === "AI Social Media Newsletter") {
+      if (option.value === "File") {
+        setAiOutputFormat("PDF");
+      } else if (option.value === "PowerPoint") {
+        setAiOutputFormat("PowerPoint");
+      } else if (option.value === "Excel") {
+        setAiOutputFormat("Excel");
+      } else if (option.value === "Video") {
+        setAiOutputFormat("Video");
+      } else if (option.value === "Photo") {
+        setAiOutputFormat("Photo");
+      } else if (option.value === "Url") {
+        setAiOutputFormat("URL");
+      } else {
+        setAiOutputFormat("Text");
+      }
+    }
   };
 
   const getMeeting = async () => {
@@ -318,6 +363,49 @@ const QuickStepChart = ({
   const [storedStartDateForHour, setStoredStartDateForHour] = useState(null);
   const [modifiedFileText, setModifiedFileText] = useState();
   const [modalType, setModalType] = useState("");
+  const [mediaToDelete, setMediaToDelete] = useState(null);
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const [stepMedia, setStepMedia] = useState([]);
+
+  const handleDeleteMedia = async (media) => {
+    setMediaToDelete(media);
+  };
+  
+  const confirmDeleteMedia = async (mediaId) => {
+    const getCookie = (name) => {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+      return null;
+    };
+    const token = getCookie("token");
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+    const hasTranslation = typeof t === 'function';
+    // window.confirm removed
+
+    try {
+      await axios.delete(`${API_BASE_URL}/delete-media/${mediaId}`, { headers });
+      toast.success(hasTranslation ? t("Média supprimé avec succès !") : "Média supprimé avec succès !");
+      setStepMedia((prev) => prev.filter((item) => item.id !== mediaId));
+    } catch (error) {
+      console.error("Error deleting media:", error);
+      toast.error(hasTranslation ? t("Failed to delete media") : "Échec de la suppression.");
+    }
+  }
+
+  const [instructionPrompt, setInstructionPrompt] = useState("");
+  const [aiSourceType, setAiSourceType] = useState("Text");
+  const [aiSourceText, setAiSourceText] = useState("");
+  const [aiSourceFile, setAiSourceFile] = useState(null);
+  const [aiRole, setAiRole] = useState("");
+  const [aiAction, setAiAction] = useState("");
+  const [aiObjective, setAiObjective] = useState("");
+  const [aiRules, setAiRules] = useState("");
+  const [aiOutputFormat, setAiOutputFormat] = useState("Text");
+  const [aiPowerPointTemplate, setAiPowerPointTemplate] = useState(null);
+  const [aiPdfTemplate, setAiPdfTemplate] = useState(null);
+  const [aiOutputText, setAiOutputText] = useState("");
   const [assignUser, setAssignUser] = useState(null);
   const [assignTeam, setAssignTeam] = useState(null);
   const [stepOrder, setStepOrder] = useState(null);
@@ -414,11 +502,16 @@ const QuickStepChart = ({
             meeting?.type === "Absence"
               ? "days"
               : meeting?.type === "Task" ||
-                  meeting?.type === "Prestation Client"
+                meeting?.type === "Prestation Client"
                 ? "hours"
                 : meeting?.type === "Quiz"
                   ? "seconds"
-                  : "minutes",
+                  : meeting?.type === "Special" ||
+                    meeting?.type === "Social Media Newsletter" ||
+                    meeting?.type === "AI Social Media Newsletter" ||
+                    meeting?.location === "LinkedIn"
+                    ? timeUnit
+                    : "minutes",
         };
 
         const response = await axios.post(
@@ -435,21 +528,23 @@ const QuickStepChart = ({
     };
 
     fetchParticipantLabel();
-  }, [show, meeting, meeting?.id, storedStartTime, selectedCount]);
+  }, [show, meeting, meeting?.id, storedStartTime, storedStartDate, selectedCount]);
   const getLabelForParticipant = (email) => {
-    // const { t } = useTranslation();
     const match =
       participantLabels.find((p) => p.email === email)?.label || null;
 
-    // Map API labels to your translation keys if needed
+    if (!match) return null;
+
+   
+   
     if (match === "Disponible") return t("statusLabel.available");
     if (match === "Occupé") return t("statusLabel.occupied");
     if (match === "Absent") return t("statusLabel.absent");
 
+
     return match;
   };
-
-  const getStatusLabel = (status) => {
+   const getStatusLabel = (status) => {
     let color = "";
     let bg = "";
 
@@ -488,6 +583,7 @@ const QuickStepChart = ({
     );
   };
 
+
   // Set modalType based on inputData once it is available
   useEffect(() => {
     if (meeting?.type) {
@@ -506,21 +602,30 @@ const QuickStepChart = ({
                     ? "Audio Report"
                     : meeting?.type === "Absence"
                       ? "Absence CET non payable"
-                      : modalType
-                        ? modalType
-                        : "Editeur",
+                      : meeting?.type === "Social Media Newsletter"
+                        ? "Publication"
+                        : meeting?.type === "AI Social Media Newsletter"
+                          ? "Editeur"
+                        : modalType
+                          ? modalType
+                          : "Editeur",
       );
     }
   }, [meeting?.type, show]);
   const [fileUploaded, setFileUploaded] = useState(false);
-
   const [disabled, setDisabled] = useState(false);
   const [excelData, setExcelData] = useState(null);
 
   const [selectedFile, setSelectedFile] = useState(null);
   const [fileDuration, setFileDuration] = useState(null);
   const onDrop = async (acceptedFiles) => {
-    const file = acceptedFiles[0];
+    if (!selectedValue?.trim() || selectedCount === 0) {
+      const hasTranslation = typeof t === 'function';
+      toast.error(hasTranslation ? t("Please enter the step title and time first") : "Please enter the step title and time first");
+      return;
+    }
+    const files = (modalType === "Publication" || modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter") ? acceptedFiles : [acceptedFiles[0]];
+    const file = files[0];
     setSelectedFile(file);
     setIsUpload(true);
     let allowedFileTypes = [];
@@ -580,15 +685,59 @@ const QuickStepChart = ({
         "application/vnd.ms-powerpoint",
         "application/vnd.openxmlformats-officedocument.presentationml.presentation",
       ];
+    } else if (modalType === "Publication") {
+      allowedFileTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/bmp",
+        "image/webp",
+        "video/mp4",
+        "video/x-msvideo",
+        "video/x-matroska",
+        "video/mpeg",
+        "video/quicktime",
+      ];
+    } else if (modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter") {
+      allowedFileTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/bmp",
+        "image/webp",
+        "video/mp4",
+        "video/x-msvideo",
+        "video/x-matroska",
+        "video/mpeg",
+        "video/quicktime",
+        "application/pdf",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-powerpoint",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "text/plain",
+      ];
     }
 
-    // Check file size (10 MB = 10 * 1024 * 1024 bytes)
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error(t("meeting.chart.error.file"));
-      setIsUpload(false);
-      return;
+    // Check file size (10 MB = 10 * 1024 * 1024 bytes) for all files
+    for (let f of files) {
+      if (f.size > 10 * 1024 * 1024) {
+        toast.error(t("meeting.chart.error.file"));
+        setIsUpload(false);
+        return;
+      }
+      if (!allowedFileTypes.includes(f.type)) {
+        alert(
+          `Please select a valid file type for ${modalType}: ${allowedFileTypes.join(", ")}`
+        );
+        setIsUpload(false);
+        return;
+      }
     }
-    if (file && allowedFileTypes.includes(file.type)) {
+
+    if (files.length > 0) {
       if (file && modalType === "Excel") {
         let reader = new FileReader();
 
@@ -632,11 +781,16 @@ const QuickStepChart = ({
               meeting?.type === "Absence" ||
               meeting?.type === "Sprint"
                 ? "days"
-                : meeting?.type === "Task"
+                : meeting?.type === "Task" ||
+                  meeting?.type === "Prestation Client"
                   ? "hours"
                   : meeting?.type === "Quiz"
                     ? "seconds"
-                    : "minutes",
+                    : meeting?.type === "Special" ||
+                      meeting?.type === "Social Media Newsletter" ||
+                      meeting?.type === "AI Social Media Newsletter" 
+                      ? timeUnit
+                      : "minutes",
             time: selectedCount,
             editor_type:
               modalType === "File"
@@ -647,12 +801,13 @@ const QuickStepChart = ({
                     ? "Photo"
                     : modalType,
             file: file,
-            editor_content: null,
+            editor_content: (modalType === "Publication" || modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter") ? modifiedFileText || "" : "",
             meeting_id: meetingId,
             assigned_to: assignedToUser,
             // assigned_to_team: meeting?.type === "Newsletter" ? team : null,
             assigned_to_team: meeting?.type === "Newsletter" ? null : null,
-            status: "active",
+            status:  meeting?.type === "AI Social Media Newsletter" ||  meeting?.type === "Social Media Newsletter" ? "draft" : "active",
+            step_status:  meeting?.type === "AI Social Media Newsletter" ||  meeting?.type === "Social Media Newsletter" ? "draft" : null,
             url: null,
             created_by: userID,
             // _method: "put",
@@ -665,10 +820,18 @@ const QuickStepChart = ({
           formData.append("time", filePayload.time);
           formData.append("editor_type", filePayload.editor_type);
           formData.append("time_unit", filePayload.time_unit);
-          formData.append("file", filePayload.file);
+          if (modalType === "Publication" || modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter") {
+            files.forEach((f, index) => {
+              formData.append(`file[]`, f);
+            });
+          } else {
+            formData.append("file", filePayload.file);
+          }
           formData.append("editor_content", filePayload.editor_content);
           formData.append("meeting_id", filePayload.meeting_id);
           formData.append("status", filePayload.status);
+          formData.append("step_status", filePayload.step_status);
+
           formData.append("assigned_to", filePayload.assigned_to);
           formData.append("assigned_to_team", filePayload.assigned_to_team);
           formData.append("created_by", filePayload.created_by);
@@ -689,6 +852,7 @@ const QuickStepChart = ({
             setIsUpdate(false);
             setIsDrop(true);
             setDisabled(false);
+            setStepMedia(response?.data?.data?.media);
 
             setFileUploaded(true); // Add this line
           }
@@ -718,11 +882,15 @@ const QuickStepChart = ({
               meeting?.type === "Sprint"
                 ? "days"
                 : meeting?.type === "Task" ||
-                    meeting?.type === "Prestation Client"
+                  meeting?.type === "Prestation Client"
                   ? "hours"
                   : meeting?.type === "Quiz"
                     ? "seconds"
-                    : "minutes",
+                    : meeting?.type === "Special" ||
+                      meeting?.type === "Social Media Newsletter" ||
+                      meeting?.type === "AI Social Media Newsletter" 
+                      ? timeUnit
+                      : "minutes",
             time: selectedCount || 0,
             editor_type:
               modalType === "File"
@@ -733,12 +901,13 @@ const QuickStepChart = ({
                     ? "Photo"
                     : modalType,
             file: file,
-            editor_content: null,
+            editor_content: (modalType === "Publication" || modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter") ? modifiedFileText || "" : "",
             meeting_id: meetingId,
             assigned_to: assignedToUser,
             // assigned_to_team: meeting?.type === "Newsletter" ? team : null,
             assigned_to_team: meeting?.type === "Newsletter" ? null : null,
-            status: "active",
+           status:  meeting?.type === "AI Social Media Newsletter" ||  meeting?.type === "Social Media Newsletter" ? "draft" : "active",
+            step_status:  meeting?.type === "AI Social Media Newsletter" ||  meeting?.type === "Social Media Newsletter" ? "draft" : null,
             url: null,
             _method: "put",
           };
@@ -750,10 +919,17 @@ const QuickStepChart = ({
           formData.append("time", filePayload.time);
           formData.append("editor_type", filePayload.editor_type);
           formData.append("time_unit", filePayload.time_unit);
-          formData.append("file", filePayload.file);
+          if (modalType === "Publication" || modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter") {
+            files.forEach((f, index) => {
+              formData.append(`file[]`, f);
+            });
+          } else {
+            formData.append("file", filePayload.file);
+          }
           formData.append("editor_content", filePayload.editor_content);
           formData.append("meeting_id", filePayload.meeting_id);
           formData.append("status", filePayload.status);
+          formData.append("step_status", filePayload.step_status);
           formData.append("assigned_to", filePayload.assigned_to);
           formData.append("assigned_to_team", filePayload.assigned_to_team);
 
@@ -776,6 +952,7 @@ const QuickStepChart = ({
             setIsUpload(false);
             setId(response?.data?.data?.id);
             setIsDrop(false);
+            setStepMedia(response?.data?.data?.media);
 
             // setIsUpdate(false);
           }
@@ -785,12 +962,6 @@ const QuickStepChart = ({
         }
       }
     } else {
-      alert(
-        `Please select a valid file type for ${modalType}: ${allowedFileTypes.join(
-          ", ",
-        )}`,
-      );
-
       setIsUpload(false);
     }
   };
@@ -918,11 +1089,14 @@ const QuickStepChart = ({
                   meeting?.type === "Sprint"
                     ? "days"
                     : meeting?.type === "Task" ||
-                        meeting?.type === "Prestation Client"
+                      meeting?.type === "Prestation Client"
                       ? "hours"
                       : meeting?.type === "Quiz"
                         ? "seconds"
-                        : meeting?.type === "Special"
+                        : meeting?.type === "Special" ||
+                          meeting?.type === "Social Media Newsletter" ||
+                          meeting?.type === "AI Social Media Newsletter" ||
+                          meeting?.location === "LinkedIn"
                           ? timeUnit
                           : "minutes",
                 time: count2,
@@ -1017,11 +1191,14 @@ const QuickStepChart = ({
                   meeting?.type === "Sprint"
                     ? "days"
                     : meeting?.type === "Task" ||
-                        meeting?.type === "Prestation Client"
+                      meeting?.type === "Prestation Client"
                       ? "hours"
                       : meeting?.type === "Quiz"
                         ? "seconds"
-                        : meeting?.type === "Special"
+                        : meeting?.type === "Special" ||
+                          meeting?.type === "Social Media Newsletter" ||
+                          meeting?.type === "AI Social Media Newsletter" ||
+                          meeting?.location === "LinkedIn"
                           ? timeUnit
                           : "minutes",
                 time: count2,
@@ -1109,29 +1286,31 @@ const QuickStepChart = ({
         ? { "video/*": [] } // Accept all video types
         : modalType === "Photo"
           ? { "image/*": [] } // Accept all image types
-          : modalType === "File"
-            ? { "application/pdf": [] } // Accept PDF files
-            : modalType === "Excel"
-              ? {
-                  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-                    [],
-                  "application/vnd.ms-excel": [],
-                }
-              : modalType === "PowerPoint"
+          : modalType === "Publication" || modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter"
+            ? { "image/*": [], "video/*": [] } // Accept image and video
+            : modalType === "File"
+              ? { "application/pdf": [] } // Accept PDF files
+              : modalType === "Excel"
                 ? {
-                    "application/vnd.ms-powerpoint": [], // .ppt
-                    "application/vnd.openxmlformats-officedocument.presentationml.presentation":
-                      [], // .pptx
-                    "application/vnd.ms-powerpoint.presentation.macroenabled.12":
-                      [], // .pptm
-                    "application/vnd.openxmlformats-officedocument.presentationml.slideshow":
-                      [], // .ppsx
-                    "application/vnd.ms-powerpoint.slideshow.macroenabled.12":
-                      [], // .ppsm
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+                      [],
+                    "application/vnd.ms-excel": [],
                   }
-                : modalType === "Audio Report"
-                  ? { "audio/*": [] }
-                  : "",
+                : modalType === "PowerPoint"
+                  ? {
+                      "application/vnd.ms-powerpoint": [], // .ppt
+                      "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+                        [], // .pptx
+                      "application/vnd.ms-powerpoint.presentation.macroenabled.12":
+                        [], // .pptm
+                      "application/vnd.openxmlformats-officedocument.presentationml.slideshow":
+                        [], // .ppsx
+                      "application/vnd.ms-powerpoint.slideshow.macroenabled.12":
+                        [], // .ppsm
+                    }
+                  : modalType === "Audio Report"
+                    ? { "audio/*": [] }
+                    : "",
     onDrop:
       modalType === "Video Report" || modalType === "Audio Report"
         ? handleMediaDrop
@@ -1518,7 +1697,10 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
               ? "hours"
               : meeting?.type === "Quiz"
                 ? "seconds"
-                : meeting?.type === "Special"
+                : meeting?.type === "Special" ||
+                  meeting?.type === "Social Media Newsletter" ||
+                  meeting?.type === "AI Social Media Newsletter" ||
+                  meeting?.location === "LinkedIn"
                   ? timeUnit
                   : "minutes",
         time: selectedCount,
@@ -1531,7 +1713,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
           modalType === "Prestation" ||
           modalType === "Story" ||
           modalType === "Question" ||
-          modalType === "Email"
+          modalType === "Email" || modalType === "Publication" || modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter"
             ? optimizedEditorContent || ""
             : [
                   "Absence CET non payable",
@@ -1558,6 +1740,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
         // assigned_to_team: meeting?.type === "Newsletter" ? team?.id : null,
         assigned_to_team: meeting?.type === "Newsletter" ? null : null,
         status: "active",
+        step_status: null,
         url: modalType === "Url" ? (link ? link : null) : null,
         // video: modalType === "Video" ? (video ? video : null) : null,
         // order_no: stepOrder,
@@ -1565,18 +1748,58 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
         created_by: userID,
         // step_status: meeting?.type === "Special" ? "completed" : null,
         end_date: meeting?.type === "Special" ? formattedEndDate : null,
+        prompt_ai:
+          modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter"
+            ? {
+                aiSourceType,
+                aiSourceText,
+                aiSourceFile: aiSourceType === "Document" ? aiSourceFile : null,
+                aiRole,
+                aiAction,
+                aiObjective,
+                aiRules,
+                aiOutputFormat,
+                aiOutputText,
+                aiPowerPointTemplate,
+                aiPdfTemplate,
+              }
+            : null,
       };
       try {
         setIsValidate(true);
-        console.log("payload", payload);
+        let submitData = payload;
+        let config = {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${CookieService.get("token")}`,
+          },
+        };
+
+        if (modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter") {
+          const formData = new FormData();
+          Object.keys(payload).forEach((key) => {
+            if (key !== "prompt_ai") {
+              formData.append(key, payload[key] === null ? "" : payload[key]);
+            }
+          });
+          if (payload.prompt_ai) {
+            Object.keys(payload.prompt_ai).forEach((key) => {
+              const val = payload.prompt_ai[key];
+              if (val instanceof File || val instanceof Blob) {
+                formData.append(`prompt_ai[${key}]`, val);
+              } else if (val !== null && val !== undefined) {
+                formData.append(`prompt_ai[${key}]`, val);
+              }
+            });
+          }
+          submitData = formData;
+          config.headers["Content-Type"] = "multipart/form-data";
+        }
+
         const response = await axios.post(
           `${API_BASE_URL}/steps?latest_current_time=${formattedTime}&latest_current_date=${formattedDate}`,
-          payload,
-          {
-            headers: {
-              Authorization: `Bearer ${CookieService.get("token")}`,
-            },
-          },
+          submitData,
+          config,
         );
         if (response.status) {
           const stepData = response?.data?.data;
@@ -1600,11 +1823,18 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
         setLink(null);
         setIsValidate(false);
         if (!createAnother) {
+          if ((meeting?.repetition || formState?.repetition) && recurrentMeetingAPI) {
+            await recurrentMeetingAPI(meetingId);
+          }
           closeModal();
           closeMeeting();
           navigate(`/invite/${meetingId}`);
         } else {
-          if (meeting?.type === "Newsletter") {
+          if (meeting?.type === "AI Social Media Newsletter") {
+            setModalType("Editeur");
+          } else if (meeting?.type === "Social Media Newsletter") {
+            setModalType("Publication");
+          } else if (meeting?.type === "Newsletter") {
             setModalType("Email");
           } else if (meeting?.type === "Special") {
             setModalType("Audio Report");
@@ -1676,11 +1906,13 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
             meeting?.type === "Sprint"
               ? "days"
               : meeting?.type === "Task" ||
-                  meeting?.type === "Prestation Client"
+                meeting?.type === "Prestation Client"
                 ? "hours"
                 : meeting?.type === "Quiz"
                   ? "seconds"
-                  : meeting?.type === "Special"
+                  : meeting?.type === "Special" ||
+                    meeting?.type === "Social Media Newsletter" ||
+                    meeting?.type === "AI Social Media Newsletter" 
                     ? timeUnit
                     : "minutes",
 
@@ -1696,7 +1928,10 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
             modalType === "Question" ||
             modalType === "Prestation" ||
             modalType === "Story" ||
-            modalType === "Email"
+            modalType === "Email" || 
+            modalType === "Publication" ||
+            modalType === "AI Instruction" ||
+            meeting?.type === "AI Social Media Newsletter"
               ? optimizedEditorContent || ""
               : [
                     "Absence CET non payable",
@@ -1723,24 +1958,65 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
           assigned_to_team: meeting?.type === "Newsletter" ? null : null,
 
           status: "active",
+          step_status: null,
+
           url: modalType === "Url" ? (link ? link : null) : null,
           // order_no: stepOrder,
           meeting_id: meetingId,
           _method: "put",
           // step_status: meeting?.type === "Special" ? "completed" : null,
           end_date: meeting?.type === "Special" ? formattedEndDate : null,
+          prompt_ai:
+            modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter"
+              ? {
+                  aiSourceType,
+                  aiSourceText,
+                  aiSourceFile: aiSourceType === "Document" ? aiSourceFile : null,
+                  aiRole,
+                  aiAction,
+                  aiObjective,
+                  aiRules,
+                  aiOutputFormat,
+                  aiOutputText,
+                  aiPowerPointTemplate,
+                  aiPdfTemplate,
+                }
+              : null,
         };
         setIsValidate(true);
-        console.log("steps update payload: ", payload);
+        let submitData = payload;
+        let config = {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${CookieService.get("token")}`,
+          },
+        };
+
+        if (modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter") {
+          const formData = new FormData();
+          Object.keys(payload).forEach((key) => {
+            if (key !== "prompt_ai") {
+              formData.append(key, payload[key] === null ? "" : payload[key]);
+            }
+          });
+          if (payload.prompt_ai) {
+            Object.keys(payload.prompt_ai).forEach((key) => {
+              const val = payload.prompt_ai[key];
+              if (val instanceof File || val instanceof Blob) {
+                formData.append(`prompt_ai[${key}]`, val);
+              } else if (val !== null && val !== undefined) {
+                formData.append(`prompt_ai[${key}]`, val);
+              }
+            });
+          }
+          submitData = formData;
+          config.headers["Content-Type"] = "multipart/form-data";
+        }
+
         const response = await axios.post(
           `${API_BASE_URL}/steps/${id}?latest_current_time=${formattedTime}&latest_current_date=${formattedDate}`,
-          payload,
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${CookieService.get("token")}`,
-            },
-          },
+          submitData,
+          config,
         );
         if (response.status) {
           setId(null);
@@ -1761,15 +2037,23 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
         setExcelData(null);
         setLink(null);
         setIsValidate(false);
+        setStepMedia([]);
         if (isCopied) {
           navigate("/action");
         }
         if (!createAnother) {
+          if ((meeting?.repetition || formState?.repetition) && recurrentMeetingAPI) {
+            await recurrentMeetingAPI(meetingId);
+          }
           closeModal();
           closeMeeting();
           navigate(`/invite/${meetingId}`);
         } else {
-          if (meeting?.type === "Newsletter") {
+          if (meeting?.type === "AI Social Media Newsletter") {
+            setModalType("Editeur");
+          } else if (meeting?.type === "Social Media Newsletter") {
+            setModalType("Publication");
+          } else if (meeting?.type === "Newsletter") {
             setModalType("Email");
           } else if (meeting?.type === "Special") {
             setModalType("Audio Report");
@@ -1865,7 +2149,10 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
               ? "hours"
               : meeting?.type === "Quiz"
                 ? "seconds"
-                : meeting?.type === "Special"
+                : meeting?.type === "Special" ||
+                  meeting?.type === "Social Media Newsletter" ||
+                  meeting?.type === "AI Social Media Newsletter" ||
+                  meeting?.location === "LinkedIn"
                   ? timeUnit
                   : "minutes",
         time: selectedCount,
@@ -1876,7 +2163,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
           modalType === "Prestation" ||
           modalType === "Story" ||
           modalType === "Question" ||
-          modalType === "Email"
+          modalType === "Email" || modalType === "Publication" || modalType === "AI Instruction"
             ? optimizedEditorContent || ""
             : [
                   "Absence CET non payable",
@@ -1968,11 +2255,14 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
             meeting?.type === "Sprint"
               ? "days"
               : meeting?.type === "Task" ||
-                  meeting?.type === "Prestation Client"
+                meeting?.type === "Prestation Client"
                 ? "hours"
                 : meeting?.type === "Quiz"
                   ? "seconds"
-                  : meeting?.type === "Special"
+                  : meeting?.type === "Special" ||
+                    meeting?.type === "Social Media Newsletter" ||
+                    meeting?.type === "AI Social Media Newsletter" ||
+                    meeting?.location === "LinkedIn"
                     ? timeUnit
                     : "minutes",
 
@@ -2041,8 +2331,11 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
           }, 1000);
         }
       } catch (error) {
+        console.error("error", error);
         setProgress(0);
         setIsValidate(false);
+        const errMsg = error?.response?.data?.errors?.title?.[0] || error?.response?.data?.message || error?.message;
+        toast.error(t(`meeting.newMeeting.${errMsg}`) || errMsg);
       } finally {
         setIsQuestionProcessing(false);
         setQuestionFinalizing(false);
@@ -2062,9 +2355,16 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
     setLink(null);
     setIsValidate(false);
     if (!createAnother) {
+      if ((meeting?.repetition || formState?.repetition) && recurrentMeetingAPI) {
+        await recurrentMeetingAPI(meetingId);
+      }
       closeModal();
     } else {
-      if (meeting?.type === "Newsletter") {
+      if (meeting?.type === "AI Social Media Newsletter") {
+        setModalType("AI Instruction");
+      } else if (meeting?.type === "Social Media Newsletter") {
+        setModalType("Publication");
+      } else if (meeting?.type === "Newsletter") {
         setModalType("Email");
       } else if (meeting?.type === "Special") {
         setModalType("Audio Report");
@@ -2116,7 +2416,9 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
   const [step, setStep] = useState(null);
   useEffect(() => {
     console.log("inside");
-    const getStep = async () => {
+    ;
+
+const getStep = async () => {
       const currentTime = new Date();
       const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
@@ -2166,6 +2468,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
           setTeam(response.data?.data?.assigned_team);
           setTimeUnit(stepData?.time_unit);
           setFileName(stepData?.file);
+          setStepMedia(stepData?.media || []);
           if (stepData?.editor_type === "Excel") {
             const fileResponse = await axios.get(
               Assets_URL + "/" + stepData?.file,
@@ -2533,22 +2836,96 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
     <>
       {show && (
         <div id="chart-container" className="chart-content">
-          <div className="modal-overlay">
-            <div className="modal-content" style={{ overflow: "unset" }}>
-              <div className="d-flex justify-content-between align-items-center p-3">
-                <div>
-                  <p>{meeting?.title}</p>
+          <div
+            className="modal-overlay"
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: isMobileView ? "100dvh" : "100%",
+              width: "100%",
+              zIndex: 99999,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              className="modal-content"
+              style={{
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
+                height: isMobileView ? "100%" : "100vh",
+                maxHeight: isMobileView ? "100%" : "100vh",
+                borderRadius: isMobileView ? "0px" : "15px",
+              }}
+            >
+              <div
+                className="d-flex justify-content-between align-items-center"
+                style={{
+                  padding: isMobileView ? "8px 16px" : "15px 30px",
+                  borderBottom: "1px solid #EAECF0",
+                  backgroundColor: "#fff",
+                }}
+              >
+                <div style={{ maxWidth: "85%" }}>
+                  <p
+                    className="m-0"
+                    style={{
+                      fontSize: isMobileView ? "13px" : "16px",
+                      fontWeight: "600",
+                      color: "#1D2939",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                    title={meeting?.title}
+                  >
+                    {meeting?.title}
+                  </p>
                 </div>
-                <button className="cross-btn" onClick={deleteStepX}>
+                <button
+                  className="cross-btn"
+                  onClick={deleteStepX}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#667085",
+                    cursor: "pointer",
+                    padding: "4px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
                   <RxCross2 size={18} />
                 </button>
               </div>
               <div
-                className="d-flex flex-wrap"
-                style={{ borderBottom: "1px solid #EAECF0" }}
+                className="d-flex flex-wrap align-items-center"
+                style={{
+                  borderBottom: "1px solid #EAECF0",
+                  backgroundColor: "#FFFFFF",
+                  boxShadow: "0px 1px 3px rgba(16, 24, 40, 0.05)",
+                  overflow: "visible",
+                }}
               >
-                <div className="col-lg-4">
-                  <div className="input-field step-inputfield">
+                <div className="col-12 col-lg-3" style={{ borderBottom: isMobileView ? "1px solid #EAECF0" : "none" }}>
+                  <div
+                    className="input-field step-inputfield"
+                    style={{
+                      borderRight: isMobileView ? "none" : "1px solid #E4E7EC",
+                      padding: isMobileView ? "8px 12px" : "12px 16px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      height: "100%",
+                    }}
+                  >
                     {meeting?.type === "Task" ||
                     meeting?.type === "Strategy" ||
                     meeting?.type === "Prestation Client" ? (
@@ -2559,6 +2936,18 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                         onChange={(e) =>
                           setSelectedOrder(Number(e.target.value))
                         }
+                        style={{
+                          border: "1px solid #D0D5DD",
+                          borderRadius: "8px",
+                          fontSize: "14px",
+                          fontWeight: "500",
+                          color: "#344054",
+                          height: "38px",
+                          padding: "8px 24px 8px 12px",
+                          backgroundColor: "#fff",
+                          boxShadow: "0px 1px 2px rgba(16, 24, 40, 0.05)",
+                          width: "60px",
+                        }}
                       >
                         {Array.from(
                           { length: meeting?.steps?.length + 1 || 1 },
@@ -2571,10 +2960,21 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                       </select>
                     ) : (
                       <select
-                        className="form-select form-select-sm addstep-width
-                                  "
+                        className="form-select form-select-sm addstep-width"
                         aria-label="Step Number"
                         defaultValue={selectedOrder}
+                        style={{
+                          border: "1px solid #D0D5DD",
+                          borderRadius: "8px",
+                          fontSize: "14px",
+                          fontWeight: "500",
+                          color: "#344054",
+                          height: "38px",
+                          padding: "8px 24px 8px 12px",
+                          backgroundColor: "#fff",
+                          boxShadow: "0px 1px 2px rgba(16, 24, 40, 0.05)",
+                          width: "60px",
+                        }}
                       >
                         <option value={selectedOrder}>{selectedOrder}</option>
                       </select>
@@ -2585,50 +2985,81 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                       placeholder={t("stepModal.title")}
                       value={selectedValue}
                       onChange={handleChange1}
-                      style={{ padding: "9px" }}
                       disabled={disabled}
+                      style={{
+                        padding: "8px 12px",
+                        border: "1px solid #D0D5DD",
+                        borderRadius: "8px",
+                        fontSize: "14px",
+                        fontWeight: "500",
+                        color: "#1D2939",
+                        outline: "none",
+                        transition: "border-color 0.2s, box-shadow 0.2s",
+                        boxShadow: "0px 1px 2px rgba(16, 24, 40, 0.05)",
+                        flex: 1,
+                        height: "38px",
+                      }}
                     />
                   </div>
                 </div>
-                <div className="col editor-header">
-                  <div className="p-0 timecard stepinfo">
-                    <p className="mb-0">
-                      {t("meeting.newMeeting.The stage starts at")}
-                    </p>
-                    {meeting?.type === "Newsletter" ? (
-                      <>
-                        <h6 style={{ fontSize: "14px" }}>
-                          {storedStartDate === "Invalid date"
-                            ? "Date à compléter"
-                            : storedStartDate}
-                        </h6>
-                      </>
-                    ) : (
-                      <>
-                        <span className="step-time text-start m-0">
-                          {storedStartDate === "Invalid date"
-                            ? "Date à compléter"
-                            : storedStartDate}
-                        </span>
-                        <h5 className="step-time mb-0 pb-0">
-                          {storedStartTime === "Invalid date"
-                            ? "Date à compléter"
-                            : storedStartTime}
-                        </h5>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <div className="col editor-header">
-                  <div className="p-0 timecard stepinfo">
+                {(!isMobileView || showMetadata) && (
+                  <>
+                    <div
+                      className="col-6 col-sm-4 col-lg-2 editor-header"
+                      style={{
+                        borderRight: isMobileView ? "1px solid #EAECF0" : "1px solid #E4E7EC",
+                        borderBottom: isMobileView ? "1px solid #EAECF0" : "none",
+                        padding: isMobileView ? "8px 12px" : "12px 16px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "flex-start",
+                      }}
+                    >
+                      <div className="p-0 timecard stepinfo" style={{ marginLeft: 0 }}>
+                        <p className="mb-1" style={{ fontSize: "10px", color: "#667085", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                          {t("meeting.newMeeting.The stage starts at")}
+                        </p>
+                        {meeting?.type === "Newsletter" ? (
+                          <h6 style={{ fontSize: "13px", fontWeight: "600", color: "#344054", marginBottom: 0 }}>
+                            {storedStartDate === "Invalid date"
+                              ? "Date à compléter"
+                              : storedStartDate}
+                          </h6>
+                        ) : (
+                          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "2px", margin: 0, padding: 0 }}>
+                            <span style={{ fontSize: "12px", color: "#344054", fontWeight: "600", lineHeight: "1.1", margin: 0, padding: 0 }}>
+                              {storedStartDate === "Invalid date"
+                                ? "Date à compléter"
+                                : storedStartDate}
+                            </span>
+                            {storedStartTime !== "Invalid date" && (
+                              <span style={{ fontSize: "11px", color: "#667085", fontWeight: "500", lineHeight: "1.1", margin: 0, padding: 0 }}>
+                                {storedStartTime}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                <div
+                  className="col-6 col-sm-4 col-lg-2 editor-header"
+                  style={{
+                    borderRight: isMobileView ? "none" : "1px solid #E4E7EC",
+                    borderBottom: isMobileView ? "1px solid #EAECF0" : "none",
+                    padding: isMobileView ? "8px 12px" : "12px 16px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "flex-start",
+                  }}
+                >
+                  <div className="p-0 timecard stepinfo" style={{ marginLeft: 0, width: "100%" }}>
                     {!window.location.href.includes("/meetingDetail") && (
                       <div className="p-0 timecard">
-                        <p className="mb-2">
+                        <p className="mb-1" style={{ fontSize: "10px", color: "#667085", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                           {t("meeting.newMeeting.Step duration")}
                         </p>
-                        <div className="d-flex justify-content-start align-items-center">
+                        <div className="d-flex justify-content-start align-items-center gap-2">
                           {meeting?.type === "Sprint" ? (
-                            // 🔹 Dropdown shown only for Sprint
                             <select
                               value={selectedCount}
                               onChange={(e) =>
@@ -2637,10 +3068,10 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                               disabled={disabled}
                               className="form-select step-timer"
                               style={{
-                                width: "80px",
-                                height: "30px",
-                                fontSize: "14px",
-                                padding: "2px 6px",
+                                width: "65px",
+                                height: "26px",
+                                fontSize: "12px",
+                                padding: "2px 4px",
                               }}
                             >
                               {[0.5, 1, 2, 3, 5, 8, 13, 21].map((val) => (
@@ -2650,31 +3081,18 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                               ))}
                             </select>
                           ) : (
-                            // 🔹 Original + / - and input field for all other types
-                            <div className="d-flex align-items-center">
+                            <div className="d-flex align-items-center gap-2" style={{ backgroundColor: "#F2F4F7", padding: "4px 8px", borderRadius: "8px" }}>
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
-                                width="17"
-                                height="16"
+                                width="14"
+                                height="14"
                                 viewBox="0 0 17 16"
                                 fill="none"
                                 onClick={handleDecrementCount}
                                 style={{ cursor: "pointer" }}
                               >
-                                <rect
-                                  x="0.8"
-                                  width="16"
-                                  height="16"
-                                  rx="4"
-                                  fill="white"
-                                />
-                                <path
-                                  d="M4.13342 8H13.4668"
-                                  stroke="#8280FF"
-                                  strokeWidth="1.33333"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
+                                <rect x="0.8" width="16" height="16" rx="4" fill="none" />
+                                <path d="M4.13342 8H13.4668" stroke="#475467" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                               </svg>
 
                               <input
@@ -2691,54 +3109,70 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                                 style={{
                                   width: "25px",
                                   padding: "0",
+                                  border: "none",
                                   outline: "none",
+                                  textAlign: "center",
+                                  background: "transparent",
+                                  fontWeight: "600",
+                                  color: "#1D2939",
+                                  fontSize: "13px",
                                 }}
                               />
 
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
-                                width="17"
-                                height="16"
+                                width="14"
+                                height="14"
                                 viewBox="0 0 17 16"
                                 fill="none"
                                 onClick={handleIncrementCount}
                                 style={{ cursor: "pointer" }}
                               >
-                                <rect
-                                  x="0.6"
-                                  width="16"
-                                  height="16"
-                                  rx="4"
-                                  fill="white"
-                                />
-                                <path
-                                  d="M8.6001 3.5V12.5M13.1001 8H4.1001"
-                                  stroke="#8280FF"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
+                                <rect x="0.6" width="16" height="16" rx="4" fill="none" />
+                                <path d="M8.6001 3.5V12.5M13.1001 8H4.1001" stroke="#475467" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                               </svg>
                             </div>
                           )}
 
-                          {/* 🔹 Time unit label */}
-                          <div className="ms-2">
+                          <div className="ms-1" style={{ fontSize: "11px", fontWeight: "500" }}>
                             {meeting?.type === "Action1" ||
                             meeting?.type === "Newsletter" ||
                             meeting?.type === "Strategy" ||
                             meeting?.type === "Absence" ? (
-                              <span>{t("days")}</span>
+                              <span className="badge bg-light text-dark border px-2 py-1" style={{ fontSize: "11px" }}>{t("days")}</span>
                             ) : meeting?.type === "Task" ||
                               meeting?.type === "Prestation Client" ? (
-                              <span>{t("hour")}</span>
+                              <span className="badge bg-light text-dark border px-2 py-1" style={{ fontSize: "11px" }}>{t("hour")}</span>
                             ) : meeting?.type === "Quiz" ? (
-                              <span>{t("sec")}</span>
+                              <span className="badge bg-light text-dark border px-2 py-1" style={{ fontSize: "11px" }}>{t("sec")}</span>
                             ) : meeting?.type === "Sprint" ? (
-                              <span>{t("Story points")}</span>
-                            ) : meeting?.type === "Special" ? (
-                              <span>{t(`time_unit.${timeUnit}`)}</span>
+                              <span className="badge bg-light text-dark border px-2 py-1" style={{ fontSize: "11px" }}>{t("Story points")}</span>
+                            ) : meeting?.type === "Special" ||
+                              meeting?.type === "Social Media Newsletter" ||
+                              meeting?.type === "AI Social Media Newsletter" ? (
+                              <select
+                                className="form-select form-select-sm"
+                                value={timeUnit}
+                                onChange={(e) => setTimeUnit(e.target.value)}
+                                style={{
+                                  padding: "2px 24px 2px 8px",
+                                  height: "30px",
+                                  fontSize: "12px",
+                                  border: "1px solid #D0D5DD",
+                                  borderRadius: "6px",
+                                  backgroundColor: "#fff",
+                                  color: "#344054",
+                                  width: "85px",
+                                  minWidth: "85px",
+                                  display: "inline-block",
+                                }}
+                              >
+                                <option value="minutes">{t("time_unit.minutes") || "min"}</option>
+                                <option value="hours">{t("time_unit.hours") || "h"}</option>
+                                <option value="days">{t("time_unit.days") || "j"}</option>
+                              </select>
                             ) : (
-                              <span>mins</span>
+                              <span className="badge bg-light text-dark border px-2 py-1" style={{ fontSize: "11px" }}>mins</span>
                             )}
                           </div>
                         </div>
@@ -2746,92 +3180,99 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                     )}
                   </div>
                 </div>
-                <div className="col editor-header">
-                  <div className="p-0 timecard stepinfo">
+                <div
+                  className="col-6 col-sm-4 col-lg-1 editor-header"
+                  style={{
+                    borderRight: isMobileView ? "1px solid #EAECF0" : "1px solid #E4E7EC",
+                    borderBottom: isMobileView ? "1px solid #EAECF0" : "none",
+                    padding: isMobileView ? "8px 12px" : "12px 16px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "flex-start",
+                    order: isMobileView ? 1 : "unset",
+                  }}
+                >
+                  <div className="p-0 timecard stepinfo" style={{ marginLeft: 0 }}>
                     {!window.location.href.includes("/meetingDetail") && (
-                      <div
-                        className="p-0 timecard "
-                        style={{ marginBottom: "4px" }}
-                      >
-                        <p className="mb-2">
+                      <div className="p-0 timecard" style={{ marginBottom: "4px" }}>
+                        <p className="mb-1" style={{ fontSize: "10px", color: "#667085", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                           {t("meeting.newMeeting.Step creator")}
                         </p>
-                        <div className="d-flex justify-content-start">
-                          <div>
-                            {meeting?.type === "Newsletter" ? (
-                              <>
-                                <img
-                                  src={
-                                    creator?.image?.startsWith("users/")
-                                      ? Assets_URL + "/" + creator?.image
-                                      : creator?.image
-                                  }
-                                  alt={creator?.full_name}
-                                  style={{
-                                    borderRadius: "50%",
-                                    height: "30px",
-                                    width: "30px",
-                                    objectFit: "cover",
-                                    objectPosition: "top",
-                                  }}
-                                />
-                                <span className="ml-2 step-time">
-                                  {creator?.full_name}
-                                </span>
-                              </>
-                            ) : (
-                              <>
-                                <img
-                                  src={
-                                    creator?.image?.startsWith("users/")
-                                      ? Assets_URL + "/" + creator?.image
-                                      : creator?.image
-                                  }
-                                  alt={id ? stepCreator : creator?.full_name}
-                                  style={{
-                                    borderRadius: "50%",
-                                    height: "30px",
-                                    width: "30px",
-                                    objectFit: "cover",
-                                    objectPosition: "top",
-                                  }}
-                                />
-                                <span className="ml-2 step-time">
-                                  {creator?.full_name}
-                                </span>
-                              </>
-                            )}
-                          </div>
+                        <div className="d-flex align-items-center gap-2">
+                          <img
+                            src={
+                              creator?.image?.startsWith("users/")
+                                ? Assets_URL + "/" + creator?.image
+                                : creator?.image
+                            }
+                            alt={id ? stepCreator : creator?.full_name}
+                            style={{
+                              borderRadius: "50%",
+                              height: "26px",
+                              width: "26px",
+                              objectFit: "cover",
+                              objectPosition: "top",
+                              border: "1.5px solid #EAECF0",
+                            }}
+                          />
+                          <span className="step-time mb-0" style={{ fontSize: "12px", color: "#344054", fontWeight: "500", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "80px" }}>
+                            {creator?.full_name}
+                          </span>
                         </div>
                       </div>
                     )}
                   </div>
                 </div>
-                <div className="col editor-header">
-                  <div className="p-0 timecard stepinfo">
+                <div
+                  className="col-12 col-sm-6 col-lg-2 editor-header"
+                  style={{
+                    borderRight: isMobileView ? "none" : "1px solid #E4E7EC",
+                    borderBottom: isMobileView ? "1px solid #EAECF0" : "none",
+                    padding: isMobileView ? "8px 12px" : "12px 16px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "flex-start",
+                    overflow: "visible",
+                    order: isMobileView ? 3 : "unset",
+                  }}
+                >
+                  <div className="p-0 timecard stepinfo" style={{ marginLeft: 0, width: "100%", overflow: "visible" }}>
                     {!window.location.href.includes("/meetingDetail") && (
-                      <div className="p-0 timecard ">
-                        <div className="d-flex justify-content-start">
-                          <div className="Editor-custom-dropdown">
-                            {meeting?.type === "Newsletter" ? (
+                      <div className="p-0 timecard" style={{ width: "100%", overflow: "visible" }}>
+                        <div className="d-flex flex-column justify-content-start" style={{ width: "100%", overflow: "visible" }}>
+                          <div className="Editor-custom-dropdown" style={{ width: "100%", position: "relative" }}>
+                            {meeting?.type === "Newsletter" || meeting?.type === "Social Media Newsletter" || meeting?.type === "AI Social Media Newsletter" ? (
                               <>
-                                <p className="mb-2">
+                                <p className="mb-1" style={{ fontSize: "10px", color: "#667085", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                                   {t("meeting.newMeeting.team")}
                                 </p>
-                                <span className="step-time m-0">
+                                <span className="step-time m-0" style={{ fontSize: "12px", color: "#344054", fontWeight: "600" }}>
                                   {`${meeting?.newsletter_guide?.name}`}
                                 </span>
                               </>
                             ) : (
                               <>
-                                <p className="mb-2">
+                                <p className="mb-1" style={{ fontSize: "10px", color: "#667085", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                                   {t("meeting.newMeeting.Step presenter")}
                                 </p>
                                 <div
-                                  className="editor-dropdown-header p-0"
+                                  className="editor-dropdown-header"
                                   onClick={() =>
                                     setStepPresentor(!StepPresentor)
                                   }
+                                  style={{
+                                    border: "1px solid #D0D5DD",
+                                    padding: "6px 10px",
+                                    borderRadius: "8px",
+                                    background: "#fff",
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    cursor: "pointer",
+                                    height: "36px",
+                                    width: "100%",
+                                    boxShadow: "0px 1px 2px rgba(16, 24, 40, 0.05)",
+                                  }}
                                 >
                                   <div className="d-flex align-items-center gap-1">
                                     <div className="selected-user">
@@ -2860,10 +3301,11 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                                           className="rounded-circle"
                                           style={{
                                             borderRadius: "50%",
-                                            height: "30px",
-                                            width: "30px",
+                                            height: "22px",
+                                            width: "22px",
                                             objectFit: "cover",
                                             objectPosition: "top",
+                                            border: "1px solid #EAECF0",
                                           }}
                                           alt="Avatar"
                                         />
@@ -2871,113 +3313,105 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                                         <img
                                           src={
                                             creator?.image?.startsWith("users/")
-                                              ? Assets_URL +
-                                                "/" +
-                                                creator?.image
-                                              : creator?.image ||
-                                                "https://mdbcdn.b-cdn.net/img/new/avatars/2.webp"
+                                              ? Assets_URL + "/" + creator?.image
+                                              : creator?.image || "https://mdbcdn.b-cdn.net/img/new/avatars/2.webp"
                                           }
                                           className="rounded-circle"
                                           style={{
                                             borderRadius: "50%",
-                                            height: "30px",
-                                            width: "30px",
+                                            height: "22px",
+                                            width: "22px",
                                             objectFit: "cover",
                                             objectPosition: "top",
+                                            border: "1px solid #EAECF0",
                                           }}
                                           alt="Avatar1"
                                         />
                                       )}
                                     </div>
-                                    {user ? user.full_name : creator?.full_name}{" "}
-                                    {getLabelForParticipant(
-                                      user?.email || creator?.email,
-                                    ) &&
-                                      getStatusLabel(
-                                        getLabelForParticipant(
-                                          user?.email || creator?.email,
-                                        ),
-                                      )}
+                                    <span style={{ fontSize: "12px", color: "#344054", fontWeight: "500", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "80px" }}>
+                                      {user ? user.full_name : creator?.full_name}
+                                    </span>
+                                    {getLabelForParticipant(user?.email || creator?.email) &&
+                                      getStatusLabel(getLabelForParticipant(user?.email || creator?.email))}
                                   </div>
                                   <ExpandIcon />
                                 </div>
                                 {StepPresentor && (
-                                  <ul className="editor-dropdown-list">
-                                    {meeting?.user_with_participants?.length ===
-                                    0 ? (
+                                  <ul
+                                    className="editor-dropdown-list"
+                                    style={{
+                                      minWidth: "220px",
+                                      width: "max-content",
+                                      left: isMobileView ? "auto" : 0,
+                                      right: isMobileView ? 0 : "auto",
+                                      marginTop: "4px",
+                                      border: "1px solid #D0D5DD",
+                                      borderRadius: "8px",
+                                      boxShadow: "0px 4px 12px rgba(16, 24, 40, 0.08)",
+                                      backgroundColor: "#fff",
+                                      padding: "4px 0",
+                                      zIndex: 1000,
+                                    }}
+                                  >
+                                    {meeting?.user_with_participants?.length === 0 ? (
                                       <li>{t("No Guests Available")}</li>
                                     ) : (
                                       <>
                                         {meeting?.user_with_participants
-                                          ?.reduce(
-                                            (uniqueParticipants, item) => {
-                                              const isDuplicate =
-                                                uniqueParticipants.some(
-                                                  (participant) =>
-                                                    participant.first_name ===
-                                                      item.first_name &&
-                                                    participant.last_name ===
-                                                      item.last_name &&
-                                                    participant.email ===
-                                                      item.email &&
-                                                    participant.post ===
-                                                      item.post,
-                                                );
-                                              if (!isDuplicate) {
-                                                uniqueParticipants.push(item);
-                                              }
-                                              return uniqueParticipants;
-                                            },
-                                            [],
-                                          )
+                                          ?.reduce((uniqueParticipants, item) => {
+                                            const isDuplicate = uniqueParticipants.some(
+                                              (participant) =>
+                                                participant.first_name === item.first_name &&
+                                                participant.last_name === item.last_name &&
+                                                participant.email === item.email &&
+                                                participant.post === item.post,
+                                            );
+                                            if (!isDuplicate) {
+                                              uniqueParticipants.push(item);
+                                            }
+                                            return uniqueParticipants;
+                                          }, [])
                                           .map((item, index) => {
-                                            // Handle case where no valid participant information is available
                                             return item.first_name === null &&
                                               item.last_name === null &&
                                               item.email === null &&
                                               item.post === null ? (
                                               <li key={index} disabled>
-                                                {t(
-                                                  "meeting.newMeeting.No Guest Available",
-                                                )}
+                                                {t("meeting.newMeeting.No Guest Available")}
                                               </li>
                                             ) : (
-                                              // Render each participant as an li element
                                               <li
                                                 key={index}
                                                 value={item.id}
-                                                onClick={() =>
-                                                  handleUserSelect(item)
-                                                }
-                                                disabled={
-                                                  window.location.href.includes(
-                                                    "/meetingDetail",
-                                                  ) || fromReport
-                                                }
+                                                onClick={() => handleUserSelect(item)}
+                                                disabled={window.location.href.includes("/meetingDetail") || fromReport}
+                                                className="dropdown-item"
+                                                style={{
+                                                  padding: "8px 12px",
+                                                  fontSize: "12px",
+                                                  cursor: "pointer",
+                                                  display: "flex",
+                                                  alignItems: "center",
+                                                  gap: "8px",
+                                                }}
                                               >
                                                 <img
                                                   src={
-                                                    item?.participant_image?.startsWith(
-                                                      "users/",
-                                                    )
-                                                      ? Assets_URL +
-                                                        "/" +
-                                                        item.participant_image
+                                                    item?.participant_image?.startsWith("users/")
+                                                      ? Assets_URL + "/" + item.participant_image
                                                       : item.participant_image
                                                   }
                                                   className="rounded-circle"
                                                   style={{
                                                     borderRadius: "50%",
-                                                    height: "30px",
-                                                    width: "30px",
+                                                    height: "24px",
+                                                    width: "24px",
                                                     objectFit: "cover",
-                                                    objectPosition: "top",
                                                   }}
                                                   alt="Avatar"
                                                 />
-                                                {`${
-                                                  item.first_name || item?.name
-                                                } ${item.last_name}`}{" "}
+                                                {`${item.first_name || item?.name} ${item.last_name}`}
                                                 {getLabelForParticipant(
                                                   item.email,
                                                 ) &&
@@ -3001,95 +3435,135 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                     )}
                   </div>
                 </div>
-                <div className="col editor-header">
-                  <div className="p-0 timecard stepinfo">
-                    {!window.location.href.includes("/meetingDetail") && (
-                      <div className="p-0 timecard ">
-                        <p className="mb-2">
-                          {t("meeting.newMeeting.Step format planify")}
-                        </p>
-                        <div className="d-flex justify-content-start">
-                          <div className="Editor-custom-dropdown">
-                            <div
-                              className="editor-dropdown-header"
-                              onClick={() => setIsOpen(!isOpen)}
-                            >
-                              {modalType === "Editeur"
-                                ? t("stepModal.editor")
-                                : modalType === "File"
-                                  ? t("stepModal.pdf")
-                                  : modalType === "Video"
-                                    ? t("stepModal.video")
-                                    : modalType === "Subtask"
-                                      ? t("stepModal.subtask")
-                                      : modalType === "Video Report"
-                                        ? t("stepModal.videoReport")
-                                        : modalType === "Audio Report"
-                                          ? t("stepModal.audioReport")
-                                          : modalType === "Photo"
-                                            ? t("stepModal.photo")
-                                            : modalType === "Email"
-                                              ? t("stepModal.email")
-                                              : modalType === "Url"
-                                                ? t("stepModal.url")
-                                                : modalType === "Excel"
-                                                  ? t("stepModal.excel")
-                                                  : modalType === "PowerPoint"
-                                                    ? t("stepModal.powerpoint")
-                                                    : modalType === "Story"
-                                                      ? t("stepModal.story")
-                                                      : modalType === "Question"
-                                                        ? t(
-                                                            "stepModal.laweditor",
-                                                          )
-                                                        : modalType ===
-                                                            "Absence CET non payable"
-                                                          ? t(
-                                                              "meeting.absence_step_type.absence_type_1",
-                                                            )
-                                                          : modalType ===
-                                                              "Absence CET payable"
-                                                            ? t(
-                                                                "meeting.absence_step_type.absence_type_2",
-                                                              )
-                                                            : modalType ===
-                                                                "Partial unemployment"
-                                                              ? t(
-                                                                  "meeting.absence_step_type.absence_type_3",
-                                                                )
-                                                              : modalType ===
-                                                                  "Paid leave"
-                                                                ? t(
-                                                                    "meeting.absence_step_type.absence_type_4",
-                                                                  )
-                                                                : modalType ===
-                                                                    "Corporate event"
-                                                                  ? t(
-                                                                      "meeting.absence_step_type.absence_type_5",
-                                                                    )
-                                                                  : modalType ===
-                                                                      "Skills sponsorship"
-                                                                    ? t(
-                                                                        "meeting.absence_step_type.absence_type_6",
-                                                                      )
-                                                                    : modalType ===
-                                                                        "Recovery"
-                                                                      ? t(
-                                                                          "meeting.absence_step_type.absence_type_7",
-                                                                        )
-                                                                      : modalType ===
-                                                                          "RTT"
-                                                                        ? t(
-                                                                            "meeting.absence_step_type.absence_type_8",
-                                                                          )
-                                                                        : modalType}
+              </>
+            )}
+            <div
+              className="col-6 col-sm-4 col-lg-2 editor-header"
+              style={{
+                borderRight: "none",
+                borderBottom: isMobileView ? "1px solid #EAECF0" : "none",
+                padding: isMobileView ? "8px 12px" : "12px 16px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "flex-start",
+                order: isMobileView ? 2 : "unset",
+              }}
+            >
+              <div className="p-0 timecard stepinfo" style={{ marginLeft: 0, width: "100%" }}>
+                {!window.location.href.includes("/meetingDetail") && (
+                  <div className="p-0 timecard" style={{ width: "100%" }}>
+                    <p className="mb-1" style={{ fontSize: "10px", color: "#667085", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                      {t("meeting.newMeeting.Step format planify")}
+                    </p>
+                    <div className="d-flex justify-content-start" style={{ width: "100%" }}>
+                      <div className="Editor-custom-dropdown" style={{ width: "100%", position: "relative" }}>
+                        <div
+                          className="editor-dropdown-header"
+                          onClick={() => setIsOpen(!isOpen)}
+                          style={{
+                            border: "1px solid #D0D5DD",
+                            padding: "6px 10px",
+                            borderRadius: "8px",
+                            background: "#fff",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            width: "100%",
+                            cursor: "pointer",
+                            height: "36px",
+                            boxShadow: "0px 1px 2px rgba(16, 24, 40, 0.05)",
+                          }}
+                        >
+                          <span style={{ fontSize: "12px", color: "#344054", fontWeight: "500", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                {modalType === "Editeur"
+                                  ? t("stepModal.editor")
+                                  : modalType === "File"
+                                    ? t("stepModal.pdf")
+                                    : modalType === "Video"
+                                      ? t("stepModal.video")
+                                      : modalType === "Subtask"
+                                        ? t("stepModal.subtask")
+                                        : modalType === "Video Report"
+                                          ? t("stepModal.videoReport")
+                                          : modalType === "Audio Report"
+                                            ? t("stepModal.audioReport")
+                                            : modalType === "Photo"
+                                              ? t("stepModal.photo")
+                                              : modalType === "Email"
+                                                ? t("stepModal.email")
+                                                : modalType === "Url"
+                                                  ? t("stepModal.url")
+                                                  : modalType === "Excel"
+                                                    ? t("stepModal.excel")
+                                                    : modalType === "PowerPoint"
+                                                      ? t("stepModal.powerpoint")
+                                                      : modalType === "Story"
+                                                        ? t("stepModal.story")
+                                                        : modalType === "Question"
+                                                          ? t("stepModal.laweditor")
+                                                          : modalType === "Absence CET non payable"
+                                                            ? t("meeting.absence_step_type.absence_type_1")
+                                                            : modalType === "Absence CET payable"
+                                                              ? t("meeting.absence_step_type.absence_type_2")
+                                                              : modalType === "Partial unemployment"
+                                                                ? t("meeting.absence_step_type.absence_type_3")
+                                                                : modalType === "Paid leave"
+                                                                  ? t("meeting.absence_step_type.absence_type_4")
+                                                                  : modalType === "Corporate event"
+                                                                    ? t("meeting.absence_step_type.absence_type_5")
+                                                                    : modalType === "Skills sponsorship"
+                                                                      ? t("meeting.absence_step_type.absence_type_6")
+                                                                      : modalType === "Recovery"
+                                                                        ? t("meeting.absence_step_type.absence_type_7")
+                                                                        : modalType === "RTT"
+                                                                          ? t("meeting.absence_step_type.absence_type_8")
+                                                                          : modalType}
+                              </span>
                               <ExpandIcon />
                             </div>
                             {isOpen && (
-                              <ul className="editor-dropdown-list">
+                              <ul
+                                className="editor-dropdown-list"
+                                style={{
+                                  width: "100%",
+                                  left: 0,
+                                  right: 0,
+                                  marginTop: "4px",
+                                  border: "1px solid #D0D5DD",
+                                  borderRadius: "8px",
+                                  boxShadow: "0px 4px 12px rgba(16, 24, 40, 0.08)",
+                                  backgroundColor: "#fff",
+                                  padding: "4px 0",
+                                  zIndex: 1000,
+                                }}
+                              >
                                 {meeting?.type === "Newsletter" ? (
                                   <>
                                     {newsletterOption.map((option) => (
+                                      <li
+                                        key={option.value}
+                                        className="dropdown-item"
+                                        onClick={() => handleSelect(option)}
+                                      >
+                                        {option.icon} {option.label}
+                                      </li>
+                                    ))}
+                                  </>
+                                ) : meeting?.type === "Social Media Newsletter" ? (
+                                  <>
+                                    {socialMediaOption.map((option) => (
+                                      <li
+                                        key={option.value}
+                                        className="dropdown-item"
+                                        onClick={() => handleSelect(option)}
+                                      >
+                                        {option.icon} {option.label}
+                                      </li>
+                                    ))}
+                                  </>
+                                ) : meeting?.type === "AI Social Media Newsletter" ? (
+                                  <>
+                                    {options?.filter((item)=> item.value === "Editeur")?.map((option) => (
                                       <li
                                         key={option.value}
                                         className="dropdown-item"
@@ -3192,14 +3666,44 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                     )}
                   </div>
                 </div>
+                {isMobileView && (
+                  <div
+                    className="w-100 text-center py-2"
+                    style={{
+                      borderTop: "1px solid #EAECF0",
+                      backgroundColor: "#F9FAFB",
+                      cursor: "pointer",
+                      fontSize: "12px",
+                      color: "#0026B1",
+                      fontWeight: "600",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "4px",
+                      order: 10,
+                    }}
+                    onClick={() => setShowMetadata(!showMetadata)}
+                  >
+                    {showMetadata ? (
+                      <>
+                        {t("Hide details") || "Hide details"} <span>▴</span>
+                      </>
+                    ) : (
+                      <>
+                        {t("Show details") || "Show details"} <span>▾</span>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
               <div
                 className="modal-body"
                 style={{
                   background: "#F2F4FB",
-                  height: "90vh",
-                  minHeight: "90vh",
+                  flex: "1 1 auto",
+                  overflowY: "auto",
                   padding: 0,
+                  minHeight: 0,
                 }}
               >
                 {(isProcessing || finalizing) && (
@@ -3218,15 +3722,640 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                     />
                   </div>
                 )}
-                <div>
-                  <div className="row">
-                    {modalType === "Editeur" ||
+                <div style={{ width: "100%" }}>
+                  <div className="row g-0">
+                    {meeting?.type === "AI Social Media Newsletter" || modalType === "Publication" || modalType === "AI Instruction" ? (
+                      <>
+                        <div
+                          className="col-12 col-lg-7"
+                          style={
+                            meeting?.type === "AI Social Media Newsletter" || modalType === "AI Instruction"
+                              ? {
+                                  maxHeight: isMobileView ? "none" : "calc(100vh - 240px)",
+                                  overflowY: isMobileView ? "visible" : "auto",
+                                  overflowX: "hidden",
+                                  paddingBottom: isMobileView ? "20px" : "100px",
+                                }
+                              : {}
+                          }
+                        >
+
+                          <div>
+                            {meeting?.type === "AI Social Media Newsletter" || modalType === "AI Instruction" ? (
+                                <div
+                                className="p-3"
+                                style={{
+                                  background: "#fff",
+                                  borderRadius: "8px",
+                                  border: "1px solid #E4E7EC",
+                                }}
+                              >
+                                {/* Source Section */}
+                                <div className="mb-4">
+                                  <label
+                                    className="fw-semibold d-flex align-items-center mb-2"
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#344054",
+                                    }}
+                                  >
+                                    <DocumentIcon
+                                      className="me-2"
+                                      style={{ width: "16px", height: "16px" }}
+                                    />{" "}
+                                    Source
+                                  </label>
+                                  <p
+                                    className="text-muted mb-2"
+                                    style={{ fontSize: "12px" }}
+                                  >
+                                    Choose the input source for this instruction
+                                  </p>
+                                  <div className="d-flex gap-2 mb-3">
+                                    <Button
+                                      variant={
+                                        aiSourceType === "Text"
+                                          ? "light"
+                                          : "outline-secondary"
+                                      }
+                                      className={
+                                        aiSourceType === "Text"
+                                          ? "border-primary text-primary fw-semibold"
+                                          : ""
+                                      }
+                                      onClick={() => setAiSourceType("Text")}
+                                      style={{
+                                        fontSize: "13px",
+                                        background:
+                                          aiSourceType === "Text"
+                                            ? "#F4F6FF"
+                                            : "#fff",
+                                      }}
+                                    >
+                                      📄 Text
+                                    </Button>
+                                    <Button
+                                      variant={
+                                        aiSourceType === "Document"
+                                          ? "light"
+                                          : "outline-secondary"
+                                      }
+                                      className={
+                                        aiSourceType === "Document"
+                                          ? "border-primary text-primary fw-semibold"
+                                          : ""
+                                      }
+                                      onClick={() =>
+                                        setAiSourceType("Document")
+                                      }
+                                      style={{
+                                        fontSize: "13px",
+                                        background:
+                                          aiSourceType === "Document"
+                                            ? "#F4F6FF"
+                                            : "#fff",
+                                      }}
+                                    >
+                                      📄 Document
+                                    </Button>
+                                    <Button
+                                      variant={
+                                        aiSourceType === "YouTube"
+                                          ? "light"
+                                          : "outline-secondary"
+                                      }
+                                      className={
+                                        aiSourceType === "YouTube"
+                                          ? "border-primary text-primary fw-semibold"
+                                          : ""
+                                      }
+                                      onClick={() => setAiSourceType("YouTube")}
+                                      style={{
+                                        fontSize: "13px",
+                                        background:
+                                          aiSourceType === "YouTube"
+                                            ? "#F4F6FF"
+                                            : "#fff",
+                                      }}
+                                    >
+                                      📺 YouTube
+                                    </Button>
+                                  </div>
+
+                                  {aiSourceType === "Text" && (
+                                    <textarea
+                                      className="form-control"
+                                      rows={3}
+                                      style={{
+                                        background: "#F9FAFB",
+                                        fontSize: "14px",
+                                      }}
+                                      value={aiSourceText}
+                                      onChange={(e) =>
+                                        setAiSourceText(e.target.value)
+                                      }
+                                      placeholder="Enter your source text here..."
+                                    />
+                                  )}
+
+                                  {aiSourceType === "Document" && (
+                                    <div
+                                      className="mt-2 p-3 rounded border"
+                                      style={{ background: "#F9FAFB" }}
+                                    >
+                                      <input
+                                        type="file"
+                                        className="form-control"
+                                        style={{ fontSize: "14px" }}
+                                        onChange={(e) => {
+                                          if (
+                                            e.target.files &&
+                                            e.target.files.length > 0
+                                          ) {
+                                            setAiSourceFile(e.target.files[0]);
+                                          }
+                                        }}
+                                      />
+                                      {aiSourceFile && (
+                                        <p
+                                          className="text-success mt-2 mb-0"
+                                          style={{
+                                            fontSize: "12px",
+                                            fontWeight: "500",
+                                          }}
+                                        >
+                                          ✓ File selected: {typeof aiSourceFile === 'string' ? aiSourceFile.split('/').pop() : aiSourceFile.name}
+                                        </p>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {aiSourceType === "YouTube" && (
+                                    <div className="mt-2">
+                                      <input
+                                        type="url"
+                                        className="form-control"
+                                        style={{
+                                          background: "#F9FAFB",
+                                          fontSize: "14px",
+                                        }}
+                                        value={aiSourceText}
+                                        onChange={(e) =>
+                                          setAiSourceText(e.target.value)
+                                        }
+                                        placeholder="https://youtube.com/watch?v=..."
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Role Section */}
+                                <div className="mb-4">
+                                  <label
+                                    className="fw-semibold d-flex align-items-center mb-2"
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#344054",
+                                    }}
+                                  >
+                                    <span className="me-2">👤</span> Rôle
+                                  </label>
+                                  <p
+                                    className="text-muted mb-2"
+                                    style={{ fontSize: "12px" }}
+                                  >
+                                    Define the AI persona for this instruction
+                                  </p>
+                                  <input
+                                    type="text"
+                                    className="form-control"
+                                    style={{
+                                      background: "#F9FAFB",
+                                      fontSize: "14px",
+                                    }}
+                                    value={aiRole}
+                                    onChange={(e) => setAiRole(e.target.value)}
+                                    placeholder="e.g. Expert marketing strategist, Senior developer, UX designer..."
+                                  />
+                                </div>
+
+                                <div className="row mb-4">
+                                  {/* Action Section */}
+                                  <div className="col-md-6">
+                                    <label
+                                      className="fw-semibold d-flex align-items-center mb-2"
+                                      style={{
+                                        fontSize: "14px",
+                                        color: "#344054",
+                                      }}
+                                    >
+                                      <span className="me-2">⚡</span> Action
+                                    </label>
+                                    <p
+                                      className="text-muted mb-2"
+                                      style={{ fontSize: "12px" }}
+                                    >
+                                      What should the AI do?
+                                    </p>
+                                    <textarea
+                                      className="form-control"
+                                      rows={4}
+                                      style={{
+                                        background: "#F9FAFB",
+                                        fontSize: "14px",
+                                      }}
+                                      value={aiAction}
+                                      onChange={(e) =>
+                                        setAiAction(e.target.value)
+                                      }
+                                      placeholder="Describe the action to perform..."
+                                    />
+                                  </div>
+
+                                  {/* Objective Section */}
+                                  <div className="col-md-6">
+                                    <label
+                                      className="fw-semibold d-flex align-items-center mb-2"
+                                      style={{
+                                        fontSize: "14px",
+                                        color: "#344054",
+                                      }}
+                                    >
+                                      <span className="me-2">🎯</span> Objectif
+                                      / Résultat
+                                    </label>
+                                    <p
+                                      className="text-muted mb-2"
+                                      style={{ fontSize: "12px" }}
+                                    >
+                                      What outcome do you expect?
+                                    </p>
+                                    <textarea
+                                      className="form-control"
+                                      rows={4}
+                                      style={{
+                                        background: "#F9FAFB",
+                                        fontSize: "14px",
+                                      }}
+                                      value={aiObjective}
+                                      onChange={(e) =>
+                                        setAiObjective(e.target.value)
+                                      }
+                                      placeholder="Describe the desired result..."
+                                    />
+                                  </div>
+                                </div>
+
+                                {/* Rules Section */}
+                                <div className="mb-4">
+                                  <label
+                                    className="fw-semibold d-flex align-items-center mb-2"
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#344054",
+                                    }}
+                                  >
+                                    <span className="me-2">🛡️</span> Règles
+                                  </label>
+                                  <p
+                                    className="text-muted mb-2"
+                                    style={{ fontSize: "12px" }}
+                                  >
+                                    Restrictions, limits or constraints to
+                                    respect
+                                  </p>
+                                  <textarea
+                                    className="form-control"
+                                    rows={3}
+                                    style={{
+                                      background: "#F9FAFB",
+                                      fontSize: "14px",
+                                    }}
+                                    value={aiRules}
+                                    onChange={(e) => setAiRules(e.target.value)}
+                                    placeholder="e.g. Keep it concise. No technical jargon. Always cite sources. Max 500 words..."
+                                  />
+                                </div>
+
+                                {/* Output Format Section */}
+                                {meeting?.type !== "AI Social Media Newsletter" && (
+                                  <div>
+                                  <label
+                                    className="fw-semibold d-flex align-items-center mb-2"
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#344054",
+                                    }}
+                                  >
+                                    <span className="me-2">📥</span> Sortie
+                                  </label>
+                                  <p
+                                    className="text-muted mb-2"
+                                    style={{ fontSize: "12px" }}
+                                  >
+                                    Select the output format for this
+                                    instruction
+                                  </p>
+                                  <div className="d-flex flex-wrap gap-3">
+                                    <Button
+                                      variant={
+                                        aiOutputFormat === "PowerPoint"
+                                          ? "light"
+                                          : "outline-secondary"
+                                      }
+                                      className={`flex-fill ${aiOutputFormat === "PowerPoint" ? "border-primary text-primary fw-semibold" : ""}`}
+                                      onClick={() =>
+                                        setAiOutputFormat("PowerPoint")
+                                      }
+                                      style={{
+                                        fontSize: "13px",
+                                        padding: "12px",
+                                        background:
+                                          aiOutputFormat === "PowerPoint"
+                                            ? "#F4F6FF"
+                                            : "#fff",
+                                      }}
+                                    >
+                                      <div className="mb-1">📊</div>
+                                      <div>PowerPoint</div>
+                                      <div
+                                        className="text-muted fw-normal"
+                                        style={{ fontSize: "11px" }}
+                                      >
+                                        Slides deck
+                                      </div>
+                                    </Button>
+                                    <Button
+                                      variant={
+                                        aiOutputFormat === "PDF"
+                                          ? "light"
+                                          : "outline-secondary"
+                                      }
+                                      className={`flex-fill ${aiOutputFormat === "PDF" ? "border-primary text-primary fw-semibold" : ""}`}
+                                      onClick={() => setAiOutputFormat("PDF")}
+                                      style={{
+                                        fontSize: "13px",
+                                        padding: "12px",
+                                        background:
+                                          aiOutputFormat === "PDF"
+                                            ? "#F4F6FF"
+                                            : "#fff",
+                                      }}
+                                    >
+                                      <div className="mb-1">📄</div>
+                                      <div>PDF</div>
+                                      <div
+                                        className="text-muted fw-normal"
+                                        style={{ fontSize: "11px" }}
+                                      >
+                                        Formatted document
+                                      </div>
+                                    </Button>
+                                    <Button
+                                      variant={
+                                        aiOutputFormat === "Text"
+                                          ? "light"
+                                          : "outline-secondary"
+                                      }
+                                      className={`flex-fill ${aiOutputFormat === "Text" ? "border-primary text-primary fw-semibold" : ""}`}
+                                      onClick={() => setAiOutputFormat("Text")}
+                                      style={{
+                                        fontSize: "13px",
+                                        padding: "12px",
+                                        background:
+                                          aiOutputFormat === "Text"
+                                            ? "#F4F6FF"
+                                            : "#fff",
+                                      }}
+                                    >
+                                      <div className="mb-1">📝</div>
+                                      <div>Text</div>
+                                      <div
+                                        className="text-muted fw-normal"
+                                        style={{ fontSize: "11px" }}
+                                      >
+                                        Plain content
+                                      </div>
+                                    </Button>
+                                  </div>
+                                </div>
+                                )}
+                              </div>
+                            ) : (
+                                <Editor
+                              disabled={fromReport}
+                              className="editor-no-border text_editor"
+                              // id="text_editor"
+                              apiKey={TINYMCEAPI}
+                              value={modifiedFileText}
+                              name="text"
+                              init={{
+                                statusbar: false,
+                                branding: false,
+                                height: 450,
+                                border: "none",
+                                menubar: true,
+                                language: "fr_FR",
+                                plugins: [
+                                  "advlist autolink lists link image charmap print preview anchor",
+                                  "searchreplace visualblocks code fullscreen",
+                                  "insertdatetime media table paste code help wordcount",
+                                ],
+                                toolbar:
+                                  "undo redo | formatselect | bold italic backcolor | \
+                                  alignleft aligncenter alignright alignjustify | \
+                                  bullist numlist outdent indent | removeformat | help",
+                              }}
+                              onEditorChange={(content) => {
+                                setModifiedFileText(content);
+                                // // debouncedAutoSave(content);
+                              }}
+                            />
+                            )}
+
+                          </div>
+                        </div>
+                        <div className="col-12 col-lg-5 p-4" style={{ backgroundColor: "#F2F4FB", borderTop: isMobileView ? "1px solid #BAC3D4" : "none" }}>
+                          {!isUpload ? (
+                            <>
+                              <div
+                                className="d-flex align-items-center gap-4 w-100"
+                              >
+                                <div
+                                  {...getRootProps()}
+                                  style={{
+                                    border: "1px dashed #BAC3D4",
+                                    padding: "20px",
+                                    width: "100%",
+                                    borderRadius: "12px",
+                                    outline: "none",
+                                    margin: "0 auto",
+                                    height: fileName ? "auto" : "250px",
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    backgroundColor: "#fff",
+                                  }}
+                                >
+                                  <input {...getInputProps()} />
+                                  <div style={{ textAlign: "center" }}>
+                                    <p className="upload-container" style={{ margin: 0 }}>
+                                      <span className="upload-text" style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>
+                                        Drag and drop media here
+                                      </span>
+                                      <span className="upload-or" style={{ display: "block", margin: "4px 0", color: "#98A2B3" }}>OR</span>
+                                      <span className="browse-button" style={{ display: "inline-block", padding: "6px 12px", background: "#E6F0FA", color: "#0026B1", borderRadius: "20px", fontWeight: "600", fontSize: "14px" }}>
+                                        Browse
+                                      </span>
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                                                            {/* --- Saved Media Gallery from API --- */}
+                              {stepMedia.length > 0 && (
+                                <div
+                                  className="mt-3"
+                                  style={{
+                                    background: "#fff",
+                                    borderRadius: "12px",
+                                    border: "1px solid #E4E7EC",
+                                    padding: "12px",
+                                  }}
+                                >
+                                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                                    <p style={{ fontSize: "12px", fontWeight: "600", color: "#344054", margin: 0 }}>
+                                      Uploaded Media ({stepMedia.length})
+                                    </p>
+                                    {/* <div>
+                                      <input
+                                        type="file"
+                                        id="add-extra-media-quick"
+                                        style={{ display: "none" }}
+                                        multiple
+                                        accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,application/pdf"
+                                        onChange={handleAddExtraMedia}
+                                      />
+                                      <Button
+                                        size="sm"
+                                        variant="outline-primary"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          document.getElementById("add-extra-media-quick").click();
+                                        }}
+                                        disabled={isUploadingMedia}
+                                        style={{ borderRadius: "20px", fontSize: "12px", padding: "2px 10px" }}
+                                      >
+                                        {isUploadingMedia ? "Uploading..." : "+ Add"}
+                                      </Button>
+                                    </div> */}
+                                  </div>
+                                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                                    {stepMedia.map((media, idx) => (
+                                      <div
+                                        key={media.id || idx}
+                                        style={{ width: "calc(50% - 4px)", position: "relative" }}
+                                        title={media.original_name}
+                                      >
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeleteMedia(media);
+                                          }}
+                                          style={{
+                                            position: "absolute",
+                                            top: "6px",
+                                            right: "6px",
+                                            width: "24px",
+                                            height: "24px",
+                                            borderRadius: "50%",
+                                            background: "#D92D20",
+                                            border: "none",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            cursor: "pointer",
+                                            boxShadow: "0px 2px 4px rgba(0,0,0,0.15)",
+                                            zIndex: 10,
+                                            padding: 0,
+                                          }}
+                                          title="Delete Media"
+                                        >
+                                          <RxCross2 size={14} style={{ color: "#fff" }} />
+                                        </button>
+                                        {media.file_type === "image" ? (
+                                          <img
+                                            src={media.file_url}
+                                            alt={media.original_name}
+                                            style={{
+                                              width: "100%",
+                                              height: "120px",
+                                              objectFit: "cover",
+                                              borderRadius: "8px",
+                                              border: "1px solid #E4E7EC",
+                                            }}
+                                          />
+                                        ) : media.file_type === "video" ? (
+                                          <video
+                                            src={media.file_url}
+                                            controls
+                                            style={{
+                                              width: "100%",
+                                              height: "120px",
+                                              borderRadius: "8px",
+                                              border: "1px solid #E4E7EC",
+                                            }}
+                                          />
+                                        ) : (
+                                          <a
+                                            href={media.file_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style={{
+                                              display: "flex",
+                                              alignItems: "center",
+                                              gap: "6px",
+                                              padding: "8px",
+                                              background: "#F9FAFB",
+                                              borderRadius: "8px",
+                                              border: "1px solid #E4E7EC",
+                                              color: "#0026B1",
+                                              fontSize: "12px",
+                                              textDecoration: "none",
+                                              wordBreak: "break-all",
+                                            }}
+                                          >
+                                            <FiEdit size={14} />
+                                            {media.original_name}
+                                          </a>
+                                        )}
+                                        <p style={{ fontSize: "10px", color: "#667085", marginTop: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                          {media.original_name}
+                                        </p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <Spinner
+                              animation="border"
+                              role="status"
+                              className="center-spinner"
+                            ></Spinner>
+                          )}
+                        </div>
+                      </>
+                    ) : modalType === "Editeur" ||
                     modalType === "Question" ||
                     modalType === "Subtask" ||
                     modalType === "Prestation" ||
                     modalType === "Story" ||
                     modalType === "Email" ? (
-                      <div className="col-md-12">
+                      <div className="col-12">
                         <div>
                           <Editor
                             disabled={fromReport}
@@ -3350,6 +4479,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                             }}
                             onEditorChange={(content) => {
                               setModifiedFileText(content);
+                              // // debouncedAutoSave(content);
                             }}
                           />
                         </div>
@@ -3484,7 +4614,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                     ) : modalType === "Url" ? (
                       <>
                         <div
-                          className="col-md-12"
+                          className="col-12"
                           style={{ backgroundColor: "white" }}
                         >
                           <div className="box mt-2" style={{ height: "70px" }}>
@@ -3560,7 +4690,22 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                   </div>
                 </div>
               </div>
-              <div className="modal-footer-step step-chart-modal-footer align-items-center">
+              <div
+                className="modal-footer-step step-chart-modal-footer align-items-center"
+                style={{
+                  position: "sticky",
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  background: "#fff",
+                  borderTop: "1px solid #EAECF0",
+                  padding: "12px 24px",
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  zIndex: 99,
+                  width: "100%",
+                }}
+              >
                 {/* Checkbox for "Create another" */}
                 {(id === null || fileUploaded) && (
                   <div className="form-check me-4">
@@ -3688,6 +4833,52 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
           </div>
         </Modal.Body>
       </Modal>
+
+      <Modal
+        show={mediaToDelete !== null}
+        onHide={() => setMediaToDelete(null)}
+        centered
+      >
+        <Modal.Body className="text-center p-4">
+          <div className="mb-3">
+            <div style={{
+              width: "50px", height: "50px", borderRadius: "50%",
+              background: "#FEE4E2", color: "#D92D20", display: "flex",
+              alignItems: "center", justifyContent: "center", margin: "0 auto"
+            }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 8V12M12 16H12.01M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z" stroke="#D92D20" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+          </div>
+          <h5 style={{ fontWeight: "600", color: "#101828", marginBottom: "8px" }}>
+            Supprimer ce média ?
+          </h5>
+          <p style={{ color: "#475467", fontSize: "14px", marginBottom: "24px" }}>
+            {mediaToDelete?.original_name} sera définitivement supprimé.
+          </p>
+          <div className="d-flex justify-content-center gap-3">
+            <Button
+              variant="light"
+              onClick={() => setMediaToDelete(null)}
+              style={{ flex: 1, border: "1px solid #D0D5DD", color: "#344054", fontWeight: "600" }}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => {
+                confirmDeleteMedia(mediaToDelete.id);
+                setMediaToDelete(null);
+              }}
+              style={{ flex: 1, background: "#D92D20", border: "none", fontWeight: "600" }}
+            >
+              Supprimer
+            </Button>
+          </div>
+        </Modal.Body>
+      </Modal>
+
     </>
   );
 };

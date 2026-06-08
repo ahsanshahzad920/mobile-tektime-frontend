@@ -52,6 +52,9 @@ import About from "./Pages/About";
 import Privacypolicy from "./Pages/Privacypolicy";
 import Termsandconditions from "./Pages/Termsandconditions";
 import Contactus from "./Pages/Contactus";
+import SearchEngine from "./Pages/SearchEngine";
+import SearchResultsPage from "./Pages/SearchResultsPage";
+
 import ProfileInvitePage from "./Components/Elements/Profile/ProfileInvitePage";
 import NewsletterTerms from "./Pages/NewsletterTerms.jsx";
 import ActionTabs from "./Components/Elements/Actions/ActionTabs.jsx";
@@ -87,8 +90,10 @@ import AccessDenied from "./Pages/AccessDenied";
 import HomeMessages from "./Pages/Discussion/HomeMessages.jsx";
 import CookieService from "./Components/Utils/CookieService";
 import { setupAxiosInterceptors } from "./Components/Utils/auth";
-import SearchEngine from "./Pages/SearchEngine.jsx";
-import SearchResultsPage from "./Pages/SearchResultsPage.jsx";
+import StripeSuccess from "./Components/Elements/StripeSuccess";
+import StripePaymentCompleted from "./Components/Elements/StripePaymentCompleted";
+import StripePaymentCancel from "./Components/Elements/StripePaymentCancel";
+import LinkedInCallback from "./Pages/LinkedInCallback.jsx";
 
 i18next.init({
   interpolation: { escapevalue: false },
@@ -107,6 +112,7 @@ i18next.init({
 // Define all valid public and private routes
 const publicRoutes = [
   "/",
+  "/search-results",
   "/login",
   "/signup",
   "/about",
@@ -121,6 +127,11 @@ const publicRoutes = [
   "/useCase/4",
   "/payment-success",
   "/payment-cancel",
+  "/stripe/success",
+  "/stripe/completed",
+  "/stripe/cancel",
+  "/stripe/refresh",
+  "/auth/linkedin/callback",
 ];
 
 const privateRoutes = [
@@ -497,10 +508,15 @@ function App() {
         <Route path="/payment-success" element={<PaymentSuccess />} />
         <Route path="/payment-cancel" element={<PaymentCancel />} />
         <Route path="/access-denied" element={<AccessDenied />} />
+        <Route path="/stripe/success" element={<StripeSuccess />} />
+        <Route path="/stripe/completed" element={<StripePaymentCompleted />} />
+        <Route path="/stripe/cancel" element={<StripePaymentCancel />} />
+        <Route path="/stripe/refresh" element={<StripePaymentCancel />} />
         <Route
           path="/heroes/:nick_name"
           element={<ProfileInvitePage onLogout={signout} />}
         />
+        <Route path="/auth/linkedin/callback" element={<LinkedInCallback />} />
         <Route
           element={
             <Base
@@ -970,9 +986,9 @@ function App() {
 
       <BasePage>
         <Routes>
-          {/* <Route path="/" element={<Home />} /> */}
           {/* <Route path="/" element={<SearchEngine />} /> */}
           <Route path="/search-results" element={<SearchResultsPage />} />
+          {/* <Route path="/old-home" element={<Home />} /> */}
           <Route path="/register/:referral_id?" element={<Register />} />
           <Route
             path="/gate/moment/:referral_id?"

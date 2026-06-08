@@ -34,7 +34,7 @@ const HostCard = ({
   // -----------------------------------------------------------------
   // 1. Newsletter case 
   // -----------------------------------------------------------------
-  if (meeting?.type === "Newsletter") {
+  if (meeting?.type === "Newsletter" || meeting?.type === "Social Media Newsletter" || meeting?.type === "AI Social Media Newsletter") {
     return (
       <div className="row">
         <div className="col-md-3">

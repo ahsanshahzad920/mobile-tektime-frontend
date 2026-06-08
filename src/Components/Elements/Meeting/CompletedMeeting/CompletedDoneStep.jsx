@@ -77,7 +77,7 @@ function CompletedDoneStep() {
   // const { meeting } = location?.state || "";
   const [meeting, setMeeting] = useState(null);
   const [meta, setMeta] = useState(null);
-  const getStep = async () => {
+  const getStep = async (silent = false) => {
     const currentTime = new Date();
     const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
@@ -89,7 +89,7 @@ function CompletedDoneStep() {
     const formattedTime = formatTime(timeInUserZone);
     const formattedDate = formatDate(timeInUserZone);
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const response = await axios.get(
         `${API_BASE_URL}/steps/${id}?current_time=${formattedTime}&current_date=${formattedDate}&timezone=${userTimeZone}`,
         {
@@ -120,7 +120,7 @@ function CompletedDoneStep() {
     } catch (error) {
       console.log(error);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -158,10 +158,10 @@ function CompletedDoneStep() {
         setLoading(false);
       }
     };
-    if (step?.meeting_id) {
+    if (step?.meeting_id && (!meeting || meeting?.id !== step?.meeting_id)) {
       getMeeting();
     }
-  }, [id, step]);
+  }, [step?.meeting_id, meeting]);
   useEffect(() => {
     if (id) {
       getStep();

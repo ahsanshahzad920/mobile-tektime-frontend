@@ -84,6 +84,23 @@ function UpcomingStepScreen({
   const formattedDate = formatDate(timeInUserZone);
   const { setCallApi } = useMeetings();
 
+  useEffect(() => {
+    let intervalId;
+    if (
+      meeting?.type === "AI Social Media Newsletter" &&
+      (!step?.editor_content || step.editor_content.trim() === "")
+    ) {
+      intervalId = setInterval(() => {
+        getStep(true); // silent fetch
+      }, 5000); // poll every 5 seconds
+    }
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [id, meeting?.type, step?.editor_content, getStep]);
+
   const renderStepFile = (file) => {
     if (!file) return null;
     const fileStr = typeof file === "string" ? file : "";
@@ -2536,153 +2553,186 @@ function UpcomingStepScreen({
             step?.editor_type === "Publication" ||
             step?.editor_type === "AI Instruction" ||
             meeting?.type === "Absence" ? (
-              <>
-                <Editor
-                  className="editor-no-border text_editor"
-                  id="text_editor"
-                  apiKey={TINYMCEAPI}
-                  value={modifiedFileText}
-                  name="text"
-                  disabled={meeting?.type === "Absence"}
-                  init={{
-                    statusbar: false,
-                    branding: false,
-                    height: 600,
-                    border: "none",
-                    menubar: true,
-                    language: "fr_FR",
+              meeting?.type === "AI Social Media Newsletter" && (!step?.editor_content || step.editor_content.trim() === "") ? (
+                <div 
+                  className="d-flex flex-column align-items-center justify-content-center p-5 rounded-4 shadow-sm border" 
+                  style={{
+                    background: "linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)",
+                    border: "1px solid rgba(0, 0, 0, 0.05)",
+                    fontFamily: "Inter, sans-serif"
+                  }}
+                >
+                  <div className="d-flex align-items-center gap-3 mb-4">
+                    <Spinner 
+                      animation="border" 
+                      variant="primary" 
+                      style={{ width: '2rem', height: '2rem', borderWidth: '0.25em', color: '#2C48AE' }} 
+                    />
+                    <h5 className="mb-0 fw-semibold text-dark" style={{ color: '#2C48AE' }}>
+                      {t("contentGenerating")}
+                    </h5>
+                  </div>
+                  <div className="w-100" style={{ maxWidth: '400px' }}>
+                    <ProgressBar 
+                      animated 
+                      now={100} 
+                      style={{ 
+                        height: "8px", 
+                        borderRadius: "10px", 
+                        backgroundColor: "rgba(44, 72, 174, 0.1)" 
+                      }} 
+                    />
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <Editor
+                    className="editor-no-border text_editor"
+                    id="text_editor"
+                    apiKey={TINYMCEAPI}
+                    value={modifiedFileText}
+                    name="text"
+                    disabled={meeting?.type === "Absence"}
+                    init={{
+                      statusbar: false,
+                      branding: false,
+                      height: 600,
+                      border: "none",
+                      menubar: true,
+                      language: "fr_FR",
 
-                    plugins:
-                      meeting?.type === "Law"
-                        ? "print preview paste searchreplace autolink directionality visualblocks visualchars fullscreen link template codesample table charmap hr pagebreak nonbreaking anchor toc insertdatetime advlist lists wordcount textpattern"
-                        : "print preview paste searchreplace autolink directionality visualblocks visualchars fullscreen image link media template codesample table charmap hr pagebreak nonbreaking anchor toc insertdatetime advlist lists wordcount imagetools textpattern",
-                    toolbar:
-                      meeting?.type === "Law"
-                        ? "formatselect | bold italic underline strikethrough | forecolor backcolor blockquote | alignleft aligncenter alignright alignjustify | numlist bullist outdent indent | removeformat"
-                        : "formatselect | bold italic underline strikethrough | forecolor backcolor blockquote | image | link media | alignleft aligncenter alignright alignjustify | numlist bullist outdent indent | removeformat",
-                    image_advtab: meeting?.type !== "Law",
-                    file_picker_types:
-                      meeting?.type === "Law" ? "" : "image media",
-                    file_picker_callback: function (callback, value, meta) {
-                      if (
-                        meta.filetype === "image" &&
-                        meeting?.type !== "Law"
-                      ) {
-                        const input = document.createElement("input");
-                        input.setAttribute("type", "file");
-                        input.setAttribute("accept", "image/*");
+                      plugins:
+                        meeting?.type === "Law"
+                          ? "print preview paste searchreplace autolink directionality visualblocks visualchars fullscreen link template codesample table charmap hr pagebreak nonbreaking anchor toc insertdatetime advlist lists wordcount textpattern"
+                          : "print preview paste searchreplace autolink directionality visualblocks visualchars fullscreen image link media template codesample table charmap hr pagebreak nonbreaking anchor toc insertdatetime advlist lists wordcount imagetools textpattern",
+                      toolbar:
+                        meeting?.type === "Law"
+                          ? "formatselect | bold italic underline strikethrough | forecolor backcolor blockquote | alignleft aligncenter alignright alignjustify | numlist bullist outdent indent | removeformat"
+                          : "formatselect | bold italic underline strikethrough | forecolor backcolor blockquote | image | link media | alignleft aligncenter alignright alignjustify | numlist bullist outdent indent | removeformat",
+                      image_advtab: meeting?.type !== "Law",
+                      file_picker_types:
+                        meeting?.type === "Law" ? "" : "image media",
+                      file_picker_callback: function (callback, value, meta) {
+                        if (
+                          meta.filetype === "image" &&
+                          meeting?.type !== "Law"
+                        ) {
+                          const input = document.createElement("input");
+                          input.setAttribute("type", "file");
+                          input.setAttribute("accept", "image/*");
 
-                        input.onchange = function () {
-                          const file = input.files[0];
-                          const reader = new FileReader();
+                          input.onchange = function () {
+                            const file = input.files[0];
+                            const reader = new FileReader();
 
-                          reader.onload = function (e) {
-                            const img = new Image();
-                            img.src = e.target.result;
+                            reader.onload = function (e) {
+                              const img = new Image();
+                              img.src = e.target.result;
 
-                            img.onload = function () {
-                              const canvas = document.createElement("canvas");
-                              const ctx = canvas.getContext("2d");
-                              const maxWidth = 700;
-                              const maxHeight = 394;
+                              img.onload = function () {
+                                const canvas = document.createElement("canvas");
+                                const ctx = canvas.getContext("2d");
+                                const maxWidth = 700;
+                                const maxHeight = 394;
 
-                              let newWidth = img.width;
-                              let newHeight = img.height;
+                                let newWidth = img.width;
+                                let newHeight = img.height;
 
-                              if (img.width > maxWidth) {
-                                newWidth = maxWidth;
-                                newHeight = (img.height * maxWidth) / img.width;
-                              }
+                                if (img.width > maxWidth) {
+                                  newWidth = maxWidth;
+                                  newHeight = (img.height * maxWidth) / img.width;
+                                }
 
-                              if (newHeight > maxHeight) {
-                                newHeight = maxHeight;
-                                newWidth = (img.width * maxHeight) / img.height;
-                              }
+                                if (newHeight > maxHeight) {
+                                  newHeight = maxHeight;
+                                  newWidth = (img.width * maxHeight) / img.height;
+                                }
 
-                              canvas.width = newWidth;
-                              canvas.height = newHeight;
+                                canvas.width = newWidth;
+                                canvas.height = newHeight;
 
-                              ctx.drawImage(img, 0, 0, newWidth, newHeight);
+                                ctx.drawImage(img, 0, 0, newWidth, newHeight);
 
-                              const resizedImageData = canvas.toDataURL(
-                                file.type,
-                              );
-                              callback(resizedImageData, {
-                                alt: file.name,
-                              });
+                                const resizedImageData = canvas.toDataURL(
+                                  file.type,
+                                );
+                                callback(resizedImageData, {
+                                  alt: file.name,
+                                });
+                              };
+
+                              img.src = e.target.result;
                             };
 
-                            img.src = e.target.result;
+                            reader.readAsDataURL(file);
                           };
 
-                          reader.readAsDataURL(file);
-                        };
-
-                        input.click();
-                      }
-                    },
-                    setup: (editor) => {
-                      // Disable pasting images and media
-                      editor.on("paste", (event) => {
-                        if (meeting?.type === "Law") {
-                          const clipboard =
-                            event.clipboardData || window.clipboardData;
-                          const items = clipboard.items || [];
-                          for (const item of items) {
-                            if (
-                              item.type?.startsWith("image") ||
-                              item.type?.startsWith("video")
-                            ) {
-                              event.preventDefault();
-                              console.warn(
-                                "Pasting images and videos is not allowed for 'Law' type content.",
-                              );
-                              return;
+                          input.click();
+                        }
+                      },
+                      setup: (editor) => {
+                        // Disable pasting images and media
+                        editor.on("paste", (event) => {
+                          if (meeting?.type === "Law") {
+                            const clipboard =
+                              event.clipboardData || window.clipboardData;
+                            const items = clipboard.items || [];
+                            for (const item of items) {
+                              if (
+                                item.type?.startsWith("image") ||
+                                item.type?.startsWith("video")
+                              ) {
+                                event.preventDefault();
+                                console.warn(
+                                  "Pasting images and videos is not allowed for 'Law' type content.",
+                                );
+                                return;
+                              }
                             }
                           }
-                        }
-                      });
-                    },
-                  }}
-                  // onEditorChange={(content) => {
-                  //   setModifiedFileText(content);
-                  // }}
-                  onEditorChange={(content) => {
-                    setModifiedFileText(content);
-                    debouncedAutoSave(content);
-                  }}
-                />
-                <Button
-                  className="mt-2"
-                  style={{
-                    background: "#0026b1",
-                    color: "white",
-                    fontFamily: "Inter",
-                    fontSize: "14px",
-                    fontWeight: 500,
-                    lineHeight: "20px",
-                    textAlign: "left",
-                    padding: "10px 16px",
-                  }}
-                  onClick={() => handleSaveEditorContent(modifiedFileText)}
-                >
-                  {editContentSave ? (
-                    <Spinner
-                      as="div"
-                      variant="light"
-                      size="sm"
-                      role="status"
-                      aria-hidden="true"
-                      animation="border"
-                      style={{
-                        margin: "2px 12px",
-                      }}
-                    />
-                  ) : (
-                    t("meeting.formState.Update")
-                  )}
-                </Button>
-              </>
+                        });
+                      },
+                    }}
+                    // onEditorChange={(content) => {
+                    //   setModifiedFileText(content);
+                    // }}
+                    onEditorChange={(content) => {
+                      setModifiedFileText(content);
+                      debouncedAutoSave(content);
+                    }}
+                  />
+                  <Button
+                    className="mt-2"
+                    style={{
+                      background: "#0026b1",
+                      color: "white",
+                      fontFamily: "Inter",
+                      fontSize: "14px",
+                      fontWeight: 500,
+                      lineHeight: "20px",
+                      textAlign: "left",
+                      padding: "10px 16px",
+                    }}
+                    onClick={() => handleSaveEditorContent(modifiedFileText)}
+                  >
+                    {editContentSave ? (
+                      <Spinner
+                        as="div"
+                        variant="light"
+                        size="sm"
+                        role="status"
+                        aria-hidden="true"
+                        animation="border"
+                        style={{
+                          margin: "2px 12px",
+                        }}
+                      />
+                    ) : (
+                      t("meeting.formState.Update")
+                    )}
+                  </Button>
+                </>
+              )
             ) : step?.editor_type === "File" ||
               step?.editor_type === "Video" ||
               step?.editor_type === "Photo" ||

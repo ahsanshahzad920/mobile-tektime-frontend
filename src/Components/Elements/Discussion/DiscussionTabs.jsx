@@ -8,7 +8,7 @@ import React, {
 import { useOutletContext } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { PiMicrosoftOutlookLogoFill } from "react-icons/pi";
-import { FaExpand, FaCompress, FaPlus, FaSyncAlt } from "react-icons/fa";
+import { FaExpand, FaCompress, FaPlus, FaSyncAlt, FaSearch } from "react-icons/fa";
 import { SiChatbot, SiIonos } from "react-icons/si";
 import {
   Tabs,
@@ -37,6 +37,7 @@ import OutlookTab from "./Tabs/OutlookTab";
 import GmailTab from "./Tabs/GmailTab";
 import IonosTab from "./Tabs/IonosTab";
 import ChatbotTab from "./Tabs/ChatbotTab";
+import SearchesTab from "./Tabs/SearchesTab";
 import MessagesToHandleTab from "./Tabs/MessagesToHandleTab";
 import AssistantChatTab from "./Tabs/AssistantChatTab";
 
@@ -213,6 +214,9 @@ const DiscussionTabs = () => {
     userData?.enterprise?.contract?.mission_need === true &&
     userData?.user_needs?.some((n) => n.need === "mission_need");
 
+  const role = CookieService.get("type");
+  const isMasterAdmin = role === "MasterAdmin";
+
   const tabItems = useMemo(
     () =>
       [
@@ -334,6 +338,16 @@ const DiscussionTabs = () => {
           mobileLabel: "Chatbot",
           children: <ChatbotTab isActive={activeTab === "chatbot"} />,
         },
+        isMasterAdmin && {
+          key: "searches",
+          label: (
+            <Space align="center" style={{ padding: "4px 0" }}>
+              <FaSearch size={14} /> {t("searches.tabTitle", "Searches")}
+            </Space>
+          ),
+          mobileLabel: t("searches.tabTitle", "Searches"),
+          children: <SearchesTab isActive={activeTab === "searches"} />,
+        },
         // hasWhatsapp && {
         //   key: "whatsapp",
         //   label: <Space><FaWhatsapp color="#25D366" size={18} /> WhatsApp</Space>,
@@ -354,6 +368,7 @@ const DiscussionTabs = () => {
       t,
       userData,
       refreshTrigger,
+      isMasterAdmin,
     ],
   );
 

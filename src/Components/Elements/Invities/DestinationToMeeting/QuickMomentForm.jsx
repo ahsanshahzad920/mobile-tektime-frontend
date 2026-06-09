@@ -3730,12 +3730,13 @@ const QuickMomentForm = ({
                           type="number"
                           className="form-control"
                           placeholder={t("meeting.formState.Max_Price")}
-                          value={formState.price || ""}
+                          value={formState.price ?? ""}
                           min="0"
                           onChange={(e) => {
-                            const val = Math.max(
+                            const valStr = e.target.value;
+                            const val = valStr === "" ? "" : Math.max(
                               0,
-                              parseInt(e.target.value) || 0,
+                              parseInt(valStr) || 0,
                             );
                             setFormState((prev) => ({
                               ...prev,
@@ -4953,12 +4954,13 @@ const QuickMomentForm = ({
                           type="number"
                           className="form-control"
                           placeholder={t("meeting.formState.Max_Price")}
-                          value={formState.price || ""}
+                          value={formState.price ?? ""}
                           min="0"
                           onChange={(e) => {
-                            const val = Math.max(
+                            const valStr = e.target.value;
+                            const val = valStr === "" ? "" : Math.max(
                               0,
-                              parseInt(e.target.value) || 0,
+                              parseInt(valStr) || 0,
                             );
                             setFormState((prev) => ({
                               ...prev,

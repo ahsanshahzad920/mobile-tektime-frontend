@@ -1925,6 +1925,7 @@
   "Failed to save the notes: API error": "Impossible d'enregistrer les notes : erreur API",
   "Failed to save the reprt: API error": "Échec de l'enregistrement du rapport : erreur API",
   "you are already registered in this moment": "Vous êtes déjà inscrit en ce moment",
+  "Already Registered":"Déjà inscrit",
   "Content": "Contenu",
   "back": "Page précédente",
   "backtext": "<- Revenir à la page précédente",

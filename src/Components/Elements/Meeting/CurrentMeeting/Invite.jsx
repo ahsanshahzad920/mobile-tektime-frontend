@@ -77,7 +77,7 @@ import { useDestinations } from "../../../../context/DestinationsContext";
 import { Editor } from "@tinymce/tinymce-react";
 import MeetingDiscussion from "./components/MeetingDiscussion";
 import { FcGoogle } from "react-icons/fc";
-import { SiMicrosoftoutlook, SiMicrosoftteams } from "react-icons/si";
+import { SiMicrosoftoutlook, SiMicrosoftteams, SiGmail, SiIonos } from "react-icons/si";
 import GuidesCard from "./components/GuidesCard";
 import KanbanBoard from "./components/KanbanBoard";
 import QuickMomentForm from "../../Invities/DestinationToMeeting/QuickMomentForm";
@@ -2115,6 +2115,36 @@ const Invite = () => {
                                 "LinkedIn"}
                             </span>
                           </>
+                        ) : meeting?.location === "Outlook" ? (
+                          <>
+                            <SiMicrosoftoutlook
+                              size={28}
+                              style={{ color: "#0078D4" }}
+                            />
+                            <span className="solutioncards option-text">
+                              Outlook
+                            </span>
+                          </>
+                        ) : meeting?.location === "gmail" ? (
+                          <>
+                            <SiGmail
+                              size={28}
+                              style={{ color: "#EA4335" }}
+                            />
+                            <span className="solutioncards option-text">
+                              Gmail
+                            </span>
+                          </>
+                        ) : meeting?.location === "ionos" ? (
+                          <>
+                            <SiIonos
+                              size={28}
+                              style={{ color: "#003D8F" }}
+                            />
+                            <span className="solutioncards option-text">
+                              Ionos
+                            </span>
+                          </>
                         ) : null}
                       </p>
                     )}
@@ -2343,7 +2373,7 @@ const Invite = () => {
                     </div>
                   </>
                 )}
-                {meeting?.casting_type === "Registration" && (
+                {/* {meeting?.casting_type === "Registration" && (
                   <>
                     <div className="d-flex align-items-center gap-2">
                       <svg
@@ -2408,7 +2438,7 @@ const Invite = () => {
                       </span>
                     </div>
                   </>
-                )}
+                )} */}
                 {meeting?.autostart === true && (
                   <>
                     <div>

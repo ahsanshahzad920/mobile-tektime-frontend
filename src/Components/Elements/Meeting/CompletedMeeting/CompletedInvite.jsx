@@ -83,7 +83,7 @@ import SubscriberCard from "../CurrentMeeting/components/SubscriberCard";
 import { Editor } from "@tinymce/tinymce-react";
 import MeetingDiscussion from "../CurrentMeeting/components/MeetingDiscussion";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
-import { SiMicrosoftoutlook, SiMicrosoftteams } from "react-icons/si";
+import { SiMicrosoftoutlook, SiMicrosoftteams, SiGmail, SiIonos } from "react-icons/si";
 import { FcGoogle } from "react-icons/fc";
 import GuidesCard from "../CurrentMeeting/components/GuidesCard";
 import ParticipantCard from "../CurrentMeeting/components/ParticipantCard";
@@ -4002,6 +4002,36 @@ Please categorize the relevant details into their corresponding sections.`;
                                 "LinkedIn"}
                             </span>
                           </>
+                        ) : meeting?.location === "Outlook" ? (
+                          <>
+                            <SiMicrosoftoutlook
+                              size={28}
+                              style={{ color: "#0078D4" }}
+                            />
+                            <span className="solutioncards option-text">
+                              Outlook
+                            </span>
+                          </>
+                        ) : meeting?.location === "gmail" ? (
+                          <>
+                            <SiGmail
+                              size={28}
+                              style={{ color: "#EA4335" }}
+                            />
+                            <span className="solutioncards option-text">
+                              Gmail
+                            </span>
+                          </>
+                        ) : meeting?.location === "ionos" ? (
+                          <>
+                            <SiIonos
+                              size={28}
+                              style={{ color: "#003D8F" }}
+                            />
+                            <span className="solutioncards option-text">
+                              Ionos
+                            </span>
+                          </>
                         ) : null}
                       </p>
                     )}
@@ -4203,7 +4233,7 @@ Please categorize the relevant details into their corresponding sections.`;
                     </div>
                   </>
                 )}
-                {meeting?.casting_type === "Registration" && (
+                {/* {meeting?.casting_type === "Registration" && (
                   <>
                     <div className="d-flex align-items-center gap-2">
                       <svg
@@ -4268,7 +4298,7 @@ Please categorize the relevant details into their corresponding sections.`;
                       </span>
                     </div>
                   </>
-                )}
+                )} */}
                 {meeting?.alarm === true && (
                   <>
                     <div>

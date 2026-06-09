@@ -1967,6 +1967,7 @@
   "Failed to save the notes: API error": "Failed to save the notes: API error",
   "Failed to save the reprt: API error": "Failed to save the report: API error",
   "you are already registered in this moment": "You are already registered in this moment",
+  "Already Registered":"Already Registered",
   "Content": "Content",
   "back": "Back",
   "backtext": "<- Return to previous page",

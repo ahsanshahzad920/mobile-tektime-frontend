@@ -215,9 +215,15 @@ const Settings = ({ }) => {
       // Add profile data
       formDataInstance.append("job", formData.job || "");
 
-      formData.needs?.forEach((need, index) => {
-        formDataInstance.append(`needs[${index}]`, need);
-      });
+      if (formData.needs && formData.needs.length > 0) {
+        formData.needs.forEach((need, index) => {
+          formDataInstance.append(`needs[${index}]`, need);
+        });
+      } else {
+        for (let i = 0; i < 6; i++) {
+          formDataInstance.append(`needs[${i}]`, "");
+        }
+      }
 
       formDataInstance.append("title", title || "");
       formDataInstance.append("name", formData.name || "");

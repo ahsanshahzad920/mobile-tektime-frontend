@@ -137,21 +137,37 @@ const SearchesTab = ({ isActive }) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const messagesEndRef = useRef(null);
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [pageSize, setPageSize] = useState(15);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const fetchSearchHistory = useCallback(async (isSilent = false) => {
-    if (!isSilent) setLoading(true);
+  const fetchSearchHistory = useCallback(async (pageNum = 1, isSilent = false, isLoadMore = false) => {
+    if (isLoadMore) setLoadingMore(true);
+    else if (!isSilent) setLoading(true);
     else setRefreshing(true);
 
     try {
-      const resp = await axios.get(`${API_BASE_URL}/google-search-history`);
+      const resp = await axios.get(`${API_BASE_URL}/google-search-history?page=${pageNum}`);
       if (resp.data && resp.data.success) {
         const dataList = resp.data.data?.data || [];
-        setSearches(dataList);
+        if (isLoadMore) {
+          setSearches((prev) => [...prev, ...dataList]);
+        } else {
+          setSearches(dataList);
+        }
+        setCurrentPage(resp.data.data?.current_page || pageNum);
+        setTotalItems(resp.data.data?.total || 0);
+        setPageSize(resp.data.data?.per_page || 15);
+        setHasMore((resp.data.data?.current_page || pageNum) < (resp.data.data?.last_page || 1));
         
         // Keep selected search updated if it was previously set
         if (selectedSearch) {
@@ -164,18 +180,25 @@ const SearchesTab = ({ isActive }) => {
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setLoadingMore(false);
     }
   }, [selectedSearch]);
 
   useEffect(() => {
     if (isActive) {
-      fetchSearchHistory();
+      fetchSearchHistory(1);
     }
   }, [isActive]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [selectedSearch]);
+
+  const handleLoadMore = () => {
+    if (hasMore && !loading && !loadingMore && !refreshing) {
+      fetchSearchHistory(currentPage + 1, true, true);
+    }
+  };
 
   const handleSearchSelect = (item) => {
     setSelectedSearch(item);
@@ -457,7 +480,7 @@ const SearchesTab = ({ isActive }) => {
               </Text>
             </div>
             <div className="d-flex align-items-center gap-2">
-              <Badge count={searches.length} showZero color="#1890ff" />
+              <Badge count={totalItems} showZero color="#1890ff" />
               <Button
                 type="text"
                 size="small"
@@ -479,6 +502,17 @@ const SearchesTab = ({ isActive }) => {
               />
             ))}
           </div>
+          {hasMore && (
+            <div style={{ padding: "12px", borderTop: "1px solid #f0f0f0", display: "flex", justifyContent: "center", background: "#fff", flexShrink: 0 }}>
+              {loadingMore ? (
+                <Spin size="small" />
+              ) : (
+                <Button type="link" onClick={handleLoadMore}>
+                  {t("searches.loadMore", "Charger plus")}
+                </Button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Center: Conversation */}
@@ -563,7 +597,7 @@ const SearchesTab = ({ isActive }) => {
                   type="text"
                   shape="circle"
                   icon={<FaSyncAlt size={13} className="text-muted" />}
-                  onClick={() => fetchSearchHistory(true)}
+                  onClick={() => fetchSearchHistory(currentPage, true)}
                   loading={refreshing}
                 />
               </Tooltip>
@@ -655,13 +689,13 @@ const SearchesTab = ({ isActive }) => {
               </Text>
             </div>
             <div className="d-flex align-items-center gap-2">
-              <Badge count={searches.length} showZero color="#1890ff" />
+              <Badge count={totalItems} showZero color="#1890ff" />
               <Tooltip title={t("searches.refresh", "Refresh")}>
                 <Button
                   type="text"
                   shape="circle"
                   icon={<FaSyncAlt size={12} />}
-                  onClick={() => fetchSearchHistory(true)}
+                  onClick={() => fetchSearchHistory(currentPage, true)}
                   loading={refreshing}
                 />
               </Tooltip>
@@ -689,6 +723,17 @@ const SearchesTab = ({ isActive }) => {
               ))
             )}
           </div>
+          {hasMore && (
+            <div style={{ padding: "12px", borderTop: "1px solid #f0f0f0", display: "flex", justifyContent: "center", background: "#fff", flexShrink: 0 }}>
+              {loadingMore ? (
+                <Spin size="small" />
+              ) : (
+                <Button type="link" onClick={handleLoadMore}>
+                  {t("searches.loadMore", "Charger plus")}
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       ) : (
         // Mobile Header
@@ -701,7 +746,7 @@ const SearchesTab = ({ isActive }) => {
               type="text"
               size="small"
               icon={<FaSyncAlt size={12} />}
-              onClick={() => fetchSearchHistory(true)}
+              onClick={() => fetchSearchHistory(currentPage, true)}
               loading={refreshing}
             >
               {t("searches.refresh", "Refresh")}
@@ -727,6 +772,17 @@ const SearchesTab = ({ isActive }) => {
               </Select.Option>
             ))}
           </Select>
+          {hasMore && (
+            <div style={{ padding: "8px 0 0 0", display: "flex", justifyContent: "center" }}>
+              {loadingMore ? (
+                <Spin size="small" />
+              ) : (
+                <Button type="link" onClick={handleLoadMore} size="small">
+                  {t("searches.loadMore", "Charger plus")}
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       )}
 

@@ -1679,6 +1679,18 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
 
   //Create Steps Button
   const validateStep = async () => {
+    if (modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter") {
+      if (!aiRole?.trim()) {
+        toast.error(t("messages.aiRoleRequired"));
+        setIsValidate(false);
+        return;
+      }
+      if (!aiAction?.trim()) {
+        toast.error(t("messages.aiActionRequired"));
+        setIsValidate(false);
+        return;
+      }
+    }
     // Update Excel file and get the updated file path
     let updatedExcelFileUrl = null;
     let updatedAudioReport = null;
@@ -2012,7 +2024,33 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
           meeting?.user_with_participants?.find(
             (participant) => participant.email === meeting?.user?.email,
           )?.id;
-        const payload = {
+
+            let origPrompt = step?.prompt_ai;
+        if (typeof origPrompt === "string") {
+          try {
+            origPrompt = JSON.parse(origPrompt);
+          } catch (e) {
+            origPrompt = {};
+          }
+        }
+        if (!origPrompt) {
+          origPrompt = {};
+        }
+
+        const normalize = (val) => (val || "").toString().trim().toLowerCase();
+
+        const isAiFormUpdated =
+          (meeting?.type === "AI Social Media Newsletter" || modalType === "AI Instruction") &&
+          (normalize(aiSourceType) !== normalize(origPrompt.aiSourceType || "Text") ||
+            normalize(aiSourceText) !== normalize(origPrompt.aiSourceText || "") ||
+            normalize(aiRole) !== normalize(origPrompt.aiRole || "") ||
+            normalize(aiAction) !== normalize(origPrompt.aiAction || "") ||
+            normalize(aiObjective) !== normalize(origPrompt.aiObjective || "") ||
+            normalize(aiRules) !== normalize(origPrompt.aiRules || "") ||
+            normalize(aiOutputFormat) !== normalize(origPrompt.aiOutputFormat || "Text") ||
+            aiSourceFile !== (origPrompt.aiSourceFile || null));
+
+          const payload = {
           order_no: selectedOrder || 1,
 
           title: selectedValue,
@@ -2127,6 +2165,8 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
             meeting?.agenda === "Outlook Agenda"
               ? true
               : false,
+          ...(isAiFormUpdated ? { update_editor: false } : {}),
+
         };
         setIsValidate(true);
 

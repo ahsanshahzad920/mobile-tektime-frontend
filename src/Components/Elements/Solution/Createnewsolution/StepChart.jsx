@@ -431,8 +431,6 @@ const StepChart = ({
     }
     if (inputData?.count2 !== undefined && inputData?.count2 !== null) {
       setSelectedCount(inputData?.count2);
-    } else {
-      setSelectedCount(inputData?.type === "Sprint" ? 0.5 : 0);
     }
   }, [
     inputData?.type,
@@ -1543,6 +1541,19 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
       );
       return;
     }
+
+    if (modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter") {
+      if (!aiRole?.trim()) {
+        toast.error(t("messages.aiRoleRequired"));
+        setIsValidate(false);
+        return;
+      }
+      if (!aiAction?.trim()) {
+        toast.error(t("messages.aiActionRequired"));
+        setIsValidate(false);
+        return;
+      }
+    }
     // Update Excel file and get the updated file path
     let updatedExcelFileUrl = null;
     let updatedAudioReport = null;
@@ -1737,7 +1748,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
         setAiPowerPointTemplate(null);
         setAiPdfTemplate(null);
         setAiSourceType("Text");
-        setAiOutputFormat("PDF");
+        setAiOutputFormat("Text");
         setAiOutputText("");
         setIsValidate(false);
         if (!createAnother) {
@@ -2369,7 +2380,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                 setAiAction(parsed.aiAction || "");
                 setAiObjective(parsed.aiObjective || "");
                 setAiRules(parsed.aiRules || "");
-                setAiOutputFormat(parsed.aiOutputFormat || "PDF");
+                setAiOutputFormat(parsed.aiOutputFormat || "Text");
                 setInstructionPrompt(
                   typeof stepData.prompt_ai === "string"
                     ? stepData.prompt_ai
@@ -2408,7 +2419,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
             setAiAction("");
             setAiObjective("");
             setAiRules("");
-            setAiOutputFormat("PDF");
+            setAiOutputFormat("Text");
           }
           setAssignUser(response.data?.data?.assigned_to_name);
           setSelectedCount(stepData?.count2);
@@ -3310,10 +3321,8 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                           style={
                             (inputData?.type === "AI Social Media Newsletter" || modalType === "AI Instruction")
                               ? {
-                                  maxHeight: isMobileView ? "none" : "calc(90vh - 40px)",
-                                  overflowY: isMobileView ? "visible" : "auto",
                                   overflowX: "hidden",
-                                  paddingBottom: isMobileView ? "20px" : "100px",
+                                  paddingBottom: isMobileView ? "20px" : "120px",
                                 }
                               : {}
                           }

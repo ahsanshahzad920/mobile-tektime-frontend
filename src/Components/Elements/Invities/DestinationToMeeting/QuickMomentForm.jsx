@@ -2098,7 +2098,7 @@ const QuickMomentForm = ({
       timezone: userTimezone,
       status: "active",
       team_ids: (formState.teams || []).map((t) => t.id).filter((id) => id),
-      ...(meeting?.id ? { _method: "put" } : {}),
+      ...(meeting?.id ? { _method: "put", update_editor: true } : {}),
     };
 
     try {
@@ -5236,8 +5236,13 @@ const QuickMomentForm = ({
                       className="btn btn-primary"
                       style={{ outline: 0, borderRadius: "9px" }}
                       onClick={handleCreate}
+                      disabled={loading}
                     >
-                      {t("meeting.formState.Save and Continue")}
+                      {loading ? (
+                        <Spinner as="span" animation="border" size="sm" />
+                      ) : (
+                        t("meeting.formState.Save and Continue")
+                      )}
                     </button>
                   ) : (
                     <>

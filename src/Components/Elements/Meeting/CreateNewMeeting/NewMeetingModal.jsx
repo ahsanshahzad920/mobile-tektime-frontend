@@ -1192,6 +1192,7 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
               status: "active",
               update_meeting: isUpdated ? true : false,
               create_agenda: isUpdated ? false : true,
+              ...((openedFrom === "destination" || openedFrom === "solution") && !isUpdated ? { update_editor: false } : {}),
             });
 
             if (success) {

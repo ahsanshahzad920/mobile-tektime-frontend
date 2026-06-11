@@ -28,6 +28,7 @@ import {
 import { useTranslation } from "react-i18next";
 import axios from "axios";
 import moment from "moment";
+import { API_BASE_URL } from "../../../Apicongfig";
 
 const { Sider, Content } = Layout;
 const { Text, Title } = Typography;
@@ -147,7 +148,7 @@ const SearchesTab = ({ isActive }) => {
     else setRefreshing(true);
 
     try {
-      const resp = await axios.get("https://iziworlds.com/api/google-search-history");
+      const resp = await axios.get(`${API_BASE_URL}/google-search-history`);
       if (resp.data && resp.data.success) {
         const dataList = resp.data.data?.data || [];
         setSearches(dataList);

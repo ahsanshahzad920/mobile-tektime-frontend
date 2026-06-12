@@ -1,5 +1,5 @@
 import CookieService from "../../../Utils/CookieService";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import ReactDatePicker, { registerLocale } from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { fr } from "date-fns/locale/fr";
@@ -52,20 +52,50 @@ const CalendlyBooking = ({ meetingData, onConfirm }) => {
     fetchUnavailability();
   }, []);
 
-  // Dynamic time slots generation
-  const generateTimeSlotsForDate = (date) => {
+  // Day names mapping (static, reused across functions)
+  const daysMapping = useMemo(() => [
+    "Dimanche",
+    "Lundi",
+    "Mardi",
+    "Mercredi",
+    "Jeudi",
+    "Vendredi",
+    "Samedi",
+  ], []);
+
+  // Pre-compute which days of the week are active (cheap O(7) check)
+  const activeDays = useMemo(() => {
+    if (!meetingData?.calendly_availability) return new Set();
+    return new Set(
+      meetingData.calendly_availability
+        .filter((d) => d.active)
+        .map((d) => daysMapping.indexOf(d.day))
+    );
+  }, [meetingData?.calendly_availability, daysMapping]);
+
+  // Cache for slot computations — cleared when dependencies change
+  const slotCacheRef = useRef(new Map());
+
+  // Clear cache when the data it depends on changes
+  useEffect(() => {
+    slotCacheRef.current.clear();
+  }, [
+    meetingData?.calendly_availability,
+    meetingData?.calendly_non_availability,
+    meetingData?.duration,
+    unavailableSlots,
+  ]);
+
+  // Dynamic time slots generation — now with caching
+  const generateTimeSlotsForDate = useCallback((date) => {
     if (!date || !meetingData?.calendly_availability) return [];
 
-    // Mapping from getDay() (0=Sunday) to French day names used in API
-    const daysMapping = [
-      "Dimanche",
-      "Lundi",
-      "Mardi",
-      "Mercredi",
-      "Jeudi",
-      "Vendredi",
-      "Samedi",
-    ];
+    // Cache key based on date string
+    const cacheKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+    if (slotCacheRef.current.has(cacheKey)) {
+      return slotCacheRef.current.get(cacheKey);
+    }
+
     const dayIndex = date.getDay();
     const dayName = daysMapping[dayIndex];
 
@@ -73,7 +103,10 @@ const CalendlyBooking = ({ meetingData, onConfirm }) => {
       (day) => day.day === dayName,
     );
 
-    if (!availability || !availability.active) return [];
+    if (!availability || !availability.active) {
+      slotCacheRef.current.set(cacheKey, []);
+      return [];
+    }
 
     const slots = [];
     let currentTime = moment(`${availability.start}`, "HH:mm");
@@ -84,124 +117,94 @@ const CalendlyBooking = ({ meetingData, onConfirm }) => {
       ? parseInt(meetingData.duration)
       : 30;
 
+    // Pre-parse non-availability ranges once (instead of per-slot)
+    const parsedNonAvailability = (meetingData.calendly_non_availability || []).map((range) => {
+      if (!range) return null;
+      const parts = range.split(" to ");
+      if (parts.length !== 2) return null;
+
+      let startRange = moment(parts[0]);
+      let endRange;
+      if (parts[1].includes("-")) {
+        endRange = moment(parts[1]);
+      } else {
+        const datePart = startRange.format("YYYY-MM-DD");
+        endRange = moment(`${datePart} ${parts[1]}`);
+      }
+      return { startRange, endRange };
+    }).filter(Boolean);
+
+    // Pre-parse API unavailability once (instead of per-slot)
+    const parsedApiUnavailability = unavailableSlots.map((slot) => ({
+      apiStart: moment(slot.start_time.replace("Z", "")),
+      apiEnd: moment(slot.end_time.replace("Z", "")),
+    }));
+
+    const now = moment();
+
     while (currentTime.isBefore(endTime)) {
       const timeString = currentTime.format("HH:mm");
+      const hour = currentTime.get("hour");
+      const minute = currentTime.get("minute");
 
-      // Check non-availability
-      // Format: "YYYY-MM-DD HH:mm to HH:mm"
-      const isUnavailable = meetingData.calendly_non_availability?.some(
-        (range) => {
-          if (!range) return false;
+      // Build slot time once for all checks
+      const slotTime = moment(date).set({ hour, minute, second: 0, millisecond: 0 });
 
-          const parts = range.split(" to ");
-          if (parts.length === 2) {
-            let startRange = moment(parts[0]);
-            let endRange;
-
-            if (parts[1].includes("-")) {
-              endRange = moment(parts[1]);
-            } else {
-              // assume same day
-              const datePart = startRange.format("YYYY-MM-DD");
-              endRange = moment(`${datePart} ${parts[1]}`);
-            }
-
-            const slotTime = moment(date).set({
-              hour: currentTime.get("hour"),
-              minute: currentTime.get("minute"),
-              second: 0,
-            });
-
-            // Handle blocking exact start time if start == end
-            if (startRange.isSame(endRange)) {
-              // Special case: 00:00 to 00:00 means the WHOLE DAY is unavailable
-              if (startRange.format("HH:mm") === "00:00") {
-                // If the slot is on the same day, it's unavailable
-                return slotTime.isSame(startRange, "day");
-              }
-              return slotTime.isSame(startRange);
-            }
-
-            return slotTime.isBetween(startRange, endRange, null, "[)");
+      // Check non-availability (pre-parsed ranges)
+      const isUnavailable = parsedNonAvailability.some(({ startRange, endRange }) => {
+        if (startRange.isSame(endRange)) {
+          if (startRange.format("HH:mm") === "00:00") {
+            return slotTime.isSame(startRange, "day");
           }
-          return false;
-        },
-      );
+          return slotTime.isSame(startRange);
+        }
+        return slotTime.isBetween(startRange, endRange, null, "[)");
+      });
 
-      // Check non-availability (API data)
-      const isApiUnavailable = unavailableSlots.some((slot) => {
-        // Remove 'Z' to treat the time as local
-        const apiStart = moment(slot.start_time.replace("Z", ""));
-        const apiEnd = moment(slot.end_time.replace("Z", ""));
-
-        // Construct the current slot's full datetime
-        // We use the date but with the hour/minute of currentTime
-        const slotStart = moment(date).set({
-          hour: currentTime.get("hour"),
-          minute: currentTime.get("minute"),
-          second: 0,
-          millisecond: 0,
-        });
-
-        // Calculate slot end based on duration
-        const slotEnd = slotStart.clone().add(duration, "minutes");
-
-        const isOverlap =
-          slotStart.isBefore(apiEnd) && slotEnd.isAfter(apiStart);
-
-        return isOverlap;
+      // Check non-availability (API data, pre-parsed)
+      const isApiUnavailable = parsedApiUnavailability.some(({ apiStart, apiEnd }) => {
+        const slotEnd = slotTime.clone().add(duration, "minutes");
+        return slotTime.isBefore(apiEnd) && slotEnd.isAfter(apiStart);
       });
 
       // Check if slot is in the past
-      const slotStartToCheck = moment(date).set({
-        hour: currentTime.get("hour"),
-        minute: currentTime.get("minute"),
-        second: 0,
-        millisecond: 0,
-      });
-
-      if (
-        !isUnavailable &&
-        !isApiUnavailable &&
-        slotStartToCheck.isAfter(moment())
-      ) {
+      if (!isUnavailable && !isApiUnavailable && slotTime.isAfter(now)) {
         slots.push(timeString);
       }
 
       currentTime.add(duration, "minutes");
     }
+
+    // Cache the result
+    slotCacheRef.current.set(cacheKey, slots);
     return slots;
-  };
+  }, [
+    meetingData?.calendly_availability,
+    meetingData?.calendly_non_availability,
+    meetingData?.duration,
+    unavailableSlots,
+    daysMapping,
+  ]);
 
-  const timeSlots = generateTimeSlotsForDate(selectedDate);
+  // Memoize time slots for the selected date
+  const timeSlots = useMemo(
+    () => generateTimeSlotsForDate(selectedDate),
+    [selectedDate, generateTimeSlotsForDate]
+  );
 
-  // Filter days that are not active in the weekly schedule or have no available slots
-  const isDateEnabled = (date) => {
+  // Memoized date filter — fast-path rejection for inactive days
+  const isDateEnabled = useCallback((date) => {
     if (!meetingData?.calendly_availability) return false;
 
-    // 1. Check if the day is enabled in general availability
-    const daysMapping = [
-      "Dimanche",
-      "Lundi",
-      "Mardi",
-      "Mercredi",
-      "Jeudi",
-      "Vendredi",
-      "Samedi",
-    ];
-    const dayName = daysMapping[date.getDay()];
-    const dayConfig = meetingData.calendly_availability.find(
-      (d) => d.day === dayName,
-    );
-
-    if (!dayConfig || !dayConfig.active) {
+    // 1. Quick reject: if day of week is not active at all (O(1) check)
+    if (!activeDays.has(date.getDay())) {
       return false;
     }
 
-    // 2. Check if there are any actual slots available for this specific date
+    // 2. Check if there are any actual slots available (uses cache)
     const slots = generateTimeSlotsForDate(date);
     return slots.length > 0;
-  };
+  }, [meetingData?.calendly_availability, activeDays, generateTimeSlotsForDate]);
 
   return (
     <div className="calendly-booking-container">

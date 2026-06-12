@@ -36,6 +36,7 @@ const StepperSignUpModal = ({
   const toggleMode = () => setIsLogin((prev) => !prev);
   const [userId, setUserId] = useState(null);
 
+  console.log('user=>',user)
   useEffect(() => {
     if (user) {
       setEmail(user?.email);
@@ -77,7 +78,7 @@ const StepperSignUpModal = ({
       post: post,
       client: client,
       role_id: 5,
-      user_id: Number(userId),
+      user_id: Number(userId) || null,
       meeting_id: Number(meetingId),
       ...(meeting?.type === "Calendly" && calendlyData ? {
         selected_date: calendlyData.selected_date,
@@ -127,17 +128,45 @@ const StepperSignUpModal = ({
     };
     try {
       setLoading(true);
-      const response = await axios.post(`${API_BASE_URL}/`, formData);
+      const response = await axios.post(`${API_BASE_URL}/login`, formData);
       if (response.status === 200 || response.status === 201) {
         setIsLogin((prev) => !prev);
-        const { name, last_name, post, email, user_needs,role,role_id,id,enterprise,enterprise_id } = response?.data?.user;
+        const {
+          id,
+          name,
+          last_name,
+          email,
+          enterprise,
+          role,
+          role_id,
+          user_needs,
+          enterprise_id,
+          image,
+          full_name,
+          teams
+        } = response?.data?.user;
         setFirstName(name);
         setLastName(last_name);
         setPost(post);
         setEmail(email);
         setIsLoggedIn(true);
-        const userData = { id, name, email, enterprise, role,role_id,user_needs,enterprise_id };
-        CookieService.set("user", JSON.stringify(userData));
+     const userData = {
+          id,
+          name,
+          last_name,
+          email,
+          enterprise,
+          role,
+          role_id,
+          user_needs,
+          enterprise_id,
+          image,
+          full_name,
+          teams
+        };
+        
+        sessionStorage.setItem("user_id", id);
+        CookieService.set("user", userData); 
         // setDisabled(false);
         // handleClose();
       }

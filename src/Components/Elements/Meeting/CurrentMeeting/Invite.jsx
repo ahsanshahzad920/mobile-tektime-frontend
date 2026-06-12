@@ -387,6 +387,10 @@ const Invite = () => {
           return; // stop further execution
         }
 
+        if(data?.status === "in_progress" || data?.status === "to_finish"){
+          setActiveTab("steps");
+        }
+
         const { formattedDate: estimateDate, formattedTime: estimateTime } =
           parseAndFormatDateTime(
             data?.estimate_time,
@@ -1709,7 +1713,7 @@ const Invite = () => {
                       {/* Dropdown List */}
                       {canManage && (
                         <Dropdown className="dropdown">
-                          {showButton && (
+                          {(showButton || meeting?.type === "Calendly") && (
                             <Dropdown.Toggle
                               variant="success"
                               id="dropdown-basic"
@@ -1722,9 +1726,9 @@ const Invite = () => {
                           )}
 
                           {
-                            showButton && (
+                            (showButton || meeting?.type === "Calendly") && (
                               <Dropdown.Menu>
-                                {meeting?.status !== "in_progress" && meeting?.status !== "no_status" && (
+                                {((meeting?.status !== "in_progress" && meeting?.status !== "no_status") || meeting?.type === "Calendly") && (
                                   <>
                                     {/* {(meeting?.type === "Google Agenda Event" || meeting?.type === "Outlook Agenda Event") && */}
 
@@ -1750,7 +1754,7 @@ const Invite = () => {
                                     {t("dropdown.change Privacy")}
                                   </Dropdown.Item>
                                 )}
-                                {meeting?.status !== "no_status" && (
+                                {(meeting?.status !== "no_status" || meeting?.type === "Calendly") && (
                                   <Dropdown.Item
                                     onClick={(e) => handleChangeContext(meeting)}
                                   >
@@ -1758,7 +1762,7 @@ const Invite = () => {
                                     {t("dropdown.change Context")}
                                   </Dropdown.Item>
                                 )}
-                                {meeting?.status !== "no_status" && (
+                                {(meeting?.status !== "no_status" || meeting?.type === "Calendly") && (
                                   <Dropdown.Item
                                     onClick={(e) => handleChangeOptions(meeting)}
                                   >
@@ -1767,7 +1771,7 @@ const Invite = () => {
                                   </Dropdown.Item>
                                 )}
 
-                                {meeting?.status !== "no_status" && (
+                                {(meeting?.status !== "no_status" || meeting?.type === "Calendly") && (
                                   <Dropdown.Item
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -1808,7 +1812,7 @@ const Invite = () => {
                                     {t("dropdown.invitation")}
                                   </Dropdown.Item>
                                 )}
-                                {meeting?.status !== "no_status" && (
+                                {(meeting?.status !== "no_status" || meeting?.type === "Calendly") && (
                                   <Dropdown.Item
                                     onClick={() =>
                                       setIsCloseMomentModalOpen(true)
@@ -1827,7 +1831,7 @@ const Invite = () => {
                                             : t(`types.${meeting?.type}`)}
                                   </Dropdown.Item>
                                 )}
-                                {meeting?.status !== "no_status" && (
+                                {(meeting?.status !== "no_status" || meeting?.type === "Calendly") && (
                                   <Dropdown.Item
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -1843,7 +1847,7 @@ const Invite = () => {
                                   (meeting?.event_organizer && meeting?.event_organizer?.email === sessionEmail) ||
                                   meeting?.user?.email === sessionEmail) && (
                                   <>
-                                    {meeting?.status !== "no_status" && (
+                                    {(meeting?.status !== "no_status" || meeting?.type === "Calendly") && (
                                       <hr
                                         style={{
                                           margin: "10px 0 0 0",

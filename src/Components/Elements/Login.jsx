@@ -587,6 +587,9 @@ const Login = () => {
         CookieService.set("name", name);
          CookieService.set("type", response.data.user.role.name);
         CookieService.set("role", response.data.user.role);
+        CookieService.set("last_name", last_name);
+        sessionStorage.setItem("last_name", last_name);
+
 
         // Handle access_token
         if (accessToken && accessToken !== "null") {

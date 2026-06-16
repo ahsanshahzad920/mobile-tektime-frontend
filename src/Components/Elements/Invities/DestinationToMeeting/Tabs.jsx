@@ -1432,7 +1432,7 @@ const navigate = useNavigate();
                 </div>
 
                 {/* Status Messages */}
-                {destination?.status === "in_progress" && isDeadlinePassed && (
+                {destination?.status === "in_progress" && isDeadlinePassed && rawDeadline && (
                   <p className="text-danger fw-bold status-message">
                     {t("budget.Exceeded Deadline Error")} ({diffDays}{" "}
                     {t("time_unit.da")}

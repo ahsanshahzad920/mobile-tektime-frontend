@@ -1443,7 +1443,8 @@ const navigate = useNavigate();
                 {budget?.destination?.total_cost >
                   destination?.initial_budget &&
                   destination?.initial_budget !== 0 &&
-                  destination?.initial_budget !== "0" && (
+                  destination?.initial_budget !== "0" &&
+                  destination?.initial_budget !== null && (
                     <p
                       className="text-danger fw-bold status-message"
                       dangerouslySetInnerHTML={{
@@ -1460,7 +1461,8 @@ const navigate = useNavigate();
                 {budget?.destination?.consumed_cost >
                   destination?.initial_budget &&
                   destination?.initial_budget !== 0 &&
-                  destination?.initial_budget !== "0" && (
+                  destination?.initial_budget !== "0" &&
+                  destination?.initial_budget !== null && (
                     <p
                       className="text-danger fw-bold status-message"
                       dangerouslySetInnerHTML={{

@@ -182,7 +182,7 @@ const ActiveReportStepCard = ({
   const isClosed = data?.step_status === "closed" || data?.step_status === "completed" || data?.step_status === "cancelled" || data?.step_status === "abort";
 
   const [dropdownVisible, setDropdownVisible] = useState(
-    data?.step_status === "in_progress" || (isClosed && hasStepMedias)
+    data?.step_status === "in_progress" || (isClosed || hasStepMedias)
   );
   const [wasOpenedByMedia, setWasOpenedByMedia] = useState(false);
 

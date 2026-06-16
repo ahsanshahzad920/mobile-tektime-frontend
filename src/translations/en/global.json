@@ -4161,5 +4161,6 @@
   "Mission History": "Mission History",
   "Failed to update mission history.": "Failed to update mission history.",
   "Error updating mission history.": "Error updating mission history.",
-  "mediaGenerating":"Generating Media..."
+  "mediaGenerating":"Generating Media...",
+  "of the month of":"of the month of"
 }

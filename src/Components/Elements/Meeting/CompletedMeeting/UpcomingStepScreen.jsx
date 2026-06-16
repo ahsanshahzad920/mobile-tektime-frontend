@@ -3269,9 +3269,10 @@ function UpcomingStepScreen({
           />
         </div>
       )}
-      {step?.step_status === "to_accept" && (
-        <ActionAssignmentPopup step={step} onRefresh={getStep} />
-      )}
+      {step?.step_status === "to_accept" &&
+        step?.participant?.email === (CookieService.get("email") || sessionStorage.getItem("email")) && (
+          <ActionAssignmentPopup step={step} onRefresh={getStep} />
+        )}
     </>
   );
 }

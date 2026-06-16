@@ -4133,6 +4133,7 @@
     "Mission History": "Historique de la mission",
     "Failed to update mission history.": "Échec de la mise à jour de l'historique de la mission.",
     "Error updating mission history.": "Erreur lors de la mise à jour de l'historique de la mission.",
-    "mediaGenerating":"Génération de média..."
+    "mediaGenerating":"Génération de média...",
+    "of the month of":"du mois de"
 
 }

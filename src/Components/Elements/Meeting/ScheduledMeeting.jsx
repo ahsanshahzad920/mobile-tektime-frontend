@@ -1962,22 +1962,23 @@ const ScheduledMeeting = ({
                                 </a>
                               </li>
                             )}
-                            {item?.status === "active" ||
-                              (item?.status === "todo" && (
-                                <li>
-                                  <a
-                                    className="dropdown-item"
-                                    style={{ cursor: "pointer" }}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleEdit(item);
-                                    }}
-                                  >
-                                    <RiEditBoxLine size={"20px"} /> &nbsp;
-                                    {t("dropdown.To modify")}
-                                  </a>
-                                </li>
-                              ))}
+                            {(item?.status === "active" ||
+                              item?.status === "todo" ||
+                              item?.type === "Calendly") && (
+                              <li>
+                                <a
+                                  className="dropdown-item"
+                                  style={{ cursor: "pointer" }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEdit(item);
+                                  }}
+                                >
+                                  <RiEditBoxLine size={"20px"} /> &nbsp;
+                                  {t("dropdown.To modify")}
+                                </a>
+                              </li>
+                            )}
                             <li>
                               <a
                                 className="dropdown-item"

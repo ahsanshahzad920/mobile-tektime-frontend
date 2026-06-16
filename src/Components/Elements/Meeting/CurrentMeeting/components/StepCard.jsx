@@ -68,6 +68,7 @@ const StepCard = ({
   const [showReestimateModal, setShowReestimateModal] = useState(false);
   const [additionalTime, setAdditionalTime] = useState(1);
   const [stepToReestimate, setStepToReestimate] = useState(null);
+  const [reestimateTimeUnit, setReestimateTimeUnit] = useState("minutes");
   const [showConfirmLastStepModal, setShowConfirmLastStepModal] = useState(false);
   const [stepNotes, setStepNotes] = useState("");
   const [isClose, setIsClose] = useState(false);
@@ -1032,6 +1033,28 @@ const StepCard = ({
         const handleOpenReestimate = (step) => {
           setStepToReestimate(step);
           setShowReestimateModal(true);
+
+          let initialUnit = step?.time_unit;
+          if (!initialUnit) {
+            if (meeting?.type === "Action1" ||
+                meeting?.type === "Newsletter" ||
+                meeting?.type === "Strategy" ||
+                meeting?.type === "Sprint") {
+              initialUnit = "days";
+            } else if (meeting?.type === "Task" ||
+                       meeting?.type === "Prestation Client") {
+              initialUnit = "hours";
+            } else if (meeting?.type === "Quiz") {
+              initialUnit = "seconds";
+            } else {
+              initialUnit = "minutes";
+            }
+          }
+          if (initialUnit === "day") initialUnit = "days";
+          if (initialUnit === "hour") initialUnit = "hours";
+          if (initialUnit === "second" || initialUnit === "sec") initialUnit = "seconds";
+          if (initialUnit === "min") initialUnit = "minutes";
+          setReestimateTimeUnit(initialUnit);
         };
 
         const updateStepReestimate = async () => {
@@ -1050,7 +1073,7 @@ const StepCard = ({
 
           // Calculate additional seconds
           let additionalSeconds = 0;
-          const unit = currentStep?.time_unit;
+          const unit = reestimateTimeUnit;
 
           if (unit === "day" || unit === "days") {
             additionalSeconds = Number(additionalTime) * 86400; // 1 day = 86400 seconds
@@ -1078,6 +1101,7 @@ const StepCard = ({
                 step_id: stepId,
                 re_estimate_time: Number(additionalTime), 
                 savedTime: Number(additionalSeconds), 
+                time_unit: unit,
               };
 
               response = await axios.post(
@@ -1096,6 +1120,7 @@ const StepCard = ({
 
                 count2: Number(additionalTime),
                 time: Number(additionalTime),
+                time_unit: unit,
                 delay: null,
                 negative_time: "0",
                 pause_current_time: latestFormattedTime,
@@ -1468,7 +1493,7 @@ const StepCard = ({
                             ))}
                         </div>
                         <div className="step-content">
-                          <Card.Subtitle className="step-card-subtext">
+                          <Card.Subtitle className="step-card-subtext mb-0">
                             {meeting?.newsletter_guide ? (
                               <>
                                 {meeting?.newsletter_guide?.logo ? (
@@ -1571,7 +1596,26 @@ const StepCard = ({
                               src="/Assets/ion_time-outline.svg"
                               alt="time"
                             />
-                            {window.location.href.includes(
+                            {meeting?.type === "Calendly" ? (
+                              <span className="me-2">
+                                {item?.step_status === null ||
+                                item?.step_status === "todo" ||
+                                item?.step_status === "no_status"
+                                  ? item.count2 +
+                                    " " +
+                                    `${getTimeUnitDisplay(
+                                      item?.count2,
+                                      item?.time_unit,
+                                      t,
+                                      meeting?.type
+                                    )}`
+                                  : item?.step_status === "to_finish"
+                                  ? formatPauseTime(item?.work_time, t)
+                                  : localizeTimeTakenActive(
+                                      item?.time_taken?.replace("-", "")
+                                    )}
+                              </span>
+                            ) : window.location.href.includes(
                               "/present/invite"
                             ) ? (
                               <>
@@ -1636,60 +1680,60 @@ const StepCard = ({
                               </span>
                             )}{" "}
                           </Card.Text>
-                          <Card.Text className="step-card-content flex-row align-items-center gap-0 mb-3">
-                            <span className="">
-                              <img
-                                height="16px"
-                                width="16px"
-                                src="/Assets/alarm-invite.svg"
-              alt="alarm"
-
-                              />
-                            </span>
-                            {window.location.href.includes(
-                              "/present/invite"
-                            ) ? (
-                              <span>
-                                {localizeTimeTaken(
-                                  item?.time_taken?.replace("-", "")
-                                )}
+                          {meeting?.type !== "Calendly" && (
+                            <Card.Text className="step-card-content flex-row align-items-center gap-0 mb-3">
+                              <span className="">
+                                <img
+                                  height="16px"
+                                  width="16px"
+                                  src="/Assets/alarm-invite.svg"
+                                  alt="alarm"
+                                />
                               </span>
-                            ) : (
-                              <>
-                                {item?.step_status === null ||
-                                item?.step_status === "todo" 
-                                  ? item.count2 +
-                                    " " +
-                                    `${getTimeUnitDisplay(
-                                      item?.count2,
-                                      item?.time_unit,
-                                      t,
-                                      meeting?.type
-
-                                    )}`
-                                  : item?.step_status === "to_finish"
-                                  ? formatPauseTime(item?.work_time, t)
-                                  : localizeTimeTakenActive(
-                                      item?.time_taken?.replace("-", "")
-                                    )}
-                                {item?.step_status !== null &&
-                                  item?.step_status !== "todo" && (
-                                    <span>
-                                      &nbsp; {item?.step_status === "to_accept" ? "" : "/"}{" "}
-                                      {item.count2 +
-                                        " " +
-                                        `${getTimeUnitDisplay(
-                                          item?.count2,
-                                          item?.time_unit,
-                                          t,
-                                      meeting?.type
-
-                                        )}`}
-                                    </span>
+                              {window.location.href.includes(
+                                "/present/invite"
+                              ) ? (
+                                <span>
+                                  {localizeTimeTaken(
+                                    item?.time_taken?.replace("-", "")
                                   )}
-                              </>
-                            )}{" "}
-                          </Card.Text>
+                                </span>
+                              ) : (
+                                <>
+                                  {item?.step_status === null ||
+                                  item?.step_status === "todo" ||
+                                  item?.step_status === "no_status"
+                                    ? item.count2 +
+                                      " " +
+                                      `${getTimeUnitDisplay(
+                                        item?.count2,
+                                        item?.time_unit,
+                                        t,
+                                        meeting?.type
+                                      )}`
+                                    : item?.step_status === "to_finish"
+                                    ? formatPauseTime(item?.work_time, t)
+                                    : localizeTimeTakenActive(
+                                        item?.time_taken?.replace("-", "")
+                                      )}
+                                  {item?.step_status !== null &&
+                                    item?.step_status !== "todo" && (
+                                      <span>
+                                        &nbsp; {item?.step_status === "to_accept" ? "" : "/"}{" "}
+                                        {item.count2 +
+                                          " " +
+                                          `${getTimeUnitDisplay(
+                                            item?.count2,
+                                            item?.time_unit,
+                                            t,
+                                            meeting?.type
+                                          )}`}
+                                      </span>
+                                    )}
+                                </>
+                              )}{" "}
+                            </Card.Text>
+                          )}
                         </div>
                       </div>
 
@@ -2183,24 +2227,28 @@ const StepCard = ({
                   value={additionalTime}
                   onChange={(e) => setAdditionalTime(e.target.value)}
                 />
-                {meeting?.type === "Action1" ||
-                meeting?.type === "Newsletter" ||
-                meeting?.type === "Strategy" ||
-                meeting?.type === "Sprint" ? (
-                  <span className="fw-bold"> {t("days")} </span>
-                ) : meeting?.type === "Task" ||
-                  meeting?.type === "Prestation Client" ? (
-                  <span className="fw-bold"> {t("hour")} </span>
-                ) : meeting?.type === "Quiz" ? (
-                  <span className="fw-bold"> {t("sec")} </span>
-                ) : meeting?.type === "Special" ? (
-                  <span className="fw-bold">
-                    {" "}
-                    {t(`time_unit.${stepToReestimate?.time_unit}`)}{" "}
-                  </span>
-                ) : (
-                  <span className="fw-bold"> mins </span>
-                )}
+                <select
+                  className="form-select form-select-sm"
+                  value={reestimateTimeUnit}
+                  onChange={(e) => setReestimateTimeUnit(e.target.value)}
+                  style={{
+                    padding: "2px 24px 2px 8px",
+                    height: "38px",
+                    fontSize: "14px",
+                    border: "1px solid #D0D5DD",
+                    borderRadius: "8px",
+                    backgroundColor: "#fff",
+                    color: "#344054",
+                    width: "110px",
+                    minWidth: "110px",
+                    display: "inline-block",
+                  }}
+                >
+                  <option value="minutes">{t("time_unit.minutes") || "mins"}</option>
+                  <option value="seconds">{t("time_unit.seconds") || "secs"}</option>
+                  <option value="hours">{t("time_unit.hours") || "hours"}</option>
+                  <option value="days">{t("time_unit.days") || "days"}</option>
+                </select>
               </div>
             </Form.Group>
           </Modal.Body>

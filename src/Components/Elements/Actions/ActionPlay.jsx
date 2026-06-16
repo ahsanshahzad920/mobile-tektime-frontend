@@ -212,6 +212,7 @@ const ActionPlay = () => {
         {
           ...step,
           editor_content: optimizedEditorContent,
+          update_editor:true
         },
         {
           headers: {
@@ -250,6 +251,7 @@ const ActionPlay = () => {
           const payload = {
             ...meetingData?.steps[currentStepIndex],
             editor_content: optimizedEditorContent,
+            update_editor:true
           };
           const response = await axios.patch(
             `${API_BASE_URL}/steps/${step_Id}`,
@@ -581,10 +583,34 @@ const ActionPlay = () => {
   const [showReestimateModal, setShowReestimateModal] = useState(false);
   const [additionalTime, setAdditionalTime] = useState("");
   const [isReestimating, setIsReestimating] = useState(false);
+  const [reestimateTimeUnit, setReestimateTimeUnit] = useState("minutes");
   const handleOpenReestimate = () => {
     setShowReestimateModal(true);
     setIsReestimateModalOpen(true);
     setAdditionalTime(""); // Reset input
+
+    let initialUnit = meetingData?.steps[currentStepIndex]?.time_unit;
+    if (!initialUnit) {
+      if (meetingData?.type === "Action1" ||
+          meetingData?.type === "Newsletter" ||
+          meetingData?.type === "Strategy" ||
+          meetingData?.type === "Absence" ||
+          meetingData?.type === "Sprint") {
+        initialUnit = "days";
+      } else if (meetingData?.type === "Task" ||
+                 meetingData?.type === "Prestation Client") {
+        initialUnit = "hours";
+      } else if (meetingData?.type === "Quiz") {
+        initialUnit = "seconds";
+      } else {
+        initialUnit = "minutes";
+      }
+    }
+    if (initialUnit === "day") initialUnit = "days";
+    if (initialUnit === "hour") initialUnit = "hours";
+    if (initialUnit === "second" || initialUnit === "sec") initialUnit = "seconds";
+    if (initialUnit === "min") initialUnit = "minutes";
+    setReestimateTimeUnit(initialUnit);
   };
 
   const updateStep = async (step) => {
@@ -595,7 +621,7 @@ const ActionPlay = () => {
 
     // Calculate additional seconds
     let additionalSeconds = 0;
-    const unit = step?.time_unit;
+    const unit = reestimateTimeUnit;
 
     if (unit === "day" || unit === "days") {
       additionalSeconds = Number(additionalTime) * 86400; // 1 day = 86400 seconds
@@ -625,6 +651,7 @@ const ActionPlay = () => {
           step_id: stepId,
           re_estimate_time: Number(additionalTime), //from user
           savedTime: Number(additionalSeconds), // convert the input time in seconds
+          time_unit: unit,
         };
 
         response = await axios.post(
@@ -643,6 +670,7 @@ const ActionPlay = () => {
 
           count2: Number(additionalTime),
           time: Number(additionalTime),
+          time_unit: unit,
           // count2: step.count2 + Number(additionalTime),
           // time: step.count2 + Number(additionalTime),
           delay: null,
@@ -2757,12 +2785,181 @@ const ActionPlay = () => {
                 <h4 className="participant-heading-meeting d-flex align-items-center justify-content-between">
                   {t("Content")}
                 </h4>
-                {meetingData?.steps[currentStepIndex]?.editor_type ===
+                {meetingData?.type === "AI Social Media Newsletter" ||
+                meetingData?.type === "Social Media Newsletter" ? (
+                  <div className="d-flex flex-column gap-5">
+                    {/* 1. Show editor if editor_content exists */}
+                    {meetingData?.steps[currentStepIndex]?.editor_content && (
+                      <div className="mb-4">
+                        <Editor
+                          className="editor-no-border text_editor"
+                          id="text_editor"
+                          apiKey={TINYMCEAPI}
+                          value={modifiedFileText}
+                          onEditorChange={(content) => {
+                            setModifiedFileText(content);
+                            // debouncedAutoSave(content);
+                          }}
+                          name="text"
+                          init={{
+                            statusbar: false,
+                            branding: false,
+                            height: 600,
+                            border: "none",
+                            menubar: true,
+                            language: "fr_FR",
+                            plugins: "print preview paste searchreplace autolink directionality visualblocks visualchars fullscreen image link media template codesample table charmap hr pagebreak nonbreaking anchor toc insertdatetime advlist lists wordcount imagetools textpattern",
+                            toolbar: "formatselect | bold italic underline strikethrough | forecolor backcolor blockquote | image | link media | alignleft aligncenter alignright alignjustify | numlist bullist outdent indent | removeformat",
+                            image_advtab: true,
+                            file_picker_types: "image media",
+                            file_picker_callback: function (callback, value, meta) {
+                              if (meta.filetype === "image") {
+                                const input = document.createElement("input");
+                                input.setAttribute("type", "file");
+                                input.setAttribute("accept", "image/*");
+
+                                input.onchange = function () {
+                                  const file = input.files[0];
+                                  const reader = new FileReader();
+
+                                  reader.onload = function (e) {
+                                    const img = new Image();
+                                    img.src = e.target.result;
+
+                                    img.onload = function () {
+                                      const canvas = document.createElement("canvas");
+                                      const ctx = canvas.getContext("2d");
+                                      const maxWidth = 700;
+                                      const maxHeight = 394;
+
+                                      let newWidth = img.width;
+                                      let newHeight = img.height;
+
+                                      if (img.width > maxWidth) {
+                                        newWidth = maxWidth;
+                                        newHeight = (img.height * maxWidth) / img.width;
+                                      }
+
+                                      if (newHeight > maxHeight) {
+                                        newHeight = maxHeight;
+                                        newWidth = (img.width * maxHeight) / img.height;
+                                      }
+
+                                      canvas.width = newWidth;
+                                      canvas.height = newHeight;
+
+                                      ctx.drawImage(img, 0, 0, newWidth, newHeight);
+
+                                      const resizedImageData = canvas.toDataURL(file.type);
+                                      callback(resizedImageData, {
+                                        alt: file.name,
+                                      });
+                                    };
+
+                                    img.src = e.target.result;
+                                  };
+
+                                  reader.readAsDataURL(file);
+                                };
+
+                                input.click();
+                              }
+                            },
+                          }}
+                        />
+                        <Button
+                          className="mt-2"
+                          style={{
+                            background: "#0026b1",
+                            color: "white",
+                            fontFamily: "Inter",
+                            fontSize: "14px",
+                            fontWeight: 500,
+                            lineHeight: "20px",
+                            textAlign: "left",
+                            padding: "10px 16px",
+                          }}
+                          onClick={() =>
+                            handleSaveEditorContent(
+                              meetingData?.steps[currentStepIndex],
+                            )
+                          }
+                          disabled={editContentSave}
+                        >
+                          {editContentSave ? (
+                            <Spinner
+                              as="div"
+                              variant="light"
+                              size="sm"
+                              role="status"
+                              aria-hidden="true"
+                              animation="border"
+                              style={{
+                                margin: "2px 12px",
+                              }}
+                            />
+                          ) : (
+                            t("meeting.formState.Update")
+                          )}
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* 2. Show file if it exists */}
+                    {meetingData?.steps[currentStepIndex]?.file && (
+                      <div className="mb-4">
+                        {meetingData?.steps[currentStepIndex]?.editor_type === "Excel" ? (
+                          <DocViewer
+                            documents={[
+                              {
+                                uri:
+                                  `${Assets_URL}/${meetingData?.steps[currentStepIndex]?.file}` ||
+                                  "",
+                              },
+                            ]}
+                            pluginRenderers={DocViewerRenderers}
+                            config={{
+                              header: {
+                                disableFileName: true,
+                                retainURLParams: true,
+                              },
+                            }}
+                          />
+                        ) : (
+                          <iframe
+                            src={
+                              Assets_URL +
+                              "/" +
+                              (meetingData?.steps[currentStepIndex]?.file +
+                                "#toolbar=0&view=fitH")
+                            }
+                            width="100%"
+                            height="500px"
+                          />
+                        )}
+                      </div>
+                    )}
+
+                    {/* 3. Show url if it exists */}
+                    {meetingData?.steps[currentStepIndex]?.url && (
+                      <div className="mb-4">
+                        <iframe
+                          src={getYoutubeEmbedUrl(
+                            meetingData?.steps[currentStepIndex]?.url,
+                          )}
+                          width="100%"
+                          height="500px"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ) : meetingData?.steps[currentStepIndex]?.editor_type ===
                   "Editeur" ||
                 meetingData?.steps[currentStepIndex]?.editor_type ===
                   "Subtask" ||
                 meetingData?.steps[currentStepIndex]?.editor_type ===
                   "Prestation" ||
+                meetingData?.steps[currentStepIndex]?.editor_type === "Publication" ||
                 meetingData?.steps[currentStepIndex]?.editor_type === "Story" ||
                 meetingData?.steps[currentStepIndex]?.editor_type === "Email" ||
                 meetingData?.steps[currentStepIndex]?.editor_type ===
@@ -2950,7 +3147,20 @@ const ActionPlay = () => {
                       height="500px"
                     />
                   </div>
-                ) : meetingData?.steps[currentStepIndex]?.editor_type ===
+                ) : meetingData?.steps[currentStepIndex]?.editor_type === "Publication" || meetingData?.type === "AI Social Media Newsletter" ? 
+                 <div>
+                    <iframe
+                      src={
+                        Assets_URL +
+                        "/" +
+                        (meetingData?.steps[currentStepIndex]?.file +
+                          "#toolbar=0&view=fitH")
+                      }
+                      width="100%"
+                      height="500px"
+                    />
+                  </div>
+                 : meetingData?.steps[currentStepIndex]?.editor_type ===
                   "Url" ? (
                   <>
                     <iframe
@@ -3428,25 +3638,28 @@ const ActionPlay = () => {
                   onChange={(e) => setAdditionalTime(e.target.value)}
                   // placeholder="Enter minutes"
                 />
-                {meetingData?.type === "Action1" ||
-                meetingData?.type === "Newsletter" ||
-                meetingData?.type === "Strategy" ||
-                meetingData?.type === "Absence" ||
-                meetingData?.type === "Sprint" ? (
-                  <span className="fw-bold"> {t("days")} </span>
-                ) : meetingData?.type === "Task" ||
-                  meetingData?.type === "Prestation Client" ? (
-                  <span className="fw-bold"> {t("hour")} </span>
-                ) : meetingData?.type === "Quiz" ? (
-                  <span className="fw-bold"> {t("sec")} </span>
-                ) : meetingData?.type === "Special" ? (
-                  <span className="fw-bold">
-                    {" "}
-                    {t(`time_unit.${step?.time_unit}`)}{" "}
-                  </span>
-                ) : (
-                  <span className="fw-bold"> mins </span>
-                )}
+                <select
+                  className="form-select form-select-sm"
+                  value={reestimateTimeUnit}
+                  onChange={(e) => setReestimateTimeUnit(e.target.value)}
+                  style={{
+                    padding: "2px 24px 2px 8px",
+                    height: "38px",
+                    fontSize: "14px",
+                    border: "1px solid #D0D5DD",
+                    borderRadius: "8px",
+                    backgroundColor: "#fff",
+                    color: "#344054",
+                    width: "110px",
+                    minWidth: "110px",
+                    display: "inline-block",
+                  }}
+                >
+                  <option value="minutes">{t("time_unit.minutes") || "mins"}</option>
+                  <option value="seconds">{t("time_unit.seconds") || "secs"}</option>
+                  <option value="hours">{t("time_unit.hours") || "hours"}</option>
+                  <option value="days">{t("time_unit.days") || "days"}</option>
+                </select>
               </div>
             </Form.Group>
           </Modal.Body>

@@ -1084,7 +1084,10 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
             };
 
             if (formState?.id) {
-              await updateMeeting();
+              await updateMeeting({
+              ...((openedFrom === "destination" || openedFrom === "solution") && !isUpdated ? { update_editor: true } : {}),
+
+              });
             } else {
               await createMeeting(meetingPayload);
             }
@@ -1159,7 +1162,10 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
               calendly_timezone,
             });
           } else if (formState?.id) {
-            await updateMeeting();
+            await updateMeeting({
+              ...((openedFrom === "destination" || openedFrom === "solution") && !isUpdated ? { update_editor: true } : {}),
+
+            });
           }
           break;
         case 4:
@@ -1172,12 +1178,18 @@ const NewMeetingModal = ({ destination, openedFrom }) => {
             return;
           }
           if (formState?.id) {
-            await updateMeeting();
+            await updateMeeting({
+              ...((openedFrom === "destination" || openedFrom === "solution") && !isUpdated ? { update_editor: true } : {}),
+
+            });
           }
           break;
         case 7:
           if (formState?.id) {
-            await updateMeeting();
+            await updateMeeting({
+              ...((openedFrom === "destination" || openedFrom === "solution") && !isUpdated ? { update_editor: true } : {}),
+
+            });
           }
           break;
         case 8:

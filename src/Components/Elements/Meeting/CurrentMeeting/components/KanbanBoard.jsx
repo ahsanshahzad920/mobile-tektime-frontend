@@ -468,7 +468,26 @@ const KanbanCustomCard = ({
               alt="time"
               className="me-1"
             />
-            {window.location.href.includes("/present/invite") ? (
+            {meeting?.type === "Calendly" ? (
+              <span className="me-2">
+                {step?.step_status === null ||
+                step?.step_status === "todo" ||
+                step?.step_status === "no_status"
+                  ? step.count2 +
+                    " " +
+                    `${getTimeUnitDisplay(
+                      step?.count2,
+                      step?.time_unit,
+                      t,
+                      meeting?.type
+                    )}`
+                  : step?.step_status === "to_finish"
+                  ? formatPauseTime(step?.work_time, t)
+                  : localizeTimeTakenActive(
+                      step?.time_taken?.replace("-", "")
+                    )}
+              </span>
+            ) : window.location.href.includes("/present/invite") ? (
               <>
                 <span className="me-2">{step?.step_time}</span>
               </>
@@ -528,47 +547,57 @@ const KanbanCustomCard = ({
           </div>
 
           {/* Duration */}
-          <div className="d-flex align-items-center small text-muted">
-            <img
-              src="/Assets/alarm-invite.svg"
-              alt="alarm"
-              width={16}
-              height={16}
-              className="me-1"
-            />
-            <span>
-              {window.location.href.includes("/present/invite") ? (
-                <span>
-                  {localizeTimeTaken(step?.time_taken?.replace("-", ""))}
-                </span>
-              ) : (
-                <>
-                  {step?.step_status === null || step?.step_status === "todo"
-                    ? step.count2 +
-                      " " +
-                      `${getTimeUnitDisplay(step?.count2, step?.time_unit, t)}`
-                    : step?.step_status === "to_finish"
-                    ? formatPauseTime(step?.work_time, t)
-                    : localizeTimeTakenActive(
-                        step?.time_taken?.replace("-", "")
+          {meeting?.type !== "Calendly" && (
+            <div className="d-flex align-items-center small text-muted">
+              <img
+                src="/Assets/alarm-invite.svg"
+                alt="alarm"
+                width={16}
+                height={16}
+                className="me-1"
+              />
+              <span>
+                {window.location.href.includes("/present/invite") ? (
+                  <span>
+                    {localizeTimeTaken(step?.time_taken?.replace("-", ""))}
+                  </span>
+                ) : (
+                  <>
+                    {step?.step_status === null ||
+                    step?.step_status === "todo" ||
+                    step?.step_status === "no_status"
+                      ? step.count2 +
+                        " " +
+                        `${getTimeUnitDisplay(
+                          step?.count2,
+                          step?.time_unit,
+                          t,
+                          meeting?.type
+                        )}`
+                      : step?.step_status === "to_finish"
+                      ? formatPauseTime(step?.work_time, t)
+                      : localizeTimeTakenActive(
+                          step?.time_taken?.replace("-", "")
+                        )}
+                    {step?.step_status !== null &&
+                      step?.step_status !== "todo" && (
+                        <span>
+                          &nbsp; /{" "}
+                          {step.count2 +
+                            " " +
+                            `${getTimeUnitDisplay(
+                              step?.count2,
+                              step?.time_unit,
+                              t,
+                              meeting?.type
+                            )}`}
+                        </span>
                       )}
-                  {step?.step_status !== null &&
-                    step?.step_status !== "todo" && (
-                      <span>
-                        &nbsp; /{" "}
-                        {step.count2 +
-                          " " +
-                          `${getTimeUnitDisplay(
-                            step?.count2,
-                            step?.time_unit,
-                            t
-                          )}`}
-                      </span>
-                    )}
-                </>
-              )}{" "}
-            </span>
-          </div>
+                  </>
+                )}{" "}
+              </span>
+            </div>
+          )}
         </div>
       </Card.Body>
     </Card>

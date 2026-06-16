@@ -6,7 +6,11 @@ import { useNavigate } from "react-router-dom";
 import { IoCopyOutline, IoVideocamOutline } from "react-icons/io5";
 import { FiEdit } from "react-icons/fi";
 import { PiFilePdfLight } from "react-icons/pi";
-import { formatStepDate } from "../../../Utils/MeetingFunctions";
+import {
+  formatStepDate,
+  formatPauseTime,
+  getTimeUnitDisplay,
+} from "../../../Utils/MeetingFunctions";
 import { HiUserCircle } from "react-icons/hi2";
 import { MdOutlinePhotoSizeSelectActual } from "react-icons/md";
 import moment from "moment";
@@ -93,6 +97,35 @@ const ReportStepCard = ({ users, fromMeeting, meeting }) => {
             .join(" ");
         };
 
+        const localizeTimeTakenActive = (timeTaken) => {
+          if (!timeTaken) return "";
+          const timeUnits = t("time_unit", { returnObjects: true });
+          const timeParts = timeTaken.split(" - ");
+          let days = null, hours = null, minutes = null, seconds = null;
+          timeParts.forEach((part) => {
+            if (part.includes("day")) days = part;
+            else if (part.includes("hour")) hours = part;
+            else if (part.includes("min")) minutes = part;
+            else if (part.includes("sec")) seconds = part;
+          });
+          let result = "";
+          if (days) {
+            result = [days, hours].filter(Boolean).join(" - ");
+          } else if (hours) {
+            result = [hours, minutes].filter(Boolean).join(" - ");
+          } else if (minutes) {
+            result = [minutes, seconds].filter(Boolean).join(" - ");
+          } else {
+            result = seconds;
+          }
+          return result
+            ? result
+                .split(" ")
+                .map((part) => (isNaN(part) ? timeUnits[part] || part : part))
+                .join(" ")
+            : "";
+        };
+
         const convertTo24HourFormat = (time, date, type, timezone) => {
           if (!time || !date || !type) {
             return false;
@@ -177,7 +210,7 @@ const ReportStepCard = ({ users, fromMeeting, meeting }) => {
                             )}
                         </div>
                         <div className="step-content reportstepcard-content">
-                          <Card.Subtitle className="step-card-subtext">
+                          <Card.Subtitle className="step-card-subtext mb-0">
                             {meeting.newsletter_guide ? (
                               <>
                                 {meeting?.newsletter_guide?.logo ? (
@@ -263,103 +296,128 @@ const ReportStepCard = ({ users, fromMeeting, meeting }) => {
                               </span>
                             )}
                           </Card.Subtitle>
-                          <Card.Text className="step-card-content stepcard-content">
-                            <img
-                              height="16px"
-                              width="16px"
-                              src="/Assets/ion_time-outline.svg"
-                            />
-                            {/* <span className="me-2">
-                              {item?.step_time}
-                            </span> */}
-                            {window.location.href.includes(
-                              "/present/invite"
-                            ) ? (
+                          <Card.Text className={`step-card-content stepcard-content d-flex ${meeting?.type === "Calendly" ? "flex-column align-items-start gap-1" : "align-items-center flex-wrap gap-2"}`}>
+                            {meeting?.type === "Calendly" ? (
+                              <div className="w-100 mt-1 d-flex align-items-center gap-2">
+                                <img
+                                  height="16px"
+                                  width="16px"
+                                  src="/Assets/alarm-invite.svg"
+                                  alt="Duration"
+                                />
+                                <strong>Duréee : </strong>
+                                <span>
+                                  {item?.step_status === null ||
+                                  item?.step_status === "todo" ||
+                                  item?.step_status === "no_status"
+                                    ? item.count2 +
+                                      " " +
+                                      `${getTimeUnitDisplay(
+                                        item?.count2,
+                                        item?.time_unit,
+                                        t,
+                                        meeting?.type
+                                      )}`
+                                    : item?.step_status === "to_finish"
+                                    ? formatPauseTime(item?.work_time, t)
+                                    : localizeTimeTakenActive(
+                                        item?.time_taken?.replace("-", "")
+                                      )}
+                                </span>
+                              </div>
+                            ) : (
                               <>
-                                {item.time_unit === "days" ? (
-                                  <>
-                                    <span className="me-2">
-                                      {formatStepDate(
-                                        item.start_date,
-                                        item?.step_time,
-                                        meeting?.timezone
+                                <span className="d-flex align-items-center gap-2">
+                                  <img
+                                    height="16px"
+                                    width="16px"
+                                    src="/Assets/ion_time-outline.svg"
+                                    alt="Time"
+                                  />
+                                  {window.location.href.includes(
+                                    "/present/invite"
+                                  ) ? (
+                                    <span>
+                                      {item.time_unit === "days" ? (
+                                        formatStepDate(
+                                          item.start_date,
+                                          item?.step_time,
+                                          meeting?.timezone
+                                        )
+                                      ) : (
+                                        formatStepDate(
+                                          item.start_date,
+                                          item?.step_time,
+                                          meeting?.timezone
+                                        ) +
+                                          " " +
+                                          t("at") +
+                                          " " +
+                                          convertTo24HourFormat(
+                                            item?.step_time,
+                                            item?.start_date,
+                                            item?.time_unit,
+                                            meeting?.timezone
+                                          )
                                       )}
                                     </span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <span className="me-2">
-                                      {formatStepDate(
-                                        item.start_date,
-                                        item?.step_time,
-                                        meeting?.timezone
-                                      ) +
-                                        " " +
-                                        `${t("at")}` +
-                                        " " +
-                                        convertTo24HourFormat(
-                                          item?.step_time,
-                                          item?.start_date,
-                                          item?.time_unit,
-                                          meeting?.timezone
+                                  ) : (
+                                    <span>
+                                      <span>
+                                        {item.step_status === null
+                                          ? item?.step_time
+                                          : item.step_time}
+                                      </span>
+                                      {(item.step_status === "completed" ||
+                                        item.step_status === "in_progress") &&
+                                        item?.start_date && (
+                                          <span className="ms-2">
+                                            {item?.start_date}
+                                          </span>
                                         )}
                                     </span>
-                                  </>
-                                )}
-                              </>
-                            ) : (
-                              <span className="me-2">
-                                <span>
-                                  {item.step_status === null
-                                    ? item?.step_time
-                                    : item.step_time}
-                                </span>
-                                {item.step_status === "completed" ||
-                                item.step_status === "in_progress" ? (
-                                  <span className="ms-2">
-                                    {item?.start_date && item?.start_date}
-                                  </span>
-                                ) : null}
-                              </span>
-                            )}{" "}
-                            <img
-                              height="16px"
-                              width="16px"
-                              src="/Assets/alarm-invite.svg"
-                            />
-                            {window.location.href.includes(
-                              "/present/invite"
-                            ) ? (
-                              <>
-                                <span>
-                                  {localizeTimeTaken(
-                                    item?.time_taken?.replace("-", "")
                                   )}
                                 </span>
                                 <span>
-                                  {" "}
-                                  {!(
-                                    meeting?.type === "Special" ||
-                                    meeting?.type === "Law"
-                                  ) && <>&nbsp; / &nbsp;</>}
-                                    { item?.editor_type === "Story" && item?.time_unit === "days" ? (
-    item.count2 + " " + (item.count2 > 1 ? "Story Points" : "Story Point")
-    // or simply: item.count2 + " SP"
-  ) : (
-    item.count2 + " " + t(`time_unit.${item.time_unit}`)
-  )}
-                                </span>
-                              </>
-                            ) : (
-                              <>
-                                <span>
-                                  {/* {localizeTimeTaken(item?.time_taken)} */}
-                                  {localizeTimeTaken(
-                                    item?.time_taken?.replace("-", "")
+                                  {window.location.href.includes(
+                                      "/present/invite"
+                                    ) ? (
+                                    <>
+                                      <span>
+                                        {localizeTimeTaken(
+                                          item?.time_taken?.replace("-", "")
+                                        )}
+                                      </span>
+                                      <span>
+                                        {" "}
+                                        {!(
+                                          meeting?.type === "Special" ||
+                                          meeting?.type === "Law"
+                                        ) && <>&nbsp; / &nbsp;</>}
+                                        {item?.editor_type === "Story" &&
+                                        item?.time_unit === "days" ? (
+                                          item.count2 +
+                                          " " +
+                                          (item.count2 > 1
+                                            ? "Story Points"
+                                            : "Story Point")
+                                        ) : (
+                                          item.count2 +
+                                          " " +
+                                          t(`time_unit.${item.time_unit}`)
+                                        )}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <span>
+                                      {localizeTimeTaken(
+                                        item?.time_taken?.replace("-", "")
+                                      )}
+                                    </span>
                                   )}
                                 </span>
                               </>
-                            )}{" "}
+                            )}
                           </Card.Text>
                         </div>
                       </div>
@@ -508,7 +566,7 @@ const ReportStepCard = ({ users, fromMeeting, meeting }) => {
                       <Card.Title className="step-card-heading">
                         {item?.title}
                       </Card.Title>
-                      <Card.Subtitle className="step-card-subtext">
+                      <Card.Subtitle className="step-card-subtext mb-0">
                         {item?.image ? (
                           <img
                             height="24px"
@@ -558,21 +616,62 @@ const ReportStepCard = ({ users, fromMeeting, meeting }) => {
                             `${users?.firstName} ${users?.lastName}`}
                         </span>
                       </Card.Subtitle>
-                      <Card.Text className="step-card-content">
-                        <img
-                          height="16px"
-                          width="16px"
-                          style={{ width: "auto", marginRight: "9px" }}
-                          src="/Assets/ion_time-outline.svg"
-                        />
-                        <span className="me-2">{item?.step_time}</span>
-                        <img
-                          height="16px"
-                          width="16px"
-                          style={{ width: "auto", marginRight: "9px" }}
-                          src="/Assets/alarm-invite.svg"
-                        />
-                        <span>{item?.count2 + " " + "Mins"}</span>
+                      <Card.Text className={`step-card-content d-flex ${meeting?.type === "Calendly" ? "flex-column align-items-start gap-1" : "align-items-center flex-wrap gap-2"}`}>
+                        {meeting?.type === "Calendly" ? (
+                          <div className="w-100 mt-1 d-flex align-items-center gap-2">
+                            <img
+                              height="16px"
+                              width="16px"
+                              style={{ width: "auto", marginRight: "9px" }}
+                              src="/Assets/alarm-invite.svg"
+                              alt="Duration"
+                            />
+                            <strong>Duréee : </strong>
+                            <span>
+                              {item?.step_status === null ||
+                              item?.step_status === "todo" ||
+                              item?.step_status === "no_status"
+                                ? item.count2 +
+                                  " " +
+                                  `${getTimeUnitDisplay(
+                                    item?.count2,
+                                    item?.time_unit,
+                                    t,
+                                    meeting?.type
+                                  )}`
+                                : item?.step_status === "to_finish"
+                                ? formatPauseTime(item?.work_time, t)
+                                : localizeTimeTakenActive(
+                                    item?.time_taken?.replace("-", "")
+                                  )}
+                            </span>
+                          </div>
+                        ) : (
+                          <>
+                            <span className="d-flex align-items-center gap-2">
+                              <img
+                                height="16px"
+                                width="16px"
+                                style={{ width: "auto", marginRight: "9px" }}
+                                src="/Assets/ion_time-outline.svg"
+                                alt="Time"
+                              />
+                              <span>{item?.step_time}</span>
+                            </span>
+                            <div className="d-flex align-items-center gap-2">
+                              <img
+                                height="16px"
+                                width="16px"
+                                style={{ width: "auto", marginRight: "9px" }}
+                                src="/Assets/alarm-invite.svg"
+                                alt="Duration"
+                              />
+                              <span>
+                                {item?.count2} {item?.time_unit || "Mins"}
+                              </span>
+                            </div>
+                          </>
+                        )}
                       </Card.Text>
                     </div>
                   </Card.Body>

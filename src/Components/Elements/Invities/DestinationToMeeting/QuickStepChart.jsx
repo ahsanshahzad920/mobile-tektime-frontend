@@ -16,6 +16,7 @@ import { useFormContext } from "../../../../context/CreateMeetingContext";
 import { getUserRoleID } from "../../../Utils/getSessionstorageItems";
 import { RiFileExcel2Line, RiFolderVideoLine } from "react-icons/ri";
 import { SiGooglemeet } from "react-icons/si";
+import { HiOutlineSparkles } from "react-icons/hi2";
 import * as XLSX from "xlsx";
 import Spreadsheet from "react-spreadsheet";
 import { read, utils } from "xlsx";
@@ -1601,6 +1602,18 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
 
   //Create Steps Button
   const validateStep = async () => {
+    if (modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter") {
+      if (!aiRole?.trim()) {
+        toast.error(t("messages.aiRoleRequired"));
+        setIsValidate(false);
+        return;
+      }
+      if (!aiAction?.trim()) {
+        toast.error(t("messages.aiActionRequired"));
+        setIsValidate(false);
+        return;
+      }
+    }
     // Update Excel file and get the updated file path
     let updatedExcelFileUrl = null;
     let updatedAudioReport = null;
@@ -3730,7 +3743,7 @@ const getStep = async () => {
                           className="col-12 col-lg-7"
                           style={
                             meeting?.type === "AI Social Media Newsletter" || modalType === "AI Instruction"
-                              ? {
+                               ? {
                                   maxHeight: isMobileView ? "none" : "calc(100vh - 240px)",
                                   overflowY: isMobileView ? "visible" : "auto",
                                   overflowX: "hidden",
@@ -4176,22 +4189,17 @@ const getStep = async () => {
                           </div>
                         </div>
                         <div className="col-12 col-lg-5 p-4" style={{ backgroundColor: "#F2F4FB", borderTop: isMobileView ? "1px solid #BAC3D4" : "none" }}>
-                          {!isUpload ? (
+                           {!isUpload ? (
                             <>
-                              <div
-                                className="d-flex align-items-center gap-4 w-100"
-                              >
+                              {(step?.generate_ai_media == 1 || step?.generate_ai_media === true) ? (
                                 <div
-                                  {...getRootProps()}
                                   style={{
                                     border: "1px dashed #BAC3D4",
                                     padding: "20px",
                                     width: "100%",
                                     borderRadius: "12px",
-                                    outline: "none",
                                     margin: "0 auto",
-                                    height: fileName ? "auto" : "250px",
-                                    cursor: "pointer",
+                                    height: "250px",
                                     display: "flex",
                                     flexDirection: "column",
                                     alignItems: "center",
@@ -4199,20 +4207,52 @@ const getStep = async () => {
                                     backgroundColor: "#fff",
                                   }}
                                 >
-                                  <input {...getInputProps()} />
                                   <div style={{ textAlign: "center" }}>
+                                    <HiOutlineSparkles size={40} style={{ color: "#0026B1", marginBottom: "12px" }} />
                                     <p className="upload-container" style={{ margin: 0 }}>
-                                      <span className="upload-text" style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>
-                                        Drag and drop media here
-                                      </span>
-                                      <span className="upload-or" style={{ display: "block", margin: "4px 0", color: "#98A2B3" }}>OR</span>
-                                      <span className="browse-button" style={{ display: "inline-block", padding: "6px 12px", background: "#E6F0FA", color: "#0026B1", borderRadius: "20px", fontWeight: "600", fontSize: "14px" }}>
-                                        Browse
+                                      <span className="upload-text" style={{ display: "block", fontWeight: "600", color: "#344054", fontSize: "15px" }}>
+                                        {t("stepModal.mediaGeneratedAI") || "Media will be generated through AI"}
                                       </span>
                                     </p>
                                   </div>
                                 </div>
-                              </div>
+                              ) : (
+                                <div
+                                  className="d-flex align-items-center gap-4 w-100"
+                                >
+                                  <div
+                                    {...getRootProps()}
+                                    style={{
+                                      border: "1px dashed #BAC3D4",
+                                      padding: "20px",
+                                      width: "100%",
+                                      borderRadius: "12px",
+                                      outline: "none",
+                                      margin: "0 auto",
+                                      height: fileName ? "auto" : "250px",
+                                      cursor: "pointer",
+                                      display: "flex",
+                                      flexDirection: "column",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      backgroundColor: "#fff",
+                                    }}
+                                  >
+                                    <input {...getInputProps()} />
+                                    <div style={{ textAlign: "center" }}>
+                                      <p className="upload-container" style={{ margin: 0 }}>
+                                        <span className="upload-text" style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>
+                                          Drag and drop media here
+                                        </span>
+                                        <span className="upload-or" style={{ display: "block", margin: "4px 0", color: "#98A2B3" }}>OR</span>
+                                        <span className="browse-button" style={{ display: "inline-block", padding: "6px 12px", background: "#E6F0FA", color: "#0026B1", borderRadius: "20px", fontWeight: "600", fontSize: "14px" }}>
+                                          Browse
+                                        </span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                                                             {/* --- Saved Media Gallery from API --- */}
                               {stepMedia.length > 0 && (
                                 <div

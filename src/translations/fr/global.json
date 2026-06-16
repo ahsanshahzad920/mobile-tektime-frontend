@@ -1412,6 +1412,10 @@
     "New Strategy": "Nouvelle stratégie",
     "No Participants Added": "Aucun participant ajouté",
     "Save Strategy": "Valider",
+    "Saving...": "Enregistrement...",
+    "Deleting...": "Suppression en cours...",
+    "Action deleted successfully": "Action supprimée avec succès",
+    "Failed to delete action": "Échec de la suppression de l'action",
     "Step": "Modification",
     "Notes": "Notes",
     "Strategy": "Stratégie",
@@ -2258,7 +2262,10 @@
     "aiInstruction": "Instruction IA",
     "aiInstructionPrompt": "Instruction / Prompt",
     "aiInstructionPromptPlaceholder": "Écrivez l’instruction ou le prompt IA ici...",
-    "mediaInstruction": "Média / Instruction"
+    "mediaInstruction": "Média / Instruction",
+    "aiImageGeneration": "Génération d'images par IA",
+    "aiImageGenerationPlaceholder": "Activer la génération automatique d'images pour cette étape",
+    "mediaGeneratedAI": "Le média sera généré par l'IA"
   },
   "invities": {
     "client_name": "Organisation / Nom",

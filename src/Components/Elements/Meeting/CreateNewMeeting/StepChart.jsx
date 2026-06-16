@@ -42,6 +42,7 @@ import { CgMail } from "react-icons/cg";
 import { useNavigate } from "react-router-dom";
 import { formatDate, formatTime } from "../GetMeeting/Helpers/functionHelper";
 import { FaMessage } from "react-icons/fa6";
+import { HiOutlineSparkles } from "react-icons/hi2";
 
 // Function to extract base64 image sources from HTML string
 function extractBase64SrcFromHTML(htmlString) {
@@ -2165,7 +2166,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
             meeting?.agenda === "Outlook Agenda"
               ? true
               : false,
-          ...(isAiFormUpdated ? { update_editor: false } : {}),
+          ...(isAiFormUpdated ? { update_editor: false } : {update_editor : true}),
 
         };
         setIsValidate(true);
@@ -4615,20 +4616,17 @@ const getStep = async () => {
                           className="col-md-5 p-4"
                           style={{ backgroundColor: "#F2F4FB" }}
                         >
-                          {!isUpload ? (
+                           {!isUpload ? (
                             <>
-                              <div className="d-flex align-items-center gap-4 w-100">
+                              {(step?.generate_ai_media == 1 || step?.generate_ai_media === true) ? (
                                 <div
-                                  {...getRootProps()}
                                   style={{
                                     border: "1px dashed #BAC3D4",
                                     padding: "20px",
                                     width: "100%",
                                     borderRadius: "12px",
-                                    outline: "none",
                                     margin: "0 auto",
-                                    height: fileName ? "auto" : "250px",
-                                    cursor: "pointer",
+                                    height: "250px",
                                     display: "flex",
                                     flexDirection: "column",
                                     alignItems: "center",
@@ -4636,51 +4634,81 @@ const getStep = async () => {
                                     backgroundColor: "#fff",
                                   }}
                                 >
-                                  <input {...getInputProps()} />
-                                  
                                   <div style={{ textAlign: "center" }}>
-                                    <p
-                                      className="upload-container"
-                                      style={{ margin: 0 }}
-                                    >
-                                      <span
-                                        className="upload-text"
-                                        style={{
-                                          display: "block",
-                                          marginBottom: "8px",
-                                          fontWeight: "500",
-                                        }}
-                                      >
-                                        Drag and drop media here
-                                      </span>
-                                      <span
-                                        className="upload-or"
-                                        style={{
-                                          display: "block",
-                                          margin: "4px 0",
-                                          color: "#98A2B3",
-                                        }}
-                                      >
-                                        OR
-                                      </span>
-                                      <span
-                                        className="browse-button"
-                                        style={{
-                                          display: "inline-block",
-                                          padding: "6px 12px",
-                                          background: "#E6F0FA",
-                                          color: "#0026B1",
-                                          borderRadius: "20px",
-                                          fontWeight: "600",
-                                          fontSize: "14px",
-                                        }}
-                                      >
-                                        Browse
+                                    <HiOutlineSparkles size={40} style={{ color: "#0026B1", marginBottom: "12px" }} />
+                                    <p className="upload-container" style={{ margin: 0 }}>
+                                      <span className="upload-text" style={{ display: "block", fontWeight: "600", color: "#344054", fontSize: "15px" }}>
+                                        {t("stepModal.mediaGeneratedAI") || "Media will be generated through AI"}
                                       </span>
                                     </p>
                                   </div>
                                 </div>
-                              </div>
+                              ) : (
+                                <div className="d-flex align-items-center gap-4 w-100">
+                                  <div
+                                    {...getRootProps()}
+                                    style={{
+                                      border: "1px dashed #BAC3D4",
+                                      padding: "20px",
+                                      width: "100%",
+                                      borderRadius: "12px",
+                                      outline: "none",
+                                      margin: "0 auto",
+                                      height: fileName ? "auto" : "250px",
+                                      cursor: "pointer",
+                                      display: "flex",
+                                      flexDirection: "column",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      backgroundColor: "#fff",
+                                    }}
+                                  >
+                                    <input {...getInputProps()} />
+                                    
+                                    <div style={{ textAlign: "center" }}>
+                                      <p
+                                        className="upload-container"
+                                        style={{ margin: 0 }}
+                                      >
+                                        <span
+                                          className="upload-text"
+                                          style={{
+                                            display: "block",
+                                            marginBottom: "8px",
+                                            fontWeight: "500",
+                                          }}
+                                        >
+                                          Drag and drop media here
+                                        </span>
+                                        <span
+                                          className="upload-or"
+                                          style={{
+                                            display: "block",
+                                            margin: "4px 0",
+                                            color: "#98A2B3",
+                                          }}
+                                        >
+                                          OR
+                                        </span>
+                                        <span
+                                          className="browse-button"
+                                          style={{
+                                            display: "inline-block",
+                                            padding: "6px 12px",
+                                            background: "#E6F0FA",
+                                            color: "#0026B1",
+                                            borderRadius: "20px",
+                                            fontWeight: "600",
+                                            fontSize: "14px",
+                                          }}
+                                        >
+                                          Browse
+                                        </span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                                                             {/* --- Saved Media Gallery from API --- */}
                               {stepMedia.length > 0 && (
                                 <div

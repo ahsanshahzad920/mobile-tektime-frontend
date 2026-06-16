@@ -31,6 +31,7 @@ import {
 import { CgMail } from "react-icons/cg";
 import { formatDate, formatTime } from "../GetMeeting/Helpers/functionHelper";
 import { SiGooglemeet } from "react-icons/si";
+import { HiOutlineSparkles } from "react-icons/hi2";
 
 // Function to extract base64 image sources from HTML string
 function extractBase64SrcFromHTML(htmlString) {
@@ -368,6 +369,26 @@ const StepChartUpcoming = ({
   const [previewUrl, setPreviewUrl] = useState("");
   const [timeUnit, setTimeUnit] = useState("minutes");
 
+  useEffect(() => {
+    if (!id) {
+      let initialUnit = "minutes";
+      if (meeting?.type === "Action1" ||
+          meeting?.type === "Newsletter" ||
+          meeting?.type === "Strategy" ||
+          meeting?.type === "Sprint") {
+        initialUnit = "days";
+      } else if (meeting?.type === "Task" ||
+                 meeting?.type === "Prestation Client") {
+        initialUnit = "hours";
+      } else if (meeting?.type === "Quiz") {
+        initialUnit = "seconds";
+      } else {
+        initialUnit = "minutes";
+      }
+      setTimeUnit(initialUnit);
+    }
+  }, [id, meeting?.type]);
+
   const [createAnother, setCreateAnother] = useState(false);
   const handleCheckboxChange = (e) => {
     setCreateAnother(e.target.checked);
@@ -442,23 +463,7 @@ const StepChartUpcoming = ({
           date: formattedDate, // e.g., "2025-06-24"
           time: formattedTime, // e.g., "02:10:00 PM"
           count2: selectedCount,
-          time_unit:
-            meeting?.type === "Action1" ||
-            meeting?.type === "Newsletter" ||
-            meeting?.type === "Strategy" ||
-            meeting?.type === "Absence" ||
-            meeting?.type === "Sprint"
-              ? "days"
-              : meeting?.type === "Task" ||
-                meeting?.type === "Prestation Client"
-                ? "hours"
-                : meeting?.type === "Quiz"
-                  ? "seconds"
-                  : meeting?.type === "Special" ||
-                    meeting?.type === "Social Media Newsletter" ||
-                    meeting?.type === "AI Social Media Newsletter"
-                    ? timeUnit
-                    : "minutes",
+          time_unit: timeUnit,
         };
 
         const response = await axios.post(
@@ -531,6 +536,8 @@ const StepChartUpcoming = ({
   useEffect(() => {
     if (meeting?.type === "AI Social Media Newsletter") {
       setModalType("Editeur");
+    } else if (meeting?.location === "LinkedIn" || step?.location === "LinkedIn") {
+      setModalType("Publication");
     } else if (meeting?.type) {
       setModalType(
         meeting?.type === "Law"
@@ -709,25 +716,7 @@ const StepChartUpcoming = ({
             title: selectedValue || "",
             count1: selectedCount || 0,
             count2: selectedCount || 0,
-            time_unit:
-              meeting?.type === "Action1" ||
-              meeting?.type === "Newsletter" ||
-              meeting?.type === "Strategy" ||
-              meeting?.type === "Absence" ||
-              meeting?.type === "Sprint"
-                ? "days"
-                : meeting?.type === "Task" ||
-                  meeting?.type === "Prestation Client"
-                  ? "hours"
-                  : meeting?.type === "Quiz"
-                    ? "seconds"
-                    : meeting?.type === "Special" ||
-                      meeting?.type === "Social Media Newsletter" ||
-                      meeting?.type === "AI Social Media Newsletter" ||
-                      meeting?.location === "LinkedIn" ||
-                      step?.location === "LinkedIn"
-                      ? timeUnit
-                      : "minutes",
+            time_unit: timeUnit,
             time: selectedCount,
             editor_type:
               modalType === "File"
@@ -809,25 +798,7 @@ const StepChartUpcoming = ({
             title: selectedValue,
             count1: selectedCount || 0,
             count2: selectedCount || 0,
-            time_unit:
-              meeting?.type === "Action1" ||
-              meeting?.type === "Newsletter" ||
-              meeting?.type === "Strategy" ||
-              meeting?.type === "Absence" ||
-              meeting?.type === "Sprint"
-                ? "days"
-                : meeting?.type === "Task" ||
-                  meeting?.type === "Prestation Client"
-                  ? "hours"
-                  : meeting?.type === "Quiz"
-                    ? "seconds"
-                    : meeting?.type === "Special" ||
-                      meeting?.type === "Social Media Newsletter" ||
-                      meeting?.type === "AI Social Media Newsletter" ||
-                      meeting?.location === "LinkedIn" ||
-                      step?.location === "LinkedIn"
-                      ? timeUnit
-                      : "minutes",
+            time_unit: timeUnit,
             time: selectedCount || 0,
             editor_type:
               modalType === "File"
@@ -1054,25 +1025,7 @@ const StepChartUpcoming = ({
                 title: selectedValue || "",
                 count1: count2 || 0,
                 count2: count2 || 0,
-                time_unit:
-                  meeting?.type === "Action1" ||
-                  meeting?.type === "Newsletter" ||
-                  meeting?.type === "Strategy" ||
-                  meeting?.type === "Absence" ||
-                  meeting?.type === "Sprint"
-                    ? "days"
-                    : meeting?.type === "Task" ||
-                      meeting?.type === "Prestation Client"
-                      ? "hours"
-                      : meeting?.type === "Quiz"
-                        ? "seconds"
-                        : meeting?.type === "Special" ||
-                          meeting?.type === "Social Media Newsletter" ||
-                          meeting?.type === "AI Social Media Newsletter" ||
-                          meeting?.location === "LinkedIn" ||
-                          step?.location === "LinkedIn"
-                          ? timeUnit
-                          : "minutes",
+                time_unit: timeUnit,
                 time: count2,
                 editor_type:
                   modalType === "File"
@@ -1157,25 +1110,7 @@ const StepChartUpcoming = ({
                 title: selectedValue,
                 count1: count2 || 0,
                 count2: count2 || 0,
-                time_unit:
-                  meeting?.type === "Action1" ||
-                  meeting?.type === "Newsletter" ||
-                  meeting?.type === "Strategy" ||
-                  meeting?.type === "Absence" ||
-                  meeting?.type === "Sprint"
-                    ? "days"
-                    : meeting?.type === "Task" ||
-                      meeting?.type === "Prestation Client"
-                      ? "hours"
-                      : meeting?.type === "Quiz"
-                        ? "seconds"
-                        : meeting?.type === "Special" ||
-                          meeting?.type === "Social Media Newsletter" ||
-                          meeting?.type === "AI Social Media Newsletter" ||
-                          meeting?.location === "LinkedIn" ||
-                          step?.location === "LinkedIn"
-                          ? timeUnit
-                          : "minutes",
+                time_unit: timeUnit,
                 time: count2,
                 editor_type:
                   modalType === "File"
@@ -1668,22 +1603,7 @@ const StepChartUpcoming = ({
         count2: selectedCount,
         order_no: selectedOrder || 1,
 
-        time_unit:
-          meeting?.type === "Action1" ||
-          meeting?.type === "Newsletter" ||
-          meeting?.type === "Strategy" ||
-          meeting?.type === "Absence" ||
-          meeting?.type === "Sprint"
-            ? "days"
-            : meeting?.type === "Task" || meeting?.type === "Prestation Client"
-              ? "hours"
-              : meeting?.type === "Quiz"
-                ? "seconds"
-                : meeting?.type === "Special" ||
-                  meeting?.type === "Social Media Newsletter" ||
-                  meeting?.type === "AI Social Media Newsletter" 
-                  ? timeUnit
-                  : "minutes",
+        time_unit: timeUnit,
         time: selectedCount,
         editor_type: meeting?.type === "Newsletter" ? "Email" : modalType,
         editor_content:
@@ -1893,23 +1813,7 @@ const StepChartUpcoming = ({
           title: selectedValue,
           count1: selectedCount || 0,
           count2: selectedCount,
-          time_unit:
-            meeting?.type === "Action1" ||
-            meeting?.type === "Newsletter" ||
-            meeting?.type === "Strategy" ||
-            meeting?.type === "Absence" ||
-            meeting?.type === "Sprint"
-              ? "days"
-              : meeting?.type === "Task" ||
-                meeting?.type === "Prestation Client"
-                ? "hours"
-                : meeting?.type === "Quiz"
-                  ? "seconds"
-                  : meeting?.type === "Special" ||
-                    meeting?.type === "Social Media Newsletter" ||
-                    meeting?.type === "AI Social Media Newsletter" 
-                    ? timeUnit
-                    : "minutes",
+          time_unit: timeUnit,
 
           time: selectedCount,
           // editor_type: modalType,
@@ -1980,7 +1884,7 @@ const StepChartUpcoming = ({
             meeting?.agenda === "Outlook Agenda"
               ? true
               : false,
-          ...(isAiFormUpdated ? { update_editor: false } : {}),
+          ...(isAiFormUpdated ? { update_editor: false } : {update_editor : true}),
 
         };
         setIsValidate(true);
@@ -2223,24 +2127,7 @@ const StepChartUpcoming = ({
         title: selectedValue,
         count1: selectedCount,
         count2: selectedCount,
-        time_unit:
-          meeting?.type === "Action1" ||
-          meeting?.type === "Newsletter" ||
-          meeting?.type === "Strategy" ||
-          meeting?.type === "Absence" ||
-          meeting?.type === "Sprint"
-            ? "days"
-            : meeting?.type === "Task" || meeting?.type === "Prestation Client"
-              ? "hours"
-              : meeting?.type === "Quiz"
-                ? "seconds"
-                : meeting?.type === "Special" ||
-                  meeting?.type === "Social Media Newsletter" ||
-                  meeting?.type === "AI Social Media Newsletter" ||
-                  meeting?.location === "LinkedIn" ||
-                  step?.location === "LinkedIn"
-                  ? timeUnit
-                  : "minutes",
+        time_unit: timeUnit,
         time: selectedCount,
         editor_type: meeting?.type === "Newsletter" ? "Email" : modalType,
         editor_content:
@@ -2333,23 +2220,7 @@ const StepChartUpcoming = ({
           title: selectedValue,
           count1: selectedCount || 0,
           count2: selectedCount,
-          time_unit:
-            meeting?.type === "Action1" ||
-            meeting?.type === "Newsletter" ||
-            meeting?.type === "Strategy" ||
-            meeting?.type === "Absence" ||
-            meeting?.type === "Sprint"
-              ? "days"
-              : meeting?.type === "Task" ||
-                meeting?.type === "Prestation Client"
-                ? "hours"
-                : meeting?.type === "Quiz"
-                  ? "seconds"
-                  : meeting?.type === "Special" ||
-                    meeting?.type === "Social Media Newsletter" ||
-                    meeting?.type === "AI Social Media Newsletter" 
-                    ? timeUnit
-                    : "minutes",
+          time_unit: timeUnit,
           time: selectedCount,
           // editor_type: modalType,
           editor_type: meeting?.type === "Newsletter" ? "Email" : modalType,
@@ -2570,7 +2441,27 @@ const getStep = async () => {
           setOrderNo(stepData?.order_no);
           setUser(response.data?.data?.participant);
           setTeam(response.data?.data?.assigned_team);
-          setTimeUnit(stepData?.time_unit);
+          let initialUnit = stepData?.time_unit;
+          if (!initialUnit) {
+            if (meeting?.type === "Action1" ||
+                meeting?.type === "Newsletter" ||
+                meeting?.type === "Strategy" ||
+                meeting?.type === "Sprint") {
+              initialUnit = "days";
+            } else if (meeting?.type === "Task" ||
+                       meeting?.type === "Prestation Client") {
+              initialUnit = "hours";
+            } else if (meeting?.type === "Quiz") {
+              initialUnit = "seconds";
+            } else {
+              initialUnit = "minutes";
+            }
+          }
+          if (initialUnit === "day") initialUnit = "days";
+          if (initialUnit === "hour") initialUnit = "hours";
+          if (initialUnit === "second" || initialUnit === "sec") initialUnit = "seconds";
+          if (initialUnit === "min") initialUnit = "minutes";
+          setTimeUnit(initialUnit);
           setFileName(stepData?.linkedin_media || stepData?.file);
           setStepMedia(stepData?.media || []);
           if (stepData?.editor_type === "Excel") {
@@ -3249,21 +3140,9 @@ const getStep = async () => {
                               )}
 
                               <div className="ms-1" style={{ fontSize: "11px", fontWeight: "500" }}>
-                                {meeting?.type === "Action1" ||
-                                meeting?.type === "Newsletter" ||
-                                meeting?.type === "Strategy" ||
-                                meeting?.type === "Absence" ? (
-                                  <span className="badge bg-light text-dark border px-2 py-1" style={{ fontSize: "11px" }}>{t("days")}</span>
-                                ) : meeting?.type === "Task" ||
-                                  meeting?.type === "Prestation Client" ? (
-                                  <span className="badge bg-light text-dark border px-2 py-1" style={{ fontSize: "11px" }}>{t("hour")}</span>
-                                ) : meeting?.type === "Sprint" ? (
+                                {meeting?.type === "Sprint" ? (
                                   <span className="badge bg-light text-dark border px-2 py-1" style={{ fontSize: "11px" }}>{t("Story point")}</span>
-                                ) : meeting?.type === "Quiz" ? (
-                                  <span className="badge bg-light text-dark border px-2 py-1" style={{ fontSize: "11px" }}>{t("sec")}</span>
-                                ) : meeting?.type === "Special" ||
-                                  meeting?.type === "Social Media Newsletter" ||
-                                  meeting?.type === "AI Social Media Newsletter" ? (
+                                ) : (
                                   <select
                                     className="form-select form-select-sm"
                                     value={timeUnit}
@@ -3281,12 +3160,11 @@ const getStep = async () => {
                                       display: "inline-block",
                                     }}
                                   >
-                                    <option value="minutes">{t("time_unit.minutes") || "min"}</option>
-                                    <option value="hours">{t("time_unit.hours") || "h"}</option>
-                                    <option value="days">{t("time_unit.days") || "j"}</option>
+                                    <option value="minutes">{t("time_unit.minutes") || "mins"}</option>
+                                    <option value="seconds">{t("time_unit.seconds") || "secs"}</option>
+                                    <option value="hours">{t("time_unit.hours") || "hours"}</option>
+                                    <option value="days">{t("time_unit.days") || "days"}</option>
                                   </select>
-                                ) : (
-                                  <span className="badge bg-light text-dark border px-2 py-1" style={{ fontSize: "11px" }}>mins</span>
                                 )}
                               </div>
                             </div>
@@ -4458,20 +4336,15 @@ const getStep = async () => {
                         <div className="col-md-5 p-4" style={{ backgroundColor: "#F2F4FB" }}>
                           {!isUpload ? (
                             <>
-                              <div
-                                className="d-flex align-items-center gap-4 w-100"
-                              >
+                              {(step?.generate_ai_media == 1 || step?.generate_ai_media === true) ? (
                                 <div
-                                  {...getRootProps()}
                                   style={{
                                     border: "1px dashed #BAC3D4",
                                     padding: "20px",
                                     width: "100%",
                                     borderRadius: "12px",
-                                    outline: "none",
                                     margin: "0 auto",
-                                    height: fileName ? "auto" : "250px",
-                                    cursor: "pointer",
+                                    height: "250px",
                                     display: "flex",
                                     flexDirection: "column",
                                     alignItems: "center",
@@ -4479,20 +4352,52 @@ const getStep = async () => {
                                     backgroundColor: "#fff",
                                   }}
                                 >
-                                  <input {...getInputProps()} />
                                   <div style={{ textAlign: "center" }}>
+                                    <HiOutlineSparkles size={40} style={{ color: "#0026B1", marginBottom: "12px" }} />
                                     <p className="upload-container" style={{ margin: 0 }}>
-                                      <span className="upload-text" style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>
-                                        Drag and drop media here
-                                      </span>
-                                      <span className="upload-or" style={{ display: "block", margin: "4px 0", color: "#98A2B3" }}>OR</span>
-                                      <span className="browse-button" style={{ display: "inline-block", padding: "6px 12px", background: "#E6F0FA", color: "#0026B1", borderRadius: "20px", fontWeight: "600", fontSize: "14px" }}>
-                                        Browse
+                                      <span className="upload-text" style={{ display: "block", fontWeight: "600", color: "#344054", fontSize: "15px" }}>
+                                        {t("stepModal.mediaGeneratedAI") || "Media will be generated through AI"}
                                       </span>
                                     </p>
                                   </div>
                                 </div>
-                              </div>
+                              ) : (
+                                <div
+                                  className="d-flex align-items-center gap-4 w-100"
+                                >
+                                  <div
+                                    {...getRootProps()}
+                                    style={{
+                                      border: "1px dashed #BAC3D4",
+                                      padding: "20px",
+                                      width: "100%",
+                                      borderRadius: "12px",
+                                      outline: "none",
+                                      margin: "0 auto",
+                                      height: fileName ? "auto" : "250px",
+                                      cursor: "pointer",
+                                      display: "flex",
+                                      flexDirection: "column",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      backgroundColor: "#fff",
+                                    }}
+                                  >
+                                    <input {...getInputProps()} />
+                                    <div style={{ textAlign: "center" }}>
+                                      <p className="upload-container" style={{ margin: 0 }}>
+                                        <span className="upload-text" style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>
+                                          Drag and drop media here
+                                        </span>
+                                        <span className="upload-or" style={{ display: "block", margin: "4px 0", color: "#98A2B3" }}>OR</span>
+                                        <span className="browse-button" style={{ display: "inline-block", padding: "6px 12px", background: "#E6F0FA", color: "#0026B1", borderRadius: "20px", fontWeight: "600", fontSize: "14px" }}>
+                                          Browse
+                                        </span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                                                             {/* --- Saved Media Gallery from API --- */}
                               {stepMedia.length > 0 && (
                                 <div

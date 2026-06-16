@@ -1454,6 +1454,10 @@
     "New Strategy": "New Strategy",
     "No Participants Added": "No Participants Added",
     "Save Strategy": "Validate",
+    "Saving...": "Saving...",
+    "Deleting...": "Deleting...",
+    "Action deleted successfully": "Action deleted successfully",
+    "Failed to delete action": "Failed to delete action",
     "Step": "Modification",
     "Notes": "Notes",
     "Strategy": "Strategy",
@@ -2303,7 +2307,10 @@
     "aiInstruction": "AI Instruction",
     "aiInstructionPrompt": "Instruction / Prompt",
     "aiInstructionPromptPlaceholder": "Write the AI prompt or instructions here...",
-    "mediaInstruction": "Media / Instruction"
+    "mediaInstruction": "Media / Instruction",
+    "aiImageGeneration": "AI Image Generation",
+    "aiImageGenerationPlaceholder": "Enable automatic image generation for this step",
+    "mediaGeneratedAI": "Media will be generated through AI"
   },
   "invities": {
     "client_name": "Organisation / Name",

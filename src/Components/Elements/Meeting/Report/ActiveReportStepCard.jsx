@@ -192,7 +192,7 @@ const ActiveReportStepCard = ({
   const toggleDropdown = (e) => {
     if (e && e.stopPropagation) e.stopPropagation();
     if (data?.step_status === "in_progress") return;
-    if (data?.step_status === "completed" || data?.step_status === null) {
+    if (isClosed || data?.step_status === null) {
       setDropdownVisible((prev) => !prev);
     }
   };
@@ -698,121 +698,227 @@ const ActiveReportStepCard = ({
                 // </OverlayTrigger>
               )}
             </div>
-            <Card.Text className="step-card-content d-flex align-items-center flex-wrap gap-2">
-              <span className="d-flex align-items-center gap-2">
-                {meeting?.newsletter_guide ? (
-                  <>
-                    {meeting?.newsletter_guide?.logo ? (
-                      <img
-                        height="24px"
-                        width="24px"
-                        style={{
-                          borderRadius: "20px",
-                          objectFit: "cover",
-                          objectPosition: "top",
-                        }}
-                        src={
-                          meeting?.newsletter_guide?.logo.startsWith("http")
-                            ? meeting?.newsletter_guide?.logo
-                            : `${Assets_URL}/${meeting?.newsletter_guide?.logo}`
-                        }
-                        alt={meeting?.newsletter_guide?.name}
-                      />
+            <Card.Text className={`step-card-content d-flex ${meeting?.type === "Calendly" ? "flex-column align-items-start gap-1" : "align-items-center flex-wrap gap-2"}`}>
+              {meeting?.type === "Calendly" ? (
+                <>
+                  <span className="d-flex align-items-center gap-2">
+                    {meeting?.newsletter_guide ? (
+                      <>
+                        {meeting?.newsletter_guide?.logo ? (
+                          <img
+                            height="24px"
+                            width="24px"
+                            style={{
+                              borderRadius: "20px",
+                              objectFit: "cover",
+                              objectPosition: "top",
+                            }}
+                            src={
+                              meeting?.newsletter_guide?.logo.startsWith("http")
+                                ? meeting?.newsletter_guide?.logo
+                                : `${Assets_URL}/${meeting?.newsletter_guide?.logo}`
+                            }
+                            alt={meeting?.newsletter_guide?.name}
+                          />
+                        ) : (
+                          <HiUserCircle size={24} />
+                        )}
+                        <span>{meeting?.newsletter_guide?.name}</span>
+                      </>
                     ) : (
-                      <HiUserCircle size={24} />
+                      <>
+                        {data?.assigned_to_image ? (
+                          <img
+                            height="24px"
+                            width="24px"
+                            style={{
+                              borderRadius: "20px",
+                              objectFit: "cover",
+                              objectPosition: "top",
+                            }}
+                            src={
+                              data?.assigned_to_image?.startsWith("users/")
+                                ? `${Assets_URL}/${data?.assigned_to_image}`
+                                : data?.assigned_to_image
+                            }
+                            alt="Assignee"
+                          />
+                        ) : (
+                          <img
+                            height="24px"
+                            width="24px"
+                            style={{
+                              borderRadius: "20px",
+                              objectFit: "cover",
+                              objectPosition: "top",
+                            }}
+                            src={
+                              users?.image?.startsWith("users/")
+                                ? `${Assets_URL}/${users?.image}`
+                                : users?.image
+                            }
+                            alt="Assignee"
+                          />
+                        )}
+                        <span>
+                          {data?.assigned_to_name ||
+                            `${users?.firstName} ${users?.lastName}`}
+                        </span>
+                      </>
                     )}
-                    <span>{meeting?.newsletter_guide?.name}</span>
-                  </>
-                ) : (
-                  <>
-                    {data?.assigned_to_image ? (
-                      <img
-                        height="24px"
-                        width="24px"
-                        style={{
-                          borderRadius: "20px",
-                          objectFit: "cover",
-                          objectPosition: "top",
-                        }}
-                        src={
-                          data?.assigned_to_image?.startsWith("users/")
-                            ? `${Assets_URL}/${data?.assigned_to_image}`
-                            : data?.assigned_to_image
-                        }
-                        alt="Assignee"
-                      />
-                    ) : (
-                      <img
-                        height="24px"
-                        width="24px"
-                        style={{
-                          borderRadius: "20px",
-                          objectFit: "cover",
-                          objectPosition: "top",
-                        }}
-                        src={
-                          users?.image?.startsWith("users/")
-                            ? `${Assets_URL}/${users?.image}`
-                            : users?.image
-                        }
-                        alt="Assignee"
-                      />
-                    )}
+                  </span>
+                  <div className="w-100 mt-1 d-flex align-items-center gap-2">
+                    <img
+                      height="16px"
+                      width="16px"
+                      src="/Assets/alarm-invite.svg"
+                      alt="Duration"
+                    />
+                    <strong>Duréee : </strong>
                     <span>
-                      {data?.assigned_to_name ||
-                        `${users?.firstName} ${users?.lastName}`}
+                      {data?.step_status === null || data?.step_status === "todo" || data?.step_status === "no_status"
+                        ? data?.count2 +
+                          " " +
+                          getTimeUnitDisplay(
+                            data?.count2,
+                            data?.time_unit,
+                            t,
+                            meeting?.type,
+                          )
+                        : data?.step_status === "to_finish"
+                          ? formatPauseTime(data?.work_time, t)
+                          : localizeTimeTakenActive(
+                              data?.time_taken?.replace("-", ""),
+                            )}
                     </span>
-                  </>
-                )}
-              </span>
-              <span className="d-flex align-items-center gap-2">
-                <img
-                  height="16px"
-                  width="16px"
-                  src="/Assets/ion_time-outline.svg"
-                  alt="Time"
-                />
-                {data?.time_unit === "days" ? (
-                  <span>
-                    {formatStepDate(
-                      data?.start_date,
-                      data?.step_time,
-                      meeting?.timezone,
+                  </div>
+                </>
+              ) : (
+                <>
+                  <span className="d-flex align-items-center gap-2">
+                    {meeting?.newsletter_guide ? (
+                      <>
+                        {meeting?.newsletter_guide?.logo ? (
+                          <img
+                            height="24px"
+                            width="24px"
+                            style={{
+                              borderRadius: "20px",
+                              objectFit: "cover",
+                              objectPosition: "top",
+                            }}
+                            src={
+                              meeting?.newsletter_guide?.logo.startsWith("http")
+                                ? meeting?.newsletter_guide?.logo
+                                : `${Assets_URL}/${meeting?.newsletter_guide?.logo}`
+                            }
+                            alt={meeting?.newsletter_guide?.name}
+                          />
+                        ) : (
+                          <HiUserCircle size={24} />
+                        )}
+                        <span>{meeting?.newsletter_guide?.name}</span>
+                      </>
+                    ) : (
+                      <>
+                        {data?.assigned_to_image ? (
+                          <img
+                            height="24px"
+                            width="24px"
+                            style={{
+                              borderRadius: "20px",
+                              objectFit: "cover",
+                              objectPosition: "top",
+                            }}
+                            src={
+                              data?.assigned_to_image?.startsWith("users/")
+                                ? `${Assets_URL}/${data?.assigned_to_image}`
+                                : data?.assigned_to_image
+                            }
+                            alt="Assignee"
+                          />
+                        ) : (
+                          <img
+                            height="24px"
+                            width="24px"
+                            style={{
+                              borderRadius: "20px",
+                              objectFit: "cover",
+                              objectPosition: "top",
+                            }}
+                            src={
+                              users?.image?.startsWith("users/")
+                                ? `${Assets_URL}/${users?.image}`
+                                : users?.image
+                            }
+                            alt="Assignee"
+                          />
+                        )}
+                        <span>
+                          {data?.assigned_to_name ||
+                            `${users?.firstName} ${users?.lastName}`}
+                        </span>
+                      </>
                     )}
                   </span>
-                ) : (
-                  <span>
-                    {formatStepDate(
-                      data?.start_date,
-                      data?.step_time,
-                      meeting?.timezone,
-                    )}{" "}
-                    {t("at")}{" "}
-                    {convertTo24HourFormat(
-                      data?.step_time,
-                      data?.start_date,
-                      data?.time_unit,
-                      meeting?.timezone,
+                  <span className="d-flex align-items-center gap-2">
+                    <img
+                      height="16px"
+                      width="16px"
+                      src="/Assets/ion_time-outline.svg"
+                      alt="Time"
+                    />
+                    {data?.time_unit === "days" ? (
+                      <span>
+                        {formatStepDate(
+                          data?.start_date,
+                          data?.step_time,
+                          meeting?.timezone,
+                        )}
+                      </span>
+                    ) : (
+                      <span>
+                        {formatStepDate(
+                          data?.start_date,
+                          data?.step_time,
+                          meeting?.timezone,
+                        )}{" "}
+                        {t("at")}{" "}
+                        {convertTo24HourFormat(
+                          data?.step_time,
+                          data?.start_date,
+                          data?.time_unit,
+                          meeting?.timezone,
+                        )}
+                      </span>
                     )}
                   </span>
-                )}
-              </span>
-              <span>
-                {data?.step_status === null || data?.step_status === "todo"
-                  ? data?.count2 +
-                    " " +
-                    getTimeUnitDisplay(
-                      data?.count2,
-                      data?.time_unit,
-                      t,
-                      meeting?.type, // pass meeting type
-                    )
-                  : data?.step_status === "to_finish"
-                    ? formatPauseTime(data?.work_time, t)
-                    : localizeTimeTakenActive(
-                        data?.time_taken?.replace("-", ""),
-                      )}
-              </span>
+                  <span className="d-flex align-items-center gap-2">
+                    <img
+                      height="16px"
+                      width="16px"
+                      src="/Assets/alarm-invite.svg"
+                      alt="Duration"
+                    />
+                    <span>
+                      {data?.step_status === null || data?.step_status === "todo"
+                        ? data?.count2 +
+                          " " +
+                          getTimeUnitDisplay(
+                            data?.count2,
+                            data?.time_unit,
+                            t,
+                            meeting?.type,
+                          )
+                        : data?.step_status === "to_finish"
+                          ? formatPauseTime(data?.work_time, t)
+                          : localizeTimeTakenActive(
+                              data?.time_taken?.replace("-", ""),
+                            )}
+                    </span>
+                  </span>
+                </>
+              )}
             </Card.Text>
             {renderActionButton()}
             {dropdownVisible &&
@@ -856,40 +962,65 @@ const ActiveReportStepCard = ({
               {data?.assigned_to_name ||
                 `${users?.firstName} ${users?.lastName}`}
             </span>
+            {meeting?.type !== "Calendly" && (
+              <span>
+                {t("Date")}:{" "}
+                {formatStepDate(
+                  data?.start_date,
+                  data?.step_time,
+                  meeting?.timezone,
+                )}
+                {data?.time_unit !== "days" && (
+                  <>
+                    {" "}
+                    {t("at")}{" "}
+                    {convertTo24HourFormat(
+                      data?.step_time,
+                      data?.start_date,
+                      data?.time_unit,
+                      meeting?.timezone,
+                    )}
+                  </>
+                )}
+              </span>
+            )}
             <span>
-              {t("Date")}:{" "}
-              {formatStepDate(
-                data?.start_date,
-                data?.step_time,
-                meeting?.timezone,
-              )}
-              {data?.time_unit !== "days" && (
+              {meeting?.type === "Calendly" ? (
                 <>
-                  {" "}
-                  {t("at")}{" "}
-                  {convertTo24HourFormat(
-                    data?.step_time,
-                    data?.start_date,
-                    data?.time_unit,
-                    meeting?.timezone,
-                  )}
+                  <strong>Duréee : </strong>
+                  {data?.step_status === null || data?.step_status === "todo" || data?.step_status === "no_status"
+                    ? data?.count2 +
+                      " " +
+                      getTimeUnitDisplay(
+                        data?.count2,
+                        data?.time_unit,
+                        t,
+                        meeting?.type,
+                      )
+                    : data?.step_status === "to_finish"
+                      ? formatPauseTime(data?.work_time, t)
+                      : localizeTimeTakenActive(
+                          data?.time_taken?.replace("-", ""),
+                        )}
+                </>
+              ) : (
+                <>
+                  {t("Time Taken")}: {data?.step_status === null || data?.step_status === "todo"
+                    ? data?.count2 +
+                      " " +
+                      getTimeUnitDisplay(
+                        data?.count2,
+                        data?.time_unit,
+                        t,
+                        meeting?.type,
+                      )
+                    : data?.step_status === "to_finish"
+                      ? formatPauseTime(data?.work_time, t)
+                      : localizeTimeTakenActive(
+                          data?.time_taken?.replace("-", ""),
+                        )}
                 </>
               )}
-            </span>
-            <span>
-              {t("Time Taken")}:
-              {data?.step_status === null || data?.step_status === "todo"
-                ? data?.count2 +
-                  " " +
-                  getTimeUnitDisplay(
-                    data?.count2,
-                    data?.time_unit,
-                    t,
-                    meeting?.type,
-                  )
-                : data?.step_status === "to_finish"
-                  ? formatPauseTime(data?.work_time, t)
-                  : localizeTimeTakenActive(data?.time_taken?.replace("-", ""))}
             </span>
             {/* <OverlayTrigger
               placement="top"

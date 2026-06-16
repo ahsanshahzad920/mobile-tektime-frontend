@@ -11,7 +11,7 @@ import { FaRegFileAudio } from "react-icons/fa";
 import Spreadsheet from "react-spreadsheet";
 import axios from "axios";
 import { read, utils } from "xlsx";
-import { convertTo24HourFormat, formatStepDate } from "../../Utils/MeetingFunctions";
+import { convertTo24HourFormat, formatStepDate, getTimeUnitDisplay, formatPauseTime } from "../../Utils/MeetingFunctions";
 import ReportMediaGallery from "./Report/ReportMediaGallery";
 // import "./ReportStepCard.scss";
 
@@ -396,62 +396,128 @@ const ReportStepCard = ({ item, index, startTime, users, meeting, isTranscribing
                 />
               {/* </OverlayTrigger> */}
             </div>
-            <Card.Text className="step-card-content d-flex align-items-center flex-wrap gap-2">
-              <span className="d-flex align-items-center gap-2">
-                {meeting?.newsletter_guide ? (
-                  <>
-                    {meeting?.newsletter_guide?.logo ? (
-                      <img
-                        height="24px"
-                        width="24px"
-                        style={{ borderRadius: "20px", objectFit: "cover", objectPosition: "top" }}
-                        src={meeting?.newsletter_guide?.logo.startsWith('http') ? meeting?.newsletter_guide?.logo : `${Assets_URL}/${meeting?.newsletter_guide?.logo}`}
-                        alt={meeting?.newsletter_guide?.name}
-                      />
+            <Card.Text className={`step-card-content d-flex ${meeting?.type === "Calendly" ? "flex-column align-items-start gap-1" : "align-items-center flex-wrap gap-2"}`}>
+              {meeting?.type === "Calendly" ? (
+                <>
+                  <span className="d-flex align-items-center gap-2">
+                    {meeting?.newsletter_guide ? (
+                      <>
+                        {meeting?.newsletter_guide?.logo ? (
+                          <img
+                            height="24px"
+                            width="24px"
+                            style={{ borderRadius: "20px", objectFit: "cover", objectPosition: "top" }}
+                            src={meeting?.newsletter_guide?.logo.startsWith('http') ? meeting?.newsletter_guide?.logo : `${Assets_URL}/${meeting?.newsletter_guide?.logo}`}
+                            alt={meeting?.newsletter_guide?.name}
+                          />
+                        ) : (
+                          <HiUserCircle size={24} />
+                        )}
+                        <span>{meeting?.newsletter_guide?.name}</span>
+                      </>
                     ) : (
-                      <HiUserCircle size={24} />
+                      <>
+                        <img
+                          height="24px"
+                          width="24px"
+                          style={{ borderRadius: "20px", objectFit: "cover", objectPosition: "top" }}
+                          src={
+                            item?.assigned_to_image?.startsWith("https") 
+                              ? item?.assigned_to_image
+                              : `${Assets_URL}/${item?.assigned_to_image}`
+                          }
+                          alt="Assignee"
+                        />
+                        <span>{item?.assigned_to_name || `${users?.firstName} ${users?.lastName}`}</span>
+                      </>
                     )}
-                    <span>{meeting?.newsletter_guide?.name}</span>
-                  </>
-                ) : (
-                  <>
-                    <img
-                      height="24px"
-                      width="24px"
-                      style={{ borderRadius: "20px", objectFit: "cover", objectPosition: "top" }}
-                      src={
-                        item?.assigned_to_image?.startsWith("https") 
-                          ? item?.assigned_to_image
-                          : `${Assets_URL}/${item?.assigned_to_image}`
-                      }
-                      alt="Assignee"
-                    />
-                    <span>{item?.assigned_to_name || `${users?.firstName} ${users?.lastName}`}</span>
-                  </>
-                )}
-              </span>
-              <span className="d-flex align-items-center gap-2">
-                <img height="16px" width="16px" src="/Assets/ion_time-outline.svg" alt="Time" />
-                {item.time_unit === "days" ? (
-                  <span>{formatStepDate(item?.start_date, item?.step_time, meeting?.timezone)}</span>
-                ) : (
-                  <span>
-                    {formatStepDate(item?.start_date, item?.step_time, meeting?.timezone)} {t("at")} {convertTo24HourFormat(item?.step_time, item?.start_date, item?.time_unit, meeting?.timezone)}
                   </span>
-                )}
-              </span>
-              <span>
-             {item.time_taken === "0 sec"
-  ? item.step_time || "0 sec"
-  : localizeTimeTakenActive(item?.time_taken?.replace("-", "")) +
-    (item?.time_taken ? " / " : " ") +
-    (
-      (item?.editor_type === "Story" && item?.time_unit === "days") 
-        ? item.count2 + " " + (item.count2 > 1 ? "Story Points" : "Story Point")
-        : item.count2 + " " + t(`time_unit.${item.time_unit}`)
-    )
-}
-              </span>
+                  <div className="w-100 mt-1 d-flex align-items-center gap-2">
+                    <img
+                      height="16px"
+                      width="16px"
+                      src="/Assets/alarm-invite.svg"
+                      alt="Duration"
+                    />
+                    <strong>Duréee : </strong>
+                    <span>
+                      {item?.step_status === null ||
+                      item?.step_status === "todo" ||
+                      item?.step_status === "no_status"
+                        ? item.count2 +
+                          " " +
+                          `${getTimeUnitDisplay(
+                            item?.count2,
+                            item?.time_unit,
+                            t,
+                            meeting?.type
+                          )}`
+                        : item?.step_status === "to_finish"
+                        ? formatPauseTime(item?.work_time, t)
+                        : localizeTimeTakenActive(
+                            item?.time_taken?.replace("-", "")
+                          )}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <span className="d-flex align-items-center gap-2">
+                    {meeting?.newsletter_guide ? (
+                      <>
+                        {meeting?.newsletter_guide?.logo ? (
+                          <img
+                            height="24px"
+                            width="24px"
+                            style={{ borderRadius: "20px", objectFit: "cover", objectPosition: "top" }}
+                            src={meeting?.newsletter_guide?.logo.startsWith('http') ? meeting?.newsletter_guide?.logo : `${Assets_URL}/${meeting?.newsletter_guide?.logo}`}
+                            alt={meeting?.newsletter_guide?.name}
+                          />
+                        ) : (
+                          <HiUserCircle size={24} />
+                        )}
+                        <span>{meeting?.newsletter_guide?.name}</span>
+                      </>
+                    ) : (
+                      <>
+                        <img
+                          height="24px"
+                          width="24px"
+                          style={{ borderRadius: "20px", objectFit: "cover", objectPosition: "top" }}
+                          src={
+                            item?.assigned_to_image?.startsWith("https") 
+                              ? item?.assigned_to_image
+                              : `${Assets_URL}/${item?.assigned_to_image}`
+                          }
+                          alt="Assignee"
+                        />
+                        <span>{item?.assigned_to_name || `${users?.firstName} ${users?.lastName}`}</span>
+                      </>
+                    )}
+                  </span>
+                  <span className="d-flex align-items-center gap-2">
+                    <img height="16px" width="16px" src="/Assets/ion_time-outline.svg" alt="Time" />
+                    {item.time_unit === "days" ? (
+                      <span>{formatStepDate(item?.start_date, item?.step_time, meeting?.timezone)}</span>
+                    ) : (
+                      <span>
+                        {formatStepDate(item?.start_date, item?.step_time, meeting?.timezone)} {t("at")} {convertTo24HourFormat(item?.step_time, item?.start_date, item?.time_unit, meeting?.timezone)}
+                      </span>
+                    )}
+                  </span>
+                  <span>
+                    {item.time_taken === "0 sec"
+                      ? item.step_time || "0 sec"
+                      : localizeTimeTakenActive(item?.time_taken?.replace("-", "")) +
+                        (item?.time_taken ? " / " : " ") +
+                        (
+                          (item?.editor_type === "Story" && item?.time_unit === "days") 
+                            ? item.count2 + " " + (item.count2 > 1 ? "Story Points" : "Story Point")
+                            : item.count2 + " " + t(`time_unit.${item.time_unit}`)
+                        )}
+                  </span>
+                </>
+              )}
             </Card.Text>
             {dropdownVisible && (
               <div className="dropdown-content-1 fade" ref={dropdownRef} style={{ display: "none" }}>
@@ -487,22 +553,48 @@ const ReportStepCard = ({ item, index, startTime, users, meeting, isTranscribing
           <h5 className="mb-0">          {item?.order_no}. &nbsp; {item.title}</h5>
           <div className="steps-meta">
             <span>{t("Assignee")}: {item?.assigned_to_name || `${users?.firstName} ${users?.lastName}`}</span>
+            {meeting?.type !== "Calendly" && (
+              <span>
+                {t("Date")}: {formatStepDate(item?.start_date, item?.step_time, meeting?.timezone)}
+                {item.time_unit !== "days" && (
+                  <> {t("at")} {convertTo24HourFormat(item?.step_time, item?.start_date, item?.time_unit, meeting?.timezone)}</>
+                )}
+              </span>
+            )}
             <span>
-              {t("Date")}: {formatStepDate(item?.start_date, item?.step_time, meeting?.timezone)}
-              {item.time_unit !== "days" && (
-                <> {t("at")} {convertTo24HourFormat(item?.step_time, item?.start_date, item?.time_unit, meeting?.timezone)}</>
+              {meeting?.type === "Calendly" ? (
+                <>
+                  <strong>Duréee : </strong>
+                  {item?.step_status === null ||
+                  item?.step_status === "todo" ||
+                  item?.step_status === "no_status"
+                    ? item.count2 +
+                      " " +
+                      `${getTimeUnitDisplay(
+                        item?.count2,
+                        item?.time_unit,
+                        t,
+                        meeting?.type
+                      )}`
+                    : item?.step_status === "to_finish"
+                    ? formatPauseTime(item?.work_time, t)
+                    : localizeTimeTakenActive(
+                        item?.time_taken?.replace("-", "")
+                      )}
+                </>
+              ) : (
+                <>
+                  {t("Time Taken")}: {item.time_taken === "0 sec"
+                    ? item.step_time || "0 sec"
+                    : localizeTimeTakenActive(item?.time_taken?.replace("-", "")) +
+                      (item?.time_taken ? " / " : " ") +
+                      (
+                        (item?.editor_type === "Story" && item?.time_unit === "days")
+                          ? item.count2 + " " + (item.count2 > 1 ? "Story Points" : "Story Point")
+                          : item.count2 + " " + t(`time_unit.${item.time_unit}`)
+                      )}
+                </>
               )}
-            </span>
-            <span>
-              {t("Time Taken")}: {item.time_taken === "0 sec"
-                ? item.step_time || "0 sec"
-                : localizeTimeTakenActive(item?.time_taken?.replace("-", "")) +
-                  (item?.time_taken ? " / " : " ") +
-                  (
-                    (item?.editor_type === "Story" && item?.time_unit === "days")
-                      ? item.count2 + " " + (item.count2 > 1 ? "Story Points" : "Story Point")
-                      : item.count2 + " " + t(`time_unit.${item.time_unit}`)
-                  )}
             </span>
             <OverlayTrigger
               placement="top"

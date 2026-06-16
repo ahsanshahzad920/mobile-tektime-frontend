@@ -2098,7 +2098,7 @@ const QuickMomentForm = ({
       timezone: userTimezone,
       status: "active",
       team_ids: (formState.teams || []).map((t) => t.id).filter((id) => id),
-      ...(meeting?.id ? { _method: "put", update_editor: true } : {}),
+      ...(meeting?.id ? { _method: "put", update_editor: false } : {}),
     };
 
     try {
@@ -5207,6 +5207,7 @@ const QuickMomentForm = ({
                       {isTemplate &&
                         formState?.type !== "Calendly" &&
                         selectedSolution?.is_step_exists !== false &&
+                        formState?.type !== "AI Social Media Newsletter" &&
                         !meetingData?.created_from_whatsapp && (
                           <button
                             className="btn btn-primary"
@@ -5271,6 +5272,7 @@ const QuickMomentForm = ({
                       {isTemplate &&
                         formState?.type !== "Calendly" &&
                         selectedSolution?.is_step_exists !== false &&
+                        formState?.type !== "AI Social Media Newsletter" &&
                         !meetingData?.created_from_whatsapp && (
                           <button
                             className="btn btn-primary"

@@ -301,6 +301,7 @@ const StepChart = ({
   const [aiSourceFile, setAiSourceFile] = useState(null);
   console.log("aiSourceFile", aiSourceFile);
   const [aiRole, setAiRole] = useState("");
+  const [generateAiMedia, setGenerateAiMedia] = useState(false);
   const [aiAction, setAiAction] = useState("");
   const [aiObjective, setAiObjective] = useState("");
   const [aiRules, setAiRules] = useState("");
@@ -1313,6 +1314,7 @@ const StepChart = ({
     setTeam("");
     setModifiedFileText("");
     setInstructionPrompt("");
+    setGenerateAiMedia(false);
     setSelectedCount(inputData?.type === "Sprint" ? 0.5 : 0);
     closeModal();
     setIsValidate(false);
@@ -1635,6 +1637,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                   ? timeUnit
                   : "minutes",
         time: selectedCount,
+        generate_ai_media: generateAiMedia ? 1: 0,
 
         editor_type: inputData?.type === "Newsletter" ? "Email" : modalType,
         editor_content:
@@ -1742,6 +1745,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
         setAiSourceText("");
         setAiSourceFile(null);
         setAiRole("");
+        setGenerateAiMedia(false);
         setAiAction("");
         setAiObjective("");
         setAiRules("");
@@ -1841,6 +1845,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                     : "minutes",
 
           time: selectedCount,
+          generate_ai_media: generateAiMedia ? 1 : 0,
           // editor_type: modalType,
           editor_type: inputData?.type === "Newsletter" ? "Email" : modalType,
           editor_content:
@@ -1946,6 +1951,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
         setAiSourceText("");
         setAiSourceFile(null);
         setAiRole("");
+        setGenerateAiMedia(false);
         setAiAction("");
         setAiObjective("");
         setAiRules("");
@@ -2075,6 +2081,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                   ? timeUnit
                   : "minutes",
         time: selectedCount,
+        generate_ai_media: generateAiMedia ? 1 : 0,
         editor_type: inputData?.type === "Newsletter" ? "Email" : modalType,
         editor_content:
           modalType === "Editeur" ||
@@ -2188,6 +2195,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                     : "minutes",
 
           time: selectedCount,
+          generate_ai_media: generateAiMedia ? 1 : 0,
           // editor_type: modalType,
           editor_type: inputData?.type === "Newsletter" ? "Email" : modalType,
           editor_content:
@@ -2268,6 +2276,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
     setTeam("");
     setModifiedFileText("");
     setInstructionPrompt("");
+    setGenerateAiMedia(false);
     setSelectedCount(inputData?.type === "Sprint" ? 0.5 : 0);
     setModalType("");
     setFileName(null);
@@ -2319,6 +2328,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
     setUser("");
     setTeam("");
     setModifiedFileText("");
+    setGenerateAiMedia(false);
     setSelectedCount(inputData?.type === "Sprint" ? 0.5 : 0);
     setModalType("");
     setFileName(null);
@@ -2362,6 +2372,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
               : stepData?.assigned_to_image || stepData?.image,
           );
           setModifiedFileText(stepData?.editor_content);
+          setGenerateAiMedia(stepData?.generate_ai_media || false);
           if (stepData?.prompt_ai) {
             try {
               const parsed =
@@ -2416,6 +2427,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
             setAiSourceText("");
             setAiSourceFile(null);
             setAiRole("");
+            setGenerateAiMedia(stepData.generate_ai_media !== undefined ? !!stepData.generate_ai_media : false);
             setAiAction("");
             setAiObjective("");
             setAiRules("");
@@ -2572,6 +2584,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
         setTeam("");
         setModifiedFileText("");
         setInstructionPrompt("");
+        setGenerateAiMedia(false);
         setSelectedCount(inputData?.type === "Sprint" ? 0.5 : 0);
         setModalType("");
         setFileName(null);
@@ -3524,6 +3537,38 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                                     onChange={(e) => setAiRole(e.target.value)}
                                     placeholder="e.g. Expert marketing strategist, Senior developer, UX designer..."
                                   />
+                                </div>
+
+                                {/* AI Image Generation Toggle */}
+                                <div className="mb-4 d-flex align-items-center justify-content-between p-3 rounded" style={{ border: "1px solid #EAECF0", background: "#F9FAFB" }}>
+                                  <div>
+                                    <label
+                                      className="fw-semibold d-flex align-items-center mb-1"
+                                      style={{
+                                        fontSize: "14px",
+                                        color: "#344054",
+                                      }}
+                                    >
+                                      <span className="me-2">🎨</span> {t("stepModal.aiImageGeneration") || "AI Image Generation"}
+                                    </label>
+                                    <p
+                                      className="text-muted mb-0"
+                                      style={{ fontSize: "12px" }}
+                                    >
+                                      {t("stepModal.aiImageGenerationPlaceholder") || "Enable automatic image generation for this step"}
+                                    </p>
+                                  </div>
+                                  <div className="form-check form-switch m-0">
+                                    <input
+                                      className="form-check-input"
+                                      type="checkbox"
+                                      role="switch"
+                                      id="generateAiMediaSwitch"
+                                      checked={generateAiMedia}
+                                      onChange={(e) => setGenerateAiMedia(e.target.checked)}
+                                      style={{ cursor: "pointer", width: "2.5em", height: "1.25em" }}
+                                    />
+                                  </div>
                                 </div>
 
                                 <div className="row mb-4">

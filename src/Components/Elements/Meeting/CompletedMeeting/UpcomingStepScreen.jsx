@@ -1,5 +1,5 @@
 import CookieService from '../../../Utils/CookieService';
-import React, { useEffect, useMemo, useState, useRef } from "react";
+import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { API_BASE_URL, Assets_URL } from "../../../Apicongfig";
@@ -87,6 +87,7 @@ function UpcomingStepScreen({
 
   const getStepRef = useRef(getStep);
   const stepRef = useRef(step);
+  const fetchStepMediaRef = useRef(null);
 
   useEffect(() => {
     getStepRef.current = getStep;
@@ -97,14 +98,37 @@ function UpcomingStepScreen({
   }, [step]);
 
   useEffect(() => {
-    if (meeting?.type === "AI Social Media Newsletter" && meeting?.id) {
+    if (meeting?.id && (meeting?.type === "AI Social Media Newsletter" || step?.generate_ai_media == 1 || step?.generate_ai_media === true)) {
       console.log(`[Pusher] Subscribing to meeting channel: meeting.${meeting.id}`);
       
       const channel = subscribeToMeeting(meeting.id, ({ type, data }) => {
-        if (type === "step.updated") {
+        console.log(`[Pusher] Event received: ${type}`, data);
+
+        // Normalize eventType by checking both direct type/data.type and nested changed_data.type
+        const eventType = type === "step.updated" 
+          ? (data?.changed_data?.type || data?.type) 
+          : (type || data?.type);
+
+        console.log(`[Pusher] Normalized eventType: ${eventType}`);
+
+        // Handle content update
+        if (eventType === "content") {
+          console.log("[Pusher] Editor content update received. Fetching step silently...");
+          getStepRef.current?.(true); // silent fetch
+        }
+
+        // Handle media update
+        if (eventType === "ai_generation_finished") {
+          console.log("[Pusher] AI Media generation finished. Fetching step media...");
+          fetchStepMediaRef.current?.();
+          getStepRef.current?.(true); // also fetch step silently to sync step state
+        }
+
+        // Keep fallback logic if type is standard step.updated without specific type
+        if (type === "step.updated" && !eventType) {
           if (!stepRef.current?.editor_content || stepRef.current.editor_content.trim() === "") {
-            console.log("[Pusher] step.updated received. Fetching step silently...");
-            getStepRef.current?.(true); // silent fetch
+            console.log("[Pusher] Generic step.updated received. Fetching step silently...");
+            getStepRef.current?.(true);
           }
         }
       });
@@ -114,7 +138,7 @@ function UpcomingStepScreen({
         unsubscribeFromMeeting(meeting.id);
       };
     }
-  }, [meeting?.id, meeting?.type]);
+  }, [meeting?.id, meeting?.type, step?.generate_ai_media]);
 
   const renderStepFile = (file) => {
     if (!file) return null;
@@ -245,6 +269,7 @@ function UpcomingStepScreen({
         {
           ...step,
           editor_content: optimizedEditorContent,
+          update_editor:true
         },
         {
           headers: {
@@ -441,6 +466,7 @@ function UpcomingStepScreen({
 
           const payload = {
             editor_content: optimizedEditorContent,
+            update_editor:true
           };
           const response = await axios.post(
             `${API_BASE_URL}/autosave-step-content/${id}`,
@@ -470,9 +496,31 @@ function UpcomingStepScreen({
   // -----------------------------------RE Estimate Time
   const [showReestimateModal, setShowReestimateModal] = useState(false);
   const [additionalTime, setAdditionalTime] = useState(1);
+  const [reestimateTimeUnit, setReestimateTimeUnit] = useState("minutes");
   const handleOpenReestimate = () => {
     setShowReestimateModal(true);
     setAdditionalTime(1); // Reset input
+    let initialUnit = step?.time_unit;
+    if (!initialUnit) {
+      if (meeting?.type === "Action1" ||
+          meeting?.type === "Newsletter" ||
+          meeting?.type === "Strategy" ||
+          meeting?.type === "Sprint") {
+        initialUnit = "days";
+      } else if (meeting?.type === "Task" ||
+                 meeting?.type === "Prestation Client") {
+        initialUnit = "hours";
+      } else if (meeting?.type === "Quiz") {
+        initialUnit = "seconds";
+      } else {
+        initialUnit = "minutes";
+      }
+    }
+    if (initialUnit === "day") initialUnit = "days";
+    if (initialUnit === "hour") initialUnit = "hours";
+    if (initialUnit === "second" || initialUnit === "sec") initialUnit = "seconds";
+    if (initialUnit === "min") initialUnit = "minutes";
+    setReestimateTimeUnit(initialUnit);
   };
 
   // const updateStep = async () => {
@@ -535,7 +583,7 @@ function UpcomingStepScreen({
 
     // Calculate additional seconds
     let additionalSeconds = 0;
-    const unit = step?.time_unit;
+    const unit = reestimateTimeUnit;
 
     if (unit === "day" || unit === "days") {
       additionalSeconds = Number(additionalTime) * 86400; // 1 day = 86400 seconds
@@ -565,6 +613,7 @@ function UpcomingStepScreen({
           step_id: stepId,
           re_estimate_time: Number(additionalTime), //from user
           savedTime: Number(additionalSeconds), // convert the input time in seconds
+          time_unit: unit,
         };
 
         response = await axios.post(
@@ -583,6 +632,7 @@ function UpcomingStepScreen({
 
           count2: Number(additionalTime),
           time: Number(additionalTime),
+          time_unit: unit,
           // count2: step.count2 + Number(additionalTime),
           // time: step.count2 + Number(additionalTime),
           delay: null,
@@ -1502,41 +1552,45 @@ function UpcomingStepScreen({
     }
   };
 
-  useEffect(() => {
-    const fetchStepMedia = async () => {
-      if (!step?.id) {
-        setMediaLoading(false);
-        return;
-      }
+  const fetchStepMedia = useCallback(async () => {
+    if (!step?.id) {
+      setMediaLoading(false);
+      return;
+    }
 
-      setMediaLoading(true); // ← Start loading
+    setMediaLoading(true); // ← Start loading
 
-      try {
-        const response = await axios.get(
-          `${API_BASE_URL}/step-media/${step?.id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${
-                CookieService.get("token")
-              }`,
-            },
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/step-media/${step?.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${
+              CookieService.get("token")
+            }`,
           },
-        );
+        },
+      );
 
-        if (response.status === 200) {
-          setStepMedias(response?.data?.data?.media || []);
-        }
-      } catch (error) {
-        console.error("Error fetching step media:", error);
-        toast.error(t("Failed to load media"));
-        setStepMedias([]);
-      } finally {
-        setMediaLoading(false); // ← Always stop loading
+      if (response.status === 200) {
+        setStepMedias(response?.data?.data?.media || []);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching step media:", error);
+      toast.error(t("Failed to load media"));
+      setStepMedias([]);
+    } finally {
+      setMediaLoading(false); // ← Always stop loading
+    }
+  }, [step?.id, t]);
 
+  useEffect(() => {
+    fetchStepMediaRef.current = fetchStepMedia;
+  });
+
+  useEffect(() => {
     fetchStepMedia();
-  }, [step?.id]); // ← Better dependency: step.id only
+  }, [fetchStepMedia]);
 
   // DELETE MEDIA FUNCTION
   const handleDeleteMedia = async (mediaId) => {
@@ -2713,7 +2767,7 @@ function UpcomingStepScreen({
                     // }}
                     onEditorChange={(content) => {
                       setModifiedFileText(content);
-                      debouncedAutoSave(content);
+                      // debouncedAutoSave(content);
                     }}
                   />
                   <Button
@@ -2870,18 +2924,51 @@ function UpcomingStepScreen({
               />
             )}
 
-            {/* Empty State */}
+            {/* Empty State / AI Generation Progress Bar */}
             {!mediaLoading && stepMedias.length === 0 && (
-              <div className="text-center py-5 border rounded bg-light">
-                <BiCloudUpload
-                  size={56}
-                  className="mb-3 text-secondary opacity-50"
-                />
-                <p className="mb-1 text-muted">{t("No media uploaded yet.")}</p>
-                <small className="text-muted">
-                  {t("Click 'Upload Media' to add photos or videos")}
-                </small>
-              </div>
+              (step?.generate_ai_media == 1 || step?.generate_ai_media === true) ? (
+                <div 
+                  className="d-flex flex-column align-items-center justify-content-center p-5 rounded-4 shadow-sm border" 
+                  style={{
+                    background: "linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)",
+                    border: "1px solid rgba(0, 0, 0, 0.05)",
+                    fontFamily: "Inter, sans-serif"
+                  }}
+                >
+                  <div className="d-flex align-items-center gap-3 mb-4">
+                    <Spinner 
+                      animation="border" 
+                      variant="primary" 
+                      style={{ width: '2rem', height: '2rem', borderWidth: '0.25em', color: '#2C48AE' }} 
+                    />
+                    <h5 className="mb-0 fw-semibold text-dark" style={{ color: '#2C48AE' }}>
+                      {t("mediaGenerating")}
+                    </h5>
+                  </div>
+                  <div className="w-100" style={{ maxWidth: '400px' }}>
+                    <ProgressBar 
+                      animated 
+                      now={100} 
+                      style={{ 
+                        height: "8px", 
+                        borderRadius: "10px", 
+                        backgroundColor: "rgba(44, 72, 174, 0.1)" 
+                      }} 
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-5 border rounded bg-light">
+                  <BiCloudUpload
+                    size={56}
+                    className="mb-3 text-secondary opacity-50"
+                  />
+                  <p className="mb-1 text-muted">{t("No media uploaded yet.")}</p>
+                  <small className="text-muted">
+                    {t("Click 'Upload Media' to add photos or videos")}
+                  </small>
+                </div>
+              )
             )}
           </div>
         </div>
@@ -2962,24 +3049,28 @@ function UpcomingStepScreen({
                   onChange={(e) => setAdditionalTime(e.target.value)}
                   // placeholder="Enter minutes"
                 />
-                {meeting?.type === "Action1" ||
-                meeting?.type === "Newsletter" ||
-                meeting?.type === "Strategy" ||
-                meeting?.type === "Sprint" ? (
-                  <span className="fw-bold"> {t("days")} </span>
-                ) : meeting?.type === "Task" ||
-                  meeting?.type === "Prestation Client" ? (
-                  <span className="fw-bold"> {t("hour")} </span>
-                ) : meeting?.type === "Quiz" ? (
-                  <span className="fw-bold"> {t("sec")} </span>
-                ) : meeting?.type === "Special" ? (
-                  <span className="fw-bold">
-                    {" "}
-                    {t(`time_unit.${step?.time_unit}`)}{" "}
-                  </span>
-                ) : (
-                  <span className="fw-bold"> mins </span>
-                )}
+                <select
+                  className="form-select form-select-sm"
+                  value={reestimateTimeUnit}
+                  onChange={(e) => setReestimateTimeUnit(e.target.value)}
+                  style={{
+                    padding: "2px 24px 2px 8px",
+                    height: "38px",
+                    fontSize: "14px",
+                    border: "1px solid #D0D5DD",
+                    borderRadius: "8px",
+                    backgroundColor: "#fff",
+                    color: "#344054",
+                    width: "110px",
+                    minWidth: "110px",
+                    display: "inline-block",
+                  }}
+                >
+                  <option value="minutes">{t("time_unit.minutes") || "mins"}</option>
+                  <option value="seconds">{t("time_unit.seconds") || "secs"}</option>
+                  <option value="hours">{t("time_unit.hours") || "hours"}</option>
+                  <option value="days">{t("time_unit.days") || "days"}</option>
+                </select>
               </div>
             </Form.Group>
           </Modal.Body>

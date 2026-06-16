@@ -45,6 +45,12 @@ export const subscribeToMeeting = (meetId, onEvent) => {
   if (boundHandlers[channelName]) {
     channel.unbind("step.updated", boundHandlers[channelName].stepUpdated);
     channel.unbind("meeting.ui-updated", boundHandlers[channelName].uiUpdated);
+    if (boundHandlers[channelName].content) {
+      channel.unbind("content", boundHandlers[channelName].content);
+    }
+    if (boundHandlers[channelName].aiGenerationFinished) {
+      channel.unbind("ai_generation_finished", boundHandlers[channelName].aiGenerationFinished);
+    }
   }
 
   const stepUpdated = (data) => {
@@ -55,11 +61,21 @@ export const subscribeToMeeting = (meetId, onEvent) => {
     console.log("[Pusher] meeting.ui-updated received:", data);
     onEvent({ type: "meeting.ui-updated", data });
   };
+  const content = (data) => {
+    console.log("[Pusher] content received:", data);
+    onEvent({ type: "content", data });
+  };
+  const aiGenerationFinished = (data) => {
+    console.log("[Pusher] ai_generation_finished received:", data);
+    onEvent({ type: "ai_generation_finished", data });
+  };
 
   channel.bind("step.updated", stepUpdated);
   channel.bind("meeting.ui-updated", uiUpdated);
+  channel.bind("content", content);
+  channel.bind("ai_generation_finished", aiGenerationFinished);
 
-  boundHandlers[channelName] = { stepUpdated, uiUpdated };
+  boundHandlers[channelName] = { stepUpdated, uiUpdated, content, aiGenerationFinished };
 
   return channel;
 };

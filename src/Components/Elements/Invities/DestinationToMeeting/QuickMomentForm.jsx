@@ -1575,30 +1575,31 @@ const QuickMomentForm = ({
     if (meetingData?.created_from_whatsapp) return;
 
     // Determine default mission label based on user profile
-    let defaultMissionLabel = `projet ${selectedClient.label.toLowerCase()}`;
+    // let defaultMissionLabel = `projet ${selectedClient.label.toLowerCase()}`;
+    let defaultMissionLabel = `projet ${t("of the month of")} ${moment().format('MMMM YYYY')}`;
     let defaultMissionValue = null;
     let isNewMission = true;
     let shouldCallAPI = false;
 
     switch (userProfile) {
       case "Project Manager / Product Owner":
-        defaultMissionLabel = `projet ${selectedClient.label.toLowerCase()}`;
+        defaultMissionLabel = `projet ${t("of the month of")} ${moment().format('MMMM YYYY')}`;
         shouldCallAPI = true;
         break;
       case "Customer Relations Officer / Sales Representative":
-        defaultMissionLabel = `Opportunité client ${selectedClient.label.toLowerCase()}`;
+        defaultMissionLabel = `Opportunité client ${t("of the month of")} ${moment().format('MMMM YYYY')}`;
         shouldCallAPI = true;
         break;
       case "Manager / Team Leader":
-        defaultMissionLabel = `projet ${selectedClient.label.toLowerCase()}`;
+        defaultMissionLabel = `projet ${t("of the month of")} ${moment().format('MMMM YYYY')}`;
         shouldCallAPI = true;
         break;
       case "Developer / Operational Contributor":
-        defaultMissionLabel = `projet ${selectedClient.label.toLowerCase()}`;
+        defaultMissionLabel = `projet ${t("of the month of")} ${moment().format('MMMM YYYY')}`;
         shouldCallAPI = true;
         break;
       default:
-        defaultMissionLabel = `projet ${selectedClient.label.toLowerCase()}`;
+        defaultMissionLabel = `projet ${t("of the month of")} ${moment().format('MMMM YYYY')}`;
         shouldCallAPI = true;
     }
 

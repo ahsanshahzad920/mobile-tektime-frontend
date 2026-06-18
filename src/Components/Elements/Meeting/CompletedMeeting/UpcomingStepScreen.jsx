@@ -760,6 +760,8 @@ function UpcomingStepScreen({
     } catch (error) {
       setLoading(false);
       console.error("Error starting step:", error);
+      toast.error(error?.response?.data?.message || error?.message);
+
     }
   };
   //------------------------------------Start ToFinish Step

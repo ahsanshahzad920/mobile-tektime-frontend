@@ -103,8 +103,8 @@ const MonthEvent = ({ event }) => {
 
 const MonthDateHeader = ({ label, date, localizer }) => {
   return (
-    <div style={{ textAlign: "center", padding: "5px" }}>
-      {/* {moment(date).format("D")} */}
+    <div style={{ textAlign: "center", padding: "5px", fontWeight: "600", color: "#4a5568" }}>
+      {label}
     </div>
   );
 };

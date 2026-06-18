@@ -870,6 +870,8 @@ const Invite = () => {
     } catch (error) {
       console.log("error", error);
       setLoading(false);
+      toast.error(error?.response?.data?.message || error?.message);
+
     }
   };
 

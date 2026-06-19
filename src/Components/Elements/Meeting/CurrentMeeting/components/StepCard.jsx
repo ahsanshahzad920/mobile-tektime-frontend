@@ -805,7 +805,7 @@ const StepCard = ({
       
         const handleCopyStep = async (item) => {
           const maxOrderNo = Math.max(
-            ...meeting?.steps.map((step) => step.order_no ?? 0),
+            ...meeting?.steps?.map((step) => step?.order_no ?? 0),
             0
           );
       

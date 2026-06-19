@@ -32,38 +32,7 @@ import { SnackbarProvider } from "notistack";
 import { EnterpriseCountProvider } from "./context/EnterpriseUserCountContext";
 import { StepCounterContextProvider } from "./Components/Elements/Meeting/context/StepCounterContext";
 import { WakeLockProvider } from "./context/WakeLockContext";
-import { Assets_URL, Assets_URL_B3 } from "./Components/Apicongfig";
 
-// Global capture-phase error listener for asset fallback handling
-window.addEventListener(
-  "error",
-  (e) => {
-    const element = e.target;
-    if (element && (element.tagName === "IMG" || element.tagName === "VIDEO" || element.tagName === "AUDIO")) {
-      // Prevent infinite loops if both S3 and B2 URLs fail
-      if (element.dataset.fallbackAttempted) {
-        return;
-      }
-      
-      const currentSrc = element.src;
-      if (currentSrc && currentSrc.includes(Assets_URL)) {
-        const target = currentSrc.includes(Assets_URL + "/") ? Assets_URL + "/" : Assets_URL;
-        const newSrc = currentSrc.replace(target, Assets_URL_B3);
-        
-        if (element.src !== newSrc) {
-          element.dataset.fallbackAttempted = "true";
-          element.src = newSrc;
-          
-          // For video and audio elements, calling load() is required to reload the source
-          if (typeof element.load === "function") {
-            element.load();
-          }
-        }
-      }
-    }
-  },
-  true // Capture phase to intercept error events which do not bubble
-);
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(

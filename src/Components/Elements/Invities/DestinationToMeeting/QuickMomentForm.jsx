@@ -2240,7 +2240,7 @@ const QuickMomentForm = ({
       }
     } catch (err) {
       console.error("Error finalizing meeting:", err);
-      toast.error(t("An error occurred while finalizing the meeting"));
+      toast.error(err?.response?.data?.message || t("An error occurred while finalizing the meeting"));
     } finally {
       setLoading(false);
       setLoadingPlay(false);

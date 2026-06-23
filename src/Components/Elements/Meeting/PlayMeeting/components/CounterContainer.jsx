@@ -174,23 +174,31 @@ const CounterContainer = ({
        * THEN THE DURATION OF THE CENTER COUNTER WILL BE SET TO 7200 MINUS THE NEGATIVE TIME OF THAT STEP SO THAT THE NEGATIVE TIME STARTS FROM WHERE IT LEFT
        */
       setDuration(7200 - negativeTimes[activeStepIndex]);
+      if (typeof window !== "undefined") {
+        window.currentStepRemainingTime = 0;
+      }
       return;
     }
 
     // IF THERE IS NO NEGATIVE TIME => THE DURATION OF THE CENTER COUNTER WILL BE SET TO THE SAVED TIME || THE TOTAL TIME OF THE ACTIVE STEP.
-    const steps = meetingData.steps;
+    const steps = meetingData?.steps;
     if (Array.isArray(steps) && steps.length > 0) {
       const step = steps[activeStepIndex];
+      let initialDuration = 0;
       if (step.time_unit === "days") {
         const count2InSeconds = convertDaysToSeconds(step.time);
-        setDuration(step.savedTime || count2InSeconds);
+        initialDuration = step.savedTime || count2InSeconds;
       } else if (step.time_unit === "hours") {
         const count2InSeconds = convertHoursToSeconds(step.time);
-        setDuration(step.savedTime || count2InSeconds);
+        initialDuration = step.savedTime || count2InSeconds;
       } else if (step.time_unit === "seconds") {
-        setDuration(step.time); // Directly set the time for seconds
+        initialDuration = step.time; // Directly set the time for seconds
       } else {
-        setDuration(step.savedTime || step.time * 60);
+        initialDuration = step.savedTime || step.time * 60;
+      }
+      setDuration(initialDuration);
+      if (typeof window !== "undefined") {
+        window.currentStepRemainingTime = initialDuration;
       }
 
       // setDuration(step.savedTime || step.time * 60);
@@ -208,7 +216,7 @@ const CounterContainer = ({
     }
     if (meetingData && loaded === false) {
       //------ Initializing here! ------
-      setSpareTimes(new Array(meetingData.steps.length).fill(0));
+      setSpareTimes(new Array(meetingData?.steps?.length).fill(0));
       //-------
       const totalTimesArray = meetingData?.steps?.map((step) => {
         if (!step.savedTime) {
@@ -289,6 +297,9 @@ const CounterContainer = ({
     setAudioPlayed(false);
     setRemainingTime(null);
     hasStartedRef.current = false;
+    if (typeof window !== "undefined") {
+      window.currentStepRemainingTime = undefined;
+    }
   }, [activeStepIndex]);
 
   useEffect(() => {
@@ -657,7 +668,7 @@ const CounterContainer = ({
             <div className="counter-ring-bg"></div>
             {meetingData &&
             meetingData?.steps &&
-            meetingData?.steps[activeStepIndex].negative_time === "99" ? (
+            meetingData?.steps[activeStepIndex]?.negative_time === "99" ? (
               <CountdownCircleTimer
                 key={`center-neg-${timerKey}-${activeStepIndex}`}
                 size={isModalOpen || isMobile ? 120 : 140}
@@ -677,10 +688,10 @@ const CounterContainer = ({
                           className="dot"
                           style={{ backgroundColor: "red" }}
                         ></span>
-                        <span className="label">{t("Remaining")}</span>
+                        <span className="label">{t("Meetingelay")}</span>
                       </div>
                       <div className="time-display" style={{ color: "red" }}>
-                        {formattedDelay}
+                        - {formattedDelay}
                       </div>
                     </div>
                   );
@@ -727,6 +738,9 @@ const CounterContainer = ({
                   }
                 }}
                 onUpdate={(remainingTime) => {
+                  if (typeof window !== "undefined") {
+                    window.currentStepRemainingTime = showNegativeCounter ? 0 : remainingTime;
+                  }
                   setRemainingTime(remainingTime);
                   setSpareTimes((prev) => {
                     if (showNegativeCounter) {

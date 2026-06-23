@@ -53,6 +53,7 @@ const StepCard = ({
   users,
   meeting,
   refreshMeeting,
+  triggerAIPopup,
 }) => {
   const { setSelectedStep } = useStepCounterContext();
 
@@ -617,6 +618,21 @@ const StepCard = ({
           }
         );
         if (response?.status) {
+          const responseData = response?.data;
+          if (
+            responseData?.step_generation === "in-progress" ||
+            responseData?.step_generated === "in-progress" ||
+            (responseData?.message && (
+              responseData.message.toLowerCase().includes("step generated is in-progress") ||
+              responseData.message.toLowerCase().includes("step generated is in progress")
+            ))
+          ) {
+            if (triggerAIPopup) {
+              triggerAIPopup(() => handleForceStart(step));
+            }
+            return;
+          }
+
           if (
             meeting?.type === "Task" ||
             meeting?.type === "Strategy" ||
@@ -629,6 +645,15 @@ const StepCard = ({
         }
       } catch (error) {
         console.log("error while click force start button", error);
+        const errorMsg = error?.response?.data?.message || error?.response?.data?.error || error?.message;
+        if (errorMsg && (errorMsg.toLowerCase().includes("step generated is in-progress") || errorMsg.toLowerCase().includes("step generated is in progress"))) {
+          toast.error(errorMsg);
+          if (triggerAIPopup) {
+            triggerAIPopup(() => handleForceStart(step));
+          }
+        } else {
+          toast.error(errorMsg || "Error starting step");
+        }
       }
     };
 
@@ -773,6 +798,22 @@ const StepCard = ({
       );
 
       if (response.status) {
+        const responseData = response?.data;
+        if (
+          responseData?.step_generation === "in-progress" ||
+          responseData?.step_generated === "in-progress" ||
+          (responseData?.message && (
+            responseData.message.toLowerCase().includes("step generated is in-progress") ||
+            responseData.message.toLowerCase().includes("step generated is in progress")
+          ))
+        ) {
+          if (triggerAIPopup) {
+            triggerAIPopup(() => continueHandlePlayMeetingStep(item, targetStep));
+          }
+          setLoading(false);
+          return;
+        }
+
         if (
           item?.type === "Task" ||
           item?.type === "Strategy" ||
@@ -786,6 +827,15 @@ const StepCard = ({
       }
     } catch (error) {
       console.log("error", error);
+      const errorMsg = error?.response?.data?.message || error?.response?.data?.error || error?.message;
+      if (errorMsg && (errorMsg.toLowerCase().includes("step generated is in-progress") || errorMsg.toLowerCase().includes("step generated is in progress"))) {
+        toast.error(errorMsg);
+        if (triggerAIPopup) {
+          triggerAIPopup(() => continueHandlePlayMeetingStep(item, targetStep));
+        }
+      } else {
+        toast.error(errorMsg || "Error playing step");
+      }
     } finally {
       setLoading(false);
     }
@@ -908,6 +958,22 @@ const StepCard = ({
         },
       );
       if (response?.status) {
+        const responseData = response?.data;
+        if (
+          responseData?.step_generation === "in-progress" ||
+          responseData?.step_generated === "in-progress" ||
+          (responseData?.message && (
+            responseData.message.toLowerCase().includes("step generated is in-progress") ||
+            responseData.message.toLowerCase().includes("step generated is in progress")
+          ))
+        ) {
+          if (triggerAIPopup) {
+            triggerAIPopup(() => handleStartStep(step));
+          }
+          setLoading(false);
+          return;
+        }
+
         navigate(`/actīon-play/${meeting?.id}/${step?.id}`);
         if (
           meeting?.type === "Task" ||
@@ -920,6 +986,15 @@ const StepCard = ({
     } catch (error) {
       setLoading(false);
       console.error("Error starting step:", error);
+      const errorMsg = error?.response?.data?.message || error?.response?.data?.error || error?.message;
+      if (errorMsg && (errorMsg.toLowerCase().includes("step generated is in-progress") || errorMsg.toLowerCase().includes("step generated is in progress"))) {
+        toast.error(errorMsg);
+        if (triggerAIPopup) {
+          triggerAIPopup(() => handleStartStep(step));
+        }
+      } else {
+        toast.error(errorMsg || "Error starting step");
+      }
     }
   };
 
@@ -956,6 +1031,22 @@ const StepCard = ({
         },
       );
       if (response?.status) {
+        const responseData = response?.data;
+        if (
+          responseData?.step_generation === "in-progress" ||
+          responseData?.step_generated === "in-progress" ||
+          (responseData?.message && (
+            responseData.message.toLowerCase().includes("step generated is in-progress") ||
+            responseData.message.toLowerCase().includes("step generated is in progress")
+          ))
+        ) {
+          if (triggerAIPopup) {
+            triggerAIPopup(() => handleStartToFinishStep(step));
+          }
+          setLoading(false);
+          return;
+        }
+
         navigate(`/actīon-play/${meeting?.id}/${step?.id}`);
         if (
           meeting?.type === "Task" ||
@@ -968,6 +1059,15 @@ const StepCard = ({
     } catch (error) {
       setLoading(false);
       console.error("Error starting step:", error);
+      const errorMsg = error?.response?.data?.message || error?.response?.data?.error || error?.message;
+      if (errorMsg && (errorMsg.toLowerCase().includes("step generated is in-progress") || errorMsg.toLowerCase().includes("step generated is in progress"))) {
+        toast.error(errorMsg);
+        if (triggerAIPopup) {
+          triggerAIPopup(() => handleStartToFinishStep(step));
+        }
+      } else {
+        toast.error(errorMsg || "Error starting step");
+      }
     }
   };
 

@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { API_BASE_URL } from "../../../Apicongfig";
 
-function Search({ onSearch, onIframeUrl }) {
+function Search({ onSearch, onIframeUrl , showButton=true }) {
   const { t } = useTranslation("global");
   const [searchTerm, setSearchTerm] = useState("");
   const [searchMode, setSearchMode] = useState(null);
@@ -214,7 +214,7 @@ function Search({ onSearch, onIframeUrl }) {
           width: "100%",
         }}
       >
-        <div
+        {showButton && <div
           style={{
             position: "relative",
             display: "flex",
@@ -234,7 +234,7 @@ function Search({ onSearch, onIframeUrl }) {
             {getSearchIcon()}
           </span>
 
-          <input
+         <input
             type="search"
             style={{
               width: "100%",
@@ -283,7 +283,7 @@ function Search({ onSearch, onIframeUrl }) {
           >
             <FaQuestionCircle />
           </button>
-        </div>
+        </div>}
 
         {/* Tooltip */}
         {showTooltip && (

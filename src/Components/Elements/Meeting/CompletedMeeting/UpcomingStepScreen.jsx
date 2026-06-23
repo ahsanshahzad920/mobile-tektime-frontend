@@ -1,5 +1,6 @@
 import CookieService from '../../../Utils/CookieService';
 import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
+import ReactDOM from "react-dom";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { API_BASE_URL, Assets_URL } from "../../../Apicongfig";
@@ -62,6 +63,11 @@ function UpcomingStepScreen({
   modifiedFileText,
   loading,
   setLoading,
+  showAIPopup,
+  setShowAIPopup,
+  aiProgress,
+  setAiProgress,
+  pendingAiActionRef,
 }) {
   const TINYMCEAPI = process.env.REACT_APP_TINYMCE_API;
   // const [modifiedFileText, setModifiedFileText] = useState(null);
@@ -89,6 +95,9 @@ function UpcomingStepScreen({
   const stepRef = useRef(step);
   const fetchStepMediaRef = useRef(null);
 
+  // showAIPopup, aiProgress, pendingAiActionRef are now received as props from CompletedDoneStep
+  console.log('showAIPopup', showAIPopup);
+
   useEffect(() => {
     getStepRef.current = getStep;
   });
@@ -97,19 +106,20 @@ function UpcomingStepScreen({
     stepRef.current = step;
   }, [step]);
 
+  // Subscribe to Pusher channel for real-time updates of AI Content / Media Generation
   useEffect(() => {
     if (meeting?.id && (meeting?.type === "AI Social Media Newsletter" || step?.generate_ai_media == 1 || step?.generate_ai_media === true)) {
       console.log(`[Pusher] Subscribing to meeting channel: meeting.${meeting.id}`);
       
-      const channel = subscribeToMeeting(meeting.id, ({ type, data }) => {
-        console.log(`[Pusher] Event received: ${type}`, data);
+      const channel = subscribeToMeeting(meeting.id, async ({ type, data }) => {
+        console.log(`[Pusher] Event received in UpcomingStepScreen: ${type}`, data);
 
         // Normalize eventType by checking both direct type/data.type and nested changed_data.type
         const eventType = type === "step.updated" 
           ? (data?.changed_data?.type || data?.type) 
           : (type || data?.type);
 
-        console.log(`[Pusher] Normalized eventType: ${eventType}`);
+        console.log(`[Pusher] Normalized eventType in UpcomingStepScreen: ${eventType}`);
 
         // Handle content update
         if (eventType === "content") {
@@ -131,6 +141,42 @@ function UpcomingStepScreen({
             getStepRef.current?.(true);
           }
         }
+
+        // Only trigger auto-play if there is a pending action (e.g. pendingAiAction is set)
+        if (!pendingAiActionRef.current) return;
+        
+        const targetStep = stepRef.current;
+        const generateAiMedia = targetStep?.generate_ai_media == 1 || targetStep?.generate_ai_media === true;
+
+        if (generateAiMedia) {
+          // If generate_ai_media is true/1, then wait for the media event ("ai_generation_finished")
+          if (eventType === "ai_generation_finished") {
+            console.log("[Pusher] AI Media generation finished. Resuming action...");
+            const action = pendingAiActionRef.current;
+            pendingAiActionRef.current = null; // Clear immediately
+            setAiProgress(100);
+            setTimeout(async () => {
+              const res = await action?.();
+              if (res !== "in-progress") {
+                setShowAIPopup(false);
+              }
+            }, 800);
+          }
+        } else {
+          // If generate_ai_media is false/0, then wait for the content event ("content")
+          if (eventType === "content") {
+            console.log("[Pusher] AI Content generation finished. Resuming action...");
+            const action = pendingAiActionRef.current;
+            pendingAiActionRef.current = null; // Clear immediately
+            setAiProgress(100);
+            setTimeout(async () => {
+              const res = await action?.();
+              if (res !== "in-progress") {
+                setShowAIPopup(false);
+              }
+            }, 800);
+          }
+        }
       });
 
       return () => {
@@ -139,7 +185,6 @@ function UpcomingStepScreen({
       };
     }
   }, [meeting?.id, meeting?.type, step?.generate_ai_media]);
-
   const renderStepFile = (file) => {
     if (!file) return null;
     const fileStr = typeof file === "string" ? file : "";
@@ -748,6 +793,22 @@ function UpcomingStepScreen({
         },
       );
       if (response?.status) {
+        const responseData = response?.data;
+        console.log("response data step play", responseData);
+        if (
+          responseData?.step_generation === "in-progress" ||
+          responseData?.step_generated === "in-progress" ||
+          (responseData?.message && (
+            responseData.message.toLowerCase().includes("step generated is in-progress") ||
+            responseData.message.toLowerCase().includes("step generated is in progress")
+          ))
+        ) {
+          pendingAiActionRef.current = () => handleStartStep();
+          setShowAIPopup(true);
+          setLoading(false);
+          return "in-progress";
+        }
+
         navigate(`/actīon-play/${meeting?.id}/${id}`);
         if (
           meeting?.type === "Task" ||
@@ -760,8 +821,15 @@ function UpcomingStepScreen({
     } catch (error) {
       setLoading(false);
       console.error("Error starting step:", error);
-      toast.error(error?.response?.data?.message || error?.message);
-
+      const errorMsg = error?.response?.data?.message || error?.response?.data?.error || error?.message;
+      if (errorMsg && (errorMsg.toLowerCase().includes("step generated is in-progress") || errorMsg.toLowerCase().includes("step generated is in progress"))) {
+        toast.error(errorMsg);
+        pendingAiActionRef.current = () => handleStartStep();
+        setShowAIPopup(true);
+        return "in-progress";
+      } else {
+        toast.error(errorMsg || "Error starting step");
+      }
     }
   };
   //------------------------------------Start ToFinish Step
@@ -798,6 +866,21 @@ function UpcomingStepScreen({
         },
       );
       if (response?.status) {
+        const responseData = response?.data;
+        if (
+          responseData?.step_generation === "in-progress" ||
+          responseData?.step_generated === "in-progress" ||
+          (responseData?.message && (
+            responseData.message.toLowerCase().includes("step generated is in-progress") ||
+            responseData.message.toLowerCase().includes("step generated is in progress")
+          ))
+        ) {
+          pendingAiActionRef.current = () => handleStartToFinishStep();
+          setShowAIPopup(true);
+          setLoading(false);
+          return "in-progress";
+        }
+
         navigate(`/actīon-play/${meeting?.id}/${id}`);
         if (
           meeting?.type === "Task" ||
@@ -810,6 +893,15 @@ function UpcomingStepScreen({
     } catch (error) {
       setLoading(false);
       console.error("Error starting step:", error);
+      const errorMsg = error?.response?.data?.message || error?.response?.data?.error || error?.message;
+      if (errorMsg && (errorMsg.toLowerCase().includes("step generated is in-progress") || errorMsg.toLowerCase().includes("step generated is in progress"))) {
+        toast.error(errorMsg);
+        pendingAiActionRef.current = () => handleStartToFinishStep();
+        setShowAIPopup(true);
+        return "in-progress";
+      } else {
+        toast.error(errorMsg || "Error starting step");
+      }
     }
   };
 
@@ -1216,6 +1308,23 @@ function UpcomingStepScreen({
       );
 
       if (response.status) {
+        const responseData = response?.data;
+        console.log("response data step play after continue", responseData);
+        if (
+          responseData?.step_generation === "in-progress" ||
+          responseData?.step_generated === "in-progress" ||
+          (responseData?.message && (
+            responseData.message.toLowerCase().includes("step generated is in-progress") ||
+            responseData.message.toLowerCase().includes("step generated is in progress")
+          ))
+        ) {
+          console.log("show: setting showAIPopup to true inside continueHandlePlay success");
+          setShowAIPopup(true);
+          setLoading(false);
+          pendingAiActionRef.current = () => continueHandlePlay(item);
+          return;
+        }
+
         if (
           item?.type === "Task" ||
           item?.type === "Strategy" ||
@@ -1229,6 +1338,14 @@ function UpcomingStepScreen({
       }
     } catch (error) {
       console.log("error", error);
+      const errorMsg = error?.response?.data?.message || error?.response?.data?.error || error?.message;
+      if (errorMsg && (errorMsg.toLowerCase().includes("step generated is in-progress") || errorMsg.toLowerCase().includes("step generated is in progress"))) {
+        toast.error(errorMsg);
+        pendingAiActionRef.current = () => continueHandlePlay(item);
+        setShowAIPopup(true);
+      } else {
+        toast.error(errorMsg || "Error starting meeting");
+      }
     } finally {
       setLoading(false);
     }
@@ -1428,6 +1545,20 @@ function UpcomingStepScreen({
         },
       );
       if (response?.status) {
+        const responseData = response?.data;
+        if (
+          responseData?.step_generation === "in-progress" ||
+          responseData?.step_generated === "in-progress" ||
+          (responseData?.message && (
+            responseData.message.toLowerCase().includes("step generated is in-progress") ||
+            responseData.message.toLowerCase().includes("step generated is in progress")
+          ))
+        ) {
+          pendingAiActionRef.current = () => handleForceStart(step);
+          setShowAIPopup(true);
+          return "in-progress";
+        }
+
         if (
           meeting?.type === "Task" ||
           meeting?.type === "Strategy" ||
@@ -1440,6 +1571,15 @@ function UpcomingStepScreen({
       }
     } catch (error) {
       console.log("error while click force start button", error);
+      const errorMsg = error?.response?.data?.message || error?.response?.data?.error || error?.message;
+      if (errorMsg && (errorMsg.toLowerCase().includes("step generated is in-progress") || errorMsg.toLowerCase().includes("step generated is in progress"))) {
+        toast.error(errorMsg);
+        pendingAiActionRef.current = () => handleForceStart(step);
+        setShowAIPopup(true);
+        return "in-progress";
+      } else {
+        toast.error(errorMsg || "Error starting step");
+      }
     }
   };
 
@@ -3275,6 +3415,7 @@ function UpcomingStepScreen({
         step?.participant?.email === (CookieService.get("email") || sessionStorage.getItem("email")) && (
           <ActionAssignmentPopup step={step} onRefresh={getStep} />
         )}
+      {/* AI popup portal is now rendered in the parent CompletedDoneStep */}
     </>
   );
 }

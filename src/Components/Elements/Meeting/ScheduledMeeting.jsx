@@ -1,5 +1,6 @@
 import CookieService from '../../Utils/CookieService';
 import axios from "axios";
+import { subscribeToMeeting, unsubscribeFromMeeting } from "../../../Helpers/pusherHelper";
 import React, {
   useCallback,
   useEffect,
@@ -118,6 +119,110 @@ const ScheduledMeeting = ({
   const [searchParams] = useSearchParams();
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [itemIdToDelete, setItemIdToDelete] = useState(null);
+
+  const [showAIPopup, setShowAIPopup] = useState(false);
+  const [aiProgress, setAiProgress] = useState(0);
+  const [meetingToPlay, setMeetingToPlay] = useState(null);
+  const pendingAiActionRef = useRef(null);
+  const meetingToPlayRef = useRef();
+  const continueHandlePlayRef = useRef();
+
+  useEffect(() => {
+    meetingToPlayRef.current = meetingToPlay;
+    continueHandlePlayRef.current = continueHandlePlay;
+  });
+
+  // Subscribe to Pusher channel for real-time updates of AI Content / Media Generation
+  useEffect(() => {
+    const meetingId = meetingToPlay?.id;
+    if (meetingId) {
+      console.log(`[Pusher] Subscribing to meeting channel in ScheduledMeeting: meeting.${meetingId}`);
+      
+      const channel = subscribeToMeeting(meetingId, async ({ type, data }) => {
+        console.log(`[Pusher] Event received in ScheduledMeeting: ${type}`, data);
+
+        // Normalize eventType
+        const eventType = type === "step.updated" 
+          ? (data?.changed_data?.type || data?.type) 
+          : (type || data?.type);
+
+        console.log(`[Pusher] Normalized eventType in ScheduledMeeting: ${eventType}`);
+
+        // Update UI/list
+        if (eventType === "content" || eventType === "ai_generation_finished") {
+          updateCallApi(true);
+        }
+
+        // Only trigger auto-play if there is a pending action (e.g. pendingAiActionRef.current is set)
+        if (!pendingAiActionRef.current) return;
+
+        // Find the step related to this event
+        const currentSteps = meetingToPlayRef.current?.steps || [];
+        const eventStepId = data?.changed_data?.id || data?.id || data?.changed_data?.step_id || data?.step_id;
+        const targetStep = eventStepId ? currentSteps?.find(s => Number(s.id) === Number(eventStepId)) : null;
+        
+        // Find the first step (order_no 1 / minimum order_no) as fallback
+        const minOrderNo = currentSteps?.length ? Math.min(...currentSteps.map((step) => step.order_no)) : 1;
+        const firstStep = currentSteps?.find((step) => step.order_no === minOrderNo);
+        
+        const activeStepObj = targetStep || firstStep;
+        const generateAiMedia = activeStepObj?.generate_ai_media == 1 || activeStepObj?.generate_ai_media === true;
+
+        if (generateAiMedia) {
+          if (eventType === "ai_generation_finished") {
+            console.log("[Pusher] AI Media generation finished. Resuming action...");
+            const action = pendingAiActionRef.current;
+            pendingAiActionRef.current = null; // Clear immediately
+            setMeetingToPlay(null);
+            setAiProgress(100);
+            setTimeout(async () => {
+              const res = await action?.();
+              if (res !== "in-progress") {
+                setShowAIPopup(false);
+              }
+            }, 800);
+          }
+        } else {
+          if (eventType === "content") {
+            console.log("[Pusher] AI Content generation finished. Resuming action...");
+            const action = pendingAiActionRef.current;
+            pendingAiActionRef.current = null; // Clear immediately
+            setMeetingToPlay(null);
+            setAiProgress(100);
+            setTimeout(async () => {
+              const res = await action?.();
+              if (res !== "in-progress") {
+                setShowAIPopup(false);
+              }
+            }, 800);
+          }
+        }
+      });
+
+      return () => {
+        console.log(`[Pusher] Unsubscribing from meeting channel in ScheduledMeeting: meeting.${meetingId}`);
+        unsubscribeFromMeeting(meetingId);
+      };
+    }
+  }, [meetingToPlay?.id]);
+
+  // Progress bar simulation
+  useEffect(() => {
+    let interval;
+    if (showAIPopup) {
+      setAiProgress(0);
+      interval = setInterval(() => {
+        setAiProgress((prev) => {
+          if (prev >= 95) {
+            clearInterval(interval);
+            return 95;
+          }
+          return prev + Math.floor(Math.random() * 5) + 1;
+        });
+      }, 800);
+    }
+    return () => clearInterval(interval);
+  }, [showAIPopup]);
 
   const [authCode, setAuthCode] = useState(null);
   const [outlookName, setOutlookName] = useState("");
@@ -549,6 +654,16 @@ const ScheduledMeeting = ({
         },
       );
       if (response.status) {
+        const responseData = response?.data;
+        if (
+          responseData?.step_generated === "in-progress" ||
+          (responseData?.message && responseData.message.toLowerCase().includes("step generated is in-progress"))
+        ) {
+          setMeetingToPlay(item);
+          pendingAiActionRef.current = () => continueHandlePlay(item);
+          setShowAIPopup(true);
+          return "in-progress";
+        }
         // navigate(`/play/${item.id}`);
         // navigate(`/destination/${item?.unique_id}/${item?.id}`);
         // window.open(`/destination/${item?.unique_id}/${item?.id}`, "_blank");
@@ -558,7 +673,16 @@ const ScheduledMeeting = ({
       }
     } catch (error) {
       console.log("error", error);
-      // setLoading(false);
+      const errorMsg = error?.response?.data?.message || error?.response?.data?.error || error?.message;
+      if (errorMsg && errorMsg.toLowerCase().includes("step generated is in-progress")) {
+        toast.error(errorMsg);
+        setMeetingToPlay(item);
+        pendingAiActionRef.current = () => continueHandlePlay(item);
+        setShowAIPopup(true);
+        return "in-progress";
+      } else {
+        toast.error(errorMsg || "Échec du démarrage de la réunion");
+      }
     }
   };
 
@@ -1962,23 +2086,23 @@ const ScheduledMeeting = ({
                                 </a>
                               </li>
                             )}
-                            {(item?.status === "active" ||
+                              {(item?.status === "active" ||
                               item?.status === "todo" ||
                               item?.type === "Calendly") && (
-                              <li>
-                                <a
-                                  className="dropdown-item"
-                                  style={{ cursor: "pointer" }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleEdit(item);
-                                  }}
-                                >
-                                  <RiEditBoxLine size={"20px"} /> &nbsp;
-                                  {t("dropdown.To modify")}
-                                </a>
-                              </li>
-                            )}
+                                <li>
+                                  <a
+                                    className="dropdown-item"
+                                    style={{ cursor: "pointer" }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEdit(item);
+                                    }}
+                                  >
+                                    <RiEditBoxLine size={"20px"} /> &nbsp;
+                                    {t("dropdown.To modify")}
+                                  </a>
+                                </li>
+                              )}
                             <li>
                               <a
                                 className="dropdown-item"
@@ -3113,6 +3237,186 @@ const ScheduledMeeting = ({
           <>
             <NewMeetingModal open={open} closeModal={handleCloseModal} />
           </>
+        )}
+
+        {showAIPopup && (
+          <div className="ai-popup-overlay">
+            <style>{`
+              .ai-popup-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: rgba(15, 23, 42, 0.75);
+                backdrop-filter: blur(12px);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+              }
+              .ai-popup-content {
+                background: rgba(30, 41, 59, 0.95);
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                box-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.5);
+                border-radius: 24px;
+                padding: 40px;
+                max-width: 480px;
+                width: 90%;
+                color: #f8fafc;
+                text-align: center;
+                position: relative;
+                font-family: 'Inter', sans-serif;
+                animation: ai-popup-scale 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+              }
+              @keyframes ai-popup-scale {
+                0% { transform: scale(0.9); opacity: 0; }
+                100% { transform: scale(1); opacity: 1; }
+              }
+              .ai-popup-close-btn {
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                background: transparent;
+                border: none;
+                color: #94a3b8;
+                font-size: 24px;
+                cursor: pointer;
+                transition: all 0.2s;
+                line-height: 1;
+              }
+              .ai-popup-close-btn:hover {
+                color: #f8fafc;
+                transform: scale(1.1);
+              }
+              .ai-robot-container {
+                margin-bottom: 24px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+              }
+              .ai-robot-svg {
+                width: 120px;
+                height: 120px;
+                animation: robot-float 3s ease-in-out infinite;
+              }
+              @keyframes robot-float {
+                0% { transform: translateY(0px) rotate(0deg); }
+                50% { transform: translateY(-10px) rotate(2deg); }
+                100% { transform: translateY(0px) rotate(0deg); }
+              }
+              .ai-robot-eye {
+                animation: robot-blink 4s infinite;
+                transform-origin: center;
+              }
+              @keyframes robot-blink {
+                0%, 90%, 100% { transform: scaleY(1); }
+                95% { transform: scaleY(0.1); }
+              }
+              .robot-antenna-glow {
+                animation: antenna-pulse 1.5s infinite;
+                transform-origin: center;
+              }
+              @keyframes antenna-pulse {
+                0% { transform: scale(1); opacity: 0.7; filter: drop-shadow(0 0 2px #a855f7); }
+                50% { transform: scale(1.3); opacity: 1; filter: drop-shadow(0 0 10px #a855f7); }
+                100% { transform: scale(1); opacity: 0.7; filter: drop-shadow(0 0 2px #a855f7); }
+              }
+              .ai-popup-title {
+                font-size: 20px;
+                font-weight: 700;
+                margin-bottom: 12px;
+                background: linear-gradient(135deg, #38bdf8 0%, #a855f7 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+              }
+              .ai-popup-msg {
+                font-size: 14px;
+                color: #cbd5e1;
+                line-height: 1.6;
+                margin-bottom: 28px;
+              }
+              .ai-loader-container {
+                position: relative;
+                height: 10px;
+                width: 100%;
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: 9999px;
+                overflow: hidden;
+              }
+              .ai-loader-bar {
+                height: 100%;
+                background: linear-gradient(90deg, #38bdf8, #a855f7, #6366f1);
+                border-radius: 9999px;
+                transition: width 0.4s ease-out;
+                position: relative;
+              }
+              .ai-loader-stripes {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-image: linear-gradient(
+                  45deg,
+                  rgba(255, 255, 255, 0.15) 25%,
+                  transparent 25%,
+                  transparent 50%,
+                  rgba(255, 255, 255, 0.15) 50%,
+                  rgba(255, 255, 255, 0.15) 75%,
+                  transparent 75%,
+                  transparent
+                );
+                background-size: 1rem 1rem;
+                animation: bar-stripes 1s linear infinite;
+              }
+              @keyframes bar-stripes {
+                from { background-position: 1rem 0; }
+                to { background-position: 0 0; }
+              }
+              .ai-percentage {
+                margin-top: 8px;
+                font-size: 12px;
+                font-weight: 600;
+                color: #94a3b8;
+              }
+            `}</style>
+            <div className="ai-popup-content">
+              <div className="ai-robot-container">
+                <svg viewBox="0 0 100 100" className="ai-robot-svg">
+                  <defs>
+                    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+                      <stop offset="0%" stopColor="#a855f7" stopOpacity="0.3" />
+                      <stop offset="100%" stopColor="#a855f7" stopOpacity="0" />
+                    </radialGradient>
+                  </defs>
+                  <circle cx="50" cy="50" r="45" fill="url(#glow)" />
+                  <rect x="25" y="25" width="50" height="36" rx="12" fill="#1e293b" stroke="#38bdf8" strokeWidth="2.5" />
+                  <line x1="50" y1="25" x2="50" y2="12" stroke="#38bdf8" strokeWidth="3" strokeLinecap="round" />
+                  <circle cx="50" cy="10" r="4" fill="#a855f7" className="robot-antenna-glow" />
+                  <rect x="20" y="35" width="5" height="16" rx="2" fill="#38bdf8" />
+                  <rect x="75" y="35" width="5" height="16" rx="2" fill="#38bdf8" />
+                  <rect x="31" y="31" width="38" height="24" rx="8" fill="#0f172a" stroke="#475569" strokeWidth="1.5" />
+                  <circle cx="42" cy="43" r="4" fill="#38bdf8" className="ai-robot-eye" />
+                  <circle cx="58" cy="43" r="4" fill="#38bdf8" className="ai-robot-eye" />
+                  <path d="M 44 50 Q 50 54 56 50" fill="none" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" />
+                  <path d="M 35 63 C 35 63 30 75 30 80 C 30 85 35 85 50 85 C 65 85 70 85 70 80 C 70 75 65 63 65 63 Z" fill="#1e293b" stroke="#38bdf8" strokeWidth="2" />
+                  <rect x="45" y="68" width="10" height="12" rx="2" fill="#a855f7" opacity="0.8" />
+                </svg>
+              </div>
+             <div className="ai-popup-title">{t("ai_popup.title")}</div>
+            <div className="ai-popup-msg">
+              {t("ai_popup.message")}<br/>
+              {t("ai_popup.message_line2")}
+            </div>
+              <div className="ai-loader-container">
+                <div className="ai-loader-bar" style={{ width: `${aiProgress}%` }}>
+                  <div className="ai-loader-stripes" />
+                </div>
+              </div>
+              <div className="ai-percentage">{aiProgress}%</div>
+            </div>
+          </div>
         )}
       </div>
     </>

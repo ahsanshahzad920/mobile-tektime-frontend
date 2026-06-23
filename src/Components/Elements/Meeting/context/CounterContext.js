@@ -163,7 +163,9 @@ export const CounterContextProvider = ({ children }) => {
 
     const sendCurrentTime = async () => {
       try {
-        const inProgressStep = meetingData?.steps?.[activeStepIndex];
+        const inProgressStep = meetingData?.steps?.find(
+          (step) => step?.step_status === "in_progress" || step?.step_status === "to_finish"
+        ) || meetingData?.steps?.[activeStepIndex];
         const inProgressStepId = inProgressStep?.id;
 
         if (!inProgressStepId) return;
@@ -188,7 +190,7 @@ export const CounterContextProvider = ({ children }) => {
         const formattedDate = `${year}-${month}-${day}`;
 
         const payload = {
-          delay_seconds: 30, // ✅ Always send 30 as requested
+          delay_seconds: 15, // ✅ Always send 30 as requested
           step_id: inProgressStepId,
           current_time: formattedTime,
           current_date: formattedDate,
@@ -223,7 +225,8 @@ export const CounterContextProvider = ({ children }) => {
     // Then start the interval
     const intervalId = setInterval(() => {
       sendCurrentTime();
-    }, 30000); // ✅ Every 30 seconds
+    }, 15000); // ✅ Every 30 seconds
+    // }, 30000); // ✅ Every 30 seconds
 
     return () => {
       clearInterval(intervalId);
@@ -232,7 +235,9 @@ export const CounterContextProvider = ({ children }) => {
 
 
   const savePositiveTime = async () => {
-    const inProgressStep = meetingData?.steps[activeStepIndex];
+    const inProgressStep = meetingData?.steps?.find(
+      (step) => step?.step_status === "in_progress" || step?.step_status === "to_finish"
+    ) || meetingData?.steps?.[activeStepIndex];
     const inProgressStepId = inProgressStep?.id;
 
     // Exit if there's no in-progress step
@@ -295,7 +300,9 @@ export const CounterContextProvider = ({ children }) => {
       return;
 
     const savePositiveTime = async () => {
-      const inProgressStep = meetingData?.steps[activeStepIndex];
+      const inProgressStep = meetingData?.steps?.find(
+        (step) => step?.step_status === "in_progress" || step?.step_status === "to_finish"
+      ) || meetingData?.steps?.[activeStepIndex];
       const inProgressStepId = inProgressStep?.id;
 
       if (!inProgressStepId) return;

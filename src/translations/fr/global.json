@@ -4134,6 +4134,13 @@
     "Failed to update mission history.": "Échec de la mise à jour de l'historique de la mission.",
     "Error updating mission history.": "Erreur lors de la mise à jour de l'historique de la mission.",
     "mediaGenerating":"Génération de média...",
-    "of the month of":"du mois de"
-
+    "of the month of":"du mois de",
+    "Meetingelay":"Dépassement",
+    "ai_popup": {
+      "title": "Traitement IA",
+      "message": "La génération de contenu et de médias par IA est en cours...",
+      "message_line2": "Une fois que tout sera prêt, vous rejoindrez automatiquement la réunion."
+    }
 }
+
+

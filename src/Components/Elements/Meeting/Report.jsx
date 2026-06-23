@@ -1301,7 +1301,7 @@ const Report = () => {
     if (meetId || meetingData?.destination_id) {
       getAllFiles();
     }
-  }, [uniqueId, meetingData, destinationDate, meetId]); // Added meetId to dependencies
+  }, [uniqueId, meetingData?.destination_id, destinationDate, meetId]); // Added meetId to dependencies
   const getMeetingByID = async (objective, userId) => {
     if (uniqueId) {
       return false;
@@ -1443,10 +1443,11 @@ const Report = () => {
 
       const formattedTime = formatTime(timeInUserZone);
       const formattedDate = formatDate(timeInUserZone);
+      const userId = CookieService.get("user_id");
 
       // STEP 1: Fetch current meeting before transcription (optional but can help)
       const initialResponse = await axios.get(
-        `${API_BASE_URL}/get-meeting/${meetId}?current_time=${formattedTime}&current_date=${formattedDate}&timezone=${userTimeZone}`
+        `${API_BASE_URL}/get-meeting/${meetId}?current_time=${formattedTime}&current_date=${formattedDate}&timezone=${userTimeZone}${userId ? `&user_id=${userId}` : ""}`
       );
 
       const meeting = initialResponse?.data?.data;
@@ -1458,7 +1459,7 @@ const Report = () => {
 
       // STEP 3: Now fetch latest version after transcription is saved
       const refreshedResponse = await axios.get(
-        `${API_BASE_URL}/get-meeting/${meetId}?current_time=${formattedTime}&current_date=${formattedDate}&timezone=${userTimeZone}`
+        `${API_BASE_URL}/get-meeting/${meetId}?current_time=${formattedTime}&current_date=${formattedDate}&timezone=${userTimeZone}${userId ? `&user_id=${userId}` : ""}`
       );
 
       clearInterval(interval); // Stop progress simulation
@@ -1762,7 +1763,7 @@ const Report = () => {
   };
 
   const handleLogin = () => {
-    navigate("/", {
+    navigate("/login", {
       state: {
         redirect_rules: false,
 
@@ -2187,7 +2188,7 @@ const Report = () => {
     CookieService.get("user_id")
   const [workingHours, setWorkingHours] = useState([]);
   useEffect(() => {
-    if (meetingData) {
+    if (meetingData?.destination?.id) {
       const getWorkingHours = async () => {
         try {
           const response = await axios.get(
@@ -2202,7 +2203,7 @@ const Report = () => {
       };
       getWorkingHours();
     }
-  }, [meetingData]);
+  }, [meetingData?.destination?.id, loggedInUserId]);
   const [showPopup, setShowPopup] = useState(false);
   const [popupMessage, setPopupMessage] = useState("");
   // Get day index (0-6) instead of relying on day names
@@ -2579,41 +2580,40 @@ const Report = () => {
   const [stepMedias, setStepMedias] = useState([]);
   const [mediaLoading, setMediaLoading] = useState(true); // ← NEW: Loading state for GET
 
-  useEffect(() => {
-    const fetchStepMedia = async () => {
-      if (!meetId) {
-        setMediaLoading(false);
-        return;
-      }
-
-      setMediaLoading(true); // ← Start loading
-
-      try {
-        const response = await axios.get(
-          `${API_BASE_URL}/meeting/${meetId}/all-media`,
-          {
-            headers: {
-              Authorization: `Bearer ${CookieService.get("token") || CookieService.get("token")
-                }`,
-            },
-          }
-        );
-
-        if (response.status === 200) {
-          setStepMedias(response?.data?.data?.media || []);
-        }
-      } catch (error) {
-        console.error("Error fetching step media:", error);
-        toast.error(t("Failed to load media"));
-        setStepMedias([]);
-      } finally {
-        setMediaLoading(false); // ← Always stop loading
-      }
-    };
-  if (meetId) {
-      fetchStepMedia();
+  const fetchStepMedia = async () => {
+    if (!meetId) {
+      setMediaLoading(false);
+      return;
     }
-    }, [meetId]); // ← Better dependency: step.id only
+
+    setMediaLoading(true);
+
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/meeting/${meetId}/all-media`,
+        {
+          headers: {
+            Authorization: `Bearer ${CookieService.get("token") || CookieService.get("token")
+              }`,
+          },
+        }
+      );
+
+      if (response.status === 200) {
+        setStepMedias(response?.data?.data?.media || []);
+      }
+    } catch (error) {
+      console.error("Error fetching step media:", error);
+      toast.error(t("Failed to load media"));
+      setStepMedias([]);
+    } finally {
+      setMediaLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStepMedia();
+  }, [meetId]);
 
   const [isNavVisible, setIsNavVisible] = useState(false);
 
@@ -4748,6 +4748,7 @@ const Report = () => {
                       onUploadSuccess={handleAudioUploadSuccess}
                       setIsUploading={setIsUploading}
                       stepMedias={stepMedias || []}
+                      fetchStepMedia={fetchStepMedia}
                     />
                   </>
                 ) : (
@@ -5465,7 +5466,7 @@ const Report = () => {
                                     </p>
                                   </div>
                                 ) : null}
-                                {meetingData?.casting_type === "Registration" && (
+                                {/* {meetingData?.casting_type === "Registration" && (
                                   <div className="row mt-3">
                                     <div className="col-md-12 d-flex align-items-center gap-3 flex-wrap">
                                       <div className="d-flex align-items-center gap-2">
@@ -5533,7 +5534,7 @@ const Report = () => {
                                       </div>
                                     </div>
                                   </div>
-                                )}
+                                )} */}
                               </div>
                               {(meetingData?.prise_de_notes === "Automatic" ||
                                 meetingData?.alarm === true ||

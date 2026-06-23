@@ -38,9 +38,11 @@ function StepFile({ openModal, isFileUploaded, setIsFileUploaded, meetingFiles, 
     return { date, time };
   };
 
+  const filesArray = Array.isArray(meetingFiles) ? meetingFiles : [];
+
   return (
     <div className="row" style={{ marginBottom: "3rem", gap: "4px" }}>
-      {meetingFiles?.map((item, index) => {
+      {filesArray.map((item, index) => {
         return (
           <div key={item?.id}>
             <div className="col-12 ste">

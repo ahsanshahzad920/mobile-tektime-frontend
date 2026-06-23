@@ -41,6 +41,7 @@ import { FaBackward, FaLocationDot } from "react-icons/fa6";
 import { BsPersonWorkspace } from "react-icons/bs";
 import {
   FaBook,
+  FaCamera,
   FaChartLine,
   FaComments,
   FaExpand,
@@ -57,6 +58,7 @@ import {
   FaStickyNote,
   FaStop,
   FaUserCircle,
+  FaVideo,
 } from "react-icons/fa";
 import { Tooltip as AntdTooltip, Avatar, Spin, Tooltip } from "antd";
 import CounterContainer from "./PlayMeeting/components/CounterContainer";
@@ -95,6 +97,7 @@ import { debounce } from "lodash";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 // import { CiCircleQuestion } from "react-icons/ci";
+import { subscribeToMeeting, unsubscribeFromMeeting } from "../../../Helpers/pusherHelper";
 
 // Modern Animated Recording Indicator Component
 const RecordingIndicator = ({ t }) => (
@@ -236,6 +239,58 @@ const AutoNoteIndicator = ({ t, visible, isDesktopOnly }) => (
       {`
         @keyframes auto-note-rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes auto-note-pulse { 0%, 100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.4); opacity: 1; } }
+        @keyframes recording-glow {
+          0% {
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.6), 0 0 0 0 rgba(139, 92, 246, 0.4), 0 4px 15px rgba(30, 64, 175, 0.3);
+            transform: scale(1);
+          }
+          50% {
+            box-shadow: 0 0 15px 4px rgba(59, 130, 246, 0.8), 0 0 30px 8px rgba(139, 92, 246, 0.6), 0 8px 25px rgba(30, 64, 175, 0.5);
+            transform: scale(1.04);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.6), 0 0 0 0 rgba(139, 92, 246, 0.4), 0 4px 15px rgba(30, 64, 175, 0.3);
+            transform: scale(1);
+          }
+        }
+        @keyframes shine-sweep {
+          0% {
+            left: -120%;
+          }
+          30% {
+            left: 150%;
+          }
+          100% {
+            left: 150%;
+          }
+        }
+        .recording-btn-glow {
+          position: relative !important;
+          overflow: hidden !important;
+          animation: recording-glow 2s infinite ease-in-out !important;
+          transition: all 0.3s ease !important;
+        }
+        .recording-btn-glow:hover {
+          transform: translateY(-2px) scale(1.06) !important;
+          filter: brightness(1.1);
+        }
+        .recording-btn-glow::after {
+          content: '' !important;
+          position: absolute !important;
+          top: 0 !important;
+          left: -120% !important;
+          width: 50px !important;
+          height: 100% !important;
+          background: linear-gradient(
+            90deg,
+            rgba(255, 255, 255, 0) 0%,
+            rgba(255, 255, 255, 0.5) 50%,
+            rgba(255, 255, 255, 0) 100%
+          ) !important;
+          transform: skewX(-25deg) !important;
+          animation: shine-sweep 3.5s infinite ease-in-out !important;
+          pointer-events: none !important;
+        }
       `}
     </style>
   </div>
@@ -286,6 +341,7 @@ const InProgress = ({
   setProgress,
   setIsUploading,
   stepMedias = [],
+  fetchStepMedia,
 }) => {
   const cleanText = (text) => {
     if (!text) return "";
@@ -306,8 +362,13 @@ const InProgress = ({
   const getTimezoneSymbol = (timezone) => timezoneSymbols[timezone] || timezone;
   const [excelData, setExcelData] = useState(null);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [isFileUploaded, setIsFileUploaded] = useState(false);
+  const [isModalOpen2, setIsModalOpen2] = useState(false);
+  const [modalContent, setModalContent] = useState(null);
+  const [isFileLoading, setIsFileLoading] = useState(false);
   const TINYMCEAPI = process.env.REACT_APP_TINYMCE_API;
   const editorRef = useRef(null);
+  const notesEditorRef = useRef(null);
   const navigate = useNavigate();
   const { setCallApi } = useMeetings();
   const {
@@ -315,6 +376,7 @@ const InProgress = ({
     savedTime,
     negativeTimes,
     activeStepIndex,
+    setActiveStepIndex,
     setNextActiveStep,
     setPreviousActiveStep,
     stepDelay,
@@ -328,6 +390,8 @@ const InProgress = ({
     // const [decision, setDecision] = useState([]);
   } = useCounterContext();
   const { startRecording } = useRecording();
+  const [selectedOption, setSelectedOption] = useState("");
+  const [iframeUrl, setIframeUrl] = useState(""); // State for iframe URL
 
   // iPhone/iPad Wake Lock Video Reference (for iOS users specifically)
   // const wakeLockVideoRef = useRef(null);
@@ -407,7 +471,11 @@ const InProgress = ({
 
   const isMobile = window.innerWidth <= 768; // You can adjust this breakpoint
 
+  const editorStatesRef = useRef();
+  const lastTransitionTimeRef = useRef(0);
+
   const getMeetingById = async () => {
+    lastTransitionTimeRef.current = Date.now();
     const currentTime = new Date();
     const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
@@ -437,7 +505,7 @@ const InProgress = ({
         }
         setPreviousSteps(meetingData?.steps);
         setStepNotes(meetingData?.steps?.map((step) => step?.note));
-        setDecision(meetingData?.steps?.map((step) => step?.decision));
+        setDecision(meetingData?.steps?.map((step) => step?.decision || step?.decisions || []));
         setStepData(meetingData?.steps);
         setTableData(meetingData?.plan_d_actions || []);
         setMeetingData(meetingData);
@@ -466,7 +534,8 @@ const InProgress = ({
       return null;
     }
   };
-    const getMeetingByIdWithCalculation = async () => {
+  const getMeetingByIdWithCalculation = async () => {
+    lastTransitionTimeRef.current = Date.now();
     const currentTime = new Date();
     const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
@@ -496,7 +565,7 @@ const InProgress = ({
         }
         setPreviousSteps(meetingData?.steps);
         setStepNotes(meetingData?.steps?.map((step) => step?.note));
-        setDecision(meetingData?.steps?.map((step) => step?.decision));
+        setDecision(meetingData?.steps?.map((step) => step?.decision || step?.decisions || []));
         setStepData(meetingData?.steps);
         setTableData(meetingData?.plan_d_actions || []);
         setMeetingData(meetingData);
@@ -525,29 +594,22 @@ const InProgress = ({
       return null;
     }
   };
-  const getMeeting = async () => {
-    // Check if any editor is open
-    if (
-      showStepContentEditor ||
-      notesEditor.showEditor ||
-      decisionEditor.showEditor ||
-      questionEditor.showEditor ||
-      mediaEditor.showEditor ||
-      fileEditor.showEditor ||
-      planDActionEditor.showEditor
-    ) {
-      return;
-    }
-    if (
-      meetingData?.status !== "in_progress" &&
-      meetingData?.status !== "to_finish"
-    ) {
+
+
+  const handleRealTimeUpdate = async () => {
+    const { isLoadingNext, isNext, isPrevious } = editorStatesRef.current || {};
+    if (isLoadingNext || isNext || isPrevious || (Date.now() - lastTransitionTimeRef.current < 3000)) {
+      console.log("[RealTimeUpdate] Skipping meeting fetch because client is transitioning steps.");
       return;
     }
 
+    // const isEditorFocused = (editorRef.current && editorRef.current.hasFocus()) || (notesEditorRef.current && notesEditorRef.current.hasFocus());
+    // if (isEditorFocused) {
+    //   console.log("[RealTimeUpdate] Skipping meeting fetch because an editor is currently focused.");
+    //   return;
+    // }
     const currentTime = new Date();
     const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
     const options = { timeZone: userTimeZone };
     const timeInUserZone = new Date(
       currentTime.toLocaleString("en-US", options),
@@ -555,33 +617,169 @@ const InProgress = ({
 
     const formattedTime = formatTime(timeInUserZone);
     const formattedDate = formatDate(timeInUserZone);
+    const userId = CookieService.get("user_id");
 
+    console.log(`[RealTimeUpdate] Initiating meeting fetch for meeting ID: ${meetId}...`);
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/get-meeting/${meetId}?current_time=${formattedTime}&current_date=${formattedDate}&timezone=${userTimeZone}`,
+        `${API_BASE_URL}/public/meetings/${meetId}?current_time=${formattedTime}&current_date=${formattedDate}&timezone=${userTimeZone}${userId ? `&user_id=${userId}` : ""}&do_continue_change_cal=true`,
       );
       if (response.status) {
-        const meetingData = response.data?.data;
-        if (meetingData?.prise_de_notes === "Automatic") {
+        const remoteMeetingData = response.data?.data;
+        console.log("[RealTimeUpdate] Fetch completed successfully. Data:", remoteMeetingData);
+        
+        // Find if the step or status has changed
+        const remoteActiveStep = remoteMeetingData?.steps?.find(
+          (step) => step.step_status === "in_progress" || step.step_status === "to_finish"
+        );
+        const localActiveStep = meetingData?.steps?.find(
+          (step) => step.step_status === "in_progress" || step.step_status === "to_finish"
+        );
+        
+        const isStepChanged = remoteActiveStep?.id !== localActiveStep?.id;
+        const isStatusChanged = remoteMeetingData?.status !== meetingData?.status;
+        const isStepStatusChanged = remoteActiveStep?.step_status !== localActiveStep?.step_status;
+        const isSavedTimeChanged = remoteActiveStep?.savedTime !== localActiveStep?.savedTime;
+
+        if (meetingData && (isStepChanged || isStatusChanged || isStepStatusChanged || isSavedTimeChanged)) {
+          console.log(`[RealTimeUpdate] Incrementing timer key to sync timer. StepChanged: ${isStepChanged}, StatusChanged: ${isStatusChanged}, StepStatusChanged: ${isStepStatusChanged}, SavedTimeChanged: ${isSavedTimeChanged}`);
+          incrementTimerKey();
+        }
+
+        // If the meeting moved on or closed, close any open editors to keep UI consistent
+        if (isStepChanged || isStatusChanged) {
+          setShowStepContentEditor(false);
+          setSelectedOption("");
+          setNotesEditor((prev) => ({ ...prev, showEditor: false }));
+          setDecisionEditor((prev) => ({ ...prev, showEditor: false }));
+          setPlanDActionEditor((prev) => ({ ...prev, showEditor: false }));
+          setFileEditor((prev) => ({ ...prev, showEditor: false }));
+          setQuestionEditor((prev) => ({ ...prev, showEditor: false }));
+          setMediaEditor((prev) => ({ ...prev, showEditor: false }));
+        }
+
+        if (remoteMeetingData?.prise_de_notes === "Automatic") {
           setIsAutomatic(true);
         } else {
           setIsAutomatic(false);
         }
+        setPreviousSteps(remoteMeetingData?.steps);
+        
+        // Update stepNotes, decisions, and stepData, but protect locally active inputs if focused
+        setStepNotes((prevNotes) => {
+          return remoteMeetingData?.steps?.map((remoteStep, idx) => {
+            const isCurrentStep = idx === currentStepIndex;
+            if (isCurrentStep && notesEditor.showEditor && notesEditorRef.current?.hasFocus()) {
+              return prevNotes?.[idx] !== undefined ? prevNotes[idx] : remoteStep?.note;
+            }
+            return remoteStep?.note;
+          }) || [];
+        });
 
-        setPreviousSteps(meetingData?.steps);
-        setStepNotes(meetingData?.steps?.map((step) => step?.note));
-        setDecision(meetingData?.steps?.map((step) => step?.decision));
-        setStepData(meetingData?.steps);
-        setTableData(meetingData?.plan_d_actions || []);
-        setMeetingData(meetingData);
-        // if (setContextMeetingData) {
-        //   setContextMeetingData(meetingData);
-        // }
-        // setEmailCampaign(meetingData?.email_campaigns);
+        setDecision(
+          remoteMeetingData?.steps?.map((remoteStep) => remoteStep?.decision || remoteStep?.decisions || []) || []
+        );
 
-        const estimate_time = response?.data?.data?.estimate_time;
-        const type = response?.data?.data?.type;
-        const timezone = response?.data?.data?.timezone;
+        setStepData((prevSteps) => {
+          return remoteMeetingData?.steps?.map((remoteStep, idx) => {
+            const isCurrentStep = idx === currentStepIndex;
+            const localStep = prevSteps?.[idx] || remoteStep;
+            const targetDecision = remoteStep.decision || remoteStep.decisions || [];
+            return {
+              ...remoteStep,
+              editor_content: (isCurrentStep && editorRef.current && editorRef.current.hasFocus())
+                ? localStep.editor_content
+                : remoteStep.editor_content,
+              note: (isCurrentStep && notesEditor.showEditor && notesEditorRef.current?.hasFocus())
+                ? localStep.note
+                : remoteStep.note,
+              decision: targetDecision,
+              decisions: targetDecision,
+            };
+          }) || [];
+        });
+
+        setTableData((prevTable) => {
+          // If the user has focus on any input/textarea in the strategy table, do not overwrite tableData
+          const activeEl = document.activeElement;
+          const isTypingInTable = activeEl && 
+            (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA" || activeEl.tagName === "SELECT") &&
+            (activeEl.name === "action" || activeEl.name === "participant_id" || activeEl.name === "order");
+            
+          if (isTypingInTable) {
+            return prevTable;
+          }
+          return remoteMeetingData?.plan_d_actions || [];
+        });
+
+        setMeetingData((prevData) => {
+          if (!prevData) {
+            if (setContextMeetingData) {
+              setContextMeetingData(remoteMeetingData);
+            }
+            return remoteMeetingData;
+          }
+
+          const updatedSteps = remoteMeetingData?.steps?.map((remoteStep, idx) => {
+            const localStep = prevData?.steps?.[idx] || remoteStep;
+            const isCurrentStep = idx === currentStepIndex;
+            const targetDecision = remoteStep.decision || remoteStep.decisions || [];
+            
+            return {
+              ...remoteStep,
+              editor_content: (isCurrentStep && editorRef.current && editorRef.current.hasFocus())
+                ? localStep.editor_content
+                : remoteStep.editor_content,
+              note: (isCurrentStep && notesEditor.showEditor && notesEditorRef.current?.hasFocus())
+                ? localStep.note
+                : remoteStep.note,
+              decision: targetDecision,
+              decisions: targetDecision,
+            };
+          }) || [];
+
+          const nextData = {
+            ...remoteMeetingData,
+            steps: updatedSteps,
+          };
+
+          if (setContextMeetingData) {
+            setContextMeetingData(nextData);
+          }
+
+          return nextData;
+        });
+
+        // Force-update TinyMCE editor content if it's open, not focused, and remote content differs
+        const remoteStep = remoteMeetingData?.steps?.[currentStepIndex];
+        if (remoteStep && remoteStep.editor_content !== undefined) {
+          if (editorRef.current && !editorRef.current.hasFocus()) {
+            try {
+              const currentEditorContent = editorRef.current.getContent();
+              if (currentEditorContent !== remoteStep.editor_content) {
+                editorRef.current.setContent(remoteStep.editor_content || "");
+              }
+            } catch (e) {
+              // Editor may not be ready yet, ignore
+            }
+          }
+        }
+        if (remoteStep && remoteStep.note !== undefined) {
+          if (notesEditorRef.current && !notesEditorRef.current.hasFocus()) {
+            try {
+              const currentNotesContent = notesEditorRef.current.getContent();
+              if (currentNotesContent !== remoteStep.note) {
+                notesEditorRef.current.setContent(remoteStep.note || "");
+              }
+            } catch (e) {
+              // Editor may not be ready yet, ignore
+            }
+          }
+        }
+
+        const estimate_time = remoteMeetingData?.estimate_time;
+        const type = remoteMeetingData?.type;
+        const timezone = remoteMeetingData?.timezone;
         if (estimate_time) {
           const formattedDateTime = parseAndFormatDateTime(
             estimate_time,
@@ -592,48 +790,182 @@ const InProgress = ({
           setEstimateTime(formattedDateTime.formattedTime);
           setEstimateDate(formattedDateTime.formattedDate);
         }
-
-        return meetingData;
       }
     } catch (error) {
-      return null;
+      console.error("Error in real-time update fetch:", error);
     }
   };
 
-  useEffect(() => {
-    if (
-      meetingData &&
-      (meetingData?.status === "in_progress" ||
-        meetingData?.status === "to_finish")
-    ) {
-      const intervalId = setInterval(() => {
-        if (
-          !showStepContentEditor &&
-          !notesEditor.showEditor &&
-          !decisionEditor.showEditor &&
-          !fileEditor.showEditor &&
-          !questionEditor.showEditor &&
-          !mediaEditor.showEditor &&
-          !planDActionEditor.showEditor
-        ) {
-          getMeeting();
-        }
-      }, 30000); // 30 seconds
+  const handleRealTimeUpdateRef = useRef();
+  handleRealTimeUpdateRef.current = handleRealTimeUpdate;
 
-      return () => clearInterval(intervalId);
+  useEffect(() => {
+    if (meetId) {
+      console.log(`[Pusher] Subscribing to meeting channel: meeting.${meetId}`);
+      let debounceTimeout = null;
+      
+      const channel = subscribeToMeeting(meetId, ({ type, data }) => {
+        console.log(`[Pusher] Event received: ${type}`, data);
+        if (type === "step.updated" || type === "meeting.ui-updated") {
+          const { isLoadingNext, isNext, isPrevious } = editorStatesRef.current || {};
+          if (isLoadingNext || isNext || isPrevious || (Date.now() - lastTransitionTimeRef.current < 3000)) {
+            console.log("[Pusher] Skipping handleRealTimeUpdate because client is transitioning steps.");
+            return;
+          }
+
+          if (type === "step.updated") {
+            const changedData = data?.changed_data;
+            if (changedData) {
+              const { showStepContentEditor: activeEdit, notesEditorShow, decisionEditorShow, currentStepIndex: curIdx, meetingData: latestMeetingData } = editorStatesRef.current || {};
+              
+              setMeetingData((prevData) => {
+                if (!prevData) return prevData;
+
+                let nextActiveToggle = prevData.presentation_sc_active_toggle;
+                if (changedData.types === "toggle_changed") {
+                  nextActiveToggle = changedData.presentation_sc_active_toggle || changedData.presentation_sc_active_toggles || "";
+                }
+
+                let changedIndex = -1;
+                const updatedSteps = prevData.steps.map((step, idx) => {
+                  const changedId = changedData.id || changedData.step_id;
+                  if (Number(step.id) === Number(changedId)) {
+                    changedIndex = idx;
+                    const isCurrentStep = idx === curIdx;
+                    return {
+                      ...step,
+                      ...changedData,
+                      editor_content: (isCurrentStep && editorRef.current && editorRef.current.hasFocus())
+                        ? step.editor_content
+                        : (changedData.editor_content !== undefined ? changedData.editor_content : step.editor_content),
+                      note: (isCurrentStep && notesEditorShow && notesEditorRef.current?.hasFocus())
+                        ? step.note
+                        : (changedData.note !== undefined ? changedData.note : step.note),
+                      decision: changedData.decision !== undefined ? changedData.decision : (changedData.decisions !== undefined ? changedData.decisions : step.decision),
+                      decisions: changedData.decisions !== undefined ? changedData.decisions : (changedData.decision !== undefined ? changedData.decision : step.decisions),
+                    };
+                  }
+                  return step;
+                });
+
+                const targetDecision = changedData.decision !== undefined ? changedData.decision : changedData.decisions;
+                if (changedIndex !== -1 && changedData.note !== undefined && !(changedIndex === curIdx && notesEditorShow && notesEditorRef.current?.hasFocus())) {
+                  setStepNotes((prevNotes) => {
+                    if (!prevNotes) return prevNotes;
+                    const newNotes = [...prevNotes];
+                    newNotes[changedIndex] = changedData.note;
+                    return newNotes;
+                  });
+                }
+                if (changedIndex !== -1 && targetDecision !== undefined) {
+                  setDecision((prevDecisions) => {
+                    if (!prevDecisions) return prevDecisions;
+                    const newDecisions = [...prevDecisions];
+                    newDecisions[changedIndex] = targetDecision;
+                    return newDecisions;
+                  });
+                }
+
+                const targetActions = changedData.planDActions !== undefined ? changedData.planDActions : (changedData.plan_d_actions !== undefined ? changedData.plan_d_actions : changedData.actions);
+                if (targetActions !== undefined) {
+                  setTableData((prevTable) => {
+                    const activeEl = document.activeElement;
+                    const isTypingInTable = activeEl && 
+                      (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA" || activeEl.tagName === "SELECT") &&
+                      (activeEl.name === "action" || activeEl.name === "participant_id" || activeEl.name === "order");
+                      
+                    if (isTypingInTable) {
+                      return prevTable;
+                    }
+                    return targetActions || [];
+                  });
+                }
+
+                return {
+                  ...prevData,
+                  steps: updatedSteps,
+                  presentation_sc_active_toggle: nextActiveToggle,
+                  presentation_sc_active_toggles: nextActiveToggle,
+                  plan_d_actions: targetActions !== undefined ? targetActions : prevData.plan_d_actions,
+                };
+              });
+
+              // Force-update TinyMCE editor content if it's open, not focused, and remote content differs
+              const changedId = changedData.id || changedData.step_id;
+              const currentStep = latestMeetingData?.steps?.[curIdx];
+              const isCurrentStep = currentStep && (Number(currentStep.id) === Number(changedId));
+              
+              if (isCurrentStep && changedData.editor_content !== undefined) {
+                if (editorRef.current && !editorRef.current.hasFocus()) {
+                  try {
+                    const currentEditorContent = editorRef.current.getContent();
+                    if (currentEditorContent !== changedData.editor_content) {
+                      editorRef.current.setContent(changedData.editor_content || "");
+                    }
+                  } catch (e) {
+                    // Editor may not be ready yet, ignore
+                  }
+                }
+              }
+              if (isCurrentStep && changedData.note !== undefined) {
+                if (notesEditorRef.current && !notesEditorRef.current.hasFocus()) {
+                  try {
+                    const currentNotesContent = notesEditorRef.current.getContent();
+                    if (currentNotesContent !== changedData.note) {
+                      notesEditorRef.current.setContent(changedData.note || "");
+                    }
+                  } catch (e) {
+                    // Editor may not be ready yet, ignore
+                  }
+                }
+              }
+            }
+          }
+
+          // Debounce the call to handleRealTimeUpdate to avoid calling the get-meeting API multiple times in rapid succession
+          if (debounceTimeout) {
+            console.log("[Pusher] Clearing existing debounce timeout for handleRealTimeUpdate.");
+            clearTimeout(debounceTimeout);
+          }
+          console.log("[Pusher] Scheduling handleRealTimeUpdate in 300ms...");
+          debounceTimeout = setTimeout(() => {
+            const { isLoadingNext: latestLoading, isNext: latestIsNext, isPrevious: latestIsPrev } = editorStatesRef.current || {};
+            if (latestLoading || latestIsNext || latestIsPrev || (Date.now() - lastTransitionTimeRef.current < 3000)) {
+              console.log("[Pusher] Debounce expired, but skipping handleRealTimeUpdate because client is transitioning steps or recently transitioned.");
+              return;
+            }
+            if (handleRealTimeUpdateRef.current) {
+              console.log("[Pusher] Debounce expired. Triggering handleRealTimeUpdate...");
+              handleRealTimeUpdateRef.current();
+            } else {
+              console.warn("[Pusher] handleRealTimeUpdateRef.current is undefined!");
+            }
+          }, 300);
+        }
+      });
+
+      return () => {
+        console.log(`[Pusher] Unsubscribing from meeting channel: meeting.${meetId}`);
+        if (debounceTimeout) {
+          clearTimeout(debounceTimeout);
+        }
+        unsubscribeFromMeeting(meetId);
+      };
     }
-  }, [
-    meetingData,
-    meetId,
-    isModalOpen,
-    showStepContentEditor,
-    notesEditor.showEditor,
-    decisionEditor.showEditor,
-    fileEditor.showEditor,
-    planDActionEditor.showEditor,
-    questionEditor.showEditor,
-    mediaEditor.showEditor,
-  ]);
+  }, [meetId]);
+
+  useEffect(() => {
+    if (meetingData && setContextMeetingData) {
+      setContextMeetingData(meetingData);
+    }
+  }, [meetingData, setContextMeetingData]);
+
+  useEffect(() => {
+    if (currentStepIndex !== activeStepIndex) {
+      setActiveStepIndex(currentStepIndex);
+    }
+  }, [currentStepIndex]);
+
 
   useEffect(() => {
     if (meetingData) {
@@ -656,6 +988,95 @@ const InProgress = ({
       }
     }
   }, [meetingData]);
+
+  useEffect(() => {
+    if (meetingData) {
+      const rawActiveToggle = meetingData?.presentation_sc_active_toggle || meetingData?.presentation_sc_active_toggles || "";
+      let activeToggle = rawActiveToggle;
+      let activeUrl = "";
+      if (rawActiveToggle.includes("::")) {
+        const parts = rawActiveToggle.split("::");
+        activeToggle = parts[0];
+        activeUrl = parts.slice(1).join("::");
+      }
+
+      if (activeToggle !== selectedOption) {
+        setSelectedOption(activeToggle);
+        setShowStepContentEditor(activeToggle === "Step");
+        setNotesEditor((prev) => ({ ...prev, showEditor: activeToggle === "Notes" }));
+        setDecisionEditor((prev) => ({ ...prev, showEditor: activeToggle === "Decision" }));
+        setPlanDActionEditor((prev) => ({ ...prev, showEditor: activeToggle === "Strategy" }));
+        setFileEditor((prev) => ({ ...prev, showEditor: activeToggle === "Files" }));
+        setMediaEditor((prev) => ({ ...prev, showEditor: activeToggle === "Media" }));
+        setQuestionEditor((prev) => ({ ...prev, showEditor: activeToggle === "Questions" }));
+      }
+
+      // Synchronize iframeUrl state
+      if (activeToggle === "Questions") {
+        if (activeUrl !== iframeUrl) {
+          setIframeUrl(activeUrl);
+          if (activeUrl) {
+            setIsIframeLoading(true);
+          } else {
+            setIsIframeLoading(false);
+          }
+        }
+      } else {
+        if (iframeUrl !== "") {
+          setIframeUrl("");
+          setIsIframeLoading(false);
+        }
+      }
+
+      // Synchronize active opened file state
+      if (activeToggle === "Files") {
+        if (activeUrl) {
+          const filesList = Array.isArray(meetingData?.meeting_files) ? meetingData.meeting_files : (Array.isArray(meetingFile) ? meetingFile : []);
+          const foundFile = filesList.find(f => String(f?.id) === String(activeUrl));
+          if (foundFile) {
+            if (modalContent?.id !== foundFile.id || !isModalOpen2) {
+              setModalContent(foundFile);
+              setIsModalOpen2(true);
+              setIsFileLoading(true);
+            }
+          }
+        } else {
+          if (isModalOpen2) {
+            setIsModalOpen2(false);
+            setModalContent(null);
+            setIsFileLoading(false);
+          }
+        }
+      } else {
+        if (isModalOpen2) {
+          setIsModalOpen2(false);
+          setModalContent(null);
+          setIsFileLoading(false);
+        }
+      }
+    }
+  }, [
+    meetingData?.presentation_sc_active_toggle,
+    meetingData?.presentation_sc_active_toggles,
+    meetingData?.meeting_files,
+    meetingFile,
+    selectedOption,
+    iframeUrl,
+    modalContent,
+    isModalOpen2
+  ]);
+
+  useEffect(() => {
+    if (modalContent) {
+      const isIframeType = modalContent?.file_type?.includes("pdf") || modalContent?.file_type?.includes("video");
+      if (!isIframeType) {
+        const timer = setTimeout(() => {
+          setIsFileLoading(false);
+        }, 800);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [modalContent]);
 
   useEffect(() => {
     // if (currentStepIndex !== -1) {
@@ -957,7 +1378,7 @@ const InProgress = ({
   };
 
   const sanitizeIframeContent = (content) => {
-    if (!content) return null;
+    if (!content) return "";
     return content.replace(
       /<iframe.*?src="(.*?)".*?<\/iframe>/gi,
       (match, src) => {
@@ -1218,7 +1639,7 @@ const InProgress = ({
     };
 
     fetchServerMedia();
-  }, [mediaEditor.showEditor, currentStepIndex]);
+  }, [mediaEditor.showEditor, currentStepIndex, meetingData?.presentation_sc_active_toggle, meetingData?.presentation_sc_active_toggles]);
 
   const handleMediaUpload = async (files) => {
     if (!files || files.length === 0) return;
@@ -1259,6 +1680,10 @@ const InProgress = ({
         },
       );
       setServerMedia(res?.data?.data?.media || []);
+      handleToggleAPI("Media::" + Date.now(), true);
+      if (fetchStepMedia) {
+        fetchStepMedia();
+      }
     } catch (error) {
       toast.error(error.response?.data?.message || t("Upload failed"));
     } finally {
@@ -1389,6 +1814,10 @@ Please categorize the relevant details into their corresponding sections.`;
       });
 
       setServerMedia((prev) => prev.filter((_, i) => i !== index));
+      handleToggleAPI("Media::" + Date.now(), true);
+      if (fetchStepMedia) {
+        fetchStepMedia();
+      }
       toast.success("Média supprimé avec succès !");
     } catch (error) {
       toast.error(
@@ -1495,11 +1924,112 @@ Please categorize the relevant details into their corresponding sections.`;
     }
   };
 
+  const saveStepNotesAndActions = async (updatedActions) => {
+    const currentStep = meetingData?.steps[currentStepIndex];
+    const nextStep = meetingData?.steps[currentStepIndex + 1];
+    const stepId = currentStep?.id;
+    const myNextStepId = nextStep?.id;
+
+    const optimizedEditorContent = await optimizeEditorContent(
+      currentStep?.editor_content,
+    );
+    const endTime = new Date();
+    const currentTime = new Date();
+
+    const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    const formattedEndDate = endTime.toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "numeric",
+      year: "numeric",
+      timeZone: userTimeZone,
+    });
+
+    const localEndTime = endTime.toLocaleString("en-GB", {
+      timeZone: userTimeZone,
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+    const options = { timeZone: userTimeZone };
+    const timeInUserZone = new Date(
+      currentTime.toLocaleString("en-US", options),
+    );
+
+    const formattedTime = formatTime(timeInUserZone);
+    const formattedDate = formatDate(timeInUserZone);
+    const currentStepDecisions = decision[currentStepIndex] || [];
+
+    const cleanedDecision = currentStepDecisions.filter((d) => {
+      return Object.entries(d).some(([key, value]) => {
+        if (key === "currency") return false;
+        return (
+          value !== null &&
+          value !== undefined &&
+          value.toString().trim() !== ""
+        );
+      });
+    });
+
+    const postData = {
+      ...currentStep,
+      editor_content: optimizedEditorContent || "",
+      savedTime:
+        currentStep?.savedTime === 0 ? 0 : savedTime != 0 ? savedTime : 0,
+      negative_time:
+        savedTime === 0
+          ? negativeTimes[activeStepIndex] !== 0
+            ? negativeTimes[activeStepIndex]
+            : 0
+          : 0,
+
+      totalstepnotes: stepNotes[currentStepIndex],
+      totaldecision: decision.join(" "),
+      note: stepNotes[currentStepIndex],
+      original_note: stepNotes[currentStepIndex],
+      url: meetingData?.steps[currentStepIndex].url
+        ? meetingData?.steps[currentStepIndex].url
+        : null,
+      meeting_id: meetId,
+      actions: updatedActions || [],
+      decision: cleanedDecision,
+      end_time: localEndTime,
+      next_step_id: myNextStepId,
+      delay: currentStep?.negative_time === "99" ? stepDelay?.delay : null,
+      real_time: localEndTime,
+      real_date: formattedEndDate,
+      pause_current_time: formattedTime,
+      pause_current_date: formattedDate,
+    };
+    delete postData.time_taken;
+
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/play-meetings/steps/${stepId}/step-note-and-action?current_time=${formattedTime}&current_date=${formattedDate}&pause_current_time=${formattedTime}&pause_current_date=${formattedDate}`,
+        postData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${CookieService.get("token")}`,
+          },
+        },
+      );
+      return response;
+    } catch (error) {
+      console.error("Error saving step notes and actions:", error);
+      throw error;
+    }
+  };
+
   const handleButtonDelete = async (index) => {
     const actionToBeDeleted = tableData[index];
     const id = actionToBeDeleted.id;
     //Send API Call only if the action is already saved in the database.
     const foundInDatabase = actionToBeDeleted.id; // If the action is already saved in the database, it will have an id.
+
+    const toastId = foundInDatabase ? toast.loading(t("presentation.Deleting...")) : null;
+
     //----API CALL TO DELETE ACTION
     if (foundInDatabase) {
       try {
@@ -1514,6 +2044,14 @@ Please categorize the relevant details into their corresponding sections.`;
         console.clear();
       } catch (error) {
         console.log("error", error);
+        if (toastId) {
+          toast.update(toastId, {
+            render: t("presentation.Failed to delete action") || "Failed to delete action",
+            type: "error",
+            isLoading: false,
+            autoClose: 3000
+          });
+        }
         return;
       }
     }
@@ -1521,9 +2059,35 @@ Please categorize the relevant details into their corresponding sections.`;
     const updatedTableData = [...tableData];
     updatedTableData.splice(index, 1);
     setTableData(updatedTableData);
+
+    try {
+      await saveStepNotesAndActions(updatedTableData);
+      if (toastId) {
+        toast.update(toastId, {
+          render: t("presentation.Action deleted successfully") || "Action deleted successfully",
+          type: "success",
+          isLoading: false,
+          autoClose: 3000
+        });
+      }
+    } catch (error) {
+      console.error("Failed to sync step after delete action:", error);
+      if (toastId) {
+        toast.update(toastId, {
+          render: t("presentation.Failed to delete action") || "Failed to delete action",
+          type: "error",
+          isLoading: false,
+          autoClose: 3000
+        });
+      }
+    }
   };
+
   const handleDeleteStrategy = async (strategy) => {
     const id = strategy?.id;
+    const updatedTableData = tableData.filter((item) => item.id !== id);
+
+    const toastId = id ? toast.loading(t("presentation.Deleting...")) : null;
 
     if (id) {
       try {
@@ -1537,15 +2101,43 @@ Please categorize the relevant details into their corresponding sections.`;
         );
       } catch (error) {
         console.error("Delete error:", error);
-        toast.error(error?.response?.data?.message || "server error");
+        if (toastId) {
+          toast.update(toastId, {
+            render: error?.response?.data?.message || t("presentation.Failed to delete action") || "Failed to delete action",
+            type: "error",
+            isLoading: false,
+            autoClose: 3000
+          });
+        }
+        return;
       } finally {
-        getMeetingById(); // Refresh the meeting data after deletion
+        await getMeetingById(); // Refresh the meeting data after deletion
       }
     }
 
-    // Update tableData by filtering out the deleted strategy
-    const updatedTableData = tableData.filter((item) => item.id !== id);
     setTableData(updatedTableData);
+
+    try {
+      await saveStepNotesAndActions(updatedTableData);
+      if (toastId) {
+        toast.update(toastId, {
+          render: t("presentation.Action deleted successfully") || "Action deleted successfully",
+          type: "success",
+          isLoading: false,
+          autoClose: 3000
+        });
+      }
+    } catch (error) {
+      console.error("Failed to sync step after delete strategy:", error);
+      if (toastId) {
+        toast.update(toastId, {
+          render: t("presentation.Failed to delete action") || "Failed to delete action",
+          type: "error",
+          isLoading: false,
+          autoClose: 3000
+        });
+      }
+    }
   };
 
   const handleIncrementCount = (index) => {
@@ -1747,6 +2339,7 @@ Please categorize the relevant details into their corresponding sections.`;
           const payload = {
             ...nextStepData,
             step_status: "in_progress",
+            status:"in_progress",
             current_time: nextStep.current_time || formattedEndTime,
             current_date: nextStep.current_date || formattedCurrentDate,
             real_time: formattedEndTime,
@@ -1790,6 +2383,28 @@ Please categorize the relevant details into their corresponding sections.`;
       setCurrentStepIndex((prevIndex) => prevIndex + 1);
       setShow((prev) => ({ ...prev, showEditor: false }));
       setNextActiveStep();
+      lastTransitionTimeRef.current = Date.now();
+      // Clear toggles locally first
+      setSelectedOption("");
+      setShowStepContentEditor(false);
+      setNotesEditor((prev) => ({ ...prev, showEditor: false }));
+      setDecisionEditor((prev) => ({ ...prev, showEditor: false }));
+      setPlanDActionEditor((prev) => ({ ...prev, showEditor: false }));
+      setFileEditor((prev) => ({ ...prev, showEditor: false }));
+      setMediaEditor((prev) => ({ ...prev, showEditor: false }));
+      setQuestionEditor((prev) => ({ ...prev, showEditor: false }));
+      setIsModalOpen2(false);
+      setModalContent(null);
+      setIsFileLoading(false);
+
+      // Clear toggle globally on the server (which broadcasts via Pusher to other clients)
+      try {
+        await handleToggleAPI(null, false);
+      } catch (err) {
+        console.error("Error resetting active toggle:", err);
+      }
+
+      updateCallApi(true);
       await getMeetingById();
     }
   };
@@ -2116,6 +2731,36 @@ Please categorize the relevant details into their corresponding sections.`;
   const [isPause, setIsPause] = useState(false);
   //-------------------------------Pause Step
   const handlePauseStep = async () => {
+    const exactRemainingTime = window.currentStepRemainingTime !== undefined 
+      ? window.currentStepRemainingTime 
+      : savedTime;
+
+    // Instantly freeze the timer locally by setting current step status to "to_finish"
+    setMeetingData((prevData) => {
+      if (!prevData) return prevData;
+      const updatedSteps = prevData.steps.map((step, idx) => {
+        if (idx === currentStepIndex) {
+          return {
+            ...step,
+            step_status: "to_finish",
+            savedTime: exactRemainingTime,
+          };
+        }
+        return step;
+      });
+      const nextData = {
+        ...prevData,
+        status: "to_finish",
+        steps: updatedSteps,
+      };
+      if (setContextMeetingData) {
+        setContextMeetingData(nextData);
+      }
+      return nextData;
+    });
+
+    incrementTimerKey();
+
     // Get the user's time zone
     const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     const currentTime = new Date();
@@ -2151,6 +2796,7 @@ Please categorize the relevant details into their corresponding sections.`;
         },
       );
       if (response?.status) {
+        incrementTimerKey();
         await getMeetingByIdWithCalculation();
         // window.location.reload();
         setIsModalOpen(true);
@@ -2158,6 +2804,8 @@ Please categorize the relevant details into their corresponding sections.`;
     } catch (error) {
       console.log("error", error);
       toast.error(error?.response?.data?.message || "server error");
+      incrementTimerKey();
+      await getMeetingByIdWithCalculation();
     } finally {
       setIsPause(false);
     }
@@ -2291,6 +2939,7 @@ Please categorize the relevant details into their corresponding sections.`;
           const payload = {
             ...nextStepData,
             step_status: "in_progress",
+            status:"in_progress",
             current_time: nextStep.current_time
               ? nextStep.current_time
               : localEndTime,
@@ -2343,12 +2992,45 @@ Please categorize the relevant details into their corresponding sections.`;
       setCurrentStepIndex((prevIndex) => prevIndex + 1);
       setShow((prev) => ({ ...prev, showEditor: false })); // Close the showEditor
       setNextActiveStep();
+      lastTransitionTimeRef.current = Date.now();
+      // Clear toggles locally first
+      setSelectedOption("");
+      setShowStepContentEditor(false);
+      setNotesEditor((prev) => ({ ...prev, showEditor: false }));
+      setDecisionEditor((prev) => ({ ...prev, showEditor: false }));
+      setPlanDActionEditor((prev) => ({ ...prev, showEditor: false }));
+      setFileEditor((prev) => ({ ...prev, showEditor: false }));
+      setMediaEditor((prev) => ({ ...prev, showEditor: false }));
+      setQuestionEditor((prev) => ({ ...prev, showEditor: false }));
+      setIsModalOpen2(false);
+      setModalContent(null);
+      setIsFileLoading(false);
+
+      // Clear toggle globally on the server (which broadcasts via Pusher to other clients)
+      try {
+        await handleToggleAPI(null, false);
+      } catch (err) {
+        console.error("Error resetting active toggle:", err);
+      }
+
+      updateCallApi(true);
       await getMeetingById();
     }
     return;
   };
 
   const [isPrevious, setIsPrevious] = useState(false);
+
+  editorStatesRef.current = {
+    showStepContentEditor,
+    notesEditorShow: notesEditor.showEditor,
+    decisionEditorShow: decisionEditor.showEditor,
+    currentStepIndex,
+    isLoadingNext,
+    isNext,
+    isPrevious,
+    meetingData,
+  };
 
   const previousStep = async () => {
     if (meetingData && currentStepIndex > 0) {
@@ -2453,11 +3135,33 @@ Please categorize the relevant details into their corresponding sections.`;
         setCurrentStepIndex((prevIndex) => prevIndex - 1);
         setShow((prev) => ({ ...prev, showEditor: false })); // Close the showEditor
         setPreviousActiveStep();
+        // Clear toggles locally first
+        setSelectedOption("");
+        setShowStepContentEditor(false);
+        setNotesEditor((prev) => ({ ...prev, showEditor: false }));
+        setDecisionEditor((prev) => ({ ...prev, showEditor: false }));
+        setPlanDActionEditor((prev) => ({ ...prev, showEditor: false }));
+        setFileEditor((prev) => ({ ...prev, showEditor: false }));
+        setMediaEditor((prev) => ({ ...prev, showEditor: false }));
+        setQuestionEditor((prev) => ({ ...prev, showEditor: false }));
+        setIsModalOpen2(false);
+        setModalContent(null);
+        setIsFileLoading(false);
+
+        // Clear toggle globally on the server (which broadcasts via Pusher to other clients)
+        try {
+          await handleToggleAPI(null, false);
+        } catch (err) {
+          console.error("Error resetting active toggle:", err);
+        }
+
+        updateCallApi(true);
         await getMeetingById();
       } catch (error) {
         console.log("Error while going to previous step:", error);
       } finally {
         setIsPrevious(false);
+        lastTransitionTimeRef.current = Date.now();
       }
     }
   };
@@ -2697,92 +3401,8 @@ Please categorize the relevant details into their corresponding sections.`;
       return;
     }
 
-    // handlePlayPause(currentStepIndex, false);
-
-    const currentStep = meetingData?.steps[currentStepIndex];
-    const nextStep = meetingData?.steps[currentStepIndex + 1];
-    const stepId = currentStep?.id;
-    const myNextStepId = nextStep?.id;
-
-    const optimizedEditorContent = await optimizeEditorContent(
-      currentStep?.editor_content,
-    );
-    const endTime = new Date();
-    const currentTime = new Date();
-    const formattedCurrentDate = currentTime.toISOString().split("T")[0];
-
-    // Get the user's time zone
-    const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-    // Convert endTime to a date string in the format "4/8/2024"
-    const formattedEndDate = endTime.toLocaleDateString("en-GB", {
-      day: "numeric",
-      month: "numeric",
-      year: "numeric",
-      timeZone: userTimeZone,
-    });
-
-    // Convert currentDateTime to a string in the user's local time zone
-    const localEndTime = endTime.toLocaleString("en-GB", {
-      timeZone: userTimeZone,
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-    });
-    const options = { timeZone: userTimeZone };
-    const timeInUserZone = new Date(
-      currentTime.toLocaleString("en-US", options),
-    );
-
-    const formattedTime = formatTime(timeInUserZone);
-    const formattedDate = formatDate(timeInUserZone);
-    const currentStepDecisions = decision[currentStepIndex] || [];
-    let isValid = true;
-    let errorMessage = "";
-
-    const postData = {
-      ...currentStep,
-      editor_content: optimizedEditorContent || "",
-      savedTime:
-        currentStep?.savedTime === 0 ? 0 : savedTime != 0 ? savedTime : 0,
-      negative_time:
-        savedTime === 0
-          ? negativeTimes[activeStepIndex] !== 0
-            ? negativeTimes[activeStepIndex]
-            : 0
-          : 0,
-
-      totalstepnotes: stepNotes[currentStepIndex],
-      totaldecision: decision.join(" "),
-      note: stepNotes[currentStepIndex],
-      original_note: stepNotes[currentStepIndex],
-      url: meetingData?.steps[currentStepIndex].url
-        ? meetingData?.steps[currentStepIndex].url
-        : null,
-      meeting_id: meetId,
-      actions: tableData ? tableData : [],
-      end_time: localEndTime,
-      next_step_id: myNextStepId,
-      delay: currentStep?.negative_time === "99" ? stepDelay?.delay : null,
-      real_time: localEndTime,
-      real_date: formattedEndDate,
-      pause_current_time: formattedTime,
-      pause_current_date: formattedDate,
-    };
-    delete postData.time_taken;
-
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/play-meetings/steps/${stepId}/step-note-and-action?current_time=${formattedTime}&current_date=${formattedDate}&pause_current_time=${formattedTime}&pause_current_date=${formattedDate}`,
-        postData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${CookieService.get("token")}`,
-          },
-        },
-      );
+      const response = await saveStepNotesAndActions(tableData);
       if (response.status) {
         setTableData(response.data?.data?.planDActions); // Set
         const estimate_time = response?.data?.data?.estimate_time;
@@ -2801,8 +3421,6 @@ Please categorize the relevant details into their corresponding sections.`;
       }
     } catch (error) {
       setSaveStrategy(false);
-
-      // toast.error(error.response?.data?.message);
     }
 
     setIsNext(false);
@@ -3556,18 +4174,24 @@ Please categorize the relevant details into their corresponding sections.`;
   //   };
   // }, []);
 
-  const [isFileUploaded, setIsFileUploaded] = useState(false);
-  const [isModalOpen2, setIsModalOpen2] = useState(false);
-  const [modalContent, setModalContent] = useState(null);
 
-  const openModal = (file) => {
+
+  const openModal = async (file) => {
     setModalContent(file);
     setIsModalOpen2(true);
+    setIsFileLoading(true);
+    try {
+      await handleToggleAPI("Files::" + file?.id, true);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const closeModal = () => {
     setIsModalOpen2(false);
     setModalContent(null);
+    setIsFileLoading(false);
+    handleToggleAPI("Files", true);
   };
 
   const [showTimerModal, setShowTimerModal] = useState(false);
@@ -3752,7 +4376,38 @@ Please categorize the relevant details into their corresponding sections.`;
     );
   };
   const [isNavVisible, setIsNavVisible] = useState(false);
-  const [selectedOption, setSelectedOption] = useState("");
+
+  const handleToggleAPI = useCallback(async (key, checked) => {
+    try {
+      const activeValue = checked ? key : null;
+      const token = CookieService.get("token");
+      const headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      await axios.post(
+        `${API_BASE_URL}/change-meeting-presentation-active-toggle`,
+        {
+          meeting_id: Number(meetId),
+          presentation_sc_active_toggle: activeValue,
+        },
+        { headers }
+      );
+    } catch (error) {
+      console.error("Error calling change-meeting-presentation-active-toggle API:", error);
+    }
+  }, [meetId]);
+
+  const handleToggleChange = (key, nextChecked) => {
+    const nextOption = nextChecked ? key : null;
+    setSelectedOption(nextOption || "");
+    setMeetingData((prev) => prev ? { ...prev, presentation_sc_active_toggle: nextOption } : prev);
+    handleToggleAPI(key, nextChecked);
+  };
+
   // Map options to icons
   const iconMap = {
     Presentation: <FaFileAlt size={20} />, // Default icon for "Presentation"
@@ -3772,7 +4427,6 @@ Please categorize the relevant details into their corresponding sections.`;
     // Additional logic, e.g., filtering data based on term
   };
 
-  const [iframeUrl, setIframeUrl] = useState(""); // State for iframe URL
 
   const handleSearch = useCallback((term) => {
     console.log("Search term:", term); // Debug log
@@ -3781,7 +4435,8 @@ Please categorize the relevant details into their corresponding sections.`;
   const handleIframeUrl = useCallback((url) => {
     console.log("Loading iframe URL:", url); // Debug log
     setIframeUrl(url);
-  }, []);
+    handleToggleAPI("Questions::" + url, true);
+  }, [handleToggleAPI]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const [showBackConfirmModal, setShowBackConfirmModal] = useState(false);
@@ -3856,7 +4511,7 @@ Please categorize the relevant details into their corresponding sections.`;
   };
   const sessionUser = JSON.parse(CookieService.get("user"));
   const handleLogin = () => {
-    navigate("/", {
+    navigate("/login", {
       state: {
         redirect_rules: false,
 
@@ -3912,11 +4567,51 @@ Please categorize the relevant details into their corresponding sections.`;
     }
   };
 
-  // Debounce – 1.2 seconds pause = save
+  const autoSaveStepRef = useRef(autoSaveStep);
+  useEffect(() => {
+    autoSaveStepRef.current = autoSaveStep;
+  });
+
+  // Debounce – 2 seconds pause = save
   const debouncedSave = useRef(
     debounce((content) => {
-      autoSaveStep(content);
-    }, 1200),
+      autoSaveStepRef.current?.(content);
+    }, 2000),
+  ).current;
+
+  const autoSaveStepNote = async (noteContent) => {
+    const step = meetingData?.steps?.[currentStepIndex];
+    if (!step?.id) return;
+
+    const URL = `${API_BASE_URL}/steps/${step.id}`;
+
+    try {
+      await fetch(URL, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${CookieService.get("token")}`,
+        },
+        body: JSON.stringify({
+          ...step,
+          note: noteContent,
+        }),
+      });
+      console.log("Note Auto-saved!");
+    } catch (err) {
+      console.error("Note Save failed:", err);
+    }
+  };
+
+  const autoSaveStepNoteRef = useRef(autoSaveStepNote);
+  useEffect(() => {
+    autoSaveStepNoteRef.current = autoSaveStepNote;
+  });
+
+  const debouncedSaveNote = useRef(
+    debounce((content) => {
+      autoSaveStepNoteRef.current?.(content);
+    }, 2000),
   ).current;
 
   const menuItems = [
@@ -3941,7 +4636,8 @@ Please categorize the relevant details into their corresponding sections.`;
       checked: showStepContentEditor,
       onChange: (e) => {
         handleStepContentEditor(e);
-        setSelectedOption(e.target.checked ? "Step" : "");
+        const nextChecked = e.target.checked;
+        handleToggleChange("Step", nextChecked);
       },
       show: true,
     },
@@ -3969,7 +4665,8 @@ Please categorize the relevant details into their corresponding sections.`;
       checked: notesEditor.showEditor,
       onChange: (e) => {
         handleNotesEditorToggle(e);
-        setSelectedOption(e.target.checked ? "Notes" : "");
+        const nextChecked = e.target.checked;
+        handleToggleChange("Notes", nextChecked);
       },
       show: !isAutomatic,
     },
@@ -3995,7 +4692,8 @@ Please categorize the relevant details into their corresponding sections.`;
       checked: decisionEditor.showEditor,
       onChange: (e) => {
         handleDecisionEditorToggle(e);
-        setSelectedOption(e.target.checked ? "Decision" : "");
+        const nextChecked = e.target.checked;
+        handleToggleChange("Decision", nextChecked);
       },
       show: true,
     },
@@ -4019,7 +4717,8 @@ Please categorize the relevant details into their corresponding sections.`;
       checked: planDActionEditor.showEditor,
       onChange: (e) => {
         handlePlanDActionEditor(e);
-        setSelectedOption(e.target.checked ? "Strategy" : "");
+        const nextChecked = e.target.checked;
+        handleToggleChange("Strategy", nextChecked);
       },
       show: meetingData?.automatic_strategy === false,
     },
@@ -4044,7 +4743,8 @@ Please categorize the relevant details into their corresponding sections.`;
       checked: fileEditor.showEditor,
       onChange: (e) => {
         handleFileEditor(e);
-        setSelectedOption(e.target.checked ? "Files" : "");
+        const nextChecked = e.target.checked;
+        handleToggleChange("Files", nextChecked);
       },
       show: true,
     },
@@ -4069,7 +4769,8 @@ Please categorize the relevant details into their corresponding sections.`;
       checked: mediaEditor.showEditor,
       onChange: (e) => {
         handleMediaEditor(e);
-        setSelectedOption(e.target.checked ? "Media" : "");
+        const nextChecked = e.target.checked;
+        handleToggleChange("Media", nextChecked);
       },
       show: true,
     },
@@ -4095,7 +4796,8 @@ Please categorize the relevant details into their corresponding sections.`;
       checked: questionEditor.showEditor,
       onChange: (e) => {
         handleQuestionEditor(e);
-        setSelectedOption(e.target.checked ? "Questions" : "");
+        const nextChecked = e.target.checked;
+        handleToggleChange("Questions", nextChecked);
       },
       show: true,
     },
@@ -4114,7 +4816,7 @@ Please categorize the relevant details into their corresponding sections.`;
               <div className="container-fluid position-relative">
                 {/* Back Button + Text - Visible only on Desktop (lg and up) */}
                 <div className="d-none d-lg-flex align-items-center position-absolute start-0">
-                  <button
+                 {showButton && <button
                     className="btn btn-link p-0 me-2 d-flex align-items-center"
                     onClick={() => {
                       meetingData?.prise_de_notes === "Manual"
@@ -4134,18 +4836,17 @@ Please categorize the relevant details into their corresponding sections.`;
                       <path
                         d="M15 18L9 12L15 6"
                         stroke="#000000"
-                        strokeWidth="
-```2"
+                        strokeWidth="```2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
                       />
                     </svg>
                     <span style={{ fontWeight: "500" }}>Back to Dashboard</span>
-                  </button>
+                  </button>}
                 </div>
 
                 {/* Back Arrow Only - Visible only on Mobile (below lg) */}
-                <button
+             {showButton &&   <button
                   className="btn btn-link p-0 me-3 d-lg-none"
                   onClick={() => {
                     meetingData?.prise_de_notes === "Manual"
@@ -4169,7 +4870,7 @@ Please categorize the relevant details into their corresponding sections.`;
                       strokeLinejoin="round"
                     />
                   </svg>
-                </button>
+                </button>}
 
                 <div>
                   {/* Logo - Always Centered */}
@@ -4591,7 +5292,7 @@ Please categorize the relevant details into their corresponding sections.`;
                         {!recordingStart && (meetingData?.location === "Google Meet" ||
                           meetingData?.location === "Microsoft Teams") && (
                           <button
-                            className="btn"
+                            className="btn recording-btn-glow"
                             style={{
                               backgroundColor: "#0026b1",
                               color: "#fff",
@@ -5642,7 +6343,7 @@ Please categorize the relevant details into their corresponding sections.`;
                     isRun={isRun}
                     isReOpen={isReOpen}
                     reRunStep={handleReRunStep}
-                    isAccordion={false} // Card layout for desktop
+                    isAccordion={true} // Accordion layout for mobile
                     Assets_URL={Assets_URL} // Pass Assets_URL
                     t={t} // Pass translation function
                     stepMedias={stepMedias}
@@ -5789,7 +6490,7 @@ Please categorize the relevant details into their corresponding sections.`;
             <div className="d-flex align-items-center justify-content-between p-2 w-100">
               {/* Back Button - Compact on Mobile */}
               <div className="d-flex align-items-center gap-2">
-                <button
+                {showButton && <button
                   className="btn btn-link text-dark p-0"
                   onClick={() =>
                     meetingData?.prise_de_notes === "Manual"
@@ -5798,7 +6499,7 @@ Please categorize the relevant details into their corresponding sections.`;
                   }
                 >
                   <MdArrowBackIosNew size={20} />
-                </button>
+                </button>}
                 <AutoNoteIndicator
                   t={t}
                   visible={meetingData?.prise_de_notes === "Automatic"}
@@ -6466,7 +7167,7 @@ Please categorize the relevant details into their corresponding sections.`;
                                   meetingData?.location ===
                                     "Microsoft Teams") ? (
                                   <button
-                                    className="btn"
+                                    className="btn recording-btn-glow"
                                     style={{
                                       background:
                                         "linear-gradient(135deg, #1e40af, #3b82f6)",
@@ -7548,6 +8249,7 @@ Please categorize the relevant details into their corresponding sections.`;
                    {!recordingStart && (meetingData?.location === "Google Meet" ||
                   meetingData?.location === "Microsoft Teams") && (
                   <button
+                    className="recording-btn-glow"
                     style={{
                       backgroundColor: "#0026b1",
                       color: "#fff",
@@ -8362,6 +9064,8 @@ Please categorize the relevant details into their corresponding sections.`;
                       "File" ||
                     meetingData?.steps[currentStepIndex]?.editor_type ===
                       "Video" ||
+                    // meetingData?.steps[currentStepIndex]?.editor_type === "Publication" || 
+                    // meetingData?.steps[currentStepIndex]?.editor_type === "AI Instruction" ||
                     meetingData?.steps[currentStepIndex]?.editor_type ===
                       "Photo" ? (
                       <div>
@@ -8456,9 +9160,13 @@ Please categorize the relevant details into their corresponding sections.`;
                           onBlur={(value) => {
                             console.log("value", value);
                           }}
+                          onInit={(evt, editor) => {
+                            notesEditorRef.current = editor;
+                          }}
                           key={currentStepIndex}
                           apiKey={TINYMCEAPI}
                           value={stepNotes[currentStepIndex]}
+                          disabled={!showButton}
                           init={{
                             statusbar: false,
                             branding: false,
@@ -8553,6 +9261,22 @@ Please categorize the relevant details into their corresponding sections.`;
                               newStepNotes[currentStepIndex] = value;
                               return newStepNotes;
                             });
+                            setMeetingData((prevData) => {
+                              if (!prevData) return prevData;
+                              return {
+                                ...prevData,
+                                steps: prevData.steps.map((step, index) => {
+                                  if (index === currentStepIndex) {
+                                    return {
+                                      ...step,
+                                      note: value,
+                                    };
+                                  }
+                                  return step;
+                                }),
+                              };
+                            });
+                            debouncedSaveNote(value);
                           }}
                         />
                       )}
@@ -8565,15 +9289,16 @@ Please categorize the relevant details into their corresponding sections.`;
                       <div className="decision-editor-container">
                         <div className="d-flex justify-content-between align-items-center mb-2">
                           <h5>{t("Decisions")}</h5>
-                          <button
+                         {showButton && <button
                             className="btn btn-primary"
                             style={{
                               backgroundColor: "rgb(0, 38, 177)",
                             }}
                             onClick={() => addDecisionForStep(currentStepIndex)}
+                            disabled={!showButton}
                           >
                             + {t("presentation.Add Decision")}
-                          </button>
+                          </button>}
                         </div>
 
                         <div className="decision-table-scroll">
@@ -8596,36 +9321,36 @@ Please categorize the relevant details into their corresponding sections.`;
                               </tr>
                             </thead>
                             <tbody>
-                              {meetingData?.steps?.map(
-                                (step, stepIndex) =>
-                                  step?.decision && step.decision.length > 0
-                                    ? step.decision.map((decision, index) => (
-                                        <tr key={index} className="table-data">
-                                          <td>{decision?.decision_type}</td>
-                                          <td>{decision?.decision}</td>
-                                          <td>
-                                            {decision?.decision_type ===
-                                            "Milestone"
-                                              ? decision?.milestone_date
-                                              : decision?.decision_type ===
-                                                  "Budget"
-                                                ? `${decision?.budget_amount} ${
-                                                    decision?.currency || ""
-                                                  }`
-                                                : decision?.creation_date}
-                                          </td>
-                                          {/* <td>
-                                            {decision?.budget_amount
-                                              ? `$${Number(
-                                                  decision.budget_amount
-                                                ).toLocaleString()}`
-                                              : "-"}
-                                          </td> */}
-                                          <td>{decision?.decision_apply}</td>
-                                        </tr>
-                                      ))
-                                    : null, // Do nothing if there are no decisions
-                              )}
+                              {meetingData?.steps?.map((step, stepIndex) => {
+                                const decisionsList = step?.decision || step?.decisions || [];
+                                return decisionsList && decisionsList.length > 0
+                                  ? decisionsList.map((decision, index) => (
+                                      <tr key={index} className="table-data">
+                                        <td>{decision?.decision_type}</td>
+                                        <td>{decision?.decision}</td>
+                                        <td>
+                                          {decision?.decision_type ===
+                                          "Milestone"
+                                            ? decision?.milestone_date
+                                            : decision?.decision_type ===
+                                                "Budget"
+                                              ? `${decision?.budget_amount} ${
+                                                  decision?.currency || ""
+                                                }`
+                                              : decision?.creation_date}
+                                        </td>
+                                        {/* <td>
+                                          {decision?.budget_amount
+                                            ? `$${Number(
+                                                decision.budget_amount
+                                              ).toLocaleString()}`
+                                            : "-"}
+                                        </td> */}
+                                        <td>{decision?.decision_apply}</td>
+                                      </tr>
+                                    ))
+                                  : null;
+                              })}
                             </tbody>
                           </Table>
                         </div>
@@ -8640,7 +9365,7 @@ Please categorize the relevant details into their corresponding sections.`;
                           isFileUploaded={isFileUploaded}
                           setIsFileUploaded={setIsFileUploaded}
                           openModal={openModal}
-                          meetingFiles={meetingData?.meeting_files || meetingFile}
+                          meetingFiles={Array.isArray(meetingData?.meeting_files) ? meetingData.meeting_files : (Array.isArray(meetingFile) ? meetingFile : [])}
                           inProgressFiles={true}
                         />
                       )}
@@ -8658,13 +9383,39 @@ Please categorize the relevant details into their corresponding sections.`;
                           </div>
                           <div
                             style={{
-                              // width: "100vw",
+                              position: "relative",
                               height: "100vh",
-                              zIndex: 99999999999, // make sure it's above everything
-                              // overflowY: "auto",
-                              // padding: "1rem",
+                              zIndex: 99999999999,
                             }}
                           >
+                            {isFileLoading && (
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  top: 0,
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 0,
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  justifyContent: "center",
+                                  alignItems: "center",
+                                  backgroundColor: "rgba(255, 255, 255, 0.8)",
+                                  zIndex: 100000000000,
+                                }}
+                              >
+                                <Spin size="large" />
+                                <p
+                                  style={{
+                                    marginTop: "15px",
+                                    color: "#1890ff",
+                                    fontWeight: "500",
+                                  }}
+                                >
+                                  Chargement du document...
+                                </p>
+                              </div>
+                            )}
                             {modalContent ? (
                               <>
                                 <div
@@ -8689,6 +9440,7 @@ Please categorize the relevant details into their corresponding sections.`;
                                       className="fileuploadingiframe w-100"
                                       width="100%"
                                       style={{ height: "100vh" }}
+                                      onLoad={() => setIsFileLoading(false)}
                                     ></iframe>
                                   ) : modalContent?.file_type?.includes(
                                       "video",
@@ -8703,6 +9455,7 @@ Please categorize the relevant details into their corresponding sections.`;
                                       //  className="fileuploadingiframe w-100"
                                       width="100%"
                                       style={{ height: "100vh" }}
+                                      onLoad={() => setIsFileLoading(false)}
                                     ></iframe>
                                   ) : null}
 
@@ -8808,6 +9561,7 @@ Please categorize the relevant details into their corresponding sections.`;
                           setIsIframeLoading(true); // Loader start
                           handleIframeUrl(url);
                         }}
+                        showButton={showButton}
                       />
 
                       {iframeUrl && (
@@ -8895,6 +9649,7 @@ Please categorize the relevant details into their corresponding sections.`;
                           onClick={() => {
                             setIframeUrl("");
                             setIsIframeLoading(false);
+                            handleToggleAPI("Questions", true);
                           }}
                           style={{
                             marginTop: "10px",
@@ -8921,11 +9676,12 @@ Please categorize the relevant details into their corresponding sections.`;
                         marginTop: "1rem",
                       }}
                     >
-                      <h5 className="mb-4">
+                      {showButton && <h5 className="mb-4">
                         <BiCloudUpload className="me-2" />
                         {t("presentation.Upload Media")}
-                      </h5>
+                      </h5>}
 
+{showButton && <>
                       {/* Mobile vs Desktop */}
                       {(() => {
                         const isMobile = /iPhone|iPad|iPod|Android/i.test(
@@ -8934,40 +9690,88 @@ Please categorize the relevant details into their corresponding sections.`;
 
                         return isMobile ? (
                           <div className="text-center">
-                            {/* Input for Camera (Mobile specific) */}
-                            <input
-                              type="file"
-                              accept="image/*"
-                              capture="environment"
-                              style={{ display: "none" }}
-                              id="mobile-cam"
-                              onChange={(e) => {
-                                console.log("Camera input changed");
-                                handleMediaUpload(e.target.files);
-                              }}
-                            />
-                            <label
-                              htmlFor="mobile-cam"
-                              onClick={() =>
-                                console.log("Camera label clicked")
-                              }
-                            >
-                              <div
-                                style={{
-                                  padding: "20px 40px",
-                                  background: "#0066ff",
-                                  color: "white",
-                                  borderRadius: "16px",
-                                  fontSize: "18px",
-                                  fontWeight: "600",
-                                  display: "inline-block",
-                                  cursor: "pointer",
-                                  boxShadow: "0 4px 12px rgba(0,102,255,0.3)",
+                            <div className="d-flex flex-column flex-sm-row justify-content-center align-items-center gap-3 mt-2">
+                              {/* Input for Camera Photo (Mobile specific) */}
+                              <input
+                                type="file"
+                                accept="image/*"
+                                capture="environment"
+                                style={{ display: "none" }}
+                                id="mobile-cam-photo"
+                                onChange={(e) => {
+                                  console.log("Photo camera input changed");
+                                  handleMediaUpload(e.target.files);
                                 }}
+                                disabled={!showButton}
+                              />
+                              <label
+                                htmlFor="mobile-cam-photo"
+                                className="m-0 w-100 w-sm-auto"
                               >
-                                {t("Open Camera")}
-                              </div>
-                            </label>
+                                <div
+                                  style={{
+                                    padding: "16px 24px",
+                                    background: "#0066ff",
+                                    color: "white",
+                                    borderRadius: "16px",
+                                    fontSize: "16px",
+                                    fontWeight: "600",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    gap: "8px",
+                                    cursor: "pointer",
+                                    boxShadow: "0 4px 12px rgba(0,102,255,0.2)",
+                                    transition: "all 0.2s ease",
+                                  }}
+                                  className="btn-camera"
+                                >
+                                  <FaCamera size={18} />
+                                  {t("Take Photo")}
+                                </div>
+                              </label>
+
+                              {/* Input for Camera Video (Mobile specific) */}
+                              <input
+                                type="file"
+                                accept="video/*"
+                                capture="environment"
+                                style={{ display: "none" }}
+                                id="mobile-cam-video"
+                                onChange={(e) => {
+                                  console.log("Video camera input changed");
+                                  handleMediaUpload(e.target.files);
+                                }}
+                            disabled={!showButton}
+
+                              />
+                              <label
+                                htmlFor="mobile-cam-video"
+                                className="m-0 w-100 w-sm-auto"
+                              >
+                                <div
+                                  style={{
+                                    padding: "16px 24px",
+                                    background: "#28a745",
+                                    color: "white",
+                                    borderRadius: "16px",
+                                    fontSize: "16px",
+                                    fontWeight: "600",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    gap: "8px",
+                                    cursor: "pointer",
+                                    boxShadow: "0 4px 12px rgba(40,167,69,0.2)",
+                                    transition: "all 0.2s ease",
+                                  }}
+                                  className="btn-camera"
+                                >
+                                  <FaVideo size={18} />
+                                  {t("Record Video")}
+                                </div>
+                              </label>
+                            </div>
 
                             <div className="mt-3">
                               {/* Input for Gallery (Mobile specific) */}
@@ -8981,6 +9785,8 @@ Please categorize the relevant details into their corresponding sections.`;
                                   console.log("Gallery input changed");
                                   handleMediaUpload(e.target.files);
                                 }}
+                                disabled={isUploadingMedia || !showButton}
+
                               />
                               <label
                                 htmlFor="mobile-gallery"
@@ -8991,8 +9797,9 @@ Please categorize the relevant details into their corresponding sections.`;
                                   color: "#0066ff",
                                   textDecoration: "underline",
                                   cursor: "pointer",
-                                  display: "block",
+                                  display: "inline-block",
                                   padding: "10px",
+                                  fontWeight: "500",
                                 }}
                               >
                                 {t("Or select from gallery")}
@@ -9005,7 +9812,7 @@ Please categorize the relevant details into their corresponding sections.`;
                               type="file"
                               accept="image/*,video/*"
                               multiple
-                              disabled={isUploadingMedia}
+                              disabled={isUploadingMedia || !showButton}
                               onChange={(e) =>
                                 handleMediaUpload(e.target.files)
                               }
@@ -9016,7 +9823,7 @@ Please categorize the relevant details into their corresponding sections.`;
                                 width: "100%",
                                 background: "#f0f8ff",
                                 fontSize: "16px",
-                                cursor: isUploadingMedia
+                                cursor: isUploadingMedia || !showButton
                                   ? "not-allowed"
                                   : "pointer",
                               }}
@@ -9027,6 +9834,8 @@ Please categorize the relevant details into their corresponding sections.`;
                           </div>
                         );
                       })()}
+</>}
+
 
                       {/* Upload Progress */}
                       {isUploadingMedia && (
@@ -9103,7 +9912,7 @@ Please categorize the relevant details into their corresponding sections.`;
                                 )}
                                 <button
                                   onClick={() => removeMedia(index)}
-                                  disabled={deletingIndex === index}
+                                  disabled={deletingIndex === index || !showButton}
                                   style={{
                                     position: "absolute",
                                     top: "8px",
@@ -9151,15 +9960,16 @@ Please categorize the relevant details into their corresponding sections.`;
                         <div className="decision-editor-container">
                           <div className="d-flex justify-content-between align-items-center mb-2">
                             <h5>{t("presentation.strategies")}</h5>
-                            <button
+                          {showButton &&  <button
                               className="btn btn-primary"
                               style={{
                                 backgroundColor: "rgb(0, 38, 177)",
                               }}
                               onClick={() => handleButtonClick()}
+                              disabled={!showButton}
                             >
                               + {t("presentation.Add Strategy")}
-                            </button>
+                            </button>}
                           </div>
 
                           <div className="decision-table-scroll">
@@ -9251,11 +10061,12 @@ Please categorize the relevant details into their corresponding sections.`;
                                           </Tooltip>
                                         </td>
                                         <td className="text-center table-data-row">
-                                          <button
+                                        {showButton && <button
                                             className="btn-sm btn-outline-primary p-0"
                                             onClick={() =>
                                               handleEditStrategy(user)
                                             }
+                                            disabled={!showButton}
                                             style={{
                                               border: 0,
                                               background: "white",
@@ -9263,12 +10074,13 @@ Please categorize the relevant details into their corresponding sections.`;
                                             }}
                                           >
                                             ✏️
-                                          </button>
-                                          <button
+                                          </button>}
+                                         {showButton && <button
                                             className="btn-sm btn-outline-danger p-0"
                                             onClick={() =>
                                               handleDeleteStrategy(user)
                                             }
+                                            disabled={!showButton}
                                             style={{
                                               border: 0,
                                               background: "white",
@@ -9276,7 +10088,7 @@ Please categorize the relevant details into their corresponding sections.`;
                                             }}
                                           >
                                             🗑️
-                                          </button>
+                                          </button>}
                                         </td>
                                       </tr>
                                     ))}
@@ -9525,7 +10337,8 @@ Please categorize the relevant details into their corresponding sections.`;
                         <ShowIF
                           condition={
                             meetingData?.steps[currentStepIndex].editor_type ===
-                            "Editeur"
+                            "Editeur" || meetingData?.steps[currentStepIndex]?.editor_type === "Publication"||
+                    meetingData?.steps[currentStepIndex]?.editor_type === "AI Instruction"
                           }
                         >
                           <Editor
@@ -9537,6 +10350,7 @@ Please categorize the relevant details into their corresponding sections.`;
                               // Turant save on blur
                               autoSaveStep(sanitized);
                             }}
+                            disabled={!showButton}
                             key={activeStepIndex}
                             apiKey={TINYMCEAPI}
                             value={
@@ -9621,6 +10435,7 @@ Please categorize the relevant details into their corresponding sections.`;
                             onBlur={(value) => {
                               console.log("value", value);
                             }}
+                            disabled={!showButton}
                             key={activeStepIndex}
                             apiKey={TINYMCEAPI}
                             value={
@@ -9676,6 +10491,7 @@ Please categorize the relevant details into their corresponding sections.`;
                                   return step;
                                 }),
                               }));
+                              debouncedSave(sanitizedContent);
                             }}
                             onInit={(evt, editor) => {
                               editorRef.current = editor;
@@ -9703,6 +10519,7 @@ Please categorize the relevant details into their corresponding sections.`;
                             onBlur={(value) => {
                               console.log("value", value);
                             }}
+                            disabled={!showButton}
                             key={activeStepIndex}
                             apiKey={TINYMCEAPI}
                             value={
@@ -9758,6 +10575,7 @@ Please categorize the relevant details into their corresponding sections.`;
                                   return step;
                                 }),
                               }));
+                              debouncedSave(sanitizedContent);
                             }}
                             onInit={(evt, editor) => {
                               editorRef.current = editor;
@@ -9785,6 +10603,7 @@ Please categorize the relevant details into their corresponding sections.`;
                             onBlur={(value) => {
                               console.log("value", value);
                             }}
+                            disabled={!showButton}
                             key={activeStepIndex}
                             apiKey={TINYMCEAPI}
                             value={
@@ -9821,6 +10640,7 @@ Please categorize the relevant details into their corresponding sections.`;
                                   return step;
                                 }),
                               }));
+                              debouncedSave(content);
                             }}
                             onInit={(evt, editor) => {
                               editorRef.current = editor;
@@ -10521,8 +11341,8 @@ Please categorize the relevant details into their corresponding sections.`;
                                       {t("Select Participant")}
                                     </option>
 
-                                    {meetingData?.participants &&
-                                      meetingData?.participants?.length < 1 && (
+                                    {meetingData?.user_with_participants &&
+                                      meetingData?.user_with_participants?.length < 1 && (
                                         <option value="">
                                           {t(
                                             "presentation.No Participants Added",
@@ -10530,7 +11350,7 @@ Please categorize the relevant details into their corresponding sections.`;
                                         </option>
                                       )}
                                     {meetingData &&
-                                      meetingData?.participants
+                                      meetingData?.user_with_participants
                                         ?.filter(
                                           (participant, index, self) =>
                                             index ===
@@ -10566,8 +11386,8 @@ Please categorize the relevant details into their corresponding sections.`;
                                     {t("Select Participant")}
                                   </option>
 
-                                  {meetingData?.participants &&
-                                    meetingData?.participants?.length < 1 && (
+                                  {meetingData?.user_with_participants &&
+                                    meetingData?.user_with_participants?.length < 1 && (
                                       <option value="">
                                         {t(
                                           "presentation.No Participants Added",
@@ -10575,7 +11395,7 @@ Please categorize the relevant details into their corresponding sections.`;
                                       </option>
                                     )}
                                   {meetingData &&
-                                    meetingData?.participants
+                                    meetingData?.user_with_participants
                                       ?.filter(
                                         (participant, index, self) =>
                                           index ===
@@ -10656,12 +11476,20 @@ Please categorize the relevant details into their corresponding sections.`;
                           border: "none",
                           fontWeight: "600",
                           fontSize: "16px",
-                          cursor: "pointer",
+                          cursor: saveStrategy ? "not-allowed" : "pointer",
                           width: "100%",
+                          opacity: saveStrategy ? 0.7 : 1,
                         }}
-                        // disabled={saveStrategy}
+                        disabled={saveStrategy}
                       >
-                        💾 {t("presentation.Save Strategy")}
+                        {saveStrategy ? (
+                          <>
+                            <Spinner size="sm" className="me-2" animation="border" />
+                            {t("presentation.Saving...") || "Saving..."}
+                          </>
+                        ) : (
+                          <>💾 {t("presentation.Save Strategy")}</>
+                        )}
                       </button>
                     </div>
                   </div>

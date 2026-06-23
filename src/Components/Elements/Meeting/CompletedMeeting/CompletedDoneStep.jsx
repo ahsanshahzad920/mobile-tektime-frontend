@@ -1,5 +1,6 @@
 import CookieService from "../../../Utils/CookieService";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
+import ReactDOM from "react-dom";
 import {
   Link,
   Navigate,
@@ -77,6 +78,29 @@ function CompletedDoneStep() {
   // const { meeting } = location?.state || "";
   const [meeting, setMeeting] = useState(null);
   const [meta, setMeta] = useState(null);
+
+  // AI popup state — lifted here so it survives UpcomingStepScreen unmount/remount
+  const [showAIPopup, setShowAIPopup] = useState(false);
+  const [aiProgress, setAiProgress] = useState(0);
+  const pendingAiActionRef = useRef(null);
+
+  // Progress bar simulation for AI popup
+  useEffect(() => {
+    let interval;
+    if (showAIPopup) {
+      setAiProgress(0);
+      interval = setInterval(() => {
+        setAiProgress((prev) => {
+          if (prev >= 95) {
+            clearInterval(interval);
+            return 95;
+          }
+          return prev + Math.floor(Math.random() * 5) + 1;
+        });
+      }, 800);
+    }
+    return () => clearInterval(interval);
+  }, [showAIPopup]);
   const getStep = async (silent = false) => {
     const currentTime = new Date();
     const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -799,6 +823,11 @@ function CompletedDoneStep() {
               modifiedFileText={modifiedFileText}
               loading={loading}
               setLoading={setLoading}
+              showAIPopup={showAIPopup}
+              setShowAIPopup={setShowAIPopup}
+              aiProgress={aiProgress}
+              setAiProgress={setAiProgress}
+              pendingAiActionRef={pendingAiActionRef}
             />
           ) : (
             <div className="invite p-2">
@@ -2387,6 +2416,162 @@ function CompletedDoneStep() {
             </button>
           </Modal.Footer>
         </Modal>
+      )}
+      {showAIPopup && ReactDOM.createPortal(
+        <div className="ai-popup-overlay" style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100vw",
+          height: "100vh",
+          background: "rgba(15, 23, 42, 0.85)",
+          backdropFilter: "blur(12px)",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          zIndex: 999999,
+        }}>
+          <style>{`
+            .ai-popup-content-parent {
+              background: rgba(30, 41, 59, 0.95);
+              border: 1px solid rgba(255, 255, 255, 0.15);
+              box-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.5);
+              border-radius: 24px;
+              padding: 40px;
+              max-width: 480px;
+              width: 90%;
+              color: #f8fafc;
+              text-align: center;
+              position: relative;
+              font-family: 'Inter', sans-serif;
+              animation: ai-popup-scale-p 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+            @keyframes ai-popup-scale-p {
+              0% { transform: scale(0.9); opacity: 0; }
+              100% { transform: scale(1); opacity: 1; }
+            }
+            .ai-robot-container-p {
+              margin-bottom: 24px;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+            }
+            .ai-robot-svg-p {
+              width: 120px;
+              height: 120px;
+              animation: robot-float-p 3s ease-in-out infinite;
+            }
+            @keyframes robot-float-p {
+              0% { transform: translateY(0px) rotate(0deg); }
+              50% { transform: translateY(-10px) rotate(2deg); }
+              100% { transform: translateY(0px) rotate(0deg); }
+            }
+            .ai-robot-eye-p {
+              animation: robot-blink-p 4s infinite;
+              transform-origin: center;
+            }
+            @keyframes robot-blink-p {
+              0%, 90%, 100% { transform: scaleY(1); }
+              95% { transform: scaleY(0.1); }
+            }
+            .robot-antenna-glow-p {
+              animation: antenna-pulse-p 1.5s infinite;
+              transform-origin: center;
+            }
+            @keyframes antenna-pulse-p {
+              0% { transform: scale(1); opacity: 0.7; filter: drop-shadow(0 0 2px #a855f7); }
+              50% { transform: scale(1.3); opacity: 1; filter: drop-shadow(0 0 10px #a855f7); }
+              100% { transform: scale(1); opacity: 0.7; filter: drop-shadow(0 0 2px #a855f7); }
+            }
+            .ai-popup-title-p {
+              font-size: 20px;
+              font-weight: 700;
+              margin-bottom: 12px;
+              background: linear-gradient(135deg, #38bdf8 0%, #a855f7 100%);
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+            }
+            .ai-popup-msg-p {
+              font-size: 14px;
+              color: #cbd5e1;
+              line-height: 1.6;
+              margin-bottom: 28px;
+            }
+            .ai-loader-container-p {
+              position: relative;
+              height: 10px;
+              width: 100%;
+              background: rgba(255, 255, 255, 0.05);
+              border-radius: 9999px;
+              overflow: hidden;
+            }
+            .ai-loader-bar-p {
+              height: 100%;
+              background: linear-gradient(90deg, #38bdf8, #a855f7, #6366f1);
+              border-radius: 9999px;
+              transition: width 0.4s ease-out;
+              position: relative;
+            }
+            .ai-loader-stripes-p {
+              position: absolute;
+              top: 0; left: 0; right: 0; bottom: 0;
+              background-image: linear-gradient(
+                45deg,
+                rgba(255,255,255,0.15) 25%, transparent 25%,
+                transparent 50%, rgba(255,255,255,0.15) 50%,
+                rgba(255,255,255,0.15) 75%, transparent 75%, transparent
+              );
+              background-size: 1rem 1rem;
+              animation: bar-stripes-p 1s linear infinite;
+            }
+            @keyframes bar-stripes-p {
+              from { background-position: 1rem 0; }
+              to { background-position: 0 0; }
+            }
+            .ai-percentage-p {
+              margin-top: 8px;
+              font-size: 12px;
+              font-weight: 600;
+              color: #94a3b8;
+            }
+          `}</style>
+          <div className="ai-popup-content-parent">
+            <div className="ai-robot-container-p">
+              <svg viewBox="0 0 100 100" className="ai-robot-svg-p">
+                <defs>
+                  <radialGradient id="glow-p" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="#a855f7" stopOpacity="0.3" />
+                    <stop offset="100%" stopColor="#a855f7" stopOpacity="0" />
+                  </radialGradient>
+                </defs>
+                <circle cx="50" cy="50" r="45" fill="url(#glow-p)" />
+                <rect x="25" y="25" width="50" height="36" rx="12" fill="#1e293b" stroke="#38bdf8" strokeWidth="2.5" />
+                <line x1="50" y1="25" x2="50" y2="12" stroke="#38bdf8" strokeWidth="3" strokeLinecap="round" />
+                <circle cx="50" cy="10" r="4" fill="#a855f7" className="robot-antenna-glow-p" />
+                <rect x="20" y="35" width="5" height="16" rx="2" fill="#38bdf8" />
+                <rect x="75" y="35" width="5" height="16" rx="2" fill="#38bdf8" />
+                <rect x="31" y="31" width="38" height="24" rx="8" fill="#0f172a" stroke="#475569" strokeWidth="1.5" />
+                <circle cx="42" cy="43" r="4" fill="#38bdf8" className="ai-robot-eye-p" />
+                <circle cx="58" cy="43" r="4" fill="#38bdf8" className="ai-robot-eye-p" />
+                <path d="M 44 50 Q 50 54 56 50" fill="none" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" />
+                <path d="M 35 63 C 35 63 30 75 30 80 C 30 85 35 85 50 85 C 65 85 70 85 70 80 C 70 75 65 63 65 63 Z" fill="#1e293b" stroke="#38bdf8" strokeWidth="2" />
+                <rect x="45" y="68" width="10" height="12" rx="2" fill="#a855f7" opacity="0.8" />
+              </svg>
+            </div>
+            <div className="ai-popup-title-p">{t("ai_popup.title")}</div>
+            <div className="ai-popup-msg-p">
+              {t("ai_popup.message")}<br/>
+              {t("ai_popup.message_line2")}
+            </div>
+            <div className="ai-loader-container-p">
+              <div className="ai-loader-bar-p" style={{ width: `${aiProgress}%` }}>
+                <div className="ai-loader-stripes-p" />
+              </div>
+            </div>
+            <div className="ai-percentage-p">{aiProgress}%</div>
+          </div>
+        </div>,
+        document.body
       )}
     </>
   );

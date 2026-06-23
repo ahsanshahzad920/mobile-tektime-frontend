@@ -1,6 +1,8 @@
 // Development Server
-// const API_BASE_URL = "https://tektime-mo.digitalisolutions.net/api";
-// const Assets_URL = "https://tektime-mo.digitalisolutions.net/";
+
+// const Assets_URL = "https://tektime-storage.s3.eu-north-1.amazonaws.com";
+const Assets_URL = "https://tektime-storage.s3.eu-central-003.backblazeb2.com";
+
 // const NODE_API = `https://file.tektime.io/api/upload`;
 //NODE_API(CLOUDINARY)
 const NODE_API = `https://tektime-cloudinary-api.onrender.com/api/upload`;
@@ -8,14 +10,14 @@ const NODE_API = `https://tektime-cloudinary-api.onrender.com/api/upload`;
 const Cloudinary_URL = 'https://api.cloudinary.com/v1_1/drrk2kqvy/upload'
 
 // Stage Server
+// const API_BASE_URL = "https://iziworlds.com/api"
 // const API_BASE_URL = "https://stage-tektime.digitalisolutions.net/api"
 // const Assets_URL = "https://stage-tektime.digitalisolutions.net/";
 
 // Production Server
 const API_BASE_URL = "https://api.tektime.io/api";
-// const API_BASE_URL = "https://iziworlds.com/api";
+// const Assets_URL = "https://api.tektime.io/";
 
-const Assets_URL = "https://tektime-storage.s3.eu-north-1.amazonaws.com";
 
 
 const CLIENT_ID = "e5a1a99f-9e33-4e5d-a7a9-1e2b1d9c36fa"; //Official Id

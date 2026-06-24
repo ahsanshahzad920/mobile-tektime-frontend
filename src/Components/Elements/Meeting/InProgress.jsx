@@ -1613,7 +1613,7 @@ const InProgress = ({
   const [deletingIndex, setDeletingIndex] = useState(null);
 
   useEffect(() => {
-    if (!mediaEditor.showEditor) {
+    if (!mediaEditor.showEditor || !meetingData?.steps?.[currentStepIndex]?.id) {
       setServerMedia([]);
       return;
     }
@@ -4802,6 +4802,34 @@ Please categorize the relevant details into their corresponding sections.`;
       show: true,
     },
   ];
+  if (!meetingData || !meetingData.steps || meetingData.steps.length === 0) {
+    return (
+      <div className="d-flex flex-column align-items-center justify-content-center" style={{ minHeight: "80vh", gap: "16px" }}>
+        <Spinner animation="border" role="status" style={{ color: "#007aff" }} />
+        <h5 className="text-muted" style={{ fontWeight: "500" }}>
+          Chargement de la réunion...
+        </h5>
+        <button className="btn btn-outline-secondary btn-sm" onClick={() => navigate(-1)}>
+          Retour
+        </button>
+      </div>
+    );
+  }
+
+  if (!meetingData.steps[currentStepIndex]) {
+    return (
+      <div className="d-flex flex-column align-items-center justify-content-center" style={{ minHeight: "80vh", gap: "16px" }}>
+        <Spinner animation="border" role="status" style={{ color: "#007aff" }} />
+        <h5 className="text-muted" style={{ fontWeight: "500" }}>
+          Chargement de l'étape...
+        </h5>
+        <button className="btn btn-outline-secondary btn-sm" onClick={() => navigate(-1)}>
+          Retour
+        </button>
+      </div>
+    );
+  }
+
   return (
     <>
       {!isModalOpen &&

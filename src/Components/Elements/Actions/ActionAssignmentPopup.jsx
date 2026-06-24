@@ -4,6 +4,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import parse from "html-react-parser";
 import { API_BASE_URL } from "../../Apicongfig";
 import {
   formatDate,
@@ -169,6 +170,18 @@ const ActionAssignmentPopup = ({ step: initialStep, onRefresh }) => {
     return null;
   }
 
+  const hasEditorContent = (content) => {
+    if (!content) return false;
+    const trimmed = content.trim();
+    if (!trimmed) return false;
+    const stripped = trimmed.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, "").trim();
+    if (stripped !== "") return true;
+    if (trimmed.includes("<img") || trimmed.includes("<iframe") || trimmed.includes("<table")) {
+      return true;
+    }
+    return false;
+  };
+
     const creatorName = currentStep?.step_creator
     ? `${currentStep.step_creator.name ?? ""} ${currentStep.step_creator.last_name ?? ""}`.trim()
     : currentStep?.meeting?.user
@@ -214,6 +227,12 @@ const ActionAssignmentPopup = ({ step: initialStep, onRefresh }) => {
                   </span>{" "}
                   {meetingName}
                 </p>
+              )}
+
+              {hasEditorContent(currentStep?.editor_content) && (
+                <div className="aap-editor-content">
+                  {parse(currentStep.editor_content)}
+                </div>
               )}
             </>
           ) : (

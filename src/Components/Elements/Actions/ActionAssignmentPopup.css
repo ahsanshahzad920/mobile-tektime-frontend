@@ -25,7 +25,10 @@
   box-shadow:
     0 20px 60px rgba(15, 23, 42, 0.2),
     0 4px 16px rgba(15, 23, 42, 0.08);
-  width: min(480px, 92vw);
+  width: min(520px, 92vw);
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   animation: aap-slidein 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -66,6 +69,8 @@
 /* Body */
 .aap-body {
   padding: 24px 24px 16px;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .aap-message {
@@ -91,6 +96,50 @@
   white-space: nowrap;
 }
 
+/* Editor Content Style */
+.aap-editor-content {
+  margin-top: 16px;
+  padding: 16px;
+  background-color: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 12px;
+  font-size: 14px;
+  color: #334155;
+  line-height: 1.6;
+  text-align: left;
+}
+
+.aap-editor-content p {
+  margin-bottom: 8px;
+}
+
+.aap-editor-content p:last-child {
+  margin-bottom: 0;
+}
+
+.aap-editor-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.aap-editor-content ul, .aap-editor-content ol {
+  padding-left: 20px;
+  margin-bottom: 8px;
+}
+
+.aap-editor-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 12px;
+}
+
+.aap-editor-content th, .aap-editor-content td {
+  border: 1px solid #e2e8f0;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
 /* Footer */
 .aap-footer {
   display: flex;
@@ -105,7 +154,7 @@
   min-width: 120px;
   padding: 12px 18px;
   border-radius: 12px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   border: none;

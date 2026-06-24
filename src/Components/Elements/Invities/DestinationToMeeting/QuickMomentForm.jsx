@@ -295,6 +295,7 @@ const QuickMomentForm = ({
                   ...prev,
                   solution_id: matchingSolution.id,
                   solution_tab: "use a template",
+                  type: matchingSolution?.type,
                 }));
               }
             }
@@ -1908,6 +1909,7 @@ const QuickMomentForm = ({
       // Initial creation - Solution tab
       meetingData = {
         ...formState,
+        // type: formState.type || selectedSolution?.type || "",
         status: "draft",
         timezone: userTimezone,
         date: dateTime.toISOString().split("T")[0],
@@ -2072,6 +2074,7 @@ const QuickMomentForm = ({
 
     const payload = {
       ...formState,
+      // type: formState.type || selectedSolution?.type || "",
       create_agenda: formState?.location || formState?.agenda ? true : false,
       calendly_timezone: finalCalendlyTimezone,
       calendly_availability: finalCalendlyAvailability,

@@ -530,7 +530,7 @@ export const FormProvider = ({ children }) => {
     const inputData = {
       ...formState,
       objective: fromDestination ? fromDestinationName : formState.objective,
-      type: formState.type,
+      type: formState.type || selectedSolution?.type || "",
       title: formState.title,
       date: formState.date,
       start_time: formState.start_time,
@@ -707,7 +707,7 @@ export const FormProvider = ({ children }) => {
       ...newformstate,
       objective: fromDestination ? fromDestinationName : objective,
       // objective,
-      type,
+      type: type || selectedSolution?.type || "",
       title,
       date,
       start_time,
@@ -919,7 +919,7 @@ export const FormProvider = ({ children }) => {
     const inputData = {
       ...meetingData,
       objective,
-      type,
+      type: type || selectedSolution?.type || "",
       title,
       date,
       start_time,

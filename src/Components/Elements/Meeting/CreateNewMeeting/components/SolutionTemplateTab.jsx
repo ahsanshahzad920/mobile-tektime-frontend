@@ -46,9 +46,15 @@ function SolutionTemplateTab() {
                 //     is_step_exists: selectedSolution.is_step_exists
                 // }));
                 setSelectedSolution(selectedSolution);
+                if (!formState?.type && selectedSolution.type) {
+                    setFormState(prev => ({
+                        ...prev,
+                        type: selectedSolution.type
+                    }));
+                }
             }
         }
-    }, [formState?.solution_id, solutions, setFormState, setSelectedSolution]);
+    }, [formState?.solution_id, solutions, setFormState, setSelectedSolution, formState?.type]);
 
     const handleSelect = (id) => {
         setSelectedId(id);
@@ -59,6 +65,7 @@ function SolutionTemplateTab() {
         setFormState(prev => ({
             ...prev,
             solution_id: id,
+            type: selectedSolution?.type || prev.type || "",
             // is_step_exists: selectedSolution?.is_step_exists
         }));
     };

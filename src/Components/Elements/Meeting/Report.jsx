@@ -3128,11 +3128,11 @@ const Report = () => {
                         >
                           <ul className="nav-list">
                             {[
-                              {
-                                id: "home",
-                                label: t("navbar.home"),
-                                icon: <FaHome />,
-                              },
+                              // {
+                              //   id: "home",
+                              //   label: t("navbar.home"),
+                              //   icon: <FaHome />,
+                              // },
                               {
                                 id: "report",
                                 label: t("Report"),
@@ -4841,11 +4841,11 @@ const Report = () => {
                         >
                           <ul className="nav-list">
                             {[
-                              {
-                                id: "home",
-                                label: t("navbar.home"),
-                                icon: <FaHome />,
-                              },
+                              // {
+                              //   id: "home",
+                              //   label: t("navbar.home"),
+                              //   icon: <FaHome />,
+                              // },
                               {
                                 id: "guides",
                                 label: t("Participants"),
@@ -6522,11 +6522,11 @@ const Report = () => {
                   >
                     <ul className="nav-list">
                       {[
-                        {
-                          id: "home",
-                          label: t("navbar.home"),
-                          icon: <FaHome />,
-                        },
+                        // {
+                        //   id: "home",
+                        //   label: t("navbar.home"),
+                        //   icon: <FaHome />,
+                        // },
                         {
                           id: "description",
                           label: t("navbar.description"),

@@ -3463,16 +3463,16 @@ Please categorize the relevant details into their corresponding sections.`;
                 })() && (
                     <>
                       <Link to="/meeting">Agenda</Link>
-                      <span> / </span>
+                      {/* <span> / </span> */}
                     </>
                   )}
-                <Link
+                {/* <Link
                   to={{
                     pathname: `/invitiesToMeeting/${meeting?.destination_id}`,
                   }}
                 >
                   {meeting?.objective}
-                </Link>
+                </Link> */}
               </div>
 
               <div className="invite-header d-flex flex-column flex-md-row justify-content-between gap-3 mt-3">
@@ -3503,7 +3503,7 @@ Please categorize the relevant details into their corresponding sections.`;
                 </div>
 
                 {meeting?.status !== "no_status" && <div className="play-btn-container">
-                  {meeting?.status !== "abort" &&
+                  {/* {meeting?.status !== "abort" &&
                     parseInt(meeting?.user_id) ===
                     parseInt(CookieService.get("user_id")) && (
                       <Button
@@ -3529,7 +3529,7 @@ Please categorize the relevant details into their corresponding sections.`;
                           }}
                         />
                       </Button>
-                    )}
+                    )} */}
                   <Dropdown className="dropdown">
                     {
                       // Check if the logged-in user is in the guides array
@@ -3623,21 +3623,8 @@ Please categorize the relevant details into their corresponding sections.`;
                             )}
                         </Dropdown.Menu>
                       ) : (
-                        <>
-                          <Button
-                            className="btn play-btn"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const currentURL = `/destination/${meeting?.unique_id}/${meeting?.id}`;
-                              copy(currentURL);
-                              openLinkInNewTab(currentURL);
-                            }}
-                            disabled={isDisabled}
-                          >
-                            <RiPresentationFill size={"20px"} /> &nbsp;
-                            {t("presentation.generateLink")}
-                          </Button>
-                        </>
+                        null
+                        
                       )
                     }
                   </Dropdown>

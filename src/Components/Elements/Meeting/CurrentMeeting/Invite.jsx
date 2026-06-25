@@ -1520,16 +1520,16 @@ const Invite = () => {
                 })() && (
                   <>
                     <Link to="/meeting">Agenda</Link>
-                    <span> / </span>
+                    {/* <span> / </span> */}
                   </>
                 )}
-                <Link
+                {/* <Link
                   to={{
                     pathname: `/invitiesToMeeting/${meeting?.destination_id}`,
                   }}
                 >
                   {meeting?.objective}
-                </Link>
+                </Link> */}
               </div>
 
               <div className="invite-header d-flex flex-column flex-md-row justify-content-between gap-3 mt-3">

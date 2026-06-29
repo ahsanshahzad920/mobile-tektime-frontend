@@ -1853,6 +1853,11 @@ const QuickMomentForm = ({
     try {
       const response = await axios.get(
         `${API_BASE_URL}/get-meeting/${meeting?.id}?current_time=${formattedTime}&current_date=${formattedDate}&user_id=${userId}&timezone=${userTimeZone}`,
+        {
+          headers: {
+            Authorization: `Bearer ${CookieService.get("token")}`,
+          },
+        }
       );
       if (response?.status === 200) {
         setMeeting(response?.data?.data);

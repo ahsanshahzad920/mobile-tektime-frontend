@@ -381,6 +381,11 @@ const Invite = () => {
     try {
       const response = await axios.get(
         `${API_BASE_URL}/meeting/${id}/casting?current_time=${formattedTime}&current_date=${formattedDate}&user_id=${userId}&timezone=${userTimeZone}`,
+        {
+          headers: {
+            Authorization: `Bearer ${CookieService.get("token")}`,
+          },
+        }
       );
 
       if (response.status) {
@@ -447,6 +452,11 @@ const Invite = () => {
     try {
       const response = await axios.get(
         `${API_BASE_URL}/meeting/${id}/casting?current_time=${formattedTime}&current_date=${formattedDate}&user_id=${userId}&timezone=${userTimeZone}`,
+          {
+          headers: {
+            Authorization: `Bearer ${CookieService.get("token")}`,
+          },
+        }
       );
 
       if (response.status) {
@@ -498,6 +508,11 @@ const Invite = () => {
 
       const response = await axios.get(
         `${API_BASE_URL}/meeting/${id}/steps?current_time=${formattedTime}&current_date=${formattedDate}&user_id=${userId}&timezone=${userTimeZone}`,
+          {
+          headers: {
+            Authorization: `Bearer ${CookieService.get("token")}`,
+          },
+        }
       );
 
       if (response.status) {
@@ -710,6 +725,11 @@ const Invite = () => {
         try {
           const response = await axios.get(
             `${API_BASE_URL}/user-scheduled-days/${loggedInUserId}/${meeting?.destination?.id}`,
+              {
+          headers: {
+            Authorization: `Bearer ${CookieService.get("token")}`,
+          },
+        }
           );
           if (response?.status === 200) {
             setWorkingHours(response?.data?.data?.working_days);
@@ -1099,6 +1119,11 @@ const Invite = () => {
       const formattedDate = formatDate(timeInUserZone);
       const response = await axios.get(
         `${API_BASE_URL}/play-to-finish-meeting/${item?.id}?current_time=${formattedTime}&current_date=${formattedDate}&pause_current_time=${formattedTime}&pause_current_date=${formattedDate}`,
+          {
+          headers: {
+            Authorization: `Bearer ${CookieService.get("token")}`,
+          },
+        }
       );
       if (response?.status) {
         getMeeting();
@@ -1162,6 +1187,11 @@ const Invite = () => {
       const formattedDate = formatDate(timeInUserZone);
       const response = await axios.get(
         `${API_BASE_URL}/play-todo-meeting/${item?.id}?current_time=${formattedTime}&current_date=${formattedDate}&pause_current_time=${formattedTime}&pause_current_date=${formattedDate}`,
+          {
+          headers: {
+            Authorization: `Bearer ${CookieService.get("token")}`,
+          },
+        }
       );
       if (response?.status) {
         getMeeting();

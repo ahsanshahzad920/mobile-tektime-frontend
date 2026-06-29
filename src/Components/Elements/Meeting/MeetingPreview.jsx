@@ -103,11 +103,11 @@ const MeetingPreview = () => {
         setLoading(true);
         const response = await axios.get(
           `${API_BASE_URL}/get-meeting/${id}?current_time=${formattedTime}&current_date=${formattedDate}&user_id=${userId}&timezone=${userTimeZone}`,
-          {
-            headers: {
-              Authorization: `Bearer ${CookieService.get("token")}`,
-            },
-          }
+           {
+          headers: {
+            Authorization: `Bearer ${CookieService.get("token")}`,
+          },
+        }
         );
 
         if (response?.status === 200) {

@@ -601,7 +601,12 @@ const ActionTabs = () => {
     setIsLoading(true);
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/get-meeting/${id}?current_time=${formattedTime}&current_date=${formattedDate}${userId ? `&user_id=${userId}` : ""}`
+        `${API_BASE_URL}/get-meeting/${id}?current_time=${formattedTime}&current_date=${formattedDate}${userId ? `&user_id=${userId}` : ""}`,
+        {
+          headers: {
+            Authorization: `Bearer ${CookieService.get("token")}`,
+          },
+        }
       );
       if (response) {
         const data = response?.data?.data;

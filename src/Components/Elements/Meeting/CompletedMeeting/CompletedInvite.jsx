@@ -425,8 +425,8 @@ const CompletedInvite = () => {
     }
   };
 
-  // ✅ Automatically check & convert if needed
-  // ADDITIONAL FIX: Add this useEffect to handle the conversion after state update
+  // ✅ Automatically check & use/convert audio if needed
+  // Playing WebM natively avoids CORS fetch issues and large file memory crashes.
   useEffect(() => {
     const handleConversion = async () => {
       if (!meeting?.voice_notes) {
@@ -437,17 +437,14 @@ const CompletedInvite = () => {
       const audioUrl = meeting.voice_notes;
       console.log("🎵 Voice notes detected:", audioUrl);
 
-      if (audioUrl.endsWith(".webm")) {
-        console.log("🔄 Converting .webm to .mp3");
-        await convertToMp3(audioUrl);
-      } else if (audioUrl.endsWith(".mp3") || audioUrl.endsWith(".mp4")) {
-        console.log("✅ Audio already in supported format");
+      if (audioUrl.endsWith(".webm") || audioUrl.endsWith(".mp3") || audioUrl.endsWith(".mp4")) {
+        console.log("✅ Audio format supported natively");
         setMp3Url(audioUrl);
       }
     };
 
     handleConversion();
-  }, [meeting?.voice_notes, ffmpeg]);
+  }, [meeting?.voice_notes]);
 
 
   // Utility function for debouncing

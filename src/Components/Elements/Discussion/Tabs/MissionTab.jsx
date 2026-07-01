@@ -8,7 +8,7 @@ const { Text } = Typography;
 
 const formatMomentDate = (dateStr) => {
   if (!dateStr) return "";
-  const date = moment.utc(dateStr).local();
+  const date = moment(dateStr);
   const now = moment();
   if (date.isSame(now, 'day')) return date.format('HH:mm');
   if (date.isSame(now.clone().subtract(1, 'day'), 'day')) return "Hier";
@@ -23,6 +23,16 @@ const MissionTab = ({ searchTerm, isActive, userData }) => {
     destinations: true,
     meetings: false,
   });
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    lastPage: 1,
+    loadingMore: false,
+  });
+  const [meetingsPagination, setMeetingsPagination] = useState({
+    currentPage: 1,
+    lastPage: 1,
+    loadingMore: false,
+  });
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
@@ -31,16 +41,62 @@ const MissionTab = ({ searchTerm, isActive, userData }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const fetchMeetings = async (destinationId) => {
+  const fetchMeetings = async (destinationId, page = 1) => {
     try {
-      setLoading((prev) => ({ ...prev, meetings: true }));
-      const meetingsData = await getDestinationMeetings(destinationId);
-      setMeetings(meetingsData?.data || []);
+      if (page === 1) {
+        setLoading((prev) => ({ ...prev, meetings: true }));
+      } else {
+        setMeetingsPagination((prev) => ({ ...prev, loadingMore: true }));
+      }
+
+      const response = await getDestinationMeetings(destinationId, page);
+      const responseData = response?.data;
+      let list = [];
+      let lastPage = 1;
+
+      if (responseData) {
+        if (Array.isArray(responseData)) {
+          list = responseData;
+        } else if (responseData.data && Array.isArray(responseData.data)) {
+          list = responseData.data;
+          lastPage = responseData.last_page || 1;
+        }
+      }
+
+      if (page === 1) {
+        setMeetings(list);
+        setMeetingsPagination({
+          currentPage: 1,
+          lastPage: lastPage,
+          loadingMore: false,
+        });
+      } else {
+        setMeetings((prev) => {
+          const existingIds = new Set(prev.map((m) => m.id));
+          const filteredNew = list.filter((m) => !existingIds.has(m.id));
+          return [...prev, ...filteredNew];
+        });
+        setMeetingsPagination({
+          currentPage: page,
+          lastPage: lastPage,
+          loadingMore: false,
+        });
+      }
     } catch (error) {
       console.error("Error fetching meetings:", error);
+      if (page === 1) setMeetings([]);
+      setMeetingsPagination((prev) => ({ ...prev, loadingMore: false }));
     } finally {
-      setLoading((prev) => ({ ...prev, meetings: false }));
+      if (page === 1) {
+        setLoading((prev) => ({ ...prev, meetings: false }));
+      }
     }
+  };
+
+  const handleLoadMoreMeetings = async () => {
+    if (meetingsPagination.loadingMore || meetingsPagination.currentPage >= meetingsPagination.lastPage) return;
+    if (!activeDestination) return;
+    await fetchMeetings(activeDestination, meetingsPagination.currentPage + 1);
   };
 
   useEffect(() => {
@@ -49,12 +105,29 @@ const MissionTab = ({ searchTerm, isActive, userData }) => {
     const fetchInitialData = async () => {
       setLoading((prev) => ({ ...prev, destinations: true }));
       try {
-        const destinationsData = await getAllDestinations();
-        const data = destinationsData?.data || [];
-        setDestinations(data);
+        const response = await getAllDestinations(1);
+        const responseData = response?.data;
+        let list = [];
+        let lastPage = 1;
+        
+        if (responseData) {
+          if (Array.isArray(responseData)) {
+            list = responseData;
+          } else if (responseData.data && Array.isArray(responseData.data)) {
+            list = responseData.data;
+            lastPage = responseData.last_page || 1;
+          }
+        }
+        
+        setDestinations(list);
+        setPagination({
+          currentPage: 1,
+          lastPage: lastPage,
+          loadingMore: false,
+        });
 
-        if (data.length > 0) {
-          const firstId = data[0].id;
+        if (list.length > 0) {
+          const firstId = list[0].id;
           setActiveDestination(firstId.toString());
           await fetchMeetings(firstId);
         }
@@ -67,6 +140,43 @@ const MissionTab = ({ searchTerm, isActive, userData }) => {
 
     fetchInitialData();
   }, [isActive]);
+
+  const handleLoadMoreDestinations = async () => {
+    if (pagination.loadingMore || pagination.currentPage >= pagination.lastPage) return;
+    
+    setPagination((prev) => ({ ...prev, loadingMore: true }));
+    try {
+      const nextPage = pagination.currentPage + 1;
+      const response = await getAllDestinations(nextPage);
+      const responseData = response?.data;
+      let newList = [];
+      let lastPage = pagination.lastPage;
+      
+      if (responseData) {
+        if (Array.isArray(responseData)) {
+          newList = responseData;
+        } else if (responseData.data && Array.isArray(responseData.data)) {
+          newList = responseData.data;
+          lastPage = responseData.last_page || lastPage;
+        }
+      }
+      
+      setDestinations((prev) => {
+        const existingIds = new Set(prev.map((d) => d.id));
+        const filteredNew = newList.filter((d) => !existingIds.has(d.id));
+        return [...prev, ...filteredNew];
+      });
+      
+      setPagination({
+        currentPage: nextPage,
+        lastPage: lastPage,
+        loadingMore: false,
+      });
+    } catch (error) {
+      console.error("Error loading more destinations:", error);
+      setPagination((prev) => ({ ...prev, loadingMore: false }));
+    }
+  };
 
   const handleDestinationChange = (key) => {
     setActiveDestination(key);
@@ -135,6 +245,24 @@ const MissionTab = ({ searchTerm, isActive, userData }) => {
                   className="w-100"
                   size="middle"
                   dropdownStyle={{ zIndex: 10000 }}
+                  dropdownRender={(menu) => (
+                    <>
+                      {menu}
+                      {pagination.currentPage < pagination.lastPage && (
+                        <div 
+                          className="text-center py-2 border-top cursor-pointer bg-light"
+                          style={{ color: '#1890ff', fontSize: '12px', fontWeight: 500 }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleLoadMoreDestinations();
+                          }}
+                        >
+                          {pagination.loadingMore ? <Spin size="small" /> : "Charger plus..."}
+                        </div>
+                      )}
+                    </>
+                  )}
                 >
                   {filteredDestinations.map(d => (
                     <Select.Option key={d.id.toString()} value={d.id.toString()}>
@@ -176,6 +304,12 @@ const MissionTab = ({ searchTerm, isActive, userData }) => {
                   missionsData={isMobile ? null : filteredDestinations}
                   selectedMissionId={activeDestination}
                   onMissionSelect={handleDestinationChange}
+                  onLoadMoreMissions={handleLoadMoreDestinations}
+                  hasMoreMissions={pagination.currentPage < pagination.lastPage}
+                  isLoadingMoreMissions={pagination.loadingMore}
+                  onLoadMore={handleLoadMoreMeetings}
+                  hasMore={meetingsPagination.currentPage < meetingsPagination.lastPage}
+                  isLoadingMore={meetingsPagination.loadingMore}
                 />
               ) : (
                 <div className="h-100 d-flex justify-content-center align-items-center p-4">
@@ -188,6 +322,12 @@ const MissionTab = ({ searchTerm, isActive, userData }) => {
                          selectedMissionId={activeDestination}
                          onMissionSelect={handleDestinationChange}
                          userData={userData}
+                         onLoadMoreMissions={handleLoadMoreDestinations}
+                         hasMoreMissions={pagination.currentPage < pagination.lastPage}
+                         isLoadingMoreMissions={pagination.loadingMore}
+                         onLoadMore={handleLoadMoreMeetings}
+                         hasMore={meetingsPagination.currentPage < meetingsPagination.lastPage}
+                         isLoadingMore={meetingsPagination.loadingMore}
                        />
                     )}
                     {isMobile && <Text type="secondary">Aucun message dans cette mission</Text>}

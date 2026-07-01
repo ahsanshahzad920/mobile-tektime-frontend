@@ -1577,30 +1577,30 @@ const QuickMomentForm = ({
 
     // Determine default mission label based on user profile
     // let defaultMissionLabel = `projet ${selectedClient.label.toLowerCase()}`;
-    let defaultMissionLabel = `projet ${t("of the month of")} ${moment().format('MMMM YYYY')}`;
+    let defaultMissionLabel = `projet ${selectedClient.label.toLowerCase()} ${t("of the month of")} ${moment().format('MMMM YYYY')}`;
     let defaultMissionValue = null;
     let isNewMission = true;
     let shouldCallAPI = false;
 
     switch (userProfile) {
       case "Project Manager / Product Owner":
-        defaultMissionLabel = `projet ${t("of the month of")} ${moment().format('MMMM YYYY')}`;
+        defaultMissionLabel = `projet ${selectedClient.label.toLowerCase()} ${t("of the month of")} ${moment().format('MMMM YYYY')}`;
         shouldCallAPI = true;
         break;
       case "Customer Relations Officer / Sales Representative":
-        defaultMissionLabel = `Opportunité client ${t("of the month of")} ${moment().format('MMMM YYYY')}`;
+        defaultMissionLabel = `Opportunité client ${selectedClient.label.toLowerCase()} ${t("of the month of")} ${moment().format('MMMM YYYY')}`;
         shouldCallAPI = true;
         break;
       case "Manager / Team Leader":
-        defaultMissionLabel = `projet ${t("of the month of")} ${moment().format('MMMM YYYY')}`;
+        defaultMissionLabel = `projet ${selectedClient.label.toLowerCase()} ${t("of the month of")} ${moment().format('MMMM YYYY')}`;
         shouldCallAPI = true;
         break;
       case "Developer / Operational Contributor":
-        defaultMissionLabel = `projet ${t("of the month of")} ${moment().format('MMMM YYYY')}`;
+        defaultMissionLabel = `projet ${selectedClient.label.toLowerCase()} ${t("of the month of")} ${moment().format('MMMM YYYY')}`;
         shouldCallAPI = true;
         break;
       default:
-        defaultMissionLabel = `projet ${t("of the month of")} ${moment().format('MMMM YYYY')}`;
+        defaultMissionLabel = `projet ${selectedClient.label.toLowerCase()} ${t("of the month of")} ${moment().format('MMMM YYYY')}`;
         shouldCallAPI = true;
     }
 
@@ -1853,11 +1853,7 @@ const QuickMomentForm = ({
     try {
       const response = await axios.get(
         `${API_BASE_URL}/get-meeting/${meeting?.id}?current_time=${formattedTime}&current_date=${formattedDate}&user_id=${userId}&timezone=${userTimeZone}`,
-        {
-          headers: {
-            Authorization: `Bearer ${CookieService.get("token")}`,
-          },
-        }
+         { headers: { Authorization: `Bearer ${CookieService.get("token")}` } }
       );
       if (response?.status === 200) {
         setMeeting(response?.data?.data);
@@ -1914,7 +1910,6 @@ const QuickMomentForm = ({
       // Initial creation - Solution tab
       meetingData = {
         ...formState,
-        // type: formState.type || selectedSolution?.type || "",
         status: "draft",
         timezone: userTimezone,
         date: dateTime.toISOString().split("T")[0],
@@ -2079,7 +2074,6 @@ const QuickMomentForm = ({
 
     const payload = {
       ...formState,
-      // type: formState.type || selectedSolution?.type || "",
       create_agenda: formState?.location || formState?.agenda ? true : false,
       calendly_timezone: finalCalendlyTimezone,
       calendly_availability: finalCalendlyAvailability,

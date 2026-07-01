@@ -15,7 +15,7 @@ import {
 import { FaGraduationCap, FaArrowUpRightFromSquare } from "react-icons/fa6";
 import { FaShoppingBag } from "react-icons/fa";
 import { ArrowRightOutlined, StarFilled, SearchOutlined, LoadingOutlined, EnvironmentOutlined } from "@ant-design/icons";
-import { FaFacebookMessenger, FaSearch, FaVideo } from "react-icons/fa";
+import { FaFacebookMessenger, FaSearch, FaVideo, FaCalendarAlt, FaChartLine, FaUsers, FaTasks, FaUserCheck, FaFileContract } from "react-icons/fa";
 import {
   FacebookFilled,
   LinkedinFilled,
@@ -76,26 +76,50 @@ const SearchEngine = () => {
     if (savedLat) setLatitude(savedLat);
     if (savedLon) setLongitude(savedLon);
 
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const lat = position.coords.latitude;
-          const lon = position.coords.longitude;
+    const requestLocation = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
 
-          setLatitude(lat);
-          setLongitude(lon);
+            setLatitude(lat);
+            setLongitude(lon);
 
-          localStorage.setItem("user_latitude", lat);
-          localStorage.setItem("user_longitude", lon);
-          try {
-            CookieService.set("user_latitude", lat);
-            CookieService.set("user_longitude", lon);
-          } catch (e) {}
-        },
-        (err) => {
-          console.warn("Geolocation access denied or failed:", err);
-        }
-      );
+            localStorage.setItem("user_latitude", lat);
+            localStorage.setItem("user_longitude", lon);
+            try {
+              CookieService.set("user_latitude", lat);
+              CookieService.set("user_longitude", lon);
+            } catch (e) {}
+          },
+          (err) => {
+            console.warn("Geolocation access denied or failed:", err);
+          }
+        );
+      }
+    };
+
+    // If no saved coordinates exist, request geolocation upon user interaction
+    if (!savedLat || !savedLon) {
+      const triggerInteraction = () => {
+        requestLocation();
+        cleanupListeners();
+      };
+
+      const cleanupListeners = () => {
+        window.removeEventListener("mousemove", triggerInteraction);
+        window.removeEventListener("scroll", triggerInteraction);
+        window.removeEventListener("touchstart", triggerInteraction);
+        window.removeEventListener("click", triggerInteraction);
+      };
+
+      window.addEventListener("mousemove", triggerInteraction, { passive: true });
+      window.addEventListener("scroll", triggerInteraction, { passive: true });
+      window.addEventListener("touchstart", triggerInteraction, { passive: true });
+      window.addEventListener("click", triggerInteraction, { passive: true });
+
+      return cleanupListeners;
     }
   }, []);
 
@@ -197,54 +221,81 @@ const SearchEngine = () => {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // Initialize Crisp global if not present
-    if (!window.$crisp) {
-      window.$crisp = [];
-    }
-    window.CRISP_WEBSITE_ID = "a3f1edc3-bc94-4038-9037-50258aa2fb8b";
+    let timeoutId;
+    let intervalId;
+    let isLoaded = false;
 
-    // Helper to ensure chat is shown
-    const ensureChatVisible = () => {
-      try {
-        window.$crisp.push(["do", "chat:show"]);
-        window.$crisp.push(["do", "chat:close"]);
-      } catch (e) {
-        console.error("Crisp error:", e);
+    const loadCrisp = () => {
+      if (isLoaded) return;
+      isLoaded = true;
+
+      // Clean up event listeners immediately
+      cleanupListeners();
+
+      if (!window.$crisp) {
+        window.$crisp = [];
       }
+      window.CRISP_WEBSITE_ID = "a3f1edc3-bc94-4038-9037-50258aa2fb8b";
+
+      const ensureChatVisible = () => {
+        try {
+          window.$crisp.push(["do", "chat:show"]);
+          window.$crisp.push(["do", "chat:close"]);
+        } catch (e) {
+          console.error("Crisp error:", e);
+        }
+      };
+
+      const existingScript = document.querySelector(
+        'script[src="https://client.crisp.chat/l.js"]',
+      );
+
+      if (!existingScript) {
+        const s = document.createElement("script");
+        s.src = "https://client.crisp.chat/l.js";
+        s.async = 1;
+        s.onload = () => {
+          ensureChatVisible();
+        };
+        document.getElementsByTagName("head")[0].appendChild(s);
+      } else {
+        ensureChatVisible();
+      }
+
+      intervalId = setInterval(() => {
+        if (window.$crisp) {
+          window.$crisp.push(["do", "chat:show"]);
+        }
+      }, 1000);
+
+      timeoutId = setTimeout(() => {
+        clearInterval(intervalId);
+      }, 5000);
     };
 
-    // Check if script is already in the DOM
-    const existingScript = document.querySelector(
-      'script[src="https://client.crisp.chat/l.js"]',
-    );
+    const triggerEvents = ["pointerdown", "touchstart", "scroll", "mousemove", "keydown"];
+    const cleanupListeners = () => {
+      triggerEvents.forEach((event) => {
+        window.removeEventListener(event, loadCrisp);
+      });
+    };
 
-    if (!existingScript) {
-      const s = document.createElement("script");
-      s.src = "https://client.crisp.chat/l.js";
-      s.async = 1;
-      s.onload = () => {
-        ensureChatVisible();
-      };
-      document.getElementsByTagName("head")[0].appendChild(s);
-    } else {
-      ensureChatVisible();
-    }
+    // Load Crisp after 4 seconds of idle time or immediately on user interaction
+    const idleTimeout = setTimeout(loadCrisp, 4000);
 
-    const intervalId = setInterval(() => {
-      if (window.$crisp) {
-        window.$crisp.push(["do", "chat:show"]);
-      }
-    }, 1000);
-
-    const timeoutId = setTimeout(() => {
-      clearInterval(intervalId);
-    }, 5000);
+    triggerEvents.forEach((event) => {
+      window.addEventListener(event, loadCrisp, { passive: true });
+    });
 
     return () => {
-      clearInterval(intervalId);
-      clearTimeout(timeoutId);
+      clearTimeout(idleTimeout);
+      cleanupListeners();
+      if (timeoutId) clearTimeout(timeoutId);
+      if (intervalId) clearInterval(intervalId);
       if (window.$crisp) {
-        window.$crisp.push(["do", "chat:hide"]);
+        try {
+          window.$crisp.push(["do", "chat:hide"]);
+        } catch (e) {}
       }
     };
   }, []);
@@ -361,14 +412,7 @@ const SearchEngine = () => {
 
   const services = [
     {
-      icon: (
-        <img
-          src="https://cdn-icons-png.flaticon.com/512/1048/1048953.png"
-          alt="Gestion de l’agenda"
-          width="60"
-          height="60"
-        />
-      ),
+      icon: <FaCalendarAlt size={50} style={{ color: "#1890ff" }} />,
       title: t("landingPage.services.card1.title"),
       subtitle: t("landingPage.services.card1.subtitle"),
       items: [
@@ -380,14 +424,7 @@ const SearchEngine = () => {
       btnLabel: t("landingPage.services.card1.btn")
     },
     {
-      icon: (
-        <img
-          src="https://cdn-icons-png.flaticon.com/512/6175/6175314.png"
-          alt="Pilotage de projet"
-          width="60"
-          height="60"
-        />
-      ),
+      icon: <FaChartLine size={50} style={{ color: "#1890ff" }} />,
       title: t("landingPage.services.card2.title"),
       subtitle: t("landingPage.services.card2.subtitle"),
       items: [
@@ -399,14 +436,7 @@ const SearchEngine = () => {
       btnLabel: t("landingPage.services.card2.btn")
     },
     {
-      icon: (
-        <img
-          src="https://cdn-icons-png.flaticon.com/512/942/942748.png"
-          alt="Suivi de clients et équipes"
-          width="60"
-          height="60"
-        />
-      ),
+      icon: <FaUsers size={50} style={{ color: "#1890ff" }} />,
       title: t("landingPage.services.card3.title"),
       subtitle: t("landingPage.services.card3.subtitle"),
       items: [
@@ -419,14 +449,7 @@ const SearchEngine = () => {
       btnLabel: t("landingPage.services.card3.btn")
     },
     {
-      icon: (
-        <img
-          src="https://cdn-icons-png.flaticon.com/512/992/992700.png"
-          alt="Suivi des tâches"
-          width="60"
-          height="60"
-        />
-      ),
+      icon: <FaTasks size={50} style={{ color: "#1890ff" }} />,
       title: t("landingPage.services.card4.title"),
       subtitle: t("landingPage.services.card4.subtitle"),
       items: [
@@ -438,14 +461,7 @@ const SearchEngine = () => {
       btnLabel: t("landingPage.services.card4.btn")
     },
     {
-      icon: (
-        <img
-          src="https://cdn-icons-png.flaticon.com/512/942/942751.png"
-          alt="Suivi de clients et équipes"
-          width="60"
-          height="60"
-        />
-      ),
+      icon: <FaUserCheck size={50} style={{ color: "#1890ff" }} />,
       title: t("landingPage.services.card5.title"),
       subtitle: t("landingPage.services.card5.subtitle"),
       items: [
@@ -457,14 +473,7 @@ const SearchEngine = () => {
       btnLabel: t("landingPage.services.card5.btn")
     },
     {
-      icon: (
-        <img
-          src="https://cdn-icons-png.flaticon.com/512/709/709496.png"
-          alt="Process & ModOp"
-          width="60"
-          height="60"
-        />
-      ),
+      icon: <FaFileContract size={50} style={{ color: "#1890ff" }} />,
       title: t("landingPage.services.card6.title"),
       subtitle: t("landingPage.services.card6.subtitle"),
       items: [
@@ -481,7 +490,7 @@ const SearchEngine = () => {
   const projects = [
     {
       image:
-        "https://res.cloudinary.com/drrk2kqvy/image/upload/v1760357848/voice_notes/Screenshot_2025-10-13_171456_qwxikz.png",
+        "https://res.cloudinary.com/drrk2kqvy/image/upload/f_auto,q_auto,w_800/v1760357848/voice_notes/Screenshot_2025-10-13_171456_qwxikz.png",
       title: t("landingPage.solution.card1.title"),
       description: t("landingPage.solution.card1.desc"),
       tags: ["Generate Automatic Report", "AI-Powered", "Time-Saving"],
@@ -532,32 +541,27 @@ const SearchEngine = () => {
     {
       title: t("landingPage.work.step1.title"),
       description: t("landingPage.work.step1.desc"),
-      image:
-        "https://cdn.prod.website-files.com/6853ad30b113b68f674e59d8/685508dccbe3fb361e3b4c4e_process-image1-p-500.webp",
+      image: "/Assets/process_image1.webp",
     },
     {
       title: t("landingPage.work.step2.title"),
       description: t("landingPage.work.step2.desc"),
-      image:
-        "https://cdn.prod.website-files.com/6853ad30b113b68f674e59d8/685508dcad7adafc1fb270aa_process-image2-p-500.webp",
+      image: "/Assets/process_image2.webp",
     },
     {
       title: t("landingPage.work.step3.title"),
       description: t("landingPage.work.step3.desc"),
-      image:
-        "https://cdn.prod.website-files.com/6853ad30b113b68f674e59d8/685508dc02adbbca42ab57da_process-image3-p-500.webp",
+      image: "/Assets/process_image3.webp",
     },
     {
       title: t("landingPage.work.step4.title"),
       description: t("landingPage.work.step4.desc"),
-      image:
-        "https://cdn.prod.website-files.com/6853ad30b113b68f674e59d8/685508dc02adbbca42ab57da_process-image3-p-500.webp",
+      image: "/Assets/process_image3.webp",
     },
     {
       title: t("landingPage.work.step5.title"),
       description: t("landingPage.work.step4.desc"),
-      image:
-        "https://cdn.prod.website-files.com/6853ad30b113b68f674e59d8/685508dc02adbbca42ab57da_process-image3-p-500.webp",
+      image: "/Assets/process_image3.webp",
     },
   ];
 
@@ -584,16 +588,14 @@ const SearchEngine = () => {
     {
       title: t("landingPage.testimonials.review1.title"),
       text: t("landingPage.testimonials.review1.desc"),
-      image:
-        "https://cdn.prod.website-files.com/68da9e32f495b6801915d287/68dd206fe26164171a153498_1564908244965.jpg",
+      image: "/Assets/testimonial_davy.jpg",
       author: "Davy CHOUMILLE",
       role: t("landingPage.testimonials.review1.role"),
     },
     {
       title: t("landingPage.testimonials.review2.title"),
       text: t("landingPage.testimonials.review2.desc"),
-      image:
-        "https://cdn.prod.website-files.com/68da9e32f495b6801915d287/68dd21198b370c3d67647de0_testimonial3.png",
+      image: "/Assets/testimonial_generic.png",
       author: "Romain Barbe",
       role: t("landingPage.testimonials.review2.role"),
     },
@@ -788,7 +790,7 @@ const SearchEngine = () => {
             className="hero-section"
             style={{
               position: "relative",
-              backgroundImage: `url('https://res.cloudinary.com/drrk2kqvy/image/upload/v1759830958/voice_notes/WhatsApp_Image_2025-10-06_at_20.59.36_dpxvu5.jpg')`,
+              backgroundImage: `url('https://res.cloudinary.com/drrk2kqvy/image/upload/f_auto,q_auto,w_1600/v1759830958/voice_notes/WhatsApp_Image_2025-10-06_at_20.59.36_dpxvu5.jpg')`,
               backgroundSize: "cover",
               backgroundPosition: "center",
               minHeight: "clamp(450px, 80dvh, 900px)",
@@ -945,9 +947,9 @@ const SearchEngine = () => {
           {/* Services Section */}
           <section id="services" className="services-section py-5 mt-5 mb-5">
             <div className="container">
-              <Title level={5} className="text-uppercase text-muted">
+              <Paragraph className="text-uppercase text-muted fw-bold mb-1" style={{ letterSpacing: "1px" }}>
                 {t("landingPage.services.title")}
-              </Title>
+              </Paragraph>
 
               <Title level={2} className="fw-bold mb-4">
                 {t("landingPage.services.subtitle1")}
@@ -1114,7 +1116,7 @@ const SearchEngine = () => {
                       }}
                     >
                       <img
-                        src="https://res.cloudinary.com/drrk2kqvy/image/upload/v1760357959/voice_notes/6853fb1a02d1124e4cefc3ff_join-with-image-p-1080_gv03o8.webp"
+                        src="https://res.cloudinary.com/drrk2kqvy/image/upload/f_auto,q_auto,w_600/v1760357959/voice_notes/6853fb1a02d1124e4cefc3ff_join-with-image-p-1080_gv03o8.webp"
                         alt="Scale Brand"
                         style={{
                           borderRadius: "8px",
@@ -1361,9 +1363,9 @@ const SearchEngine = () => {
             className="testimonials-section py-5 mt-5 mb-5"
           >
             <div className="container">
-              <Title level={5} className="text-uppercase text-muted">
+              <Paragraph className="text-uppercase text-muted fw-bold mb-1" style={{ letterSpacing: "1px" }}>
                 {t("landingPage.testimonials.title")}
-              </Title>
+              </Paragraph>
               <Title level={2} className="fw-bold mb-3">
                 {t("landingPage.testimonials.desc")}
               </Title>

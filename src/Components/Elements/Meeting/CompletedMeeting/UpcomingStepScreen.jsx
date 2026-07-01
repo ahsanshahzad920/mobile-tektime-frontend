@@ -970,58 +970,28 @@ function UpcomingStepScreen({
     const postData = {
       ...step,
       editor_content: optimizedEditorContent || "",
-      step_status:
-        meeting?.type === "Task" ||
-        meeting?.type === "Strategy" ||
-        meeting?.type === "Prestation Client"
-          ? "todo"
-          : "completed",
-      status:
-        meeting?.type === "Task" ||
-        meeting?.type === "Strategy" ||
-        meeting?.type === "Prestation Client"
-          ? "todo"
-          : "completed",
+      step_status: "completed",
+      status: "completed",
       url: step?.url ? step?.url : null,
-      current_time:
-        meeting?.type === "Task" ||
-        meeting?.type === "Strategy" ||
-        meeting?.type === "Prestation Client"
-          ? null
-          : step?.current_time,
-      current_date:
-        meeting?.type === "Task" ||
-        meeting?.type === "Strategy" ||
-        meeting?.type === "Prestation Client"
-          ? null
-          : step?.current_date,
+      // current_time:
+      //   meeting?.type === "Task" ||
+      //   meeting?.type === "Strategy" ||
+      //   meeting?.type === "Prestation Client"
+      //     ? null
+      //     : step?.current_time,
+      // current_date:
+      //   meeting?.type === "Task" ||
+      //   meeting?.type === "Strategy" ||
+      //   meeting?.type === "Prestation Client"
+      //     ? null
+      //     : step?.current_date,
       meeting_id: parseInt(meeting?.id),
-      end_time:
-        meeting?.type === "Task" ||
-        meeting?.type === "Strategy" ||
-        meeting?.type === "Prestation Client"
-          ? null
-          : localEndTime,
-      end_date:
-        meeting?.type === "Task" ||
-        meeting?.type === "Strategy" ||
-        meeting?.type === "Prestation Client"
-          ? null
-          : formattedEndDate,
-      real_time:
-        meeting?.type === "Task" ||
-        meeting?.type === "Strategy" ||
-        meeting?.type === "Prestation Client"
-          ? null
-          : localEndTime,
-      real_date:
-        meeting?.type === "Task" ||
-        meeting?.type === "Strategy" ||
-        meeting?.type === "Prestation Client"
-          ? null
-          : formattedEndDate,
-      re_assign_step: true,
-      time_taken: null,
+      end_time: localEndTime,
+      end_date: formattedEndDate,
+      real_time: localEndTime,
+      real_date:formattedEndDate,
+      // re_assign_step: true,
+      // time_taken: null,
     };
 
     try {
@@ -1034,7 +1004,7 @@ function UpcomingStepScreen({
       const latestFormattedDate = formatDate(timeInUserZone);
 
       const response = await axios.post(
-        `${API_BASE_URL}/play-meetings/steps/${stepId}/?current_time=${latestFormattedTime}&current_date=${latestFormattedDate}`,
+        `${API_BASE_URL}/play-meetings/steps/${stepId}/step-note-and-action?current_time=${formattedTime}&current_date=${formattedDate}&pause_current_time=${formattedTime}&pause_current_date=${formattedDate}`,
         postData,
         {
           headers: {
@@ -2585,7 +2555,7 @@ function UpcomingStepScreen({
                         </button>
                       </li>
                       <li>
-                        <button className="dropdown-item" onClick={handleShow}>
+                        <button className="dropdown-item" onClick={handleShowResume}>
                           {t("Ré-assigner")}
                         </button>
                       </li>
@@ -2690,7 +2660,7 @@ function UpcomingStepScreen({
               Guide
             </h4>
             <div className="host">
-              {meeting?.type === "Newsletter" || meeting?.type === "Social Media Newsletter" || meeting?.type === "AI Social Media Newsletter" ? (
+              {meeting?.type === "Newsletter" || meeting?.type === "Social Media Newsletter" || meeting?.type === "AI Social Media Newsletter" || meeting?.type === "AI Instruction" ? (
                 <div className="row">
                   <div className="col-md-3">
                     <Card
@@ -3405,7 +3375,9 @@ function UpcomingStepScreen({
             setIsDrop={setIsDrop}
             // stepIndex={currentStepIndex}
             closeStep={todoStep}
-            fromTodo={true}
+            //  closeStep={closeStep}
+            fromReassign={true}
+
 
             // refreshMeeting={getRefreshMeeting}
           />

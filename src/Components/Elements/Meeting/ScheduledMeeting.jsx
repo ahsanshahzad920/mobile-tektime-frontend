@@ -1146,17 +1146,19 @@ const ScheduledMeeting = ({
 
               {/* Body */}
               <div className="smc-body">
-                <div className="smc-title">
-                  {item.title}
+                <div className="smc-title">{item.title}</div>
+                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px', marginTop: '4px', marginBottom: '6px' }}>
                   {item?.status === 'active' && (
-                    <span className={`smc-badge ${moment().isAfter(moment(`${item.date} ${item.start_time}`, "YYYY-MM-DD HH:mm")) ? "late" : "future"}`}>
+                    <span className={`smc-badge ${moment().isAfter(moment(`${item.date} ${item.start_time}`, "YYYY-MM-DD HH:mm")) ? "late" : "future"}`} style={{ marginLeft: 0 }}>
                       {moment().isAfter(moment(`${item.date} ${item.start_time}`, "YYYY-MM-DD HH:mm")) ? t("badge.late") : t("badge.future")}
                     </span>
                   )}
-                  {item?.status === 'in_progress' && <span className="smc-badge progress">{t("badge.inprogress")}</span>}
-                  {item?.status === 'closed' && <span className="smc-badge finished">{t("badge.finished")}</span>}
-                  {item?.status === 'abort' && <span className="smc-badge cancelled">{t("badge.cancel")}</span>}
-                  {item?.status === 'todo' && <span className="smc-badge draft">{t("badge.todo")}</span>}
+                  {item?.status === 'in_progress' && <span className="smc-badge progress" style={{ marginLeft: 0 }}>{t("badge.inprogress")}</span>}
+                  {item?.status === 'closed' && <span className="smc-badge finished" style={{ marginLeft: 0 }}>{t("badge.finished")}</span>}
+                  {(item?.status === 'abort' || item?.status === "cancelled") && <span className="smc-badge cancelled" style={{ marginLeft: 0 }}>{t("badge.cancel")}</span>}
+                  {item?.status === 'todo' && <span className="smc-badge draft" style={{ marginLeft: 0 }}>{t("badge.todo")}</span>}
+                  {item?.status === 'to_finish' && <span className="smc-badge status-badge-finish" style={{ marginLeft: 0 }}>{t("badge.finish")}</span>}
+                  
                 </div>
                 <div className="smc-desc">{missionTitle || solutionTitle}</div>
                 <div className="smc-meta">{formattedDate}{startTime ? ` • ${startTime}` : ''}{endTime ? ` → ${endTime}` : ''}</div>
@@ -1328,72 +1330,74 @@ const ScheduledMeeting = ({
                     </svg>
                   )}
 
-                  <span className="heading">{item.title}</span>
-                  {item?.status === "active" && (
-                    <span
-                      className={`badge ms-2 ${
-                        moment().isAfter(
+                  <div className="heading">{item.title}</div>
+                  <div className="status-badge-container mt-2" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {item?.status === "active" && (
+                      <span
+                        className={`badge ms-2${
+                          moment().isAfter(
+                            moment(
+                              `${item.date} ${item.start_time}`,
+                              "YYYY-MM-DD HH:mm",
+                            ),
+                          )
+                            ? "late"
+                            : "future"
+                        }`}
+                        style={{ padding: "3px 8px 3px 8px" }}
+                      >
+                        {moment().isAfter(
                           moment(
                             `${item.date} ${item.start_time}`,
                             "YYYY-MM-DD HH:mm",
                           ),
                         )
-                          ? "late"
-                          : "future"
-                      }`}
-                      style={{ padding: "3px 8px 3px 8px" }}
-                    >
-                      {moment().isAfter(
-                        moment(
-                          `${item.date} ${item.start_time}`,
-                          "YYYY-MM-DD HH:mm",
-                        ),
-                      )
-                        ? t("badge.late")
-                        : t("badge.future")}
-                    </span>
-                  )}
-                  {item?.status === "in_progress" && (
-                    // <span className="mx-2 badge status-badge-inprogress1">
-                    <span
-                      className={`${
-                        item?.steps?.some(
-                          (item) =>
-                            // item?.delay >= "00d:00h:00m:01s"
-                            item?.step_status === "in_progress" &&
-                            convertTimeTakenToSeconds(item?.time_taken) >
-                              convertCount2ToSeconds(
-                                item?.count2,
-                                item?.time_unit,
-                              ),
-                        )
-                          ? "status-badge-red1"
-                          : "status-badge-inprogress1"
-                      } mx-2 badge`}
-                    >
-                      {t("badge.inprogress")}
-                    </span>
-                  )}
-                  {item.status === "closed" && (
+                          ? t("badge.late")
+                          : t("badge.future")}
+                      </span>
+                    )}
+                    {item?.status === "in_progress" && (
+                      // <span className="mx-2 badge status-badge-inprogress1">
+                      <span
+                        className={`${
+                          item?.steps?.some(
+                            (item) =>
+                              // item?.delay >= "00d:00h:00m:01s"
+                              item?.step_status === "in_progress" &&
+                              convertTimeTakenToSeconds(item?.time_taken) >
+                                convertCount2ToSeconds(
+                                  item?.count2,
+                                  item?.time_unit,
+                                ),
+                          )
+                            ? "status-badge-red1"
+                            : "status-badge-inprogress1"
+                        } mx-2 badge`}
+                      >
+                        {t("badge.inprogress")}
+                      </span>
+                    )}
+                    {item.status === "closed" && (
                     <span className="mx-2 badge inprogrss">
-                      {t("badge.finished")}
-                    </span>
-                  )}
-                  {item?.status === "abort" && (
+                        {t("badge.finished")}
+                      </span>
+                    )}
+                    {item?.status === "abort" && (
                     <span className="mx-2 badge late">{t("badge.cancel")}</span>
-                  )}
+                    )}
 
-                  {item?.status === "to_finish" && (
+                    {item?.status === "to_finish" && (
                     <span className="mx-2 badge status-badge-finish p-1">
-                      {t("badge.finish")}
-                    </span>
-                  )}
+                        {t("badge.finish")}
+                      </span>
+                    )}
 
-                  {item?.status === "todo" && (
+                    {item?.status === "todo" && (
                     <span className="mx-2 badge status-badge-green p-1">
-                      {t("badge.Todo")}
-                    </span>
-                  )}
+                        {t("badge.Todo")}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -2931,17 +2935,19 @@ const ScheduledMeeting = ({
 
                   {/* Body */}
                   <div className="smc-body">
-                    <div className="smc-title">
-                      {item.title}
+                    <div className="smc-title">{item.title}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px', marginTop: '4px', marginBottom: '6px' }}>
                       {item?.status === 'active' && (
-                        <span className={`smc-badge ${moment().isAfter(moment(`${item.date} ${item.start_time}`, "YYYY-MM-DD HH:mm")) ? "late" : "future"}`}>
+                        <span className={`smc-badge ${moment().isAfter(moment(`${item.date} ${item.start_time}`, "YYYY-MM-DD HH:mm")) ? "late" : "future"}`} style={{ marginLeft: 0 }}>
                           {moment().isAfter(moment(`${item.date} ${item.start_time}`, "YYYY-MM-DD HH:mm")) ? t("badge.late") : t("badge.future")}
                         </span>
                       )}
-                      {item?.status === 'in_progress' && <span className="smc-badge progress">{t("badge.inprogress")}</span>}
-                      {item?.status === 'closed' && <span className="smc-badge finished">{t("badge.finished")}</span>}
-                      {item?.status === 'abort' && <span className="smc-badge cancelled">{t("badge.cancel")}</span>}
-                      {item?.status === 'todo' && <span className="smc-badge draft">{t("badge.todo")}</span>}
+                      {item?.status === 'in_progress' && <span className="smc-badge progress" style={{ marginLeft: 0 }}>{t("badge.inprogress")}</span>}
+                      {item?.status === 'closed' && <span className="smc-badge finished" style={{ marginLeft: 0 }}>{t("badge.finished")}</span>}
+                      {item?.status === 'abort' && <span className="smc-badge cancelled" style={{ marginLeft: 0 }}>{t("badge.cancel")}</span>}
+                      {item?.status === 'todo' && <span className="smc-badge draft" style={{ marginLeft: 0 }}>{t("badge.todo")}</span>}
+                  {item?.status === 'to_finish' && <span className="smc-badge status-badge-finish" style={{ marginLeft: 0 }}>{t("badge.finish")}</span>}
+
                     </div>
                     <div className="smc-desc">{missionTitle || solutionTitle}</div>
                     <div className="smc-meta">{formattedDate}{startTime ? ` • ${startTime}` : ''}{endTime ? ` → ${endTime}` : ''}</div>
@@ -3042,17 +3048,21 @@ const ScheduledMeeting = ({
               </div>
               <div className="desktop-only ps-2" style={{ minWidth: 0 }}>
                 <div className="text-secondary mb-1" style={{ fontSize: '11px', fontWeight: '600', opacity: 0.7, textTransform: 'uppercase' }}>{solutionTitle}</div>
-                <div className="fw-bold text-dark" style={{ fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div className="fw-bold text-dark mb-1" style={{ fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {item.title}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
                   {item?.status === 'active' && (
-                    <span style={{ marginLeft: '8px', fontSize: '10px', padding: '2px 8px', borderRadius: '999px', background: moment().isAfter(moment(`${item.date} ${item.start_time}`, "YYYY-MM-DD HH:mm")) ? '#ffe2e6' : '#c9f7f5', color: moment().isAfter(moment(`${item.date} ${item.start_time}`, "YYYY-MM-DD HH:mm")) ? '#f64e60' : '#1bc5bd' }}>
+                    <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '999px', background: moment().isAfter(moment(`${item.date} ${item.start_time}`, "YYYY-MM-DD HH:mm")) ? '#ffe2e6' : '#c9f7f5', color: moment().isAfter(moment(`${item.date} ${item.start_time}`, "YYYY-MM-DD HH:mm")) ? '#f64e60' : '#1bc5bd' }}>
                       {moment().isAfter(moment(`${item.date} ${item.start_time}`, "YYYY-MM-DD HH:mm")) ? t("badge.late") : t("badge.future")}
                     </span>
                   )}
-                  {item?.status === 'in_progress' && <span style={{ marginLeft: '8px', fontSize: '10px', background: '#f2db43', color: '#ffffff', padding: '2px 8px', borderRadius: '999px' }}>{t("badge.inprogress")}</span>}
-                  {item?.status === 'closed' && <span style={{ marginLeft: '8px', fontSize: '10px', background: '#dcfce7', color: '#16a34a', padding: '2px 8px', borderRadius: '999px' }}>{t("badge.finished")}</span>}
-                  {(item?.status === 'abort' || item?.status === "cancelled") && <span style={{ marginLeft: '8px', fontSize: '10px', background: '#ffe2e6', color: '#f64e60', padding: '2px 8px', borderRadius: '999px' }}>{t("badge.cancel")}</span>}
-                  {item?.status === 'todo' && <span style={{ marginLeft: '8px', fontSize: '10px', background: 'rgb(228 228 233)', color: 'gray', padding: '2px 8px', borderRadius: '999px' }}>{t("badge.todo")}</span>}
+                  {item?.status === 'in_progress' && <span style={{ fontSize: '10px', background: '#f2db43', color: '#ffffff', padding: '2px 8px', borderRadius: '999px' }}>{t("badge.inprogress")}</span>}
+                  {item?.status === 'closed' && <span style={{ fontSize: '10px', background: '#dcfce7', color: '#16a34a', padding: '2px 8px', borderRadius: '999px' }}>{t("badge.finished")}</span>}
+                  {(item?.status === 'abort' || item?.status === "cancelled") && <span style={{ fontSize: '10px', background: '#ffe2e6', color: '#f64e60', padding: '2px 8px', borderRadius: '999px' }}>{t("badge.cancel")}</span>}
+                  {item?.status === 'todo' && <span style={{ fontSize: '10px', background: 'rgb(228 228 233)', color: 'gray', padding: '2px 8px', borderRadius: '999px' }}>{t("badge.todo")}</span>}
+                  {item?.status === 'to_finish' && <span style={{background:'#ff9800', color:'white', fontSize: '10px',  padding: '2px 8px', borderRadius: '999px' }}>{t("badge.finish")}</span>}
+
                 </div>
               </div>
               <div className="desktop-only col-mission" style={{ color: '#64748b', fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{missionTitle}</div>

@@ -68,6 +68,7 @@ const DiscussionChat = ({
   isLinkedIn = false,
   onLoadMore,
   hasMore,
+  isLoadingMore = false,
   userData,
   folder = "inbox",
   searchTerm = "",
@@ -77,6 +78,9 @@ const DiscussionChat = ({
   missionsData = null,
   selectedMissionId = null,
   onMissionSelect = null,
+  onLoadMoreMissions = null,
+  hasMoreMissions = false,
+  isLoadingMoreMissions = false,
 }) => {
   const [t] = useTranslation("global");
   const navigate = useNavigate();
@@ -93,6 +97,12 @@ const DiscussionChat = ({
   const editorRef = useRef(null);
   const messagesEndRef = useRef(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  // Pagination states for messages
+  const [messagesPage, setMessagesPage] = useState(1);
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [loadingMoreMessages, setLoadingMoreMessages] = useState(false);
+  const shouldScrollToBottomRef = useRef(false);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -120,16 +130,28 @@ const DiscussionChat = ({
         momentId,
         folder,
         searchTerm,
+        1
       );
-      const rawData = Array.isArray(resp?.data)
-        ? resp.data
-        : Array.isArray(resp)
-          ? resp
-          : [];
+      const rawData = Array.isArray(resp?.data?.data)
+        ? resp.data.data
+        : Array.isArray(resp?.data)
+          ? resp.data
+          : Array.isArray(resp)
+            ? resp
+            : [];
       const sorted = [...rawData].sort(
         (a, b) => new Date(a?.sent_date_time || a.created_at) - new Date(b?.sent_date_time || b.created_at),
       );
       setMessages(sorted);
+      shouldScrollToBottomRef.current = true;
+      setMessagesPage(1);
+
+      if (resp?.data && typeof resp.data === "object" && "current_page" in resp.data) {
+        setHasMoreMessages(resp.data.current_page < resp.data.last_page);
+      } else {
+        setHasMoreMessages(false);
+      }
+
       if (selectedMoment?.unread_messages_count > 0 && onMeetingsUpdateRef.current) {
         onMeetingsUpdateRef.current([{ ...selectedMoment, unread_messages_count: 0 }]);
       }
@@ -144,6 +166,60 @@ const DiscussionChat = ({
     selectedMoment?.id,
     folder,
     searchTerm,
+  ]);
+
+  const fetchMoreMessages = useCallback(async () => {
+    const momentId = selectedMoment?.id;
+    if (!meetingId || !momentId || loadingMoreMessages || !hasMoreMessages) return;
+    setLoadingMoreMessages(true);
+    try {
+      const nextPage = messagesPage + 1;
+      const resp = await getMeetingMessages(
+        meetingId,
+        messageId,
+        momentId,
+        folder,
+        searchTerm,
+        nextPage
+      );
+      const rawData = Array.isArray(resp?.data?.data)
+        ? resp.data.data
+        : Array.isArray(resp?.data)
+          ? resp.data
+          : Array.isArray(resp)
+            ? resp
+            : [];
+      
+      if (rawData.length > 0) {
+        setMessages((prev) => {
+          const combined = [...prev, ...rawData];
+          return combined.sort(
+            (a, b) => new Date(a?.sent_date_time || a.created_at) - new Date(b?.sent_date_time || b.created_at),
+          );
+        });
+        setMessagesPage(nextPage);
+      }
+      shouldScrollToBottomRef.current = false;
+
+      if (resp?.data && typeof resp.data === "object" && "current_page" in resp.data) {
+        setHasMoreMessages(resp.data.current_page < resp.data.last_page);
+      } else {
+        setHasMoreMessages(false);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingMoreMessages(false);
+    }
+  }, [
+    meetingId,
+    messageId,
+    selectedMoment?.id,
+    folder,
+    searchTerm,
+    messagesPage,
+    hasMoreMessages,
+    loadingMoreMessages,
   ]);
 
   useEffect(() => {
@@ -201,7 +277,10 @@ const DiscussionChat = ({
   }, [selectedMoment?.id]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (shouldScrollToBottomRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      shouldScrollToBottomRef.current = false;
+    }
   }, [messages]);
 
   const handleSend = async ({ message }) => {
@@ -262,6 +341,7 @@ const DiscussionChat = ({
       });
 
       if (resp.data.success) {
+        shouldScrollToBottomRef.current = true;
         if (editingMessage)
           setMessages((prev) =>
             prev.map((m) => (m.id === editingMessage.id ? resp.data.data : m)),
@@ -437,6 +517,9 @@ const DiscussionChat = ({
               selectedMoment={{
                 id: selectedMissionId ? parseInt(selectedMissionId) : null,
               }}
+              onLoadMore={onLoadMoreMissions}
+              hasMore={hasMoreMissions}
+              isLoadingMore={isLoadingMoreMissions}
             />
           ) : (
             <Moments
@@ -451,6 +534,7 @@ const DiscussionChat = ({
               selectedMoment={selectedMoment}
               onLoadMore={onLoadMore}
               hasMore={hasMore}
+              isLoadingMore={isLoadingMore}
             />
           )}
         </div>
@@ -666,6 +750,17 @@ const DiscussionChat = ({
             // minHeight: 0,
             height: !isMobile && !isFullScreen && "500px",
           }}
+          onScroll={(e) => {
+            const target = e.currentTarget;
+            if (target.scrollTop <= 5 && hasMoreMessages && !loadingMoreMessages) {
+              const oldScrollHeight = target.scrollHeight;
+              fetchMoreMessages().then(() => {
+                setTimeout(() => {
+                  target.scrollTop = target.scrollHeight - oldScrollHeight;
+                }, 50);
+              });
+            }
+          }}
         >
           {!selectedMoment ? (
             <div className="h-100 d-flex flex-column align-items-center justify-content-center text-muted opacity-50">
@@ -678,6 +773,17 @@ const DiscussionChat = ({
             </div>
           ) : viewMode === "list" ? (
             <div className="bg-white rounded-3 shadow-sm p-0">
+              {hasMoreMessages && (
+                <div className="d-flex justify-content-center p-3 border-bottom">
+                  {loadingMoreMessages ? (
+                    <Spin size="small" />
+                  ) : (
+                    <Button type="link" onClick={fetchMoreMessages} style={{ fontSize: '13px' }}>
+                      {t("loadOlderMessages")}
+                    </Button>
+                  )}
+                </div>
+              )}
               {messages.map((msg, idx) => {
                 const isMe = parseInt(msg.user_id) === currentUserId;
                 const senderImage = isMe
@@ -821,6 +927,17 @@ const DiscussionChat = ({
             </div>
           ) : (
             <div className="d-flex flex-column gap-3">
+              {hasMoreMessages && (
+                <div className="d-flex justify-content-center py-2">
+                  {loadingMoreMessages ? (
+                    <Spin size="small" />
+                  ) : (
+                    <Button type="text" onClick={fetchMoreMessages} style={{ fontSize: '12px', color: '#1890ff' }}>
+                      {t("loadOlderMessages")}
+                    </Button>
+                  )}
+                </div>
+              )}
               {messages.map((msg, idx) => {
                 const isMe = parseInt(msg.user_id) === currentUserId;
                 const senderImage = isMe
@@ -1221,6 +1338,7 @@ const DiscussionChat = ({
                 selectedMoment={selectedMoment}
                 onLoadMore={onLoadMore}
                 hasMore={hasMore}
+                isLoadingMore={isLoadingMore}
               />
             ) : (
               <DiscussionParticipant

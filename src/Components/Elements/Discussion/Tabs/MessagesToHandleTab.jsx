@@ -244,9 +244,11 @@ const MessagesToHandleTab = ({ isActive, searchTerm, userData }) => {
           }
           meetings = Array.isArray(resp?.data)
             ? resp.data
-            : Array.isArray(resp)
-              ? resp
-              : [];
+            : Array.isArray(resp?.data?.data)
+              ? resp.data.data
+              : Array.isArray(resp)
+                ? resp
+                : [];
         }
 
         if (!Array.isArray(meetings) || meetings.length === 0) {

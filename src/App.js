@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense, lazy } from "react";
 import {
   Navigate,
   Route,
@@ -9,91 +9,86 @@ import {
 import "./style/LandindPages.scss";
 import moment from "moment-timezone";
 import Base from "./Components/Layout/Base";
-import Signup from "./Components/Elements/Signup";
+// import Signup from "./Components/Elements/Signup";
 import { ToastContainer } from "react-toastify";
-import Login from "./Components/Elements/Login";
 import PrivateRoute from "./Components/Elements/PrivateRoute";
-import Profile from "./Components/Elements/Profile/Profile";
-import Contract from "./Components/Elements/Contract/Contract";
-import Enterprises from "./Components/Elements/Enterprises/Enterprises";
-import NewEnterprises from "./Components/Elements/Enterprises/NewEnterprises";
-import Team from "./Components/Elements/Team/Team";
-import Invities from "./Components/Elements/Invities/Invities";
-import UpdateContract from "./Components/Elements/Contract/UpdateContract";
-import UpdateEntreprises from "./Components/Elements/Enterprises/UpdateEntreprises";
-import UpdateTeam from "./Components/Elements/Team/UpdateTeam";
-import Users from "./Components/Elements/User/Users";
-import ContractLinkEntreprises from "./Components/Elements/LinkPages/ContractLinkEntreprises";
-import ContractToTeam from "./Components/Elements/LinkPages/ContractToTeam";
-import EntreprisesToTeam from "./Components/Elements/LinkPages/EntreprisesToTeam";
 import global_en from "./translations/en/global.json";
 import global_fr from "./translations/fr/global.json";
 import i18next from "i18next";
-import CopyContract from "./Components/Elements/Contract/CopyContract";
-import CopyClosedContract from "./Components/Elements/Contract/CopyClosedContract";
-import ReadContract from "./Components/Elements/Contract/ReadContract";
-import UpdateUser from "./Components/Elements/User/UpdateUser";
-import ContractToUser from "./Components/Elements/LinkPages/ContractToUser";
-import EnterprisesToUser from "./Components/Elements/LinkPages/EnterprisesToUser";
-import MeetingTabs from "./Components/Elements/Meeting/MeetingTabs";
-import ActionPlay from "./Components/Elements/Actions/ActionPlay";
-import Invite from "./Components/Elements/Meeting/CurrentMeeting/Invite";
 import { CounterContextProvider } from "./Components/Elements/Meeting/context/CounterContext";
-import UpdatePassword from "./Components/Elements/User/UpdatePassword";
 import axios from "axios";
 import { API_BASE_URL } from "./Components/Apicongfig";
-import Report from "./Components/Elements/Meeting/Report";
-// import CustomerSupport from "./Components/Elements/CustomerSupport";
-import CompletedInvite from "./Components/Elements/Meeting/CompletedMeeting/CompletedInvite";
-import DestinationToMeetings from "./Components/Elements/Invities/DestinationToMeeting/DestinationToMeetings";
 import BasePage from "./Components/Layout/BasePage";
-import Home from "./Pages/Home";
-import About from "./Pages/About";
-import Privacypolicy from "./Pages/Privacypolicy";
-import Termsandconditions from "./Pages/Termsandconditions";
-import Contactus from "./Pages/Contactus";
-import SearchEngine from "./Pages/SearchEngine";
-import SearchResultsPage from "./Pages/SearchResultsPage";
-
-import ProfileInvitePage from "./Components/Elements/Profile/ProfileInvitePage";
-import NewsletterTerms from "./Pages/NewsletterTerms.jsx";
-import ActionTabs from "./Components/Elements/Actions/ActionTabs.jsx";
-import SolutionTabs from "./Components/Elements/Solution/SolutionTabs.jsx";
-import Solution from "./Components/Elements/Solution/GetSolution/Solution.jsx";
-import CompletedDoneStep from "./Components/Elements/Meeting/CompletedMeeting/CompletedDoneStep.jsx";
-import AddQuestionField from "./Components/Elements/QuestionsField/AddQuestionField.jsx";
 import { StepCounterContextProvider } from "./Components/Elements/Meeting/context/StepCounterContext.js";
-import CreateUsers from "./Components/Elements/User/CreateUsers.jsx";
-import ClientDetail from "./Components/Elements/Team/Client/ClientDetail.jsx";
-import MemberDetail from "./Components/Elements/Team/Member/MemberDetail.jsx";
 import { messaging } from "./firebase.js";
 import { onMessage } from "firebase/messaging";
 import { closeSnackbar, useSnackbar } from "notistack";
 import notificationSound from "./Media/notification.mp3";
-import MeetingPreview from "./Components/Elements/Meeting/MeetingPreview.jsx";
-import ContactDetail from "./Components/Elements/Team/Contact/ContactDetail.jsx";
-import CastingMemberDetail from "./Components/Elements/Team/Member/CastingMemberDetail.jsx";
-import CastingContactDetail from "./Components/Elements/Team/Contact/CastingContactDetail.jsx";
-import Register from "./Components/Elements/Register.jsx";
-import RegisterMoment from "./Components/Elements/RegisterMoment.jsx";
-import RegisterMission from "./Components/Elements/RegisterMission.jsx";
-import RegisterBtp from "./Components/Elements/RegisterBtp.jsx";
-import ReferralLanding from "./Components/Elements/ReferralLanding.jsx";
-import DiscussionTabs from "./Components/Elements/Discussion/DiscussionTabs.jsx";
-import Settings from "./Components/Elements/Profile/Settings.jsx";
-import Integrations from "./Components/Elements/Profile/Integrations.jsx";
-import Assistant from "./Components/Elements/Profile/Assistant.jsx";
-import PaymentSuccess from "./Pages/PaymentSuccess.jsx";
-import PaymentCancel from "./Pages/PaymentCancel.jsx";
 import AccessControl from "./Components/Elements/AccessControl";
-import AccessDenied from "./Pages/AccessDenied";
-import HomeMessages from "./Pages/Discussion/HomeMessages.jsx";
 import CookieService from "./Components/Utils/CookieService";
 import { setupAxiosInterceptors } from "./Components/Utils/auth";
-import StripeSuccess from "./Components/Elements/StripeSuccess";
-import StripePaymentCompleted from "./Components/Elements/StripePaymentCompleted";
-import StripePaymentCancel from "./Components/Elements/StripePaymentCancel";
-import LinkedInCallback from "./Pages/LinkedInCallback.jsx";
+
+// Lazy-loaded components to improve initial bundle size and page speed
+const Login = lazy(() => import("./Components/Elements/Login"));
+const Profile = lazy(() => import("./Components/Elements/Profile/Profile"));
+const Contract = lazy(() => import("./Components/Elements/Contract/Contract"));
+const Enterprises = lazy(() => import("./Components/Elements/Enterprises/Enterprises"));
+const NewEnterprises = lazy(() => import("./Components/Elements/Enterprises/NewEnterprises"));
+const Team = lazy(() => import("./Components/Elements/Team/Team"));
+const Invities = lazy(() => import("./Components/Elements/Invities/Invities"));
+const UpdateContract = lazy(() => import("./Components/Elements/Contract/UpdateContract"));
+const UpdateEntreprises = lazy(() => import("./Components/Elements/Enterprises/UpdateEntreprises"));
+const UpdateTeam = lazy(() => import("./Components/Elements/Team/UpdateTeam"));
+const Users = lazy(() => import("./Components/Elements/User/Users"));
+const ContractLinkEntreprises = lazy(() => import("./Components/Elements/LinkPages/ContractLinkEntreprises"));
+const ContractToTeam = lazy(() => import("./Components/Elements/LinkPages/ContractToTeam"));
+const EntreprisesToTeam = lazy(() => import("./Components/Elements/LinkPages/EntreprisesToTeam"));
+const CopyContract = lazy(() => import("./Components/Elements/Contract/CopyContract"));
+const CopyClosedContract = lazy(() => import("./Components/Elements/Contract/CopyClosedContract"));
+const ReadContract = lazy(() => import("./Components/Elements/Contract/ReadContract"));
+const UpdateUser = lazy(() => import("./Components/Elements/User/UpdateUser"));
+const ContractToUser = lazy(() => import("./Components/Elements/LinkPages/ContractToUser"));
+const EnterprisesToUser = lazy(() => import("./Components/Elements/LinkPages/EnterprisesToUser"));
+const MeetingTabs = lazy(() => import("./Components/Elements/Meeting/MeetingTabs"));
+const ActionPlay = lazy(() => import("./Components/Elements/Actions/ActionPlay"));
+const Invite = lazy(() => import("./Components/Elements/Meeting/CurrentMeeting/Invite"));
+const UpdatePassword = lazy(() => import("./Components/Elements/User/UpdatePassword"));
+const Report = lazy(() => import("./Components/Elements/Meeting/Report"));
+const CompletedInvite = lazy(() => import("./Components/Elements/Meeting/CompletedMeeting/CompletedInvite"));
+const DestinationToMeetings = lazy(() => import("./Components/Elements/Invities/DestinationToMeeting/DestinationToMeetings"));
+const About = lazy(() => import("./Pages/About"));
+const Privacypolicy = lazy(() => import("./Pages/Privacypolicy"));
+const Termsandconditions = lazy(() => import("./Pages/Termsandconditions"));
+const SearchEngine = lazy(() => import("./Pages/SearchEngine"));
+const SearchResultsPage = lazy(() => import("./Pages/SearchResultsPage"));
+const ProfileInvitePage = lazy(() => import("./Components/Elements/Profile/ProfileInvitePage"));
+const NewsletterTerms = lazy(() => import("./Pages/NewsletterTerms.jsx"));
+const ActionTabs = lazy(() => import("./Components/Elements/Actions/ActionTabs.jsx"));
+const SolutionTabs = lazy(() => import("./Components/Elements/Solution/SolutionTabs.jsx"));
+const Solution = lazy(() => import("./Components/Elements/Solution/GetSolution/Solution.jsx"));
+const CompletedDoneStep = lazy(() => import("./Components/Elements/Meeting/CompletedMeeting/CompletedDoneStep.jsx"));
+const AddQuestionField = lazy(() => import("./Components/Elements/QuestionsField/AddQuestionField.jsx"));
+const CreateUsers = lazy(() => import("./Components/Elements/User/CreateUsers.jsx"));
+const ClientDetail = lazy(() => import("./Components/Elements/Team/Client/ClientDetail.jsx"));
+const MemberDetail = lazy(() => import("./Components/Elements/Team/Member/MemberDetail.jsx"));
+const MeetingPreview = lazy(() => import("./Components/Elements/Meeting/MeetingPreview.jsx"));
+const ContactDetail = lazy(() => import("./Components/Elements/Team/Contact/ContactDetail.jsx"));
+const CastingMemberDetail = lazy(() => import("./Components/Elements/Team/Member/CastingMemberDetail.jsx"));
+const CastingContactDetail = lazy(() => import("./Components/Elements/Team/Contact/CastingContactDetail.jsx"));
+const Register = lazy(() => import("./Components/Elements/Register.jsx"));
+const ReferralLanding = lazy(() => import("./Components/Elements/ReferralLanding.jsx"));
+const DiscussionTabs = lazy(() => import("./Components/Elements/Discussion/DiscussionTabs.jsx"));
+const Settings = lazy(() => import("./Components/Elements/Profile/Settings.jsx"));
+const Integrations = lazy(() => import("./Components/Elements/Profile/Integrations.jsx"));
+const Assistant = lazy(() => import("./Components/Elements/Profile/Assistant.jsx"));
+const PaymentSuccess = lazy(() => import("./Pages/PaymentSuccess.jsx"));
+const PaymentCancel = lazy(() => import("./Pages/PaymentCancel.jsx"));
+const AccessDenied = lazy(() => import("./Pages/AccessDenied"));
+const HomeMessages = lazy(() => import("./Pages/Discussion/HomeMessages.jsx"));
+const StripeSuccess = lazy(() => import("./Components/Elements/StripeSuccess"));
+const StripePaymentCompleted = lazy(() => import("./Components/Elements/StripePaymentCompleted"));
+const StripePaymentCancel = lazy(() => import("./Components/Elements/StripePaymentCancel"));
+const LinkedInCallback = lazy(() => import("./Pages/LinkedInCallback.jsx"));
 
 i18next.init({
   interpolation: { escapevalue: false },
@@ -398,6 +393,8 @@ function App() {
 
   useEffect(() => {
     const hasToken = !!CookieService.get("token");
+    const isMobileHost = window.location.hostname === "mobile.tektime.io";
+    const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
     if (hasToken && (location.pathname === "/" || location.pathname === "/login")) {
       navigate("/meeting");
@@ -494,17 +491,23 @@ function App() {
       // }}
       />
 
-      <Routes>
+      <Suspense fallback={
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
+          <div className="spinner-border text-primary" role="status" style={{ width: "3rem", height: "3rem" }}>
+            <span className="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      }>
+        <Routes>
         {/* <Route path="/" element={<Login onLogin={signin} />} /> */}
         <Route path="/" element={<Login onLogin={signin} />} />
-        <Route path="/login" element={<Login onLogin={signin} />} />
         <Route
           path="/heroes/:nick_name/emissary/:referral_id"
           element={<ReferralLanding />}
         />
        
 
-        <Route path="/signup" element={<Signup />} />
+        {/* <Route path="/signup" element={<Signup />} /> */}
         <Route path="/payment-success" element={<PaymentSuccess />} />
         <Route path="/payment-cancel" element={<PaymentCancel />} />
         <Route path="/access-denied" element={<AccessDenied />} />
@@ -673,7 +676,7 @@ function App() {
               </PrivateRoute>
             }
           />
-          <Route
+          {/* <Route
             path="/contact/:id"
             exact
             element={
@@ -681,7 +684,7 @@ function App() {
                 <ContactDetail onLogout={signout} />
               </PrivateRoute>
             }
-          />
+          /> */}
           <Route
             path="/casting/contact/:destination_id/:id"
             exact
@@ -990,7 +993,7 @@ function App() {
           <Route path="/search-results" element={<SearchResultsPage />} />
           {/* <Route path="/old-home" element={<Home />} /> */}
           <Route path="/register/:referral_id?" element={<Register />} />
-          <Route
+          {/* <Route
             path="/gate/moment/:referral_id?"
             element={<RegisterMoment />}
           />
@@ -998,9 +1001,9 @@ function App() {
             path="/gate/mission/:referral_id?"
             element={<RegisterMission />}
           />
-          <Route path="/gate/btp/:referral_id?" element={<RegisterBtp />} />
+          <Route path="/gate/btp/:referral_id?" element={<RegisterBtp />} /> */}
           <Route path="/about" element={<About />} />
-          <Route path="/contact" element={<Contactus />} />
+          {/* <Route path="/contact" element={<Contactus />} /> */}
           <Route path="/privacy" element={<Privacypolicy />} />
           <Route path="/privacy-policy" element={<Privacypolicy />} />
           <Route
@@ -1011,10 +1014,10 @@ function App() {
             path="/terms-and-conditions"
             element={<Termsandconditions />}
           />
-          <Route path="/contactus" element={<Contactus />} />
 
         </Routes>
       </BasePage>
+      </Suspense>
     </div>
   );
 }

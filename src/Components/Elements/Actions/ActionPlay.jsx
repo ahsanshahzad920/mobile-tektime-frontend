@@ -1,5 +1,5 @@
 import CookieService from '../../Utils/CookieService';
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import {
   Button,
   Form,
@@ -1482,7 +1482,7 @@ const ActionPlay = () => {
       delay: currentStep?.negative_time === "99" ? stepDelay?.delay : null,
       real_time: localEndTime,
       real_date: formattedEndDate,
-      re_assign_step: true,
+      // re_assign_step: true,
       pause_current_time: formattedTime,
       pause_current_date: formattedDate,
     };
@@ -1907,41 +1907,41 @@ const ActionPlay = () => {
     }
   };
 
-  useEffect(() => {
-    const fetchStepMedia = async () => {
-      if (!step_Id) {
-        setMediaLoading(false);
-        return;
-      }
+  const fetchStepMedia = useCallback(async () => {
+    if (!step_Id) {
+      setMediaLoading(false);
+      return;
+    }
 
-      setMediaLoading(true); // ← Start loading
+    setMediaLoading(true); // ← Start loading
 
-      try {
-        const response = await axios.get(
-          `${API_BASE_URL}/step-media/${step_Id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${
-                CookieService.get("token") || CookieService.get("token")
-              }`,
-            },
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/step-media/${step_Id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${
+              CookieService.get("token") || CookieService.get("token")
+            }`,
           },
-        );
+        },
+      );
 
-        if (response.status === 200) {
-          setStepMedias(response?.data?.data?.media || []);
-        }
-      } catch (error) {
-        console.error("Error fetching step media:", error);
-        toast.error(t("Failed to load media"));
-        setStepMedias([]);
-      } finally {
-        setMediaLoading(false); // ← Always stop loading
+      if (response.status === 200) {
+        setStepMedias(response?.data?.data?.media || []);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching step media:", error);
+      toast.error(t("Failed to load media"));
+      setStepMedias([]);
+    } finally {
+      setMediaLoading(false); // ← Always stop loading
+    }
+  }, [step_Id, t]);
 
+  useEffect(() => {
     fetchStepMedia();
-  }, [step_Id]); // ← Better dependency: step.id only
+  }, [fetchStepMedia]);
 
   // DELETE MEDIA FUNCTION
   const handleDeleteMedia = async (mediaId) => {
@@ -2623,7 +2623,9 @@ const ActionPlay = () => {
                         ) : (
                           <button
                             className="btn btn-secondary"
-                            onClick={handleShowResume}
+                            // onClick={handleShowResume}
+                              onClick={handleShow}
+
                           >
                             {t("Reprendre")}
                           </button>
@@ -2905,53 +2907,6 @@ const ActionPlay = () => {
                       </div>
                     )}
 
-                    {/* 2. Show file if it exists */}
-                    {meetingData?.steps[currentStepIndex]?.file && (
-                      <div className="mb-4">
-                        {meetingData?.steps[currentStepIndex]?.editor_type === "Excel" ? (
-                          <DocViewer
-                            documents={[
-                              {
-                                uri:
-                                  `${Assets_URL}/${meetingData?.steps[currentStepIndex]?.file}` ||
-                                  "",
-                              },
-                            ]}
-                            pluginRenderers={DocViewerRenderers}
-                            config={{
-                              header: {
-                                disableFileName: true,
-                                retainURLParams: true,
-                              },
-                            }}
-                          />
-                        ) : (
-                          <iframe
-                            src={
-                              Assets_URL +
-                              "/" +
-                              (meetingData?.steps[currentStepIndex]?.file +
-                                "#toolbar=0&view=fitH")
-                            }
-                            width="100%"
-                            height="500px"
-                          />
-                        )}
-                      </div>
-                    )}
-
-                    {/* 3. Show url if it exists */}
-                    {meetingData?.steps[currentStepIndex]?.url && (
-                      <div className="mb-4">
-                        <iframe
-                          src={getYoutubeEmbedUrl(
-                            meetingData?.steps[currentStepIndex]?.url,
-                          )}
-                          width="100%"
-                          height="500px"
-                        />
-                      </div>
-                    )}
                   </div>
                 ) : meetingData?.steps[currentStepIndex]?.editor_type ===
                   "Editeur" ||
@@ -3147,7 +3102,7 @@ const ActionPlay = () => {
                       height="500px"
                     />
                   </div>
-                ) : meetingData?.steps[currentStepIndex]?.editor_type === "Publication" || meetingData?.type === "AI Social Media Newsletter" ? 
+                ) : meetingData?.steps[currentStepIndex]?.editor_type === "Publication" ? 
                  <div>
                     <iframe
                       src={
@@ -3437,18 +3392,20 @@ const ActionPlay = () => {
 
                 {/* Empty State */}
                 {!mediaLoading && stepMedias.length === 0 && (
-                  <div className="text-center py-5 border rounded bg-light">
-                    <BiCloudUpload
-                      size={56}
-                      className="mb-3 text-secondary opacity-50"
-                    />
-                    <p className="mb-1 text-muted">
-                      {t("No media uploaded yet.")}
-                    </p>
-                    <small className="text-muted">
-                      {t("Click 'Upload Media' to add photos or videos")}
-                    </small>
-                  </div>
+                  (
+                    <div className="text-center py-5 border rounded bg-light">
+                      <BiCloudUpload
+                        size={56}
+                        className="mb-3 text-secondary opacity-50"
+                      />
+                      <p className="mb-1 text-muted">
+                        {t("No media uploaded yet.")}
+                      </p>
+                      <small className="text-muted">
+                        {t("Click 'Upload Media' to add photos or videos")}
+                      </small>
+                    </div>
+                  )
                 )}
               </div>
             </div>
@@ -3795,6 +3752,7 @@ const ActionPlay = () => {
             setIsDrop={setIsDrop}
             stepIndex={currentStepIndex}
             closeStep={closeStep}
+            fromReassign={true}
             // refreshMeeting={getRefreshMeeting}
           />
         </div>

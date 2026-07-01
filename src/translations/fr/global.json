@@ -480,7 +480,8 @@
           "Agile ritual": "Rituel agile",
           "absence": "Absence",
           "assistantConversation": "Conversation de l'assistant",
-          "conversation": "Conversation"
+          "conversation": "Conversation",
+          "aiInstruction": "Instruction IA"
         },
         "priorities": {
           "priority": "Déterminer l'importance de ce moment",
@@ -1426,6 +1427,7 @@
     "are you sure you want to close this meeting?": "Êtes-vous sûr de vouloir fermer ce moment?"
   },
   "badge": {
+    "re_assignment": "Ré-assignation",
     "to_accept":"Accepter",
     "active": "Active",
     "draft": "Brouillon",
@@ -1449,10 +1451,52 @@
     "repetitionEnabled": "Les réunions récurrentes seront créées automatiquement après 5 minutes.",
     "draftSaveError": "Erreur lors de la mise à jour de la moment",
     "emptySteps": "Pour créer une moment, au moins une étape est requise",
-    "stepTitle": "Le titre de l’étape est obligatoire",
+    "stepTitle": "Le titre de l'étape est obligatoire",
+    "guideRequired": "Veuillez sélectionner un guide avant de soumettre.",
     "stepTime": "Le temps d'étape est requis",
     "aiRoleRequired": "Le champ Rôle est obligatoire",
     "aiActionRequired": "Le champ Action est obligatoire",
+    "aiMissionRequired": "Le champ Mission est obligatoire",
+    "aiMomentRequired": "Le champ Moment est obligatoire",
+    "aiDiscussionRequired": "Le champ Discussion est obligatoire",
+    "deleteMediaConfirm": "Supprimer définitivement ce média ?",
+    "mediaDeleteSuccess": "Média supprimé avec succès !",
+    "mediaDeleteFailed": "Échec de la suppression du média",
+    "aiSourceLabel": "Source",
+    "aiSourceHelpText": "Choisissez la source d'entrée pour cette instruction",
+    "aiSourceText": "Texte",
+    "aiSourceDocument": "Document",
+    "aiSourceYouTube": "YouTube",
+    "aiSourceNotes": "Notes",
+    "aiSourceMission": "Mission",
+    "aiSourceDiscussion": "Discussion",
+    "aiSourceTextPlaceholder": "Saisissez votre texte source ici...",
+    "aiSourceSelectMoment": "Sélectionner un moment",
+    "aiSourceSelectMission": "Sélectionner une mission",
+    "aiSourceSelectDiscussion": "Sélectionner une discussion",
+    "aiSourceSearchMoment": "Rechercher et sélectionner un moment...",
+    "aiSourceSearchMission": "Rechercher et sélectionner une mission...",
+    "aiSourceSearchDiscussion": "Rechercher et sélectionner une discussion...",
+    "aiRoleLabel": "Rôle",
+    "aiRoleHelpText": "Définissez la personnalité de l'IA pour cette instruction",
+    "aiRolePlaceholder": "ex. Stratège marketing expert, Développeur senior, Designer UX...",
+    "aiActionLabel": "Action",
+    "aiActionHelpText": "Que doit faire l'IA ?",
+    "aiActionPlaceholder": "Décrivez l'action à effectuer...",
+    "aiObjectiveLabel": "Objectif / Résultat",
+    "aiObjectiveHelpText": "Quel résultat attendez-vous ?",
+    "aiObjectivePlaceholder": "Décrivez le résultat souhaité...",
+    "aiRulesLabel": "Règles",
+    "aiRulesHelpText": "Restrictions, limites ou contraintes à respecter",
+    "aiRulesPlaceholder": "ex. Restez concis. Pas de jargon technique. Citez toujours vos sources. Max 500 mots...",
+    "aiOutputLabel": "Sortie",
+    "aiOutputHelpText": "Sélectionnez le format de sortie de cette instruction",
+    "aiOutputPowerPoint": "PowerPoint",
+    "aiOutputPowerPointDesc": "Présentation de diapositives",
+    "aiOutputPDF": "PDF",
+    "aiOutputPDFDesc": "Document formaté",
+    "aiOutputText": "Texte",
+    "aiOutputTextDesc": "Contenu brut",
     "logoInvalidType": "Seuls les fichiers PNG, JPG et JPEG sont autorisés.",
     "aboveFields": "Remplissez d'abord les champs ci-dessus",
     "stepNames": "Les noms d'étape doivent être uniques",
@@ -1772,6 +1816,7 @@
     "Newsletter": "Campagne d’emails",
     "Social Media Newsletter": "Newsletter Réseaux Sociaux",
     "AI Social Media Newsletter": "Newsletter Réseaux Sociaux IA",
+    "AI Instruction":"Instruction pour l'IA",
     "Séminaire": "Séminaire",
     "Réseautage": "Réseautage",
     "Embauche": "Embauche",
@@ -2607,14 +2652,14 @@
                 "author": "Davy CHOUMILLE",
                 "role": "Président chez TRANSECO 2",
                 "title": "Un pipeline de vente enfin fonctionnel",
-                "avatar": "https://cdn.prod.website-files.com/68da9e32f495b6801915d287/68dd206fe26164171a153498_1564908244965.jpg"
+                "avatar": "/Assets/testimonial_davy.jpg"
             },
             {
                 "text": "TekTIME a non seulement décidé de donner un pourcentage de ses revenus, mais a rationalisé son approche pour choisir les associations les plus efficaces. Cet engagement fondé sur les preuves témoigne de leur sérieux et de leur désir sincère d'avoir un impact positif durable.",
                 "author": "Romain Barbe",
                 "role": "Fondateur de Mieux Donner",
                 "title": "Une croissance sans effort",
-                "avatar": "https://cdn.prod.website-files.com/68da9e32f495b6801915d287/68dd21198b370c3d67647de0_testimonial3.png"
+                "avatar": "/Assets/testimonial_generic.png"
             }
         ]
     },
@@ -4142,5 +4187,6 @@
       "message_line2": "Une fois que tout sera prêt, vous rejoindrez automatiquement la réunion."
     }
 }
+
 
 

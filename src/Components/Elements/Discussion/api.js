@@ -66,9 +66,9 @@ const fetchData = async (endpoint, method = "GET", payload) => {
 };
 
 // Destination APIs
-export const getAllDestinations = async () => {
+export const getAllDestinations = async (page = 1) => {
   try {
-    return await fetchData("/get-all-destinations");
+    return await fetchData(`/get-all-destinations?page=${page}`);
   } catch (error) {
     toast.error(error?.message || "Error fetching destinations");
     throw error;
@@ -110,8 +110,8 @@ export const getAllIonosEmailDestinations = async (query = "sync=true") => {
   }
 };
 //For Destination Meetings
-export const getDestinationMeetings = (destinationId) =>
-  fetchData(`/get-destination-all-meetings/${destinationId}`);
+export const getDestinationMeetings = (destinationId, page = 1) =>
+  fetchData(`/get-destination-all-meetings/${destinationId}?page=${page}`);
 
 //For Outlook Destination Email Meetings
 export const getDestinationEmailMeetings = (destinationId, page = 1, folder = "inbox", search = "") =>
@@ -141,8 +141,8 @@ export const getMeetingMoments = (meetingId) =>
   fetchData(`/get-meeting-moments/${meetingId}`);
 export const getMeetingParticipants = (meetingId) =>
   fetchData(`/get-meeting/${meetingId}`);
-export const getMeetingMessages = (meetingId, messageId, selectedMomentId, folder = "inbox", search = "") => {
-  let query = `?meeting_id=${selectedMomentId}&folder=${folder}&q=${search}`;
+export const getMeetingMessages = (meetingId, messageId, selectedMomentId, folder = "inbox", search = "", page = 1) => {
+  let query = `?meeting_id=${selectedMomentId || ""}&folder=${folder}&q=${search}&page=${page}`;
   if (messageId) {
     query += `&message_id=${messageId}`;
   }

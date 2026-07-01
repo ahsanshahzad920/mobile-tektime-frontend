@@ -560,16 +560,16 @@ const CompletedMeetings = ({
             </div>
 
             <div className="smc-body">
-              <div className="smc-title">
-                {item.title}
+              <div className="smc-title">{item.title}</div>
+              <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px', marginTop: '4px', marginBottom: '6px' }}>
                 {statusMessage && (
-                  <span className={`smc-badge ${statusMessage === t("meeting.completedMeetings.late") ? 'late' : statusMessage === t("meeting.completedMeetings.onTime") ? 'future' : 'progress'}`}>
+                  <span className={`smc-badge ${statusMessage === t("meeting.completedMeetings.late") ? 'late' : statusMessage === t("meeting.completedMeetings.onTime") ? 'future' : 'progress'}`} style={{ marginLeft: 0 }}>
                     {statusMessage}
                   </span>
                 )}
-                {item?.status === 'closed' && <span className="smc-badge finished">{t("badge.finished")}</span>}
-                {item?.status === 'abort' && <span className="smc-badge cancelled">{t("badge.cancel")}</span>}
-                {item?.status === 'in_progress' && <span className="smc-badge progress">{t("badge.inprogress")}</span>}
+                {item?.status === 'closed' && <span className="smc-badge finished" style={{ marginLeft: 0 }}>{t("badge.finished")}</span>}
+                {item?.status === 'abort' && <span className="smc-badge cancelled" style={{ marginLeft: 0 }}>{t("badge.cancel")}</span>}
+                {item?.status === 'in_progress' && <span className="smc-badge progress" style={{ marginLeft: 0 }}>{t("badge.inprogress")}</span>}
               </div>
               <div className="smc-desc">{missionTitle || solutionTitle}</div>
               <div className="smc-meta">{formattedStartDate}{startTimeComp ? ` • ${startTimeComp}` : ''}</div>
@@ -622,20 +622,22 @@ const CompletedMeetings = ({
               <div className="col-md-12">
                 <h6 className="destination"> {item?.objective}</h6>
 
-                <span className="heading">{item.title}</span>
-                {item.status === "closed" && (
-                  <span className="mx-2 badge inprogrss">
-                    {t("badge.finished")}
-                  </span>
-                )}
-                {item?.status === "in_progress" && (
-                  <span className="mx-2 badge status-badge-inprogress1">
-                    {t("badge.inprogress")}
-                  </span>
-                )}
-                {item?.status === "abort" && (
-                  <span className="mx-2 badge late">{t("badge.cancel")}</span>
-                )}
+                <div className="heading">{item.title}</div>
+                <div className="status-badge-container mt-2" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {item.status === "closed" && (
+                    <span className="mx-2 badge inprogrss">
+                      {t("badge.finished")}
+                    </span>
+                  )}
+                  {item?.status === "in_progress" && (
+                    <span className="mx-2 badge status-badge-inprogress1">
+                      {t("badge.inprogress")}
+                    </span>
+                  )}
+                  {item?.status === "abort" && (
+                    <span className="mx-2 badge late">{t("badge.cancel")}</span>
+                  )}
+                </div>
                 {/* <h6 className="destination"> {item?.objective}</h6> */}
               </div>
             </div>
@@ -1591,6 +1593,7 @@ const CompletedMeetings = ({
           <span className="ps-2">{t("meeting.activeMeetings.title")}</span>
           <span className="col-mission text-start">{t("meeting.activeMeetings.destinations")}</span>
           <span className="col-date text-start">{t("meeting.activeMeetings.niche")}</span>
+          <span className="col-updated text-start">Mis à jour</span>
           <span className="col-audio text-start">Audio</span>
           <span className="col-actions text-start ps-4">{t("meeting.activeMeetings.actions")}</span>
         </div>
@@ -1681,16 +1684,16 @@ const CompletedMeetings = ({
 
                   {/* Body */}
                   <div className="smc-body">
-                    <div className="smc-title">
-                      {item.title}
+                    <div className="smc-title">{item.title}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px', marginTop: '4px', marginBottom: '6px' }}>
                       {statusMessage && (
-                        <span className={`smc-badge ${statusMessage === t("meeting.completedMeetings.late") ? 'late' : statusMessage === t("meeting.completedMeetings.onTime") ? 'future' : 'progress'}`}>
+                        <span className={`smc-badge ${statusMessage === t("meeting.completedMeetings.late") ? 'late' : statusMessage === t("meeting.completedMeetings.onTime") ? 'future' : 'progress'}`} style={{ marginLeft: 0 }}>
                           {statusMessage}
                         </span>
                       )}
-                      {item?.status === 'closed' && <span className="smc-badge finished">{t("badge.finished")}</span>}
-                      {item?.status === 'abort' && <span className="smc-badge cancelled">{t("badge.cancel")}</span>}
-                      {item?.status === 'in_progress' && <span className="smc-badge progress">{t("badge.inprogress")}</span>}
+                      {item?.status === 'closed' && <span className="smc-badge finished" style={{ marginLeft: 0 }}>{t("badge.finished")}</span>}
+                      {item?.status === 'abort' && <span className="smc-badge cancelled" style={{ marginLeft: 0 }}>{t("badge.cancel")}</span>}
+                      {item?.status === 'in_progress' && <span className="smc-badge progress" style={{ marginLeft: 0 }}>{t("badge.inprogress")}</span>}
                     </div>
                     <div className="smc-desc">{missionTitle || solutionTitle}</div>
                     <div className="smc-meta">{startFormatted}{startTime ? ` • ${startTime}` : ''}</div>

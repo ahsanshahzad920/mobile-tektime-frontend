@@ -53,7 +53,12 @@ function MeetingDiscussion({ meetingId, messages, selectedMoment, onMessagesUpda
       const fetchMessages = async () => {
         try {
           const messagesData = await getMeetingMessages(meetingId, selectedMoment.id);
-          const sortedMessages = [...(messagesData?.data || [])].sort(
+          const rawData = Array.isArray(messagesData?.data?.data)
+            ? messagesData.data.data
+            : Array.isArray(messagesData?.data)
+              ? messagesData.data
+              : [];
+          const sortedMessages = [...rawData].sort(
             (a, b) => new Date(a.created_at) - new Date(b.created_at)
           );
           onMessagesUpdate(sortedMessages);

@@ -15,6 +15,7 @@ const Moments = ({
   selectedMoment,
   onLoadMore,
   hasMore,
+  isLoadingMore = false,
 }) => {
   const [t] = useTranslation("global");
 
@@ -89,8 +90,8 @@ const Moments = ({
         loadMore={
           hasMore && (
             <div className="text-center p-3">
-              <Button type="link" onClick={onLoadMore}>
-                Charger plus
+              <Button type="link" onClick={onLoadMore} loading={isLoadingMore}>
+                {isLoadingMore ? "Chargement..." : "Charger plus"}
               </Button>
             </div>
           )

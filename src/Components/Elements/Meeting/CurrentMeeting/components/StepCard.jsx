@@ -45,7 +45,9 @@ import { HiOutlineDotsVertical } from "react-icons/hi";
 import StepChart from "../../CreateNewMeeting/StepChart";
 import StepChartUpcoming from "../../CompletedMeeting/StepChartUpcoming";
 import { useMeetings } from '../../../../../context/MeetingsContext';
+import { optimizeEditorContent } from "../../Chart";
 const LazyStepChart = lazy(() => import("../../CreateNewMeeting/StepChart"));
+const LazyStepChartAction = lazy(() => import("../../../Actions/StepChartAction"));
 
 const StepCard = ({
   data,
@@ -144,6 +146,83 @@ const StepCard = ({
         return timeUnits[part] || part; // Fallback to original if no localization
       })
       .join(" ");
+  };
+
+
+  const closeStep = async (val) => {
+    if (!activeStep) return;
+    const currentStepIndex = data?.findIndex(s => s.id === activeStep?.id);
+    if (currentStepIndex === -1) return;
+    const currentStep = data[currentStepIndex];
+    const nextStep = data[currentStepIndex + 1];
+    const stepId = activeStep?.id;
+    const myNextStepId = nextStep?.id;
+
+    const optimizedEditorContent = await optimizeEditorContent(
+      activeStep?.editor_content,
+    );
+    const endTime = new Date();
+    const currentTime = new Date();
+    const formattedCurrentDate = currentTime.toISOString().split("T")[0];
+
+    // Get the user's time zone
+    const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    // Convert endTime to a date string in the format "4/8/2024"
+    const formattedEndDate = endTime.toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "numeric",
+      year: "numeric",
+      timeZone: userTimeZone,
+    });
+
+    // Convert currentDateTime to a string in the user's local time zone
+    const localEndTime = endTime.toLocaleString("en-GB", {
+      timeZone: userTimeZone,
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+
+    const postData = {
+      ...activeStep,
+      editor_content: optimizedEditorContent || "",
+      savedTime: activeStep?.savedTime || 0,
+      negative_time: 0,
+      step_status: "completed",
+      status: "completed",
+      url: activeStep?.url || null,
+      meeting_id: meeting?.id,
+      end_time: localEndTime,
+      end_date: formattedEndDate,
+      next_step_id: myNextStepId,
+      delay: activeStep?.delay || null,
+      real_time: localEndTime,
+      real_date: formattedEndDate,
+      pause_current_time: localEndTime,
+      pause_current_date: formattedEndDate,
+    };
+    delete postData.time_taken;
+
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/play-meetings/steps/${stepId}/step-note-and-action?current_time=${localEndTime}&current_date=${formattedEndDate}&pause_current_time=${localEndTime}&pause_current_date=${formattedEndDate}`,
+        postData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${CookieService.get("token")}`,
+          },
+        },
+      );
+      if (response.status) {
+        handleCloseModal();
+        await refreshMeeting();
+      }
+    } catch (error) {
+      console.error("Error closing step:", error);
+    }
   };
 
   const convertTo24HourFormat = (time, date, type, timezone) => {
@@ -843,8 +922,11 @@ const StepCard = ({
 
 
       const [selectedStepId, setSelectedStepId] = useState(null);
-      const handleShow = (step) => {
+      const [fromReassign, setFromReassign] = useState(false);
+      const handleShow = (step, reassign = false) => {
         setSelectedStepId(step?.id);
+        setFromReassign(reassign);
+        setActiveStep(step);
         setIsModalOpen(true);
       };
     
@@ -1557,7 +1639,12 @@ const StepCard = ({
                                 {/* To Accept */}
                                 {t("badge.to_accept")}
                               </span>
-                            ) : item?.step_status === "no_status" ?  null : item.step_status === "in_progress" ? (
+                            ) : item?.step_status === "re_assignment" ? (
+                               <span className="status-badge-green">
+                                {/* Re Assignment */}
+                                {t("badge.re_assignment")}
+                              </span>
+                            ): item?.step_status === "no_status" ?  null : item.step_status === "in_progress" ? (
                               <span
                                 className={
                                   convertTimeTakenToSeconds(item?.time_taken) >
@@ -1819,7 +1906,7 @@ const StepCard = ({
                                   {item?.step_status !== null &&
                                     item?.step_status !== "todo" && (
                                       <span>
-                                        &nbsp; {item?.step_status === "to_accept" ? "" : "/"}{" "}
+                                        &nbsp; {item?.step_status === "to_accept" || item?.step_status === "re_assignment" ? "" : "/"}{" "}
                                         {item.count2 +
                                           " " +
                                           `${getTimeUnitDisplay(
@@ -1986,13 +2073,13 @@ const StepCard = ({
                                 {t("Reject")}
                               </div>
                             )}
-                            {item?.step_status === "in_progress" && (
+                            {(item?.step_status === "in_progress" || item?.step_status === "to_finish") && (
                               <div
                                 className="dropdown-item"
                                 style={menuItemStyle}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleShow(item);
+                                  handleShow(item, true);
                                   setMenuOpen((prev) => ({
                                     ...prev,
                                     [item.id]: false,
@@ -2161,23 +2248,23 @@ const StepCard = ({
           })}
         </div>
 
-        {isModalOpen && (
-          <Suspense fallback={<div>Loading...</div>}>
+        {isModalOpen && !fromReassign && (
+          <div className="tabs-container container-fluid">
             <div className="new-meeting-modal">
-              <LazyStepChart
+              <StepChartUpcoming
                 meetingId={meeting?.id}
-                id={stepId}
+                id={selectedStepId || stepId}
                 show={isModalOpen}
                 meeting={meeting}
-                setId={setStepId}
+                setId={setSelectedStepId || setStepId}
                 closeModal={handleCloseModal}
                 key={`step-chart-${stepId}`}
                 isDrop={isDrop}
-                stepIndex={stepIndex}
-                refreshMeeting={refreshMeeting}
+                setIsDrop={setIsDrop}
+                closeStep={refreshMeeting}
               />
             </div>
-          </Suspense>
+          </div>
         )}
 
         {visoModal && (
@@ -2269,24 +2356,31 @@ const StepCard = ({
           )}
 
 
-            {isModalOpen && (
-                  <div className="tabs-container container-fluid">
-                    <div className="new-meeting-modal">
-                      <StepChartUpcoming
-                meetingId={meeting?.id}
-                id={selectedStepId || stepId}
-                show={isModalOpen}
-                meeting={meeting}
-                setId={setSelectedStepId || setStepId}
-                closeModal={handleCloseModal}
-                key={`step-chart-${stepId}`}
-                isDrop={isDrop}
-                setIsDrop={setIsDrop}
-                closeStep={refreshMeeting}
-              />
-                    </div>
-                  </div>
-               )} 
+            {isModalOpen && fromReassign && (
+              <Suspense fallback={<div>Loading...</div>}>
+                <div className="new-meeting-modal tabs-container">
+                  <LazyStepChartAction
+                    meetingId={meeting?.id}
+                    id={selectedStepId || stepId}
+                    show={isModalOpen}
+                    meeting={meeting}
+                    closeModal={handleCloseModal}
+                    key={`step-chart-${stepId}`}
+                    isDrop={isDrop}
+                    setIsDrop={setIsDrop}
+                    closeStep={async () => {
+                      if (fromReassign) {
+                        await closeStep();
+                      } else {
+                        handleCloseModal();
+                        await refreshMeeting();
+                      }
+                    }}
+                    fromReassign={fromReassign}
+                  />
+                </div>
+              </Suspense>
+            )}
 
 
                  {showCopy && (

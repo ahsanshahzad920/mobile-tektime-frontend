@@ -1,4 +1,4 @@
-import CookieService from '../../Utils/CookieService';
+import CookieService from "../../Utils/CookieService";
 import React, { useState } from "react";
 import moment from "moment";
 import { toast } from "react-toastify";
@@ -142,6 +142,7 @@ const StepChartAction = ({
 
   closeStep,
   fromTodo,
+  fromReassign,
 }) => {
   const { checkId, setCall } = useFormContext();
   const userID = parseInt(CookieService.get("user_id"));
@@ -302,24 +303,41 @@ const StepChartAction = ({
     const getCookie = (name) => {
       const value = `; ${document.cookie}`;
       const parts = value.split(`; ${name}=`);
-      if (parts.length === 2) return parts.pop().split(';').shift();
+      if (parts.length === 2) return parts.pop().split(";").shift();
       return null;
     };
     const token = getCookie("token");
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-    const hasTranslation = typeof t === 'function';
-    if (!window.confirm(hasTranslation ? t("Delete this media permanently?") : "Delete this media permanently?")) return;
+    const hasTranslation = typeof t === "function";
+    if (
+      !window.confirm(
+        hasTranslation
+          ? t("Delete this media permanently?")
+          : "Delete this media permanently?",
+      )
+    )
+      return;
 
     try {
-      await axios.delete(`${API_BASE_URL}/delete-media/${mediaId}`, { headers });
-      toast.success(hasTranslation ? t("Média supprimé avec succès !") : "Média supprimé avec succès !");
+      await axios.delete(`${API_BASE_URL}/delete-media/${mediaId}`, {
+        headers,
+      });
+      toast.success(
+        hasTranslation
+          ? t("Média supprimé avec succès !")
+          : "Média supprimé avec succès !",
+      );
       setStepMedia((prev) => prev.filter((item) => item.id !== mediaId));
     } catch (error) {
       console.error("Error deleting media:", error);
-      toast.error(hasTranslation ? t("Failed to delete media") : "Échec de la suppression.");
+      toast.error(
+        hasTranslation
+          ? t("Failed to delete media")
+          : "Échec de la suppression.",
+      );
     }
-  }
+  };
 
   const [modalType, setModalType] = useState("");
   const [assignUser, setAssignUser] = useState(null);
@@ -340,13 +358,17 @@ const StepChartAction = ({
   useEffect(() => {
     if (!id) {
       let initialUnit = "minutes";
-      if (meeting?.type === "Action1" ||
-          meeting?.type === "Newsletter" ||
-          meeting?.type === "Strategy" ||
-          meeting?.type === "Sprint") {
+      if (
+        meeting?.type === "Action1" ||
+        meeting?.type === "Newsletter" ||
+        meeting?.type === "Strategy" ||
+        meeting?.type === "Sprint"
+      ) {
         initialUnit = "days";
-      } else if (meeting?.type === "Task" ||
-                 meeting?.type === "Prestation Client") {
+      } else if (
+        meeting?.type === "Task" ||
+        meeting?.type === "Prestation Client"
+      ) {
         initialUnit = "hours";
       } else if (meeting?.type === "Quiz") {
         initialUnit = "seconds";
@@ -518,8 +540,7 @@ const StepChartAction = ({
       setModalType(
         meeting?.type === "AI Social Media Newsletter"
           ? "AI Instruction"
-          : meeting?.type === "Social Media Newsletter" ||
-            meeting?.location === "LinkedIn"
+          : meeting?.type === "Social Media Newsletter" 
             ? "Publication"
             : meeting?.type === "Law"
               ? "Question"
@@ -548,12 +569,18 @@ const StepChartAction = ({
   const [fileDuration, setFileDuration] = useState(null);
   const onDrop = async (acceptedFiles) => {
     if (!selectedValue?.trim() || selectedCount === 0) {
-      const hasTranslation = typeof t === 'function';
-      toast.error(hasTranslation ? t("Please enter the step title and time first") : "Please enter the step title and time first");
+      const hasTranslation = typeof t === "function";
+      toast.error(
+        hasTranslation
+          ? t("Please enter the step title and time first")
+          : "Please enter the step title and time first",
+      );
       return;
     }
     const files =
-      modalType === "Publication" || modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter"
+      modalType === "Publication" ||
+      modalType === "AI Instruction" ||
+      meeting?.type === "AI Social Media Newsletter"
         ? acceptedFiles
         : [acceptedFiles[0]];
     const file = files[0];
@@ -623,7 +650,10 @@ const StepChartAction = ({
         "video/mpeg",
         "video/quicktime",
       ];
-    } else if (modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter") {
+    } else if (
+      modalType === "AI Instruction" ||
+      meeting?.type === "AI Social Media Newsletter"
+    ) {
       allowedFileTypes = [
         "image/jpeg",
         "image/png",
@@ -713,15 +743,25 @@ const StepChartAction = ({
                     : modalType,
             file: file,
             editor_content:
-              modalType === "Publication" || modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter"
+              modalType === "Publication" ||
+              modalType === "AI Instruction" ||
+              meeting?.type === "AI Social Media Newsletter"
                 ? modifiedFileText || null
                 : null,
             meeting_id: meetingId,
             assigned_to: assignedToUser,
             // assigned_to_team: meeting?.type === "Newsletter" ? team : null,
             assigned_to_team: meeting?.type === "Newsletter" ? null : null,
-            status:  meeting?.type === "AI Social Media Newsletter" ||  meeting?.type === "Social Media Newsletter" ? "draft" : "active",
-            step_status:  meeting?.type === "AI Social Media Newsletter" ||  meeting?.type === "Social Media Newsletter" ? "draft" : null,
+            status:
+              meeting?.type === "AI Social Media Newsletter" ||
+              meeting?.type === "Social Media Newsletter"
+                ? "draft"
+                : "active",
+            step_status:
+              meeting?.type === "AI Social Media Newsletter" ||
+              meeting?.type === "Social Media Newsletter"
+                ? "draft"
+                : null,
             url: null,
             created_by: userID,
             // _method: "put",
@@ -734,7 +774,11 @@ const StepChartAction = ({
           formData.append("time", filePayload.time);
           formData.append("editor_type", filePayload.editor_type);
           formData.append("time_unit", filePayload.time_unit);
-          if (modalType === "Publication" || modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter") {
+          if (
+            modalType === "Publication" ||
+            modalType === "AI Instruction" ||
+            meeting?.type === "AI Social Media Newsletter"
+          ) {
             files.forEach((f, index) => {
               formData.append(`file[]`, f);
             });
@@ -803,15 +847,25 @@ const StepChartAction = ({
                     : modalType,
             file: file,
             editor_content:
-              modalType === "Publication" || modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter"
+              modalType === "Publication" ||
+              modalType === "AI Instruction" ||
+              meeting?.type === "AI Social Media Newsletter"
                 ? modifiedFileText || null
                 : null,
             meeting_id: meetingId,
             assigned_to: assignedToUser,
             // assigned_to_team: meeting?.type === "Newsletter" ? team : null,
             assigned_to_team: meeting?.type === "Newsletter" ? null : null,
-             status:  meeting?.type === "AI Social Media Newsletter" ||  meeting?.type === "Social Media Newsletter" ? "draft" : "active",
-            step_status:  meeting?.type === "AI Social Media Newsletter" ||  meeting?.type === "Social Media Newsletter" ? "draft" : null,
+            status:
+              meeting?.type === "AI Social Media Newsletter" ||
+              meeting?.type === "Social Media Newsletter"
+                ? "draft"
+                : "active",
+            step_status:
+              meeting?.type === "AI Social Media Newsletter" ||
+              meeting?.type === "Social Media Newsletter"
+                ? "draft"
+                : null,
             url: null,
             _method: "put",
           };
@@ -823,7 +877,11 @@ const StepChartAction = ({
           formData.append("time", filePayload.time);
           formData.append("editor_type", filePayload.editor_type);
           formData.append("time_unit", filePayload.time_unit);
-          if (modalType === "Publication" || modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter") {
+          if (
+            modalType === "Publication" ||
+            modalType === "AI Instruction" ||
+            meeting?.type === "AI Social Media Newsletter"
+          ) {
             files.forEach((f, index) => {
               formData.append(`file[]`, f);
             });
@@ -1167,7 +1225,9 @@ const StepChartAction = ({
         ? { "video/*": [] } // Accept all video types
         : modalType === "Photo"
           ? { "image/*": [] } // Accept all image types
-          : modalType === "Publication" || modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter"
+          : modalType === "Publication" ||
+              modalType === "AI Instruction" ||
+              meeting?.type === "AI Social Media Newsletter"
             ? { "image/*": [], "video/*": [] } // Accept image and video
             : modalType === "File"
               ? { "application/pdf": [] } // Accept PDF files
@@ -1187,6 +1247,7 @@ const StepChartAction = ({
   });
 
   const [user, setUser] = useState(null);
+  const [originalAssignedUser, setOriginalAssignedUser] = useState(null); // tracks who was assigned before re-assign
 
   const handleUserSelect = (item) => {
     setUser(item);
@@ -1216,7 +1277,7 @@ const StepChartAction = ({
     setSelectedValue(event.target.value);
   };
 
- const handleIncrementCount = () => {
+  const handleIncrementCount = () => {
     // For Absence type, increment by 0.5
     if (meeting?.type === "Absence") {
       setSelectedCount((prev) => {
@@ -1466,7 +1527,10 @@ const StepChartAction = ({
     "Skills sponsorship": "Contenu statique pour Skills sponsorship",
   };
   const validateStep = async () => {
-    if (modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter") {
+    if (
+      modalType === "AI Instruction" ||
+      meeting?.type === "AI Social Media Newsletter"
+    ) {
       if (!aiRole?.trim()) {
         toast.error(t("messages.aiRoleRequired"));
         setIsValidate(false);
@@ -1506,6 +1570,15 @@ const StepChartAction = ({
 
       if (!selectedValue?.trim()) {
         toast.error(t("messages.stepTitle"));
+        setIsValidate(false);
+        return;
+      }
+
+      if (fromReassign && !user?.id) {
+        toast.error(
+          t("messages.guideRequired") ||
+            "Please select a guide before submitting.",
+        );
         setIsValidate(false);
         return;
       }
@@ -1577,10 +1650,12 @@ const StepChartAction = ({
             ? "todo"
             : "in_progress"
           : "in_progress"
-        : "to_accept";
+        : fromReassign
+          ? "to_accept"
+          : "to_accept";
 
       const payload = {
-        title: selectedValue,
+        title: fromReassign ? `Reprise ${selectedValue}` : selectedValue,
         count1: selectedCount,
         count2: selectedCount,
         order_no: selectedOrder || 1,
@@ -1610,7 +1685,8 @@ const StepChartAction = ({
               ? staticContents[modalType] // Include the static content
               : null,
         prompt_ai:
-          modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter"
+          modalType === "AI Instruction" ||
+          meeting?.type === "AI Social Media Newsletter"
             ? {
                 aiSourceType,
                 aiSourceText,
@@ -1650,6 +1726,8 @@ const StepChartAction = ({
         end_date: meeting?.type === "Special" ? formattedEndDate : null,
         step_time: stepTimeFormatted,
         start_date: startDateFormatted,
+        re_assign_step: fromReassign ? true : false,
+
       };
 
       // const payload = {
@@ -1702,7 +1780,10 @@ const StepChartAction = ({
           },
         };
 
-        if (modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter") {
+        if (
+          modalType === "AI Instruction" ||
+          meeting?.type === "AI Social Media Newsletter"
+        ) {
           const formData = new FormData();
           Object.keys(payload).forEach((key) => {
             if (key !== "prompt_ai") {
@@ -1723,7 +1804,11 @@ const StepChartAction = ({
           config.headers["Content-Type"] = "multipart/form-data";
         }
 
-        const response = await axios.post(`${API_BASE_URL}/steps`, submitData, config);
+        const response = await axios.post(
+          `${API_BASE_URL}/steps`,
+          submitData,
+          config,
+        );
         if (response.status) {
           const stepData = response?.data?.data;
 
@@ -1766,7 +1851,10 @@ const StepChartAction = ({
         } else {
           if (meeting?.type === "AI Social Media Newsletter") {
             setModalType("Editeur");
-          } else if (meeting?.location === "LinkedIn" || meeting?.type === "Social Media Newsletter") {
+          } else if (
+            meeting?.location === "LinkedIn" ||
+            meeting?.type === "Social Media Newsletter"
+          ) {
             setModalType("Publication");
           } else if (meeting?.type === "Newsletter") {
             setModalType("Email");
@@ -1787,7 +1875,9 @@ const StepChartAction = ({
       } catch (error) {
         setIsValidate(false);
         toast.error(
-          t(`meeting.newMeeting.${error?.response?.data?.errors?.title[0] || error?.response?.data?.message}`),
+          t(
+            `meeting.newMeeting.${error?.response?.data?.errors?.title[0] || error?.response?.data?.message}`,
+          ),
         );
       }
     } else {
@@ -1830,7 +1920,7 @@ const StepChartAction = ({
             SessionUser?.email &&
             user.email?.toLowerCase() === SessionUser?.email?.toLowerCase());
         const payload = {
-          title: selectedValue,
+          title: fromReassign ? `Reprise ${selectedValue}` : selectedValue,
           count1: selectedCount || 0,
           count2: selectedCount,
           order_no: selectedOrder || 1,
@@ -1887,6 +1977,7 @@ const StepChartAction = ({
             meeting?.agenda === "Outlook Agenda"
               ? true
               : false,
+          re_assign_step: fromReassign ? true : false,
         };
         setIsValidate(true);
         const response = await axios.post(
@@ -2066,7 +2157,8 @@ const StepChartAction = ({
             ? staticContents[modalType] // Include the static content
             : null,
       prompt_ai:
-        modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter"
+        modalType === "AI Instruction" ||
+        meeting?.type === "AI Social Media Newsletter"
           ? {
               aiSourceType,
               aiSourceText,
@@ -2114,7 +2206,10 @@ const StepChartAction = ({
         },
       };
 
-      if (modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter") {
+      if (
+        modalType === "AI Instruction" ||
+        meeting?.type === "AI Social Media Newsletter"
+      ) {
         const formData = new FormData();
         Object.keys(payload).forEach((key) => {
           if (key !== "prompt_ai") {
@@ -2135,7 +2230,11 @@ const StepChartAction = ({
         config.headers["Content-Type"] = "multipart/form-data";
       }
 
-      const response = await axios.post(`${API_BASE_URL}/steps`, submitData, config);
+      const response = await axios.post(
+        `${API_BASE_URL}/steps`,
+        submitData,
+        config,
+      );
       if (response.status) {
         const stepData = response?.data?.data;
 
@@ -2176,8 +2275,11 @@ const StepChartAction = ({
         closeModal();
       } else {
         if (meeting?.type === "AI Social Media Newsletter") {
-          setModalType("Editeur");
-        } else if (meeting?.location === "LinkedIn" || meeting?.type === "Social Media Newsletter") {
+          setModalType("AI Instruction");
+        } else if (
+          meeting?.location === "LinkedIn" ||
+          meeting?.type === "Social Media Newsletter"
+        ) {
           setModalType("Publication");
         } else if (meeting?.type === "Newsletter") {
           setModalType("Email");
@@ -2198,7 +2300,9 @@ const StepChartAction = ({
     } catch (error) {
       setIsValidate(false);
       toast.error(
-        t(`meeting.newMeeting.${error?.response?.data?.errors?.title[0] || error?.response?.data?.message}`),
+        t(
+          `meeting.newMeeting.${error?.response?.data?.errors?.title[0] || error?.response?.data?.message}`,
+        ),
       );
     }
   };
@@ -2480,9 +2584,7 @@ const StepChartAction = ({
   const [stepCreatorImg, setStepCreatorImg] = useState(null);
   const [step, setStep] = useState(null);
   useEffect(() => {
-    ;
-
-const getStep = async () => {
+    const getStep = async () => {
       const currentTime = new Date();
       const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
@@ -2525,21 +2627,28 @@ const getStep = async () => {
           );
           setModifiedFileText(stepData?.editor_content);
           setAssignUser(response.data?.data?.assigned_to_name);
-          setSelectedCount(
-            stepData?.count2 || 0,
-          );
+          setSelectedCount(stepData?.count2 || 0);
           setOrderNo(stepData?.order_no);
-          setUser(response.data?.data?.participant);
+          // In re-assign mode: remember the original assignee for filtering,
+          // but keep user null so the user must explicitly pick a new guide.
+          setOriginalAssignedUser(response.data?.data?.participant);
+          if (!fromReassign) {
+            setUser(response.data?.data?.participant);
+          }
           setTeam(response.data?.data?.assigned_team);
           let initialUnit = stepData?.time_unit;
           if (!initialUnit) {
-            if (meeting?.type === "Action1" ||
-                meeting?.type === "Newsletter" ||
-                meeting?.type === "Strategy" ||
-                meeting?.type === "Sprint") {
+            if (
+              meeting?.type === "Action1" ||
+              meeting?.type === "Newsletter" ||
+              meeting?.type === "Strategy" ||
+              meeting?.type === "Sprint"
+            ) {
               initialUnit = "days";
-            } else if (meeting?.type === "Task" ||
-                       meeting?.type === "Prestation Client") {
+            } else if (
+              meeting?.type === "Task" ||
+              meeting?.type === "Prestation Client"
+            ) {
               initialUnit = "hours";
             } else if (meeting?.type === "Quiz") {
               initialUnit = "seconds";
@@ -2549,7 +2658,8 @@ const getStep = async () => {
           }
           if (initialUnit === "day") initialUnit = "days";
           if (initialUnit === "hour") initialUnit = "hours";
-          if (initialUnit === "second" || initialUnit === "sec") initialUnit = "seconds";
+          if (initialUnit === "second" || initialUnit === "sec")
+            initialUnit = "seconds";
           if (initialUnit === "min") initialUnit = "minutes";
           setTimeUnit(initialUnit);
           setFileName(stepData?.linkedin_media || stepData?.file);
@@ -2557,9 +2667,10 @@ const getStep = async () => {
 
           if (stepData?.prompt_ai) {
             try {
-              const parsed = typeof stepData.prompt_ai === "string"
-                ? JSON.parse(stepData.prompt_ai)
-                : stepData.prompt_ai;
+              const parsed =
+                typeof stepData.prompt_ai === "string"
+                  ? JSON.parse(stepData.prompt_ai)
+                  : stepData.prompt_ai;
               if (parsed) {
                 setInstructionPrompt(parsed.instructionPrompt || "");
                 setAiSourceType(parsed.aiSourceType || "Text");
@@ -3034,7 +3145,7 @@ const getStep = async () => {
                 </div>
                 <div className="col editor-header">
                   <div className="p-0 timecard stepinfo">
-                     {!window.location.href.includes("/meetingDetail") &&
+                    {!window.location.href.includes("/meetingDetail") &&
                       meeting?.type !== "Newsletter" &&
                       meeting?.type !== "Absence" &&
                       ((!user && !team) ||
@@ -3100,7 +3211,7 @@ const getStep = async () => {
                                 <input
                                   type="text"
                                   value={selectedCount}
-                                 onChange={(e) => {
+                                  onChange={(e) => {
                                     const value = e.target.value;
                                     // Allow empty string for clearing, otherwise ensure it's a number
                                     if (value === "") {
@@ -3166,10 +3277,18 @@ const getStep = async () => {
                                     display: "inline-block",
                                   }}
                                 >
-                                  <option value="minutes">{t("time_unit.minutes") || "mins"}</option>
-                                  <option value="seconds">{t("time_unit.seconds") || "secs"}</option>
-                                  <option value="hours">{t("time_unit.hours") || "hours"}</option>
-                                  <option value="days">{t("time_unit.days") || "days"}</option>
+                                  <option value="minutes">
+                                    {t("time_unit.minutes") || "mins"}
+                                  </option>
+                                  <option value="seconds">
+                                    {t("time_unit.seconds") || "secs"}
+                                  </option>
+                                  <option value="hours">
+                                    {t("time_unit.hours") || "hours"}
+                                  </option>
+                                  <option value="days">
+                                    {t("time_unit.days") || "days"}
+                                  </option>
                                 </select>
                               )}
                             </div>
@@ -3249,7 +3368,9 @@ const getStep = async () => {
                       <div className="p-0 timecard ">
                         <div className="d-flex justify-content-start">
                           <div className="Editor-custom-dropdown">
-                            {meeting?.type === "Newsletter" || meeting?.type === "Social Media Newsletter" || meeting?.type === "AI Social Media Newsletter" ? (
+                            {meeting?.type === "Newsletter" ||
+                            meeting?.type === "Social Media Newsletter" ||
+                            meeting?.type === "AI Social Media Newsletter" ? (
                               <>
                                 <p className="mb-2">
                                   {t("meeting.newMeeting.team")}
@@ -3315,7 +3436,7 @@ const getStep = async () => {
                                           }}
                                           alt="Avatar"
                                         />
-                                      ) : (
+                                      ) : !fromReassign ? (
                                         <img
                                           src={
                                             creator?.image?.startsWith("http")
@@ -3334,15 +3455,23 @@ const getStep = async () => {
                                           }}
                                           alt="Avatar1"
                                         />
-                                      )}
+                                      ) : null}
                                     </div>
-                                    {user ? user.full_name : creator?.full_name}{" "}
+                                    {user
+                                      ? user.full_name
+                                      : fromReassign
+                                        ? t("meeting.newMeeting.Step presenter")
+                                        : creator?.full_name}{" "}
                                     {getLabelForParticipant(
-                                      user?.email || creator?.email,
+                                      user?.email ||
+                                        (!fromReassign ? creator?.email : null),
                                     ) &&
                                       getStatusLabel(
                                         getLabelForParticipant(
-                                          user?.email || creator?.email,
+                                          user?.email ||
+                                            (!fromReassign
+                                              ? creator?.email
+                                              : null),
                                         ),
                                       )}
                                   </div>
@@ -3363,6 +3492,19 @@ const getStep = async () => {
                                           meeting?.participants ||
                                           []
                                         )
+                                          ?.filter((item) => {
+                                            // When re-assigning, hide the participant who was originally assigned to this step
+                                            if (
+                                              fromReassign &&
+                                              originalAssignedUser?.id
+                                            ) {
+                                              return (
+                                                item.id !==
+                                                originalAssignedUser.id
+                                              );
+                                            }
+                                            return true;
+                                          })
                                           ?.reduce(
                                             (uniqueParticipants, item) => {
                                               const isDuplicate =
@@ -3549,17 +3691,22 @@ const getStep = async () => {
                             </div>
                             {isOpen && (
                               <ul className="editor-dropdown-list">
-                                {meeting?.type === "AI Social Media Newsletter" ? (
+                                {meeting?.type ===
+                                "AI Social Media Newsletter" ? (
                                   <>
-                                    {options?.filter((item)=> item.value === "Editeur")?.map((option) => (
-                                      <li
-                                        key={option.value}
-                                        className="dropdown-item"
-                                        onClick={() => handleSelect(option)}
-                                      >
-                                        {option.icon} {option.label}
-                                      </li>
-                                    ))}
+                                    {options
+                                      ?.filter(
+                                        (item) => item.value === "Editeur",
+                                      )
+                                      ?.map((option) => (
+                                        <li
+                                          key={option.value}
+                                          className="dropdown-item"
+                                          onClick={() => handleSelect(option)}
+                                        >
+                                          {option.icon} {option.label}
+                                        </li>
+                                      ))}
                                   </>
                                 ) : modalType === "AI Instruction" ? (
                                   <>
@@ -3573,7 +3720,8 @@ const getStep = async () => {
                                       </li>
                                     ))}
                                   </>
-                                ) : meeting?.type === "Social Media Newsletter" ||
+                                ) : meeting?.type ===
+                                    "Social Media Newsletter" ||
                                   meeting?.location === "LinkedIn" ? (
                                   <>
                                     {socialMediaOption.map((option) => (
@@ -3873,7 +4021,10 @@ const getStep = async () => {
                                             fontWeight: "500",
                                           }}
                                         >
-                                          ✓ File selected: {typeof aiSourceFile === 'string' ? aiSourceFile.split('/').pop() : aiSourceFile.name}
+                                          ✓ File selected:{" "}
+                                          {typeof aiSourceFile === "string"
+                                            ? aiSourceFile.split("/").pop()
+                                            : aiSourceFile.name}
                                         </p>
                                       )}
                                     </div>
@@ -4027,110 +4178,113 @@ const getStep = async () => {
                                 </div>
 
                                 {/* Output Format Section */}
-                                {meeting?.type !== "AI Social Media Newsletter" && (
+                                {meeting?.type !==
+                                  "AI Social Media Newsletter" && (
                                   <div>
-                                  <label
-                                    className="fw-semibold d-flex align-items-center mb-2"
-                                    style={{
-                                      fontSize: "14px",
-                                      color: "#344054",
-                                    }}
-                                  >
-                                    <span className="me-2">📥</span> Sortie
-                                  </label>
-                                  <p
-                                    className="text-muted mb-2"
-                                    style={{ fontSize: "12px" }}
-                                  >
-                                    Select the output format for this
-                                    instruction
-                                  </p>
-                                  <div className="d-flex flex-wrap gap-3">
-                                    <Button
-                                      type="button"
-                                      variant={
-                                        aiOutputFormat === "PowerPoint"
-                                          ? "light"
-                                          : "outline-secondary"
-                                      }
-                                      className={`flex-fill ${aiOutputFormat === "PowerPoint" ? "border-primary text-primary fw-semibold" : ""}`}
-                                      onClick={() =>
-                                        setAiOutputFormat("PowerPoint")
-                                      }
+                                    <label
+                                      className="fw-semibold d-flex align-items-center mb-2"
                                       style={{
-                                        fontSize: "13px",
-                                        padding: "12px",
-                                        background:
+                                        fontSize: "14px",
+                                        color: "#344054",
+                                      }}
+                                    >
+                                      <span className="me-2">📥</span> Sortie
+                                    </label>
+                                    <p
+                                      className="text-muted mb-2"
+                                      style={{ fontSize: "12px" }}
+                                    >
+                                      Select the output format for this
+                                      instruction
+                                    </p>
+                                    <div className="d-flex flex-wrap gap-3">
+                                      <Button
+                                        type="button"
+                                        variant={
                                           aiOutputFormat === "PowerPoint"
-                                            ? "#F4F6FF"
-                                            : "#fff",
-                                      }}
-                                    >
-                                      <div className="mb-1">📊</div>
-                                      <div>PowerPoint</div>
-                                      <div
-                                        className="text-muted fw-normal"
-                                        style={{ fontSize: "11px" }}
+                                            ? "light"
+                                            : "outline-secondary"
+                                        }
+                                        className={`flex-fill ${aiOutputFormat === "PowerPoint" ? "border-primary text-primary fw-semibold" : ""}`}
+                                        onClick={() =>
+                                          setAiOutputFormat("PowerPoint")
+                                        }
+                                        style={{
+                                          fontSize: "13px",
+                                          padding: "12px",
+                                          background:
+                                            aiOutputFormat === "PowerPoint"
+                                              ? "#F4F6FF"
+                                              : "#fff",
+                                        }}
                                       >
-                                        Slides deck
-                                      </div>
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant={
-                                        aiOutputFormat === "PDF"
-                                          ? "light"
-                                          : "outline-secondary"
-                                      }
-                                      className={`flex-fill ${aiOutputFormat === "PDF" ? "border-primary text-primary fw-semibold" : ""}`}
-                                      onClick={() => setAiOutputFormat("PDF")}
-                                      style={{
-                                        fontSize: "13px",
-                                        padding: "12px",
-                                        background:
+                                        <div className="mb-1">📊</div>
+                                        <div>PowerPoint</div>
+                                        <div
+                                          className="text-muted fw-normal"
+                                          style={{ fontSize: "11px" }}
+                                        >
+                                          Slides deck
+                                        </div>
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant={
                                           aiOutputFormat === "PDF"
-                                            ? "#F4F6FF"
-                                            : "#fff",
-                                      }}
-                                    >
-                                      <div className="mb-1">📄</div>
-                                      <div>PDF</div>
-                                      <div
-                                        className="text-muted fw-normal"
-                                        style={{ fontSize: "11px" }}
+                                            ? "light"
+                                            : "outline-secondary"
+                                        }
+                                        className={`flex-fill ${aiOutputFormat === "PDF" ? "border-primary text-primary fw-semibold" : ""}`}
+                                        onClick={() => setAiOutputFormat("PDF")}
+                                        style={{
+                                          fontSize: "13px",
+                                          padding: "12px",
+                                          background:
+                                            aiOutputFormat === "PDF"
+                                              ? "#F4F6FF"
+                                              : "#fff",
+                                        }}
                                       >
-                                        Formatted document
-                                      </div>
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant={
-                                        aiOutputFormat === "Text"
-                                          ? "light"
-                                          : "outline-secondary"
-                                      }
-                                      className={`flex-fill ${aiOutputFormat === "Text" ? "border-primary text-primary fw-semibold" : ""}`}
-                                      onClick={() => setAiOutputFormat("Text")}
-                                      style={{
-                                        fontSize: "13px",
-                                        padding: "12px",
-                                        background:
+                                        <div className="mb-1">📄</div>
+                                        <div>PDF</div>
+                                        <div
+                                          className="text-muted fw-normal"
+                                          style={{ fontSize: "11px" }}
+                                        >
+                                          Formatted document
+                                        </div>
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant={
                                           aiOutputFormat === "Text"
-                                            ? "#F4F6FF"
-                                            : "#fff",
-                                      }}
-                                    >
-                                      <div className="mb-1">📝</div>
-                                      <div>Text</div>
-                                      <div
-                                        className="text-muted fw-normal"
-                                        style={{ fontSize: "11px" }}
+                                            ? "light"
+                                            : "outline-secondary"
+                                        }
+                                        className={`flex-fill ${aiOutputFormat === "Text" ? "border-primary text-primary fw-semibold" : ""}`}
+                                        onClick={() =>
+                                          setAiOutputFormat("Text")
+                                        }
+                                        style={{
+                                          fontSize: "13px",
+                                          padding: "12px",
+                                          background:
+                                            aiOutputFormat === "Text"
+                                              ? "#F4F6FF"
+                                              : "#fff",
+                                        }}
                                       >
-                                        Plain content
-                                      </div>
-                                    </Button>
+                                        <div className="mb-1">📝</div>
+                                        <div>Text</div>
+                                        <div
+                                          className="text-muted fw-normal"
+                                          style={{ fontSize: "11px" }}
+                                        >
+                                          Plain content
+                                        </div>
+                                      </Button>
+                                    </div>
                                   </div>
-                                </div>
                                 )}
                               </div>
                             ) : (
@@ -4158,7 +4312,9 @@ const getStep = async () => {
                                       : "formatselect | bold italic underline strikethrough | forecolor backcolor blockquote | image | link media | alignleft aligncenter alignright alignjustify | numlist bullist outdent indent | removeformat",
                                   image_advtab: meeting?.type !== "Law",
                                   file_picker_types:
-                                    meeting?.type === "Law" ? "" : "image media",
+                                    meeting?.type === "Law"
+                                      ? ""
+                                      : "image media",
                                   file_picker_callback: function (
                                     callback,
                                     value,
@@ -4168,7 +4324,8 @@ const getStep = async () => {
                                       meta.filetype === "image" &&
                                       meeting?.type !== "Law"
                                     ) {
-                                      const input = document.createElement("input");
+                                      const input =
+                                        document.createElement("input");
                                       input.setAttribute("type", "file");
                                       input.setAttribute("accept", "image/*");
 
@@ -4193,7 +4350,8 @@ const getStep = async () => {
                                             if (img.width > maxWidth) {
                                               newWidth = maxWidth;
                                               newHeight =
-                                                (img.height * maxWidth) / img.width;
+                                                (img.height * maxWidth) /
+                                                img.width;
                                             }
 
                                             if (newHeight > maxHeight) {
@@ -4265,9 +4423,10 @@ const getStep = async () => {
                           className="col-md-5 p-4"
                           style={{ backgroundColor: "#F2F4FB" }}
                         >
-                           {!isUpload ? (
+                          {!isUpload ? (
                             <>
-                              {(step?.generate_ai_media == 1 || step?.generate_ai_media === true) ? (
+                              {step?.generate_ai_media == 1 ||
+                              step?.generate_ai_media === true ? (
                                 <div
                                   style={{
                                     border: "1px dashed #BAC3D4",
@@ -4284,10 +4443,28 @@ const getStep = async () => {
                                   }}
                                 >
                                   <div style={{ textAlign: "center" }}>
-                                    <HiOutlineSparkles size={40} style={{ color: "#0026B1", marginBottom: "12px" }} />
-                                    <p className="upload-container" style={{ margin: 0 }}>
-                                      <span className="upload-text" style={{ display: "block", fontWeight: "600", color: "#344054", fontSize: "15px" }}>
-                                        {t("stepModal.mediaGeneratedAI") || "Media will be generated through AI"}
+                                    <HiOutlineSparkles
+                                      size={40}
+                                      style={{
+                                        color: "#0026B1",
+                                        marginBottom: "12px",
+                                      }}
+                                    />
+                                    <p
+                                      className="upload-container"
+                                      style={{ margin: 0 }}
+                                    >
+                                      <span
+                                        className="upload-text"
+                                        style={{
+                                          display: "block",
+                                          fontWeight: "600",
+                                          color: "#344054",
+                                          fontSize: "15px",
+                                        }}
+                                      >
+                                        {t("stepModal.mediaGeneratedAI") ||
+                                          "Media will be generated through AI"}
                                       </span>
                                     </p>
                                   </div>
@@ -4313,7 +4490,7 @@ const getStep = async () => {
                                     }}
                                   >
                                     <input {...getInputProps()} />
-                                    
+
                                     <div style={{ textAlign: "center" }}>
                                       <p
                                         className="upload-container"
@@ -4358,7 +4535,7 @@ const getStep = async () => {
                                   </div>
                                 </div>
                               )}
-                                                            {/* --- Saved Media Gallery from API --- */}
+                              {/* --- Saved Media Gallery from API --- */}
                               {stepMedia.length > 0 && (
                                 <div
                                   className="mt-3"
@@ -4369,14 +4546,30 @@ const getStep = async () => {
                                     padding: "12px",
                                   }}
                                 >
-                                  <p style={{ fontSize: "12px", fontWeight: "600", color: "#344054", marginBottom: "8px" }}>
+                                  <p
+                                    style={{
+                                      fontSize: "12px",
+                                      fontWeight: "600",
+                                      color: "#344054",
+                                      marginBottom: "8px",
+                                    }}
+                                  >
                                     Uploaded Media ({stepMedia.length})
                                   </p>
-                                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      flexWrap: "wrap",
+                                      gap: "8px",
+                                    }}
+                                  >
                                     {stepMedia.map((media, idx) => (
                                       <div
                                         key={media.id || idx}
-                                        style={{ width: "calc(50% - 4px)", position: "relative" }}
+                                        style={{
+                                          width: "calc(50% - 4px)",
+                                          position: "relative",
+                                        }}
                                         title={media.original_name}
                                       >
                                         <button
@@ -4398,13 +4591,17 @@ const getStep = async () => {
                                             alignItems: "center",
                                             justifyContent: "center",
                                             cursor: "pointer",
-                                            boxShadow: "0px 2px 4px rgba(0,0,0,0.15)",
+                                            boxShadow:
+                                              "0px 2px 4px rgba(0,0,0,0.15)",
                                             zIndex: 10,
                                             padding: 0,
                                           }}
                                           title="Delete Media"
                                         >
-                                          <RxCross2 size={14} style={{ color: "#fff" }} />
+                                          <RxCross2
+                                            size={14}
+                                            style={{ color: "#fff" }}
+                                          />
                                         </button>
                                         {media.file_type === "image" ? (
                                           <img
@@ -4452,7 +4649,16 @@ const getStep = async () => {
                                             {media.original_name}
                                           </a>
                                         )}
-                                        <p style={{ fontSize: "10px", color: "#667085", marginTop: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                        <p
+                                          style={{
+                                            fontSize: "10px",
+                                            color: "#667085",
+                                            marginTop: "2px",
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                            whiteSpace: "nowrap",
+                                          }}
+                                        >
                                           {media.original_name}
                                         </p>
                                       </div>
@@ -4471,11 +4677,11 @@ const getStep = async () => {
                         </div>
                       </>
                     ) : modalType === "Editeur" ||
-                    modalType === "Subtask" ||
-                    modalType === "Story" ||
-                    modalType === "Question" ||
-                    modalType === "Email" ||
-                    modalType === "Message" ? (
+                      modalType === "Subtask" ||
+                      modalType === "Story" ||
+                      modalType === "Question" ||
+                      modalType === "Email" ||
+                      modalType === "Message" ? (
                       <div className="col-md-12">
                         <div>
                           <Editor

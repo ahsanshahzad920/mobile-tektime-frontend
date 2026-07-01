@@ -59,7 +59,6 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useHeaderTitle } from "../../../context/HeaderTitleContext";
 import { getUserRoleID } from "../../Utils/getSessionstorageItems";
-import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import { IoImages } from "react-icons/io5";
 import ImageEditorModal from "../Invities/ImageEditorModal";
 import { CiSettings } from "react-icons/ci";

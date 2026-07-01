@@ -1421,8 +1421,8 @@ const CompletedInvite = () => {
   const [pageViews, setPageViews] = useState(0);
 
   useEffect(() => {
-    const pageId = `${userId}/${meeting?.id}`;
-    if (!pageId) return;
+    if (!userId || !meeting?.id) return;
+    const pageId = `${userId}/${meeting.id}`;
     const incrementPageView = async () => {
       // setIsLoading(true)
       try {
@@ -1437,10 +1437,8 @@ const CompletedInvite = () => {
         console.error("Error incrementing page view:", error);
       }
     };
-    if (pageId) {
-      incrementPageView();
-    }
-  }, [meeting?.id]);
+    incrementPageView();
+  }, [meeting?.id, userId]);
 
   // Add global CSS for blur effect
   const styles = `

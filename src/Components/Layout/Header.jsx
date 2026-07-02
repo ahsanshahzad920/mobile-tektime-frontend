@@ -11,9 +11,24 @@ import Search from "../Elements/Search/Search";
 import Sidebar from "./Sidebar";
 import { MdMenu, MdArrowBack } from "react-icons/md";
 
+/**
+ * Maps sidebar tab keys → the route prefixes they own.
+ * Keep in sync with Sidebar.jsx renderNavTab().
+ */
+const TAB_ROUTE_MAP = {
+  moments:     ["/meeting", "/graph", "/view", "/copy", "/Play", "/presentation", "/validateMeeting", "/meetings/drafts", "/present/invite", "/invite"],
+  missions:    ["/Invities", "/invitiesToMeeting", "/participantToAction", "/updateParticipant"],
+  actions:     ["/action", "/step"],
+  solutions:   ["/solution"],
+  discussions: ["/discussion"],
+  casting:     ["/Team", "/ModifierTeam", "/users", "/ModifierUser"],
+};
+
+const ALL_MODULE_ROUTES = Object.values(TAB_ROUTE_MAP).flat();
+
 function Header({ onSignin, onLogout, isAuthenticated, onSearch }) {
   const { updateLanguage } = useDraftMeetings();
-  const { setProfileImage } = useHeaderTitle();
+  const { setProfileImage, user } = useHeaderTitle();
   const location = useLocation();
   const navigate = useNavigate();
   const [t, i18n] = useTranslation("global");
@@ -22,8 +37,9 @@ function Header({ onSignin, onLogout, isAuthenticated, onSearch }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const userID = CookieService.get("user_id")
-  const token = CookieService.get("token")
+  const userID = CookieService.get("user_id");
+  const token  = CookieService.get("token");
+  const role   = CookieService.get("type");
 
   // === LANGUAGE SWITCH ===
   const handleChangeLanguage = (lang) => {
@@ -31,8 +47,106 @@ function Header({ onSignin, onLogout, isAuthenticated, onSearch }) {
     updateLanguage(lang);
   };
 
+  // === MODULE ACCESS HELPERS ===
+
+  /**
+   * Returns the flat list of route prefixes this user may access,
+   * mirroring the tabsToRender logic in Sidebar.jsx.
+   * Returns null when user data hasn't loaded yet (→ don't block anything).
+   */
+  const getAllowedRoutes = () => {
+    if (!user) return null;
+
+    const isAdmin = ["Admin", "MasterAdmin", "SuperAdmin"].includes(role);
+    const tabToNeedMap = {
+      casting:     "casting_need",
+      moments:     "meeting_need",
+      missions:    "mission_need",
+      actions:     "action_need",
+      solutions:   "solution_need",
+      discussions: "discussion_need",
+    };
+
+    const userSelectedNeeds = user?.user_needs?.map((n) => n.need) || [];
+
+    const allowedTabs = Object.keys(TAB_ROUTE_MAP).filter((tab) => {
+      const needKey = tabToNeedMap[tab];
+      if (!needKey) return true;
+
+      const isAllowedByContract = user?.enterprise?.contract?.[needKey] === true;
+      const isSelectedByUser    = userSelectedNeeds.includes(needKey);
+
+      if (tab === "casting") return isAdmin || (isAllowedByContract && isSelectedByUser);
+      return isAllowedByContract && isSelectedByUser;
+    });
+
+    return allowedTabs.flatMap((tab) => TAB_ROUTE_MAP[tab]);
+  };
+
+  /** True if the user has at least one module visible in the sidebar. */
+  const hasAnyModule = () => {
+    const routes = getAllowedRoutes();
+    return routes === null || routes.length > 0; // null = not loaded, treat as yes
+  };
+
+  /**
+   * Returns true if the given pathname is reachable by this user.
+   * Non-module pages are always reachable.
+   */
+  const isPathAllowed = (pathname) => {
+    const allowedRoutes = getAllowedRoutes();
+    if (allowedRoutes === null) return true;
+
+    const isModulePage = ALL_MODULE_ROUTES.some((prefix) => pathname.startsWith(prefix));
+    if (!isModulePage) return true;
+
+    return allowedRoutes.some((prefix) => pathname.startsWith(prefix));
+  };
+
   // === BACK BUTTON ===
-  const handleBack = () => navigate(-1);
+  const handleBack = () => {
+    // Peek at referrer to know where navigate(-1) would land
+    let targetPath = null;
+    try {
+      if (document.referrer) {
+        const url = new URL(document.referrer);
+        if (url.origin === window.location.origin) {
+          targetPath = url.pathname;
+        }
+      }
+    } catch (_) {}
+
+    if (targetPath && !isPathAllowed(targetPath)) {
+      // Target is a restricted module — go home instead
+      navigate("/profile");
+    } else {
+      navigate(-1);
+    }
+  };
+
+  /**
+   * Whether to show the back button on the current page.
+   *
+   * Rules:
+   * 1. Never show on top-level "root" pages (home, Enterprises, etc.)
+   * 2. If the user has NO modules at all, also hide on profile-related pages
+   *    (/profile, /profile/settings, /profile/integrations, etc.)
+   */
+  const showBackButton = (() => {
+    const path = location.pathname;
+
+    // Rule 1 – top-level pages that never need a back button
+    if (/^\/(Enterprises|Team|contract|drafts|customer-support|meeting|invities|action|discussion|solution)$/i.test(path) || path === "/") {
+      return false;
+    }
+
+    // Rule 2 – profile/settings/preferences: hide when user has no modules
+    if (path.startsWith("/profile")) {
+      return hasAnyModule();
+    }
+
+    return true;
+  })();
 
   // === SCROLL EFFECT ===
   // useEffect(() => {
@@ -94,8 +208,8 @@ function Header({ onSignin, onLogout, isAuthenticated, onSearch }) {
                   </button>
                 </div>
 
-                {/* BACK BUTTON - ALL DEVICES */}
-                {!location.pathname.match(/^\/(home|Enterprises|Team|contract|drafts|customer-support)$/) && (
+                {/* BACK BUTTON */}
+                {showBackButton && (
                   <button
                     onClick={handleBack}
                     className="btn p-0 text-primary d-flex align-items-center gap-1"

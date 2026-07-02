@@ -8,9 +8,9 @@ import ReactToggle from "react-toggle";
 import { FcGoogle } from "react-icons/fc";
 import axios from "axios";
 import { API_BASE_URL } from "../../../../Apicongfig";
-import { SiMicrosoftoutlook } from "react-icons/si";
+import { SiMicrosoftoutlook, SiGmail, SiIonos } from "react-icons/si";
 import { useHeaderTitle } from "../../../../../context/HeaderTitleContext";
-import { FaLinkedin } from "react-icons/fa";
+import { FaLinkedin, FaWhatsapp } from "react-icons/fa";
 import { userTimeZone } from "../../GetMeeting/Helpers/functionHelper";
 
 function Location({}) {
@@ -38,6 +38,25 @@ function Location({}) {
   });
   const [isLoading, setIsLoading] = useState(false);
   const { setUser, user, setCallUser } = useHeaderTitle();
+  const isFromTemplate = !!formState?.solution_id;
+  const [allowedLocations, setAllowedLocations] = useState({});
+
+  useEffect(() => {
+    if (formState?.solution_id) {
+      setAllowedLocations((prev) => ({
+        ...prev,
+        Visioconference: prev.Visioconference || (!!formState?.location && ["Google Meet", "Microsoft Teams"].includes(formState?.location)),
+        Address: prev.Address || !!formState?.address,
+        Room: prev.Room || !!formState?.room_details,
+        phone: prev.phone || !!formState?.phone,
+        agenda: prev.agenda || !!formState?.agenda,
+        social_media: prev.social_media || (!!formState?.location && ["LinkedIn"].includes(formState?.location)),
+        email: prev.email || (!!formState?.location && ["Outlook", "gmail", "ionos"].includes(formState?.location)),
+      }));
+    } else {
+      setAllowedLocations({});
+    }
+  }, [formState?.solution_id, formState?.location, formState?.address, formState?.room_details, formState?.phone, formState?.agenda]);
 
   const handleToggleChange = (selectedToggle) => {
     if (
@@ -75,6 +94,15 @@ function Location({}) {
             ...prevState,
             location: null,
           }));
+                } else if (selectedToggle === "email") {
+                    setSelectedLocation((prevState) => ({
+                        ...prevState,
+                        meeting: null,
+                    }));
+                    setFormState((prevState) => ({
+                        ...prevState,
+                        location: null,
+                    }));
         } else if (selectedToggle === "agenda") {
           setSelectedLocation((prevState) => ({
             ...prevState,
@@ -200,12 +228,13 @@ function Location({}) {
       if (googleLoginCalled || outlookLoginCalled) return;
       // if (outlookLoginCalled) return;
       setToggleStates({
-        Visioconference: !!effectiveLocation && effectiveLocation !== "LinkedIn",
+        Visioconference: !!effectiveLocation && ["Google Meet", "Microsoft Teams"].includes(effectiveLocation),
         Room: !!effectiveRoomDetails,
         Address: !!effectiveAddress,
         phone: !!effectivePhone,
         agenda: !!effectiveAgenda,
-        social_media: effectiveLocation === "LinkedIn",
+        social_media: !!effectiveLocation && ["LinkedIn"].includes(effectiveLocation),
+        email: !!effectiveLocation && ["Outlook", "gmail", "ionos"].includes(effectiveLocation),
       });
     }
   }, [meeting, selectedSolution, setFormState]);
@@ -512,6 +541,7 @@ function Location({}) {
           <Col md={12}>
             <div className="list-group">
               <div className="row mt-4">
+                {(!isFromTemplate || allowedLocations.Visioconference) && (
                 <div className="col-md-6 mt-3">
                   <button
                     className={`list-group-item list-group-item-action p-3 ${
@@ -858,6 +888,8 @@ function Location({}) {
                     </div>
                   )}
                 </div>
+                )}
+                {(!isFromTemplate || allowedLocations.Address) && (
                 <div className="col-md-6 mt-3">
                   <button
                     className={`list-group-item list-group-item-action p-3 ${
@@ -936,6 +968,8 @@ function Location({}) {
                     </div>
                   )}
                 </div>
+                )}
+                {(!isFromTemplate || allowedLocations.Room) && (
                 <div className="col-md-6 mt-3">
                   <button
                     className={`list-group-item list-group-item-action p-3 ${
@@ -1014,6 +1048,8 @@ function Location({}) {
                     </div>
                   )}
                 </div>
+                )}
+                {(!isFromTemplate || allowedLocations.phone) && (
                 <div className="col-md-6 mt-3">
                   <button
                     className={`list-group-item list-group-item-action p-3 ${
@@ -1092,6 +1128,8 @@ function Location({}) {
                     </div>
                   )}
                 </div>
+                )}
+                {(!isFromTemplate || allowedLocations.agenda) && (
                 <div className="col-md-6 mt-3">
                   <button
                     className={`list-group-item list-group-item-action p-3 ${
@@ -1256,7 +1294,10 @@ function Location({}) {
                   )}
                 </div>
 
+                )}
+
                 {/* Social Media */}
+                {(!isFromTemplate || allowedLocations.social_media) && (
                 <div className="col-md-6 mt-3">
                   <button
                     className={`list-group-item list-group-item-action p-3 ${
@@ -1324,11 +1365,93 @@ function Location({}) {
                               </span>
                             </label>
                           </div>
-                        </div>
+                          
+                          </div>
                       </div>
-                    );
-                  })()}
+                    )
+                                    })()}
                 </div>
+                )}
+
+                {/* {(!isFromTemplate || allowedLocations.email) && (
+                <div className="col-md-6 mt-3">
+                                    <button
+                                        className={`list-group-item list-group-item-action p-3 ${
+                                          ["Outlook", "gmail", "ionos"].includes(selectedLocation.meeting)
+                                            ? "border-primary"
+                                            : ""
+                                        }`}
+                                        onClick={() => handleToggleChange("email")}
+                                    >
+                                        <div className="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <span>
+                                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M22 6C22 4.9 21.1 4 20 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6ZM20 6L12 11L4 6H20ZM20 18H4V8L12 13L20 8V18Z" fill="#3D57B5"/>
+                                                    </svg>
+                                                </span>
+                                                Email
+                                            </div>
+                                            <div>
+                                                <ReactToggle
+                                                    checked={toggleStates.email}
+                                                    icons={false}
+                                                    className="toggle-playback"
+                                                    onChange={() => handleToggleChange("email")}
+                                                />
+                                            </div>
+                                        </div>
+                                    </button>
+
+                                    {toggleStates.email && (
+                                        <div className="p-4 pt-0 pb-1 create-moment-modal">
+                                            <div className="row form mt-3">
+                                                <div className="mb-3 col-md-6 d-flex align-items-center gap-2">
+                                                    <input
+                                                        type="radio"
+                                                        id="OutlookSol"
+                                                        name="socialPlatform"
+                                                        value="Outlook"
+                                                        checked={selectedLocation.meeting === "Outlook"}
+                                                        onChange={() => handleSelect("Outlook")}
+                                                    />
+                                                    <label htmlFor="OutlookSol" className="d-flex align-items-center gap-1 cursor-pointer">
+                                                        <SiMicrosoftoutlook style={{ color: "#0078D4" }} className="fs-5" /> Outlook
+                                                    </label>
+                                                </div>
+
+                                                <div className="mb-3 col-md-6 d-flex align-items-center gap-2">
+                                                    <input
+                                                        type="radio"
+                                                        id="gmailSol"
+                                                        name="socialPlatform"
+                                                        value="gmail"
+                                                        checked={selectedLocation.meeting === "gmail"}
+                                                        onChange={() => handleSelect("gmail")}
+                                                    />
+                                                    <label htmlFor="gmailSol" className="d-flex align-items-center gap-1 cursor-pointer">
+                                                        <SiGmail style={{ color: "#EA4335" }} className="fs-5" /> Gmail
+                                                    </label>
+                                                </div>
+
+                                                <div className="mb-3 col-md-6 d-flex align-items-center gap-2">
+                                                    <input
+                                                        type="radio"
+                                                        id="ionosSol"
+                                                        name="socialPlatform"
+                                                        value="ionos"
+                                                        checked={selectedLocation.meeting === "ionos"}
+                                                        onChange={() => handleSelect("ionos")}
+                                                    />
+                                                    <label htmlFor="ionosSol" className="d-flex align-items-center gap-1 cursor-pointer">
+                                                        <SiIonos style={{ color: "#003D8F" }} className="fs-5" /> Ionos
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                </div>
+                )} */}
               </div>
             </div>
           </Col>
@@ -1339,3 +1462,5 @@ function Location({}) {
 }
 
 export default Location;
+
+

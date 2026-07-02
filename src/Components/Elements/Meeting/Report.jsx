@@ -6111,7 +6111,7 @@ const Report = () => {
                                             (item) =>
                                               item.email !== sessionUser?.email
                                           )?.length}{" "}
-                                        Remaining
+                                        {t("Remaining")}
                                       </div>
                                     </>
                                   )}

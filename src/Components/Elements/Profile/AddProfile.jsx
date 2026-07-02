@@ -54,6 +54,7 @@ import { GoPlus } from "react-icons/go";
 import { API_BASE_URL, Assets_URL } from "../../Apicongfig";
 import { useTranslation } from "react-i18next";
 import PhoneInput from "react-phone-number-input";
+import "react-phone-number-input/style.css";
 import axios from "axios";
 import { Navigate, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";

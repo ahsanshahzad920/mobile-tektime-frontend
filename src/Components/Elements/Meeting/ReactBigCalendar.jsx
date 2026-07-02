@@ -1199,7 +1199,10 @@ const ReactBigCalendar = ({ quickMomentForm }) => {
   });
 
   return (
-    <div className={`myCustomHeight ${loading ? "screen-blur" : ""}`}>
+    <div
+      className={`myCustomHeight ${loading ? "screen-blur" : ""}`}
+      style={{ height: currentView === Views.MONTH ? "900px" : "auto" }}
+    >
       {loading && (
         <div className="progress-overlay" style={{ background: "transparent" }}>
           <div style={{ width: "50%" }}>

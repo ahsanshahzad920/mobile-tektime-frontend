@@ -3090,7 +3090,7 @@ const ScheduledMeeting = ({
                   <ul className={`dropdown-menu dropdown-menu-end ${openDropdownId === item.id ? 'show' : ''}`} style={{ minWidth: '180px', borderRadius: '12px', padding: '8px', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', position: 'absolute', right: 0, left: 'auto' }}>
                     {canManage ? (
                       <>
-                        {item.status !== "in_progress" && <li><a className="dropdown-item d-flex align-items-center gap-2 py-2" onClick={() => handleShow(item.id)}><RiEditBoxLine size="18px" /> {t("dropdown.Modify")}</a></li>}
+                        {item.status !== "in_progress" && <li><a className="dropdown-item d-flex align-items-center gap-2 py-2" onClick={() => handleEdit(item)}><RiEditBoxLine size="18px" /> {t("dropdown.Modify")}</a></li>}
                         <li><a className="dropdown-item d-flex align-items-center gap-2 py-2 text-danger" onClick={(e) => handleDeleteClick(e, item.id)}><AiOutlineDelete size="18px" /> {t("dropdown.Delete")}</a></li>
                       </>
                     ) : <li><a className="dropdown-item pointer" onClick={() => { copy(`${window.location.origin}/destination/${item?.unique_id}/${item?.id}`); toast.success(t("linkCopiedToast")); }}><RiPresentationFill size="18px" /> {t("presentation.generateLink")}</a></li>}

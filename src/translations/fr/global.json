@@ -1728,7 +1728,7 @@
   "Exit Moment": "Sortir",
   "Full Screen": "Plein écran",
   "Start At": "Démarrage à  ",
-  "Remaining":"places restantes",
+  "Remaining":"Restant",
   "Estimated End At": "Fin estimée à ",
   "Remaining time of stage": "Temps de l'étape",
   "The meeting started with": "a démarré avec",
@@ -4185,7 +4185,9 @@
       "title": "Traitement IA",
       "message": "La génération de contenu et de médias par IA est en cours...",
       "message_line2": "Une fois que tout sera prêt, vous rejoindrez automatiquement la réunion."
-    }
+    },
+    "Restart":"Reprendre",
+    "Remaining Places":"Places restantes"
 }
 
 

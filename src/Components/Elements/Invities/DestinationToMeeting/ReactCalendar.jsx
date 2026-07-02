@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { momentLocalizer, Views, Calendar } from "react-big-calendar";
 import moment from "moment";
+import "react-big-calendar/lib/css/react-big-calendar.css";
 import ReactCalendarToolbar from "./ReactCalendarToolbar";
 import CustomEvent from "../../Meeting/CustomeEvent";
 import NewMeetingModal from "../../Meeting/CreateNewMeeting/NewMeetingModal";

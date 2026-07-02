@@ -139,6 +139,10 @@ const QuickMomentForm = ({
     setProgress,
   } = useFormContext();
 
+  const isStripeRequired =
+    formState?.casting_type === "Registration" &&
+    Number(formState?.price) > 0;
+
   const [mission, setMission] = useState(null);
   const [missionId, setMissionId] = useState(null);
   const [selectedClient, setSelectedClient] = useState(null);
@@ -3600,104 +3604,106 @@ const QuickMomentForm = ({
 
                 {formState?.casting_type === "Registration" ? (
                   <div className="row g-2">
-                    <div className="col-12 mb-3">
-                      {isStripeConnected ? (
-                        <div
-                          className="d-flex align-items-center justify-content-between p-3 rounded"
-                          style={{
-                            backgroundColor: "rgba(47, 187, 103, 0.1)",
-                            border: "1px solid #2fa25d",
-                          }}
-                        >
-                          <div className="d-flex align-items-center">
-                            <div
-                              className="me-3 bg-white p-2 rounded-circle d-flex align-items-center justify-content-center"
-                              style={{ width: "40px", height: "40px" }}
-                            >
-                              <SiStripe size={24} color="#635BFF" />
-                            </div>
-                            <div>
-                              <h6
-                                className="mb-0 fw-bold"
-                                style={{ color: "#2fa25d" }}
+                    {/* {(isStripeConnected || (isStripeRequired && !isStripeConnected)) && ( */}
+                      <div className="col-12 mb-3">
+                        {isStripeConnected ? (
+                          <div
+                            className="d-flex align-items-center justify-content-between p-3 rounded"
+                            style={{
+                              backgroundColor: "rgba(47, 187, 103, 0.1)",
+                              border: "1px solid #2fa25d",
+                            }}
+                          >
+                            <div className="d-flex align-items-center">
+                              <div
+                                className="me-3 bg-white p-2 rounded-circle d-flex align-items-center justify-content-center"
+                                style={{ width: "40px", height: "40px" }}
                               >
-                                {t("Stripe Account Connected")}
-                              </h6>
-                              <small className="text-muted">
-                                {t(
-                                  "You can now receive payments for this registration.",
-                                )}
-                              </small>
+                                <SiStripe size={24} color="#635BFF" />
+                              </div>
+                              <div>
+                                <h6
+                                  className="mb-0 fw-bold"
+                                  style={{ color: "#2fa25d" }}
+                                >
+                                  {t("Stripe Account Connected")}
+                                </h6>
+                                <small className="text-muted">
+                                  {t(
+                                    "You can now receive payments for this registration.",
+                                  )}
+                                </small>
+                              </div>
                             </div>
-                          </div>
-                          <button
-                            style={{
-                              background: "none",
-                              border: "none",
-                              color: "#dc3545",
-                              fontWeight: "bold",
-                              padding: "6px 16px",
-                              borderRadius: "6px",
-                              cursor: loadingStripe ? "not-allowed" : "pointer",
-                              transition: "background-color 0.2s ease",
-                            }}
-                            onMouseEnter={(e) => {
-                              if (!loadingStripe)
+                            <button
+                              style={{
+                                background: "none",
+                                border: "none",
+                                color: "#dc3545",
+                                fontWeight: "bold",
+                                padding: "6px 16px",
+                                borderRadius: "6px",
+                                cursor: loadingStripe ? "not-allowed" : "pointer",
+                                transition: "background-color 0.2s ease",
+                              }}
+                              onMouseEnter={(e) => {
+                                if (!loadingStripe)
+                                  e.currentTarget.style.backgroundColor =
+                                    "rgba(220,53,69,0.12)";
+                              }}
+                              onMouseLeave={(e) => {
                                 e.currentTarget.style.backgroundColor =
-                                  "rgba(220,53,69,0.12)";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor =
-                                "transparent";
-                            }}
-                            onClick={handleStripeDisconnect}
-                            disabled={loadingStripe}
-                          >
-                            {loadingStripe ? (
-                              <Spinner size="sm" />
-                            ) : (
-                              t("Disconnect")
-                            )}
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="d-flex align-items-center justify-content-between p-3 rounded bg-light border border-warning">
-                          <div className="d-flex align-items-center">
-                            <div
-                              className="me-3 bg-white p-2 rounded-circle d-flex align-items-center justify-content-center border"
-                              style={{ width: "40px", height: "40px" }}
+                                  "transparent";
+                              }}
+                              onClick={handleStripeDisconnect}
+                              disabled={loadingStripe}
                             >
-                              <SiStripe size={24} color="#635BFF" />
-                            </div>
-                            <div>
-                              <h6 className="mb-0 fw-bold text-dark">
-                                {t("Stripe Integration Required")}
-                              </h6>
-                              <small className="text-muted">
-                                {t(
-                                  "Connect your Stripe account to enable registration.",
-                                )}
-                              </small>
-                            </div>
+                              {loadingStripe ? (
+                                <Spinner size="sm" />
+                              ) : (
+                                t("Disconnect")
+                              )}
+                            </button>
                           </div>
-                          <button
-                            className="btn text-white fw-bold px-4"
-                            style={{
-                              backgroundColor: "#635BFF",
-                              borderRadius: "8px",
-                            }}
-                            onClick={handleStripeConnect}
-                            disabled={loadingStripe}
-                          >
-                            {loadingStripe ? (
-                              <Spinner size="sm" />
-                            ) : (
-                              t("Connect Stripe")
-                            )}
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                        ) : (
+                          <div className="d-flex align-items-center justify-content-between p-3 rounded bg-light border border-warning">
+                            <div className="d-flex align-items-center">
+                              <div
+                                className="me-3 bg-white p-2 rounded-circle d-flex align-items-center justify-content-center border"
+                                style={{ width: "40px", height: "40px" }}
+                              >
+                                <SiStripe size={24} color="#635BFF" />
+                              </div>
+                              <div>
+                                <h6 className="mb-0 fw-bold text-dark">
+                                  {t("Stripe Integration Required")}
+                                </h6>
+                                <small className="text-muted">
+                                  {t(
+                                    "Connect your Stripe account to enable registration.",
+                                  )}
+                                </small>
+                              </div>
+                            </div>
+                            <button
+                              className="btn text-white fw-bold px-4"
+                              style={{
+                                backgroundColor: "#635BFF",
+                                borderRadius: "8px",
+                              }}
+                              onClick={handleStripeConnect}
+                              disabled={loadingStripe}
+                            >
+                              {loadingStripe ? (
+                                <Spinner size="sm" />
+                              ) : (
+                                t("Connect Stripe")
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    {/* )} */}
                     <div className="col-md-6 mb-2 form">
                       <div className="form-group">
                         <label className="form-label">
@@ -4824,104 +4830,106 @@ const QuickMomentForm = ({
 
                 {formState?.casting_type === "Registration" ? (
                   <div className="row g-2">
-                    <div className="col-12 mb-3">
-                      {isStripeConnected ? (
-                        <div
-                          className="d-flex align-items-center justify-content-between p-3 rounded"
-                          style={{
-                            backgroundColor: "rgba(47, 187, 103, 0.1)",
-                            border: "1px solid #2fa25d",
-                          }}
-                        >
-                          <div className="d-flex align-items-center">
-                            <div
-                              className="me-3 bg-white p-2 rounded-circle d-flex align-items-center justify-content-center"
-                              style={{ width: "40px", height: "40px" }}
-                            >
-                              <SiStripe size={24} color="#635BFF" />
-                            </div>
-                            <div>
-                              <h6
-                                className="mb-0 fw-bold"
-                                style={{ color: "#2fa25d" }}
+                    {/* {(isStripeConnected || (isStripeRequired && !isStripeConnected)) && ( */}
+                      <div className="col-12 mb-3">
+                        {isStripeConnected ? (
+                          <div
+                            className="d-flex align-items-center justify-content-between p-3 rounded"
+                            style={{
+                              backgroundColor: "rgba(47, 187, 103, 0.1)",
+                              border: "1px solid #2fa25d",
+                            }}
+                          >
+                            <div className="d-flex align-items-center">
+                              <div
+                                className="me-3 bg-white p-2 rounded-circle d-flex align-items-center justify-content-center"
+                                style={{ width: "40px", height: "40px" }}
                               >
-                                {t("Stripe Account Connected")}
-                              </h6>
-                              <small className="text-muted">
-                                {t(
-                                  "You can now receive payments for this registration.",
-                                )}
-                              </small>
+                                <SiStripe size={24} color="#635BFF" />
+                              </div>
+                              <div>
+                                <h6
+                                  className="mb-0 fw-bold"
+                                  style={{ color: "#2fa25d" }}
+                                >
+                                  {t("Stripe Account Connected")}
+                                </h6>
+                                <small className="text-muted">
+                                  {t(
+                                    "You can now receive payments for this registration.",
+                                  )}
+                                </small>
+                              </div>
                             </div>
-                          </div>
-                          <button
-                            style={{
-                              background: "none",
-                              border: "none",
-                              color: "#dc3545",
-                              fontWeight: "bold",
-                              padding: "6px 16px",
-                              borderRadius: "6px",
-                              cursor: loadingStripe ? "not-allowed" : "pointer",
-                              transition: "background-color 0.2s ease",
-                            }}
-                            onMouseEnter={(e) => {
-                              if (!loadingStripe)
+                            <button
+                              style={{
+                                background: "none",
+                                border: "none",
+                                color: "#dc3545",
+                                fontWeight: "bold",
+                                padding: "6px 16px",
+                                borderRadius: "6px",
+                                cursor: loadingStripe ? "not-allowed" : "pointer",
+                                transition: "background-color 0.2s ease",
+                              }}
+                              onMouseEnter={(e) => {
+                                if (!loadingStripe)
+                                  e.currentTarget.style.backgroundColor =
+                                    "rgba(220,53,69,0.12)";
+                              }}
+                              onMouseLeave={(e) => {
                                 e.currentTarget.style.backgroundColor =
-                                  "rgba(220,53,69,0.12)";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor =
-                                "transparent";
-                            }}
-                            onClick={handleStripeDisconnect}
-                            disabled={loadingStripe}
-                          >
-                            {loadingStripe ? (
-                              <Spinner size="sm" />
-                            ) : (
-                              t("Disconnect")
-                            )}
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="d-flex align-items-center justify-content-between p-3 rounded bg-light border border-warning">
-                          <div className="d-flex align-items-center">
-                            <div
-                              className="me-3 bg-white p-2 rounded-circle d-flex align-items-center justify-content-center border"
-                              style={{ width: "40px", height: "40px" }}
+                                  "transparent";
+                              }}
+                              onClick={handleStripeDisconnect}
+                              disabled={loadingStripe}
                             >
-                              <SiStripe size={24} color="#635BFF" />
-                            </div>
-                            <div>
-                              <h6 className="mb-0 fw-bold text-dark">
-                                {t("Stripe Integration Required")}
-                              </h6>
-                              <small className="text-muted">
-                                {t(
-                                  "Connect your Stripe account to enable registration.",
-                                )}
-                              </small>
-                            </div>
+                              {loadingStripe ? (
+                                <Spinner size="sm" />
+                              ) : (
+                                t("Disconnect")
+                              )}
+                            </button>
                           </div>
-                          <button
-                            className="btn text-white fw-bold px-4"
-                            style={{
-                              backgroundColor: "#635BFF",
-                              borderRadius: "8px",
-                            }}
-                            onClick={handleStripeConnect}
-                            disabled={loadingStripe}
-                          >
-                            {loadingStripe ? (
-                              <Spinner size="sm" />
-                            ) : (
-                              t("Connect Stripe")
-                            )}
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                        ) : (
+                          <div className="d-flex align-items-center justify-content-between p-3 rounded bg-light border border-warning">
+                            <div className="d-flex align-items-center">
+                              <div
+                                className="me-3 bg-white p-2 rounded-circle d-flex align-items-center justify-content-center border"
+                                style={{ width: "40px", height: "40px" }}
+                              >
+                                <SiStripe size={24} color="#635BFF" />
+                              </div>
+                              <div>
+                                <h6 className="mb-0 fw-bold text-dark">
+                                  {t("Stripe Integration Required")}
+                                </h6>
+                                <small className="text-muted">
+                                  {t(
+                                    "Connect your Stripe account to enable registration.",
+                                  )}
+                                </small>
+                              </div>
+                            </div>
+                            <button
+                              className="btn text-white fw-bold px-4"
+                              style={{
+                                backgroundColor: "#635BFF",
+                                borderRadius: "8px",
+                              }}
+                              onClick={handleStripeConnect}
+                              disabled={loadingStripe}
+                            >
+                              {loadingStripe ? (
+                                <Spinner size="sm" />
+                              ) : (
+                                t("Connect Stripe")
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    {/* )} */}
                     <div className="col-md-6 mb-2 form">
                       <div className="form-group">
                         <label className="form-label">
@@ -5197,8 +5205,7 @@ const QuickMomentForm = ({
                         disabled={
                           !momentName ||
                           loading ||
-                          (formState?.casting_type === "Registration" &&
-                            !isStripeConnected)
+                          (isStripeRequired && !isStripeConnected)
                         }
                       >
                         {loading ? (
@@ -5219,8 +5226,7 @@ const QuickMomentForm = ({
                             disabled={
                               !momentName ||
                               loadingPlay ||
-                              (formState?.casting_type === "Registration" &&
-                                !isStripeConnected)
+                              (isStripeRequired && !isStripeConnected)
                             }
                           >
                             {loadingPlay ? (
@@ -5261,8 +5267,7 @@ const QuickMomentForm = ({
                         disabled={
                           !momentName ||
                           loading ||
-                          (formState?.casting_type === "Registration" &&
-                            !isStripeConnected)
+                          (isStripeRequired && !isStripeConnected)
                         }
                       >
                         {loading ? (
@@ -5284,8 +5289,7 @@ const QuickMomentForm = ({
                             disabled={
                               !momentName ||
                               loadingPlay ||
-                              (formState?.casting_type === "Registration" &&
-                                !isStripeConnected)
+                              (isStripeRequired && !isStripeConnected)
                             }
                           >
                             {loadingPlay ? (

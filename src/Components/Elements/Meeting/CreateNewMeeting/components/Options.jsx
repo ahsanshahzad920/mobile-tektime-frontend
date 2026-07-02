@@ -123,15 +123,15 @@ const Options = ({ setActiveTab, meeting }) => {
   // Load meeting data into form when available
   useEffect(() => {
     if (meeting) {
-      const playbackValue = meeting.playback || ""; // Get the playback value
+      const playbackValue = meeting?.playback || ""; // Get the playback value
       const isAutomatic = playbackValue === "automatic"; // Check if playback is automatic
       setFormState((prevState) => ({
         ...prevState,
         prise_de_notes:
           meeting?.prise_de_notes || t("meeting.formState.Manual"),
-        note_taker: meeting?.note_taker || false,
+        // note_taker: meeting?.note_taker || false,
         alarm: meeting?.alarm || false,
-        playback: playbackValue,
+        playback: playbackValue || "manual",
         autostart: meeting?.autostart || false,
         share_by: meeting?.share_by || null,
         remainder: meeting?.remainder || false,

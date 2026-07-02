@@ -666,7 +666,7 @@ const ActionTabs = () => {
         }
 
         // 💳 Stripe Connection Check for Registration Solutions
-        if (momentType?.solution?.casting_type === "Registration" && !isStripeConnected) {
+        if (isStripeRequired && !isStripeConnected) {
           toast.error(t("stripe_not_connected_error") || "Veuillez connecter votre compte Stripe pour créer un moment avec inscription.");
           return;
         }
@@ -767,6 +767,7 @@ const ActionTabs = () => {
     }
   };
   const [momentType, setMomentType] = useState("");
+  const isStripeRequired = momentType?.solution?.casting_type === "Registration" && Number(momentType?.solution?.price) > 0;
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const roleId = parseInt(user?.role_id);
       const [solutions, setSolutions] = useState([])
@@ -1553,19 +1554,19 @@ const ActionTabs = () => {
                       textAlign: "left",
                       color: " #FFFFFF",
                       background: !selectedMoment || (selectedMoment.__isNew__ && !momentType) || 
-                        (selectedMoment.__isNew__ && momentType?.solution?.casting_type === "Registration" && !isStripeConnected) ||
+                        (selectedMoment.__isNew__ && isStripeRequired && !isStripeConnected) ||
                         isSubmitting || isLoading ? "#ccc" : "#2C48AE",
                       border: 0,
                       outline: 0,
                       padding: "10px 16px",
                       borderRadius: "9px",
                       cursor: !selectedMoment || (selectedMoment.__isNew__ && !momentType) || 
-                        (selectedMoment.__isNew__ && momentType?.solution?.casting_type === "Registration" && !isStripeConnected) ||
+                        (selectedMoment.__isNew__ && isStripeRequired && !isStripeConnected) ||
                         isSubmitting || isLoading ? "not-allowed" : "pointer"
                     }}
                     onClick={handleContinue}
                     disabled={!selectedMoment || (selectedMoment.__isNew__ && !momentType) || 
-                      (selectedMoment.__isNew__ && momentType?.solution?.casting_type === "Registration" && !isStripeConnected) ||
+                      (selectedMoment.__isNew__ && isStripeRequired && !isStripeConnected) ||
                       isSubmitting || isLoading}
                   >
                     {isSubmitting || isLoading ? (

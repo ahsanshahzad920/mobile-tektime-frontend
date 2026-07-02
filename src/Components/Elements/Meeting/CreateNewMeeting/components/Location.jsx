@@ -1,6 +1,6 @@
 import CookieService from '../../../../Utils/CookieService';
-import React, { useEffect, useState } from "react";
-import { Row, Col, Spinner } from "react-bootstrap";
+import React, { useEffect, useState, useRef } from "react";
+import { Row, Col, Spinner, InputGroup } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
 import { useFormContext } from "../../../../../context/CreateMeetingContext";
 import { toast } from "react-toastify";
@@ -40,6 +40,151 @@ function Location({}) {
   const { setUser, user, setCallUser } = useHeaderTitle();
   const isFromTemplate = !!formState?.solution_id;
   const [allowedLocations, setAllowedLocations] = useState({});
+
+  const [addressSuggestions, setAddressSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isSelecting, setIsSelecting] = useState(false);
+  const addressTimeoutRef = useRef(null);
+  const [googleMapsLoaded, setGoogleMapsLoaded] = useState(false);
+  const autocompleteServiceRef = useRef(null);
+
+  // Dynamic loading of Google Maps API script
+  useEffect(() => {
+    let scriptToCleanup = null;
+    let handleScriptLoad = () => setGoogleMapsLoaded(true);
+
+    if (window.google && window.google.maps && window.google.maps.places) {
+      setGoogleMapsLoaded(true);
+      return;
+    }
+
+    const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || "";
+    if (!apiKey) {
+      console.warn("Google Maps API Key missing. Falling back to Photon API.");
+      return;
+    }
+
+    const existingScript = document.getElementById("google-maps-script");
+    if (existingScript) {
+      scriptToCleanup = existingScript;
+      existingScript.addEventListener("load", handleScriptLoad);
+      
+      if (window.google && window.google.maps && window.google.maps.places) {
+        setGoogleMapsLoaded(true);
+      }
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.id = "google-maps-script";
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    
+    script.onload = handleScriptLoad;
+    script.onerror = () => {
+      console.error("Failed to load Google Maps script. Falling back to Photon API.");
+    };
+    
+    document.head.appendChild(script);
+
+    return () => {
+      if (scriptToCleanup) {
+        scriptToCleanup.removeEventListener("load", handleScriptLoad);
+      }
+      if (addressTimeoutRef.current) {
+        clearTimeout(addressTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Handle Input with Debouncing
+  const handleAddressChange = (e) => {
+    const value = e.target.value;
+    setFormState((prev) => ({ ...prev, address: value }));
+
+    if (isSelecting) {
+      setIsSelecting(false);
+      return;
+    }
+
+    if (addressTimeoutRef.current) clearTimeout(addressTimeoutRef.current);
+
+    if (value.length > 2) {
+      addressTimeoutRef.current = setTimeout(async () => {
+        setIsSearching(true);
+
+        const isGoogleReady = window.google && window.google.maps && window.google.maps.places;
+
+        if (isGoogleReady) {
+          try {
+            if (!autocompleteServiceRef.current) {
+              autocompleteServiceRef.current = new window.google.maps.places.AutocompleteService();
+            }
+            
+            autocompleteServiceRef.current.getPlacePredictions(
+              { input: value },
+              (predictions, status) => {
+                if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+                  const suggestions = predictions.map(p => ({
+                    description: p.description,
+                    mainText: p.structured_formatting?.main_text || p.description,
+                    secondaryText: p.structured_formatting?.secondary_text || ""
+                  }));
+                  setAddressSuggestions(suggestions);
+                  setShowSuggestions(true);
+                } else {
+                  setAddressSuggestions([]);
+                }
+                setIsSearching(false);
+              }
+            );
+          } catch (error) {
+            console.error("Google Places API Error:", error);
+            setIsSearching(false);
+          }
+        } else {
+          // Fallback to Nominatim API (OpenStreetMap)
+          try {
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(value)}&format=json&addressdetails=1&limit=5`
+            );
+            const data = await response.json();
+            const suggestions = data.map(item => {
+              const addressParts = item.display_name.split(", ");
+              const mainText = addressParts[0];
+              const subtext = addressParts.slice(1).join(", ");
+              
+              return {
+                description: item.display_name,
+                mainText: mainText || "Unknown Place",
+                secondaryText: subtext
+              };
+            });
+            setAddressSuggestions(suggestions);
+            setShowSuggestions(true);
+          } catch (error) {
+            console.error("Address API Fallback Error:", error);
+          } finally {
+            setIsSearching(false);
+          }
+        }
+      }, 500);
+    } else {
+      setAddressSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  const selectAddress = (item) => {
+    setIsSelecting(true);
+    const fullAddress = item.description;
+    setFormState((prev) => ({ ...prev, address: fullAddress }));
+    setAddressSuggestions([]);
+    setShowSuggestions(false);
+    if (addressTimeoutRef.current) clearTimeout(addressTimeoutRef.current);
+  };
 
   useEffect(() => {
     if (formState?.solution_id) {
@@ -946,23 +1091,69 @@ function Location({}) {
                         className="row form"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <div className="mb-2 col-lg-12">
-                          <input
-                            type="text"
-                            required
-                            className="form-control w-100"
-                            value={formState.address}
-                            name="address"
-                            onChange={(e) => {
-                              setFormState({
-                                ...formState,
-                                address: e.target.value,
-                              });
-                            }}
-                            disabled={meeting?.type === "Google Agenda Event" || meeting?.type === "Outlook Agenda Event"}
-                            placeholder={t("meeting.formState.address")}
-                            style={{ marginTop: "1rem" }}
-                          />
+                        <div className="mb-2 col-lg-12" style={{ position: 'relative' }}>
+                          <InputGroup style={{ marginTop: "1rem" }}>
+                            <input
+                              type="text"
+                              required
+                              className="form-control w-100"
+                              value={formState.address || ""}
+                              name="address"
+                              autoComplete="off"
+                              onChange={handleAddressChange}
+                              onFocus={() => formState.address?.length > 2 && addressSuggestions.length > 0 && setShowSuggestions(true)}
+                              onBlur={() => setTimeout(() => setShowSuggestions(false), 300)}
+                              disabled={meeting?.type === "Google Agenda Event" || meeting?.type === "Outlook Agenda Event"}
+                              placeholder={t("meeting.formState.address")}
+                              style={{ borderRight: isSearching ? 'none' : '' }}
+                            />
+                            {isSearching && (
+                              <InputGroup.Text style={{ background: 'white', borderLeft: 'none' }}>
+                                <Spinner animation="border" size="sm" variant="primary" />
+                              </InputGroup.Text>
+                            )}
+                          </InputGroup>
+
+                          {/* Suggestions List */}
+                          {showSuggestions && addressSuggestions.length > 0 && (
+                            <div style={{
+                              position: 'absolute',
+                              top: '100%',
+                              left: '12px',
+                              right: '12px',
+                              backgroundColor: 'white',
+                              border: '1px solid #ced4da',
+                              borderRadius: '0 0 8px 8px',
+                              zIndex: 1050,
+                              boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
+                              marginTop: '-1px'
+                            }}>
+                              {addressSuggestions.map((item, index) => (
+                                <div
+                                  key={index}
+                                  onClick={() => selectAddress(item)}
+                                  style={{
+                                    padding: '12px 15px',
+                                    cursor: 'pointer',
+                                    borderBottom: index !== addressSuggestions.length - 1 ? '1px solid #f1f1f1' : 'none',
+                                    fontSize: '14px'
+                                  }}
+                                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+                                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                                >
+                                  <div className="d-flex align-items-start">
+                                    <span className="me-2">📍</span>
+                                    <div>
+                                      <strong style={{ display: 'block', color: '#333', textAlign: 'left' }}>{item.mainText}</strong>
+                                      {item.secondaryText && (
+                                        <small style={{ color: '#6c757d', display: 'block', textAlign: 'left' }}>{item.secondaryText}</small>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

@@ -9,6 +9,7 @@ import {
   OverlayTrigger,
   Spinner,
   ProgressBar,
+  InputGroup,
 } from "react-bootstrap";
 import Creatable from "react-select/creatable";
 import { API_BASE_URL, Assets_URL } from "../../../Apicongfig";
@@ -153,6 +154,151 @@ const QuickMomentForm = ({
   const [isLoadingMissionTypes, setIsLoadingMissionTypes] = useState(false);
   const [usersArray, setUsersArray] = useState([]);
   const [missionOptions, setMissionOptions] = useState([]);
+
+  const [addressSuggestions, setAddressSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isSelecting, setIsSelecting] = useState(false);
+  const addressTimeoutRef = useRef(null);
+  const [googleMapsLoaded, setGoogleMapsLoaded] = useState(false);
+  const autocompleteServiceRef = useRef(null);
+
+  // Dynamic loading of Google Maps API script
+  useEffect(() => {
+    let scriptToCleanup = null;
+    let handleScriptLoad = () => setGoogleMapsLoaded(true);
+
+    if (window.google && window.google.maps && window.google.maps.places) {
+      setGoogleMapsLoaded(true);
+      return;
+    }
+
+    const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || "";
+    if (!apiKey) {
+      console.warn("Google Maps API Key missing. Falling back to Photon API.");
+      return;
+    }
+
+    const existingScript = document.getElementById("google-maps-script");
+    if (existingScript) {
+      scriptToCleanup = existingScript;
+      existingScript.addEventListener("load", handleScriptLoad);
+      
+      if (window.google && window.google.maps && window.google.maps.places) {
+        setGoogleMapsLoaded(true);
+      }
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.id = "google-maps-script";
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    
+    script.onload = handleScriptLoad;
+    script.onerror = () => {
+      console.error("Failed to load Google Maps script. Falling back to Photon API.");
+    };
+    
+    document.head.appendChild(script);
+
+    return () => {
+      if (scriptToCleanup) {
+        scriptToCleanup.removeEventListener("load", handleScriptLoad);
+      }
+      if (addressTimeoutRef.current) {
+        clearTimeout(addressTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Handle Input with Debouncing
+  const handleAddressChange = (e) => {
+    const value = e.target.value;
+    setFormState((prev) => ({ ...prev, address: value }));
+
+    if (isSelecting) {
+      setIsSelecting(false);
+      return;
+    }
+
+    if (addressTimeoutRef.current) clearTimeout(addressTimeoutRef.current);
+
+    if (value.length > 2) {
+      addressTimeoutRef.current = setTimeout(async () => {
+        setIsSearching(true);
+
+        const isGoogleReady = window.google && window.google.maps && window.google.maps.places;
+
+        if (isGoogleReady) {
+          try {
+            if (!autocompleteServiceRef.current) {
+              autocompleteServiceRef.current = new window.google.maps.places.AutocompleteService();
+            }
+            
+            autocompleteServiceRef.current.getPlacePredictions(
+              { input: value },
+              (predictions, status) => {
+                if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+                  const suggestions = predictions.map(p => ({
+                    description: p.description,
+                    mainText: p.structured_formatting?.main_text || p.description,
+                    secondaryText: p.structured_formatting?.secondary_text || ""
+                  }));
+                  setAddressSuggestions(suggestions);
+                  setShowSuggestions(true);
+                } else {
+                  setAddressSuggestions([]);
+                }
+                setIsSearching(false);
+              }
+            );
+          } catch (error) {
+            console.error("Google Places API Error:", error);
+            setIsSearching(false);
+          }
+        } else {
+          // Fallback to Nominatim API (OpenStreetMap)
+          try {
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(value)}&format=json&addressdetails=1&limit=5`
+            );
+            const data = await response.json();
+            const suggestions = data.map(item => {
+              const addressParts = item.display_name.split(", ");
+              const mainText = addressParts[0];
+              const subtext = addressParts.slice(1).join(", ");
+              
+              return {
+                description: item.display_name,
+                mainText: mainText || "Unknown Place",
+                secondaryText: subtext
+              };
+            });
+            setAddressSuggestions(suggestions);
+            setShowSuggestions(true);
+          } catch (error) {
+            console.error("Address API Fallback Error:", error);
+          } finally {
+            setIsSearching(false);
+          }
+        }
+      }, 500);
+    } else {
+      setAddressSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  const selectAddress = (item) => {
+    setIsSelecting(true);
+    const fullAddress = item.description;
+    setFormState((prev) => ({ ...prev, address: fullAddress }));
+    setAddressSuggestions([]);
+    setShowSuggestions(false);
+    if (addressTimeoutRef.current) clearTimeout(addressTimeoutRef.current);
+  };
 
   const navigate = useNavigate();
   const [isManualTitle, setIsManualTitle] = useState(false);
@@ -3541,29 +3687,77 @@ const QuickMomentForm = ({
                 )}
 
                 {/* Physical Location Details */}
-                {(formState.address ||
-                  formState.room_details ||
-                  formState.phone) && (
+                {((formState.address !== null && formState.address !== undefined) ||
+                  (formState.room_details !== null && formState.room_details !== undefined) ||
+                  (formState.phone !== null && formState.phone !== undefined)) && (
                   <div className="row mt-2 g-2">
-                    {formState.address && (
-                      <div className="form-group col-md-12 mb-3">
+                    {formState.address !== null && formState.address !== undefined && (
+                      <div className="form-group col-md-12 mb-3" style={{ position: 'relative' }}>
                         <label className="form-label">
                           {t("meeting.formState.address")}
                         </label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={formState.address}
-                          onChange={(e) =>
-                            setFormState((prev) => ({
-                              ...prev,
-                              address: e.target.value,
-                            }))
-                          }
-                        />
+                        <InputGroup>
+                          <input
+                            type="text"
+                            className="form-control"
+                            value={formState.address || ""}
+                            name="address"
+                            autoComplete="off"
+                            onChange={handleAddressChange}
+                            onFocus={() => formState.address?.length > 2 && addressSuggestions.length > 0 && setShowSuggestions(true)}
+                            onBlur={() => setTimeout(() => setShowSuggestions(false), 300)}
+                            style={{ borderRight: isSearching ? 'none' : '' }}
+                          />
+                          {isSearching && (
+                            <InputGroup.Text style={{ background: 'white', borderLeft: 'none' }}>
+                              <Spinner animation="border" size="sm" variant="primary" />
+                            </InputGroup.Text>
+                          )}
+                        </InputGroup>
+
+                        {/* Suggestions List */}
+                        {showSuggestions && addressSuggestions.length > 0 && (
+                          <div style={{
+                            position: 'absolute',
+                            top: '100%',
+                            left: '6px',
+                            right: '6px',
+                            backgroundColor: 'white',
+                            border: '1px solid #ced4da',
+                            borderRadius: '0 0 8px 8px',
+                            zIndex: 1050,
+                            boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
+                            marginTop: '-1px'
+                          }}>
+                            {addressSuggestions.map((item, index) => (
+                              <div
+                                key={index}
+                                onClick={() => selectAddress(item)}
+                                style={{
+                                  padding: '12px 15px',
+                                  cursor: 'pointer',
+                                  borderBottom: index !== addressSuggestions.length - 1 ? '1px solid #f1f1f1' : 'none',
+                                  fontSize: '14px'
+                                }}
+                                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+                                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                              >
+                                <div className="d-flex align-items-start">
+                                  <span className="me-2">📍</span>
+                                  <div>
+                                    <strong style={{ display: 'block', color: '#333', textAlign: 'left' }}>{item.mainText}</strong>
+                                    {item.secondaryText && (
+                                      <small style={{ color: '#6c757d', display: 'block', textAlign: 'left' }}>{item.secondaryText}</small>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
-                    {formState.room_details && (
+                    {formState.room_details !== null && formState.room_details !== undefined && (
                       <div className="form-group col-md-6 mb-3">
                         <label className="form-label">
                           {t("meeting.formState.RoomDetail")}
@@ -3581,7 +3775,7 @@ const QuickMomentForm = ({
                         />
                       </div>
                     )}
-                    {formState.phone && (
+                    {formState.phone !== null && formState.phone !== undefined && (
                       <div className="form-group col-md-6 mb-3">
                         <label className="form-label">
                           {t("meeting.formState.phone")}
@@ -4753,29 +4947,77 @@ const QuickMomentForm = ({
                 )}
 
                 {/* Physical Location Details */}
-                {(formState.address ||
-                  formState.room_details ||
-                  formState.phone) && (
+                {((formState.address !== null && formState.address !== undefined) ||
+                  (formState.room_details !== null && formState.room_details !== undefined) ||
+                  (formState.phone !== null && formState.phone !== undefined)) && (
                   <div className="row mt-2 g-2">
-                    {formState.address && (
-                      <div className="form-group col-md-12 mb-3">
+                    {formState.address !== null && formState.address !== undefined && (
+                      <div className="form-group col-md-12 mb-3" style={{ position: 'relative' }}>
                         <label className="form-label">
                           {t("meeting.formState.address")}
                         </label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={formState.address}
-                          onChange={(e) =>
-                            setFormState((prev) => ({
-                              ...prev,
-                              address: e.target.value,
-                            }))
-                          }
-                        />
+                        <InputGroup>
+                          <input
+                            type="text"
+                            className="form-control"
+                            value={formState.address || ""}
+                            name="address"
+                            autoComplete="off"
+                            onChange={handleAddressChange}
+                            onFocus={() => formState.address?.length > 2 && addressSuggestions.length > 0 && setShowSuggestions(true)}
+                            onBlur={() => setTimeout(() => setShowSuggestions(false), 300)}
+                            style={{ borderRight: isSearching ? 'none' : '' }}
+                          />
+                          {isSearching && (
+                            <InputGroup.Text style={{ background: 'white', borderLeft: 'none' }}>
+                              <Spinner animation="border" size="sm" variant="primary" />
+                            </InputGroup.Text>
+                          )}
+                        </InputGroup>
+
+                        {/* Suggestions List */}
+                        {showSuggestions && addressSuggestions.length > 0 && (
+                          <div style={{
+                            position: 'absolute',
+                            top: '100%',
+                            left: '6px',
+                            right: '6px',
+                            backgroundColor: 'white',
+                            border: '1px solid #ced4da',
+                            borderRadius: '0 0 8px 8px',
+                            zIndex: 1050,
+                            boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
+                            marginTop: '-1px'
+                          }}>
+                            {addressSuggestions.map((item, index) => (
+                              <div
+                                key={index}
+                                onClick={() => selectAddress(item)}
+                                style={{
+                                  padding: '12px 15px',
+                                  cursor: 'pointer',
+                                  borderBottom: index !== addressSuggestions.length - 1 ? '1px solid #f1f1f1' : 'none',
+                                  fontSize: '14px'
+                                }}
+                                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+                                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                              >
+                                <div className="d-flex align-items-start">
+                                  <span className="me-2">📍</span>
+                                  <div>
+                                    <strong style={{ display: 'block', color: '#333', textAlign: 'left' }}>{item.mainText}</strong>
+                                    {item.secondaryText && (
+                                      <small style={{ color: '#6c757d', display: 'block', textAlign: 'left' }}>{item.secondaryText}</small>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
-                    {formState.room_details && (
+                    {formState.room_details !== null && formState.room_details !== undefined && (
                       <div className="form-group col-md-6 mb-3">
                         <label className="form-label">
                           {t("meeting.formState.RoomDetail")}
@@ -4793,7 +5035,7 @@ const QuickMomentForm = ({
                         />
                       </div>
                     )}
-                    {formState.phone && (
+                    {formState.phone !== null && formState.phone !== undefined && (
                       <div className="form-group col-md-6 mb-3">
                         <label className="form-label">
                           {t("meeting.formState.phone")}

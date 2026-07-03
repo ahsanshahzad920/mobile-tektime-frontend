@@ -9,6 +9,7 @@ import {
   OverlayTrigger,
   Spinner,
   ProgressBar,
+  Form as BootstrapForm,
   InputGroup,
 } from "react-bootstrap";
 import Creatable from "react-select/creatable";
@@ -24,10 +25,16 @@ import { getUserRoleID } from "../../../Utils/getSessionstorageItems";
 import Select from "react-select";
 import { format } from "date-fns";
 import Flatpickr from "react-flatpickr";
+import { Modal as AntModal, Upload } from "antd";
+import { Editor } from "@tinymce/tinymce-react";
+import { HiInbox } from "react-icons/hi2";
 import "flatpickr/dist/themes/material_blue.css";
 import { French } from "flatpickr/dist/l10n/fr.js";
 import { useDraftMeetings } from "../../../../context/DraftMeetingContext";
 import QuickStepChart from "./QuickStepChart";
+import AddNewEmail from "../../Discussion/Outlook/AddNewEmail";
+import AddNewMail from "../../Discussion/Gmail/AddNewMail";
+import AddNewIonosEmail from "../../Discussion/Ionos/AddNewIonosEmail";
 import moment from "moment";
 import {
   formatDate,
@@ -46,6 +53,9 @@ import {
   FaSearch,
   FaChessKnight,
   FaLinkedin,
+  FaWhatsapp,
+  FaEye,
+  FaEyeSlash,
 } from "react-icons/fa";
 import {
   MdEventAvailable,
@@ -62,6 +72,8 @@ import {
   SiGooglemeet,
   SiMicrosoftoutlook,
   SiStripe,
+  SiGmail,
+  SiIonos,
 } from "react-icons/si";
 import Solution from "../../Meeting/CreateNewMeeting/components/Template";
 import CalendlySettings from "../../Meeting/CreateNewMeeting/components/CalendlySettings";
@@ -71,6 +83,8 @@ import { toast } from "react-toastify";
 import { useHeaderTitle } from "../../../../context/HeaderTitleContext";
 import { useMeetings } from "../../../../context/MeetingsContext";
 import GoogleConnectFlow from "../../Profile/GoogleConnectFlow";
+
+const { Dragger } = Upload;
 
 const QuickMomentForm = ({
   show,
@@ -86,11 +100,81 @@ const QuickMomentForm = ({
   const [step, setStep] = useState(
     meetingData ? 2 : openedFrom === "mission" ? 1 : 1,
   );
+  const [emailMessageText, setEmailMessageText] = useState("");
+  const [emailFileList, setEmailFileList] = useState([]);
+
+  const emailUploadProps = {
+    fileList: emailFileList,
+    onRemove: (file) =>
+      setEmailFileList((prev) => prev.filter((f) => f.uid !== file.uid)),
+    beforeUpload: (file) => {
+      setEmailFileList((prev) => [...prev, file]);
+      return false;
+    },
+    multiple: true,
+  };
+
   const [momentType, setMomentType] = useState("");
   const [momentName, setMomentName] = useState("");
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showStepsModal, setShowStepsModal] = useState(false);
+  const [showOutlookEmail, setShowOutlookEmail] = useState(false);
+  const [showGmailEmail, setShowGmailEmail] = useState(false);
+  const [showIonosEmail, setShowIonosEmail] = useState(false);
   const [stepsList, setStepsList] = useState([]);
+  const [showGmailConnect, setShowGmailConnect] = useState(false);
+  const [showIonosModal, setShowIonosModal] = useState(false);
+  const [showIonosPassword, setShowIonosPassword] = useState(false);
+  const [ionosForm, setIonosForm] = useState({
+    host: "imap.ionos.com",
+    username: "",
+    password: "",
+    domain: "com",
+  });
+  const [ionosValidated, setIonosValidated] = useState(false);
+  const [ionosLoading, setIonosLoading] = useState(false);
+
+  const handleIonosSubmit = async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    if (form.checkValidity() === false) {
+      event.stopPropagation();
+      setIonosValidated(true);
+      return;
+    }
+
+    setIonosLoading(true);
+    const userId = parseInt(CookieService.get("user_id"), 10);
+    const payload = {
+      username: ionosForm.username,
+      password: ionosForm.password,
+      host: ionosForm.host,
+    };
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/ionos-emails/add-account`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${CookieService.get("token")}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "API error");
+      }
+
+      toast.success(t("Compte ajouté avec succès !"));
+      setShowIonosModal(false);
+      if (setCallUser) setCallUser((prev) => !prev);
+    } catch (err) {
+      toast.error(err.message || t("Échec de l'ajout du compte"));
+    } finally {
+      setIonosLoading(false);
+    }
+  };
   const [newStep, setNewStep] = useState("");
   const [isDrop, setIsDrop] = useState(false);
   const [meeting, setMeeting] = useState(null);
@@ -141,9 +225,7 @@ const QuickMomentForm = ({
   } = useFormContext();
 
   const isStripeRequired =
-    formState?.casting_type === "Registration" &&
-    Number(formState?.price) > 0;
-
+    formState?.casting_type === "Registration" && Number(formState?.price) > 0;
   const [mission, setMission] = useState(null);
   const [missionId, setMissionId] = useState(null);
   const [selectedClient, setSelectedClient] = useState(null);
@@ -183,7 +265,7 @@ const QuickMomentForm = ({
     if (existingScript) {
       scriptToCleanup = existingScript;
       existingScript.addEventListener("load", handleScriptLoad);
-      
+
       if (window.google && window.google.maps && window.google.maps.places) {
         setGoogleMapsLoaded(true);
       }
@@ -195,12 +277,14 @@ const QuickMomentForm = ({
     script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
     script.async = true;
     script.defer = true;
-    
+
     script.onload = handleScriptLoad;
     script.onerror = () => {
-      console.error("Failed to load Google Maps script. Falling back to Photon API.");
+      console.error(
+        "Failed to load Google Maps script. Falling back to Photon API.",
+      );
     };
-    
+
     document.head.appendChild(script);
 
     return () => {
@@ -229,22 +313,29 @@ const QuickMomentForm = ({
       addressTimeoutRef.current = setTimeout(async () => {
         setIsSearching(true);
 
-        const isGoogleReady = window.google && window.google.maps && window.google.maps.places;
+        const isGoogleReady =
+          window.google && window.google.maps && window.google.maps.places;
 
         if (isGoogleReady) {
           try {
             if (!autocompleteServiceRef.current) {
-              autocompleteServiceRef.current = new window.google.maps.places.AutocompleteService();
+              autocompleteServiceRef.current =
+                new window.google.maps.places.AutocompleteService();
             }
-            
+
             autocompleteServiceRef.current.getPlacePredictions(
               { input: value },
               (predictions, status) => {
-                if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
-                  const suggestions = predictions.map(p => ({
+                if (
+                  status === window.google.maps.places.PlacesServiceStatus.OK &&
+                  predictions
+                ) {
+                  const suggestions = predictions.map((p) => ({
                     description: p.description,
-                    mainText: p.structured_formatting?.main_text || p.description,
-                    secondaryText: p.structured_formatting?.secondary_text || ""
+                    mainText:
+                      p.structured_formatting?.main_text || p.description,
+                    secondaryText:
+                      p.structured_formatting?.secondary_text || "",
                   }));
                   setAddressSuggestions(suggestions);
                   setShowSuggestions(true);
@@ -252,7 +343,7 @@ const QuickMomentForm = ({
                   setAddressSuggestions([]);
                 }
                 setIsSearching(false);
-              }
+              },
             );
           } catch (error) {
             console.error("Google Places API Error:", error);
@@ -262,18 +353,18 @@ const QuickMomentForm = ({
           // Fallback to Nominatim API (OpenStreetMap)
           try {
             const response = await fetch(
-              `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(value)}&format=json&addressdetails=1&limit=5`
+              `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(value)}&format=json&addressdetails=1&limit=5`,
             );
             const data = await response.json();
-            const suggestions = data.map(item => {
+            const suggestions = data.map((item) => {
               const addressParts = item.display_name.split(", ");
               const mainText = addressParts[0];
               const subtext = addressParts.slice(1).join(", ");
-              
+
               return {
                 description: item.display_name,
                 mainText: mainText || "Unknown Place",
-                secondaryText: subtext
+                secondaryText: subtext,
               };
             });
             setAddressSuggestions(suggestions);
@@ -644,9 +735,34 @@ const QuickMomentForm = ({
     (link) => link.platform === "Outlook Agenda",
   );
 
-  const linkedinLink = user?.linkedin_id || user?.integration_links?.find(
-    (link) => link.platform === "LinkedIn",
+  const linkedinLink =
+    user?.linkedin_id ||
+    user?.integration_links?.find((link) => link.platform === "LinkedIn");
+
+  const gmailLink = user?.gmail_suit?.length > 0 ? user.gmail_suit[0] : null;
+
+  const ionosLink = user?.ionos_links?.length > 0 ? user.ionos_links[0] : null;
+
+  const outlookLink = user?.integration_links?.find(
+    (link) => link.platform === "Outlook Agenda",
   );
+
+  const getIsEmailRequiredButNotConnected = () => {
+    const targetLoc =
+      meeting?.location || meetingData?.location || formState?.location;
+    if (targetLoc === "Outlook") {
+      return formState?.location !== "Outlook" || !outlookLink;
+    }
+    if (targetLoc === "gmail") {
+      return formState?.location !== "gmail" || !gmailLink;
+    }
+    if (targetLoc === "ionos") {
+      return formState?.location !== "ionos" || !ionosLink;
+    }
+    return false;
+  };
+
+  const isOutlookRequiredButNotConnected = getIsEmailRequiredButNotConnected();
 
   const isTemplateActive = !!formState?.solution_id;
   const templateHasLocation = !!selectedSolution?.location;
@@ -712,14 +828,11 @@ const QuickMomentForm = ({
     setProgress(10);
 
     try {
-      const response = await axios.get(
-        `${API_BASE_URL}/auth/linkedin`,
-        {
-          headers: {
-            Authorization: `Bearer ${CookieService.get("token")}`,
-          },
+      const response = await axios.get(`${API_BASE_URL}/auth/linkedin`, {
+        headers: {
+          Authorization: `Bearer ${CookieService.get("token")}`,
         },
-      );
+      });
 
       setProgress(30);
 
@@ -1727,30 +1840,30 @@ const QuickMomentForm = ({
 
     // Determine default mission label based on user profile
     // let defaultMissionLabel = `projet ${selectedClient.label.toLowerCase()}`;
-    let defaultMissionLabel = `projet ${selectedClient.label.toLowerCase()} ${t("of the month of")} ${moment().format('MMMM YYYY')}`;
+    let defaultMissionLabel = `projet ${selectedClient.label.toLowerCase()} ${t("of the month of")} ${moment().format("MMMM YYYY")}`;
     let defaultMissionValue = null;
     let isNewMission = true;
     let shouldCallAPI = false;
 
     switch (userProfile) {
       case "Project Manager / Product Owner":
-        defaultMissionLabel = `projet ${selectedClient.label.toLowerCase()} ${t("of the month of")} ${moment().format('MMMM YYYY')}`;
+        defaultMissionLabel = `projet ${selectedClient.label.toLowerCase()} ${t("of the month of")} ${moment().format("MMMM YYYY")}`;
         shouldCallAPI = true;
         break;
       case "Customer Relations Officer / Sales Representative":
-        defaultMissionLabel = `Opportunité client ${selectedClient.label.toLowerCase()} ${t("of the month of")} ${moment().format('MMMM YYYY')}`;
+        defaultMissionLabel = `Opportunité client ${selectedClient.label.toLowerCase()} ${t("of the month of")} ${moment().format("MMMM YYYY")}`;
         shouldCallAPI = true;
         break;
       case "Manager / Team Leader":
-        defaultMissionLabel = `projet ${selectedClient.label.toLowerCase()} ${t("of the month of")} ${moment().format('MMMM YYYY')}`;
+        defaultMissionLabel = `projet ${selectedClient.label.toLowerCase()} ${t("of the month of")} ${moment().format("MMMM YYYY")}`;
         shouldCallAPI = true;
         break;
       case "Developer / Operational Contributor":
-        defaultMissionLabel = `projet ${selectedClient.label.toLowerCase()} ${t("of the month of")} ${moment().format('MMMM YYYY')}`;
+        defaultMissionLabel = `projet ${selectedClient.label.toLowerCase()} ${t("of the month of")} ${moment().format("MMMM YYYY")}`;
         shouldCallAPI = true;
         break;
       default:
-        defaultMissionLabel = `projet ${selectedClient.label.toLowerCase()} ${t("of the month of")} ${moment().format('MMMM YYYY')}`;
+        defaultMissionLabel = `projet ${selectedClient.label.toLowerCase()} ${t("of the month of")} ${moment().format("MMMM YYYY")}`;
         shouldCallAPI = true;
     }
 
@@ -2003,7 +2116,7 @@ const QuickMomentForm = ({
     try {
       const response = await axios.get(
         `${API_BASE_URL}/get-meeting/${meeting?.id}?current_time=${formattedTime}&current_date=${formattedDate}&user_id=${userId}&timezone=${userTimeZone}`,
-         { headers: { Authorization: `Bearer ${CookieService.get("token")}` } }
+        { headers: { Authorization: `Bearer ${CookieService.get("token")}` } },
       );
       if (response?.status === 200) {
         setMeeting(response?.data?.data);
@@ -2172,6 +2285,165 @@ const QuickMomentForm = ({
     }
   };
 
+  const getInitialEmailRecipients = () => {
+    const participants =
+      formState?.participants || meetingData?.participants || [];
+    return participants
+      .filter((p) => p?.email)
+      .map((p) => ({
+        value: p.email,
+        label: p.email,
+      }));
+  };
+
+  const isEmailConversation = (targetMeeting) => {
+    const isConversation =
+      targetMeeting?.type === "Conversation" ||
+      formState?.type === "Conversation" ||
+      meetingData?.type === "Conversation";
+
+    const loc =
+      targetMeeting?.location || formState?.location || meetingData?.location;
+
+    return ["Outlook", "ionos", "gmail"].includes(loc);
+  };
+
+  const sendEmailForMeeting = async (targetId) => {
+    const loc =
+      meeting?.location || formState?.location || meetingData?.location;
+
+    if (!["Outlook", "gmail", "ionos"].includes(loc)) {
+      return;
+    }
+
+    if (!momentName.trim()) {
+      toast.error(t("discussion.Subject") + " is required");
+      return;
+    }
+    if (!emailMessageText.trim()) {
+      toast.error(t("discussion.Message") + " is required");
+      return;
+    }
+
+    const participants = getInitialEmailRecipients();
+    if (participants.length === 0) {
+      toast.error(t("Add at least one recipient"));
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("meeting_id", targetId);
+    formData.append("subject", momentName);
+    formData.append("message", emailMessageText);
+    participants.forEach((recipient) => {
+      formData.append("recipients[]", recipient.value.trim());
+    });
+    emailFileList.forEach((file) =>
+      formData.append("attachments[]", file.originFileObj || file),
+    );
+
+    let endpoint = "";
+    if (loc === "Outlook") {
+      endpoint = `${API_BASE_URL}/outlook-email/send-email-from-meeting`;
+    } else if (loc === "gmail") {
+      endpoint = `${API_BASE_URL}/google-emails/send-email-from-meeting`;
+    } else if (loc === "ionos") {
+      endpoint = `${API_BASE_URL}/ionos-emails/send-email-from-meeting`;
+    }
+
+    try {
+      const token = CookieService.get("token");
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+
+      const result = await res.json().catch(() => ({}));
+      if (res.ok) {
+        toast.success(t("Email sent successfully!"));
+      } else {
+        toast.error(result.message || t("Failed to send email"));
+      }
+    } catch (err) {
+      console.error("Error sending email:", err);
+      toast.error(t("Network error sending email"));
+    }
+  };
+
+  const handleNextStepOrEmailForm = (targetMeeting) => {
+    const loc =
+      targetMeeting?.location || formState?.location || meetingData?.location;
+
+    if (["Outlook", "ionos", "gmail"].includes(loc)) {
+      setStep(3);
+    } else {
+      setShowStepsModal(true);
+    }
+  };
+
+  const renderEmailStep = () => {
+    const loc =
+      meeting?.location || formState?.location || meetingData?.location;
+
+    const initialRecipients = getInitialEmailRecipients();
+    const initialSubject = momentName;
+
+    const handleEmailAddedInline = () => {
+      const targetId = meeting?.id || meetingData?.id;
+      if (targetId) {
+        navigate(`/invite/${targetId}`);
+      }
+      onClose();
+    };
+
+    const handleCloseInline = () => {
+      setStep(2);
+    };
+
+    if (loc === "Outlook") {
+      return (
+        <div className="step-content">
+          <AddNewEmail
+            inline={true}
+            show={true}
+            onClose={handleCloseInline}
+            onEmailAdded={handleEmailAddedInline}
+            initialRecipients={initialRecipients}
+            initialSubject={initialSubject}
+          />
+        </div>
+      );
+    } else if (loc === "gmail") {
+      return (
+        <div className="step-content">
+          <AddNewMail
+            inline={true}
+            show={true}
+            onClose={handleCloseInline}
+            onEmailAdded={handleEmailAddedInline}
+            initialRecipients={initialRecipients}
+            initialSubject={initialSubject}
+          />
+        </div>
+      );
+    } else if (loc === "ionos") {
+      return (
+        <div className="step-content">
+          <AddNewIonosEmail
+            inline={true}
+            show={true}
+            onClose={handleCloseInline}
+            onEmailAdded={handleEmailAddedInline}
+            initialRecipients={initialRecipients}
+            initialSubject={initialSubject}
+          />
+        </div>
+      );
+    }
+    return null;
+  };
+
   // Determine if we're using a template or creating from scratch
   const isTemplate =
     formState.solution_tab === "use a template" && formState.solution_id;
@@ -2275,13 +2547,18 @@ const QuickMomentForm = ({
         // toast.success(t("meeting.formState.Meeting created successfully"));
 
         const hasSteps = meetingData
-          ? ((responseData?.steps && responseData.steps.length > 0) || responseData?.meeting_steps_count > 0)
-          : (isTemplate && selectedSolution?.is_step_exists !== false);
+          ? (responseData?.steps && responseData.steps.length > 0) ||
+            responseData?.meeting_steps_count > 0
+          : isTemplate && selectedSolution?.is_step_exists !== false;
 
         if (formState.repetition && hasSteps) {
           await recurrentMeetingAPI(targetId);
         }
-        if (meetingData) {
+        if (isEmailConversation(responseData)) {
+          await sendEmailForMeeting(targetId);
+          navigate(`/invite/${targetId}`);
+          onClose();
+        } else if (meetingData) {
           // Assistant Flow: Check actual meeting data for steps
           const hasSteps =
             responseData?.steps?.length > 0 ||
@@ -2334,7 +2611,7 @@ const QuickMomentForm = ({
             }
             onClose();
           } else {
-            setShowStepsModal(true);
+            handleNextStepOrEmailForm(responseData);
           }
         } else {
           // Standard Flow: Original Quick Planning logic
@@ -2386,13 +2663,16 @@ const QuickMomentForm = ({
             });
           } else {
             // For solutions, show steps modal
-            setShowStepsModal(true);
+            handleNextStepOrEmailForm(responseData);
           }
         }
       }
     } catch (err) {
       console.error("Error finalizing meeting:", err);
-      toast.error(err?.response?.data?.message || t("An error occurred while finalizing the meeting"));
+      toast.error(
+        err?.response?.data?.message ||
+          t("An error occurred while finalizing the meeting"),
+      );
     } finally {
       setLoading(false);
       setLoadingPlay(false);
@@ -2464,13 +2744,22 @@ const QuickMomentForm = ({
       if (res.status === 200 || res?.status === 201) {
         toast.success(t("meeting.formState.Meeting updated successfully"));
 
-        const hasSteps =
-          meetingData?.steps?.length > 0 ||
-          meetingData?.meeting_steps_count > 0;
+        const responseData = res?.data?.data || meetingData;
 
-        if (!hasSteps) {
-          setShowStepsModal(true);
-          // return;
+        if (isEmailConversation(responseData)) {
+          const targetId = responseData?.id;
+          await sendEmailForMeeting(targetId);
+          navigate(`/invite/${targetId}`);
+          onClose();
+        } else {
+          const hasSteps =
+            responseData?.steps?.length > 0 ||
+            responseData?.meeting_steps_count > 0;
+
+          if (!hasSteps) {
+            handleNextStepOrEmailForm(responseData);
+            // return;
+          }
         }
       }
     } catch (error) {
@@ -2716,7 +3005,8 @@ const QuickMomentForm = ({
 
       if (res.status === 200 || res?.status === 201) {
         const response = res?.data?.data;
-        const hasSteps = isTemplate && selectedSolution?.is_step_exists !== false;
+        const hasSteps =
+          isTemplate && selectedSolution?.is_step_exists !== false;
 
         if (formState.repetition && hasSteps) {
           await recurrentMeetingAPI(response.id);
@@ -3416,8 +3706,10 @@ const QuickMomentForm = ({
                 </div>
 
                 {/* Location & Integration info */}
-                  {(meetingData?.location || meeting?.location || meeting?.agenda || meetingData?.agenda) && (
-
+                {(meetingData?.location ||
+                  meeting?.location ||
+                  meeting?.agenda ||
+                  meetingData?.agenda) && (
                   <div className="form-group mb-3">
                     <label className="form-label">
                       {t("Location & Integration")}
@@ -3560,16 +3852,205 @@ const QuickMomentForm = ({
                         >
                           <input
                             type="radio"
-                            checked={!!linkedinLink && formState.location === "LinkedIn"}
+                            checked={
+                              !!linkedinLink &&
+                              formState.location === "LinkedIn"
+                            }
                             readOnly
                           />
                           <FaLinkedin size={20} color="#0A66C2" />
                           <span style={{ fontSize: "14px", fontWeight: "500" }}>
-                            {linkedinLink ? user?.linkedin_name : "Connect YourLinkedIn"}
+                            {linkedinLink
+                              ? user?.linkedin_name
+                              : "Connect YourLinkedIn"}
                             {linkedinLink && (
-                              <span style={{ fontSize: "11px", color: "#2fb36b", marginLeft: "6px" }}>✓ Connecté</span>
+                              <span
+                                style={{
+                                  fontSize: "11px",
+                                  color: "#2fb36b",
+                                  marginLeft: "6px",
+                                }}
+                              >
+                                ✓ Connecté
+                              </span>
                             )}
                           </span>
+                        </div>
+                      )}
+                      {/* Gmail */}
+                      {meeting?.location === "gmail" && (
+                        <div
+                          className="d-flex align-items-center gap-2"
+                          style={{
+                            cursor: "pointer",
+                            opacity: gmailLink ? 1 : 0.6,
+                          }}
+                          title={!gmailLink ? t("Click to connect Gmail") : ""}
+                          onClick={() => {
+                            if (!gmailLink) {
+                              setShowGmailConnect(true);
+                            } else {
+                              setFormState((prev) => ({
+                                ...prev,
+                                location:
+                                  prev.location === "gmail" ? null : "gmail",
+                              }));
+                            }
+                          }}
+                        >
+                          <input
+                            type="radio"
+                            checked={
+                              !!gmailLink && formState.location === "gmail"
+                            }
+                            readOnly
+                          />
+                          <SiGmail size={20} color="#EA4335" />
+                          <span style={{ fontSize: "14px", fontWeight: "500" }}>
+                            {gmailLink ? gmailLink.email || "Gmail" : "Gmail"}
+                            {gmailLink && (
+                              <span
+                                style={{
+                                  fontSize: "11px",
+                                  color: "#2fb36b",
+                                  marginLeft: "6px",
+                                }}
+                              >
+                                ✓ Connecté
+                              </span>
+                            )}
+                          </span>
+                          {!gmailLink && (
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                color: "#94a3b8",
+                                marginLeft: 2,
+                              }}
+                            >
+                              ({t("Connect")})
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Ionos */}
+                      {meeting?.location === "ionos" && (
+                        <div
+                          className="d-flex align-items-center gap-2"
+                          style={{
+                            cursor: "pointer",
+                            opacity: ionosLink ? 1 : 0.6,
+                          }}
+                          title={!ionosLink ? t("Click to connect Ionos") : ""}
+                          onClick={() => {
+                            if (!ionosLink) {
+                              setShowIonosModal(true);
+                            } else {
+                              setFormState((prev) => ({
+                                ...prev,
+                                location:
+                                  prev.location === "ionos" ? null : "ionos",
+                              }));
+                            }
+                          }}
+                        >
+                          <input
+                            type="radio"
+                            checked={
+                              !!ionosLink && formState.location === "ionos"
+                            }
+                            readOnly
+                          />
+                          <SiIonos size={20} color="#003D8F" />
+                          <span style={{ fontSize: "14px", fontWeight: "500" }}>
+                            {ionosLink
+                              ? ionosLink.email || ionosLink.username || "Ionos"
+                              : "Ionos"}
+                            {ionosLink && (
+                              <span
+                                style={{
+                                  fontSize: "11px",
+                                  color: "#2fb36b",
+                                  marginLeft: "6px",
+                                }}
+                              >
+                                ✓ Connecté
+                              </span>
+                            )}
+                          </span>
+                          {!ionosLink && (
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                color: "#94a3b8",
+                                marginLeft: 2,
+                              }}
+                            >
+                              ({t("Connect")})
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Outlook */}
+                      {meeting?.location === "Outlook" && (
+                        <div
+                          className="d-flex align-items-center gap-2"
+                          style={{
+                            cursor: "pointer",
+                            opacity: outlookLink ? 1 : 0.6,
+                          }}
+                          title={
+                            !outlookLink ? t("Click to connect Outlook") : ""
+                          }
+                          onClick={() => {
+                            if (!outlookLink) {
+                              outlookLoginAndSaveProfile();
+                            } else {
+                              setFormState((prev) => ({
+                                ...prev,
+                                location:
+                                  prev.location === "Outlook"
+                                    ? null
+                                    : "Outlook",
+                              }));
+                            }
+                          }}
+                        >
+                          <input
+                            type="radio"
+                            checked={
+                              !!outlookLink && formState.location === "Outlook"
+                            }
+                            readOnly
+                          />
+                          <SiMicrosoftoutlook size={20} color="#0078d4" />
+                          <span style={{ fontSize: "14px", fontWeight: "500" }}>
+                            {outlookLink ? outlookLink.value : "Outlook"}
+                            {outlookLink && (
+                              <span
+                                style={{
+                                  fontSize: "11px",
+                                  color: "#2fb36b",
+                                  marginLeft: "6px",
+                                }}
+                              >
+                                ✓ Connecté
+                              </span>
+                            )}
+                          </span>
+                          {!outlookLink && (
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                color: "#94a3b8",
+                                marginLeft: 2,
+                              }}
+                            >
+                              ({t("Connect")})
+                            </span>
+                          )}
                         </div>
                       )}
 
@@ -3687,216 +4168,267 @@ const QuickMomentForm = ({
                 )}
 
                 {/* Physical Location Details */}
-                {((formState.address !== null && formState.address !== undefined) ||
-                  (formState.room_details !== null && formState.room_details !== undefined) ||
-                  (formState.phone !== null && formState.phone !== undefined)) && (
+                {((formState.address !== null &&
+                  formState.address !== undefined) ||
+                  (formState.room_details !== null &&
+                    formState.room_details !== undefined) ||
+                  (formState.phone !== null &&
+                    formState.phone !== undefined)) && (
                   <div className="row mt-2 g-2">
-                    {formState.address !== null && formState.address !== undefined && (
-                      <div className="form-group col-md-12 mb-3" style={{ position: 'relative' }}>
-                        <label className="form-label">
-                          {t("meeting.formState.address")}
-                        </label>
-                        <InputGroup>
+                    {formState.address !== null &&
+                      formState.address !== undefined && (
+                        <div
+                          className="form-group col-md-12 mb-3"
+                          style={{ position: "relative" }}
+                        >
+                          <label className="form-label">
+                            {t("meeting.formState.address")}
+                          </label>
+                          <InputGroup>
+                            <input
+                              type="text"
+                              className="form-control"
+                              value={formState.address || ""}
+                              name="address"
+                              autoComplete="off"
+                              onChange={handleAddressChange}
+                              onFocus={() =>
+                                formState.address?.length > 2 &&
+                                addressSuggestions.length > 0 &&
+                                setShowSuggestions(true)
+                              }
+                              onBlur={() =>
+                                setTimeout(() => setShowSuggestions(false), 300)
+                              }
+                              style={{ borderRight: isSearching ? "none" : "" }}
+                            />
+                            {isSearching && (
+                              <InputGroup.Text
+                                style={{
+                                  background: "white",
+                                  borderLeft: "none",
+                                }}
+                              >
+                                <Spinner
+                                  animation="border"
+                                  size="sm"
+                                  variant="primary"
+                                />
+                              </InputGroup.Text>
+                            )}
+                          </InputGroup>
+
+                          {/* Suggestions List */}
+                          {showSuggestions && addressSuggestions.length > 0 && (
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: "100%",
+                                left: "6px",
+                                right: "6px",
+                                backgroundColor: "white",
+                                border: "1px solid #ced4da",
+                                borderRadius: "0 0 8px 8px",
+                                zIndex: 1050,
+                                boxShadow: "0 8px 16px rgba(0,0,0,0.1)",
+                                marginTop: "-1px",
+                              }}
+                            >
+                              {addressSuggestions.map((item, index) => (
+                                <div
+                                  key={index}
+                                  onClick={() => selectAddress(item)}
+                                  style={{
+                                    padding: "12px 15px",
+                                    cursor: "pointer",
+                                    borderBottom:
+                                      index !== addressSuggestions.length - 1
+                                        ? "1px solid #f1f1f1"
+                                        : "none",
+                                    fontSize: "14px",
+                                  }}
+                                  onMouseOver={(e) =>
+                                    (e.currentTarget.style.backgroundColor =
+                                      "#f8f9fa")
+                                  }
+                                  onMouseOut={(e) =>
+                                    (e.currentTarget.style.backgroundColor =
+                                      "white")
+                                  }
+                                >
+                                  <div className="d-flex align-items-start">
+                                    <span className="me-2">📍</span>
+                                    <div>
+                                      <strong
+                                        style={{
+                                          display: "block",
+                                          color: "#333",
+                                          textAlign: "left",
+                                        }}
+                                      >
+                                        {item.mainText}
+                                      </strong>
+                                      {item.secondaryText && (
+                                        <small
+                                          style={{
+                                            color: "#6c757d",
+                                            display: "block",
+                                            textAlign: "left",
+                                          }}
+                                        >
+                                          {item.secondaryText}
+                                        </small>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    {formState.room_details !== null &&
+                      formState.room_details !== undefined && (
+                        <div className="form-group col-md-6 mb-3">
+                          <label className="form-label">
+                            {t("meeting.formState.RoomDetail")}
+                          </label>
                           <input
                             type="text"
                             className="form-control"
-                            value={formState.address || ""}
-                            name="address"
-                            autoComplete="off"
-                            onChange={handleAddressChange}
-                            onFocus={() => formState.address?.length > 2 && addressSuggestions.length > 0 && setShowSuggestions(true)}
-                            onBlur={() => setTimeout(() => setShowSuggestions(false), 300)}
-                            style={{ borderRight: isSearching ? 'none' : '' }}
+                            value={formState.room_details}
+                            onChange={(e) =>
+                              setFormState((prev) => ({
+                                ...prev,
+                                room_details: e.target.value,
+                              }))
+                            }
                           />
-                          {isSearching && (
-                            <InputGroup.Text style={{ background: 'white', borderLeft: 'none' }}>
-                              <Spinner animation="border" size="sm" variant="primary" />
-                            </InputGroup.Text>
-                          )}
-                        </InputGroup>
-
-                        {/* Suggestions List */}
-                        {showSuggestions && addressSuggestions.length > 0 && (
-                          <div style={{
-                            position: 'absolute',
-                            top: '100%',
-                            left: '6px',
-                            right: '6px',
-                            backgroundColor: 'white',
-                            border: '1px solid #ced4da',
-                            borderRadius: '0 0 8px 8px',
-                            zIndex: 1050,
-                            boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
-                            marginTop: '-1px'
-                          }}>
-                            {addressSuggestions.map((item, index) => (
-                              <div
-                                key={index}
-                                onClick={() => selectAddress(item)}
-                                style={{
-                                  padding: '12px 15px',
-                                  cursor: 'pointer',
-                                  borderBottom: index !== addressSuggestions.length - 1 ? '1px solid #f1f1f1' : 'none',
-                                  fontSize: '14px'
-                                }}
-                                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
-                                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
-                              >
-                                <div className="d-flex align-items-start">
-                                  <span className="me-2">📍</span>
-                                  <div>
-                                    <strong style={{ display: 'block', color: '#333', textAlign: 'left' }}>{item.mainText}</strong>
-                                    {item.secondaryText && (
-                                      <small style={{ color: '#6c757d', display: 'block', textAlign: 'left' }}>{item.secondaryText}</small>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {formState.room_details !== null && formState.room_details !== undefined && (
-                      <div className="form-group col-md-6 mb-3">
-                        <label className="form-label">
-                          {t("meeting.formState.RoomDetail")}
-                        </label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={formState.room_details}
-                          onChange={(e) =>
-                            setFormState((prev) => ({
-                              ...prev,
-                              room_details: e.target.value,
-                            }))
-                          }
-                        />
-                      </div>
-                    )}
-                    {formState.phone !== null && formState.phone !== undefined && (
-                      <div className="form-group col-md-6 mb-3">
-                        <label className="form-label">
-                          {t("meeting.formState.phone")}
-                        </label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={formState.phone}
-                          onChange={(e) =>
-                            setFormState((prev) => ({
-                              ...prev,
-                              phone: e.target.value,
-                            }))
-                          }
-                        />
-                      </div>
-                    )}
+                        </div>
+                      )}
+                    {formState.phone !== null &&
+                      formState.phone !== undefined && (
+                        <div className="form-group col-md-6 mb-3">
+                          <label className="form-label">
+                            {t("meeting.formState.phone")}
+                          </label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            value={formState.phone}
+                            onChange={(e) =>
+                              setFormState((prev) => ({
+                                ...prev,
+                                phone: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                      )}
                   </div>
                 )}
 
                 {formState?.casting_type === "Registration" ? (
                   <div className="row g-2">
                     {/* {(isStripeConnected || (isStripeRequired && !isStripeConnected)) && ( */}
-                      <div className="col-12 mb-3">
-                        {isStripeConnected ? (
-                          <div
-                            className="d-flex align-items-center justify-content-between p-3 rounded"
+                    <div className="col-12 mb-3">
+                      {isStripeConnected ? (
+                        <div
+                          className="d-flex align-items-center justify-content-between p-3 rounded"
+                          style={{
+                            backgroundColor: "rgba(47, 187, 103, 0.1)",
+                            border: "1px solid #2fa25d",
+                          }}
+                        >
+                          <div className="d-flex align-items-center">
+                            <div
+                              className="me-3 bg-white p-2 rounded-circle d-flex align-items-center justify-content-center"
+                              style={{ width: "40px", height: "40px" }}
+                            >
+                              <SiStripe size={24} color="#635BFF" />
+                            </div>
+                            <div>
+                              <h6
+                                className="mb-0 fw-bold"
+                                style={{ color: "#2fa25d" }}
+                              >
+                                {t("Stripe Account Connected")}
+                              </h6>
+                              <small className="text-muted">
+                                {t(
+                                  "You can now receive payments for this registration.",
+                                )}
+                              </small>
+                            </div>
+                          </div>
+                          <button
                             style={{
-                              backgroundColor: "rgba(47, 187, 103, 0.1)",
-                              border: "1px solid #2fa25d",
+                              background: "none",
+                              border: "none",
+                              color: "#dc3545",
+                              fontWeight: "bold",
+                              padding: "6px 16px",
+                              borderRadius: "6px",
+                              cursor: loadingStripe ? "not-allowed" : "pointer",
+                              transition: "background-color 0.2s ease",
                             }}
-                          >
-                            <div className="d-flex align-items-center">
-                              <div
-                                className="me-3 bg-white p-2 rounded-circle d-flex align-items-center justify-content-center"
-                                style={{ width: "40px", height: "40px" }}
-                              >
-                                <SiStripe size={24} color="#635BFF" />
-                              </div>
-                              <div>
-                                <h6
-                                  className="mb-0 fw-bold"
-                                  style={{ color: "#2fa25d" }}
-                                >
-                                  {t("Stripe Account Connected")}
-                                </h6>
-                                <small className="text-muted">
-                                  {t(
-                                    "You can now receive payments for this registration.",
-                                  )}
-                                </small>
-                              </div>
-                            </div>
-                            <button
-                              style={{
-                                background: "none",
-                                border: "none",
-                                color: "#dc3545",
-                                fontWeight: "bold",
-                                padding: "6px 16px",
-                                borderRadius: "6px",
-                                cursor: loadingStripe ? "not-allowed" : "pointer",
-                                transition: "background-color 0.2s ease",
-                              }}
-                              onMouseEnter={(e) => {
-                                if (!loadingStripe)
-                                  e.currentTarget.style.backgroundColor =
-                                    "rgba(220,53,69,0.12)";
-                              }}
-                              onMouseLeave={(e) => {
+                            onMouseEnter={(e) => {
+                              if (!loadingStripe)
                                 e.currentTarget.style.backgroundColor =
-                                  "transparent";
-                              }}
-                              onClick={handleStripeDisconnect}
-                              disabled={loadingStripe}
+                                  "rgba(220,53,69,0.12)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor =
+                                "transparent";
+                            }}
+                            onClick={handleStripeDisconnect}
+                            disabled={loadingStripe}
+                          >
+                            {loadingStripe ? (
+                              <Spinner size="sm" />
+                            ) : (
+                              t("Disconnect")
+                            )}
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="d-flex align-items-center justify-content-between p-3 rounded bg-light border border-warning">
+                          <div className="d-flex align-items-center">
+                            <div
+                              className="me-3 bg-white p-2 rounded-circle d-flex align-items-center justify-content-center border"
+                              style={{ width: "40px", height: "40px" }}
                             >
-                              {loadingStripe ? (
-                                <Spinner size="sm" />
-                              ) : (
-                                t("Disconnect")
-                              )}
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="d-flex align-items-center justify-content-between p-3 rounded bg-light border border-warning">
-                            <div className="d-flex align-items-center">
-                              <div
-                                className="me-3 bg-white p-2 rounded-circle d-flex align-items-center justify-content-center border"
-                                style={{ width: "40px", height: "40px" }}
-                              >
-                                <SiStripe size={24} color="#635BFF" />
-                              </div>
-                              <div>
-                                <h6 className="mb-0 fw-bold text-dark">
-                                  {t("Stripe Integration Required")}
-                                </h6>
-                                <small className="text-muted">
-                                  {t(
-                                    "Connect your Stripe account to enable registration.",
-                                  )}
-                                </small>
-                              </div>
+                              <SiStripe size={24} color="#635BFF" />
                             </div>
-                            <button
-                              className="btn text-white fw-bold px-4"
-                              style={{
-                                backgroundColor: "#635BFF",
-                                borderRadius: "8px",
-                              }}
-                              onClick={handleStripeConnect}
-                              disabled={loadingStripe}
-                            >
-                              {loadingStripe ? (
-                                <Spinner size="sm" />
-                              ) : (
-                                t("Connect Stripe")
-                              )}
-                            </button>
+                            <div>
+                              <h6 className="mb-0 fw-bold text-dark">
+                                {t("Stripe Integration Required")}
+                              </h6>
+                              <small className="text-muted">
+                                {t(
+                                  "Connect your Stripe account to enable registration.",
+                                )}
+                              </small>
+                            </div>
                           </div>
-                        )}
-                      </div>
+                          <button
+                            className="btn text-white fw-bold px-4"
+                            style={{
+                              backgroundColor: "#635BFF",
+                              borderRadius: "8px",
+                            }}
+                            onClick={handleStripeConnect}
+                            disabled={loadingStripe}
+                          >
+                            {loadingStripe ? (
+                              <Spinner size="sm" />
+                            ) : (
+                              t("Connect Stripe")
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
                     {/* )} */}
                     <div className="col-md-6 mb-2 form">
                       <div className="form-group">
@@ -3937,10 +4469,10 @@ const QuickMomentForm = ({
                           min="0"
                           onChange={(e) => {
                             const valStr = e.target.value;
-                            const val = valStr === "" ? "" : Math.max(
-                              0,
-                              parseInt(valStr) || 0,
-                            );
+                            const val =
+                              valStr === ""
+                                ? ""
+                                : Math.max(0, parseInt(valStr) || 0);
                             setFormState((prev) => ({
                               ...prev,
                               price: val,
@@ -3987,35 +4519,90 @@ const QuickMomentForm = ({
                   </>
                 ) : (
                   <>
-                    <div className="mb-4 form d-flex flex-column form-group">
-                      <label className="form-label">
-                        {t("meeting.formState.dateTime")}
-                        <small style={{ color: "red", fontSize: "15px" }}>
-                          *
-                        </small>
+                    {!isEmailConversation(meeting) && (
+                      <div className="mb-4 form d-flex flex-column form-group">
+                        <label className="form-label">
+                          {t("meeting.formState.dateTime")}
+                          <small style={{ color: "red", fontSize: "15px" }}>
+                            *
+                          </small>
+                        </label>
+                        <Flatpickr
+                          data-enable-time
+                          value={selectedDateTime}
+                          onChange={handleChange}
+                          options={{
+                            locale: locale,
+                            dateFormat: "d/m/Y, H:i",
+                            time_24hr: true,
+                            formatDate: (date) =>
+                              formatDateWithCustomTime(date),
+                          }}
+                        />
+                      </div>
+                    )}
+                  </>
+                )}
+                {isEmailConversation(meeting) && (
+                  <>
+                    <div className="mb-4 form-group mt-3">
+                      <label className="form-label" style={{ fontWeight: 500 }}>
+                        {t("discussion.Message")}{" "}
+                        <span style={{ color: "red" }}>*</span>
                       </label>
-                      <Flatpickr
-                        data-enable-time
-                        value={selectedDateTime}
-                        onChange={handleChange}
-                        options={{
-                          locale: locale,
-                          dateFormat: "d/m/Y, H:i",
-                          time_24hr: true,
-                          formatDate: (date) => formatDateWithCustomTime(date),
+                      <Editor
+                        apiKey={process.env.REACT_APP_TINYMCE_API}
+                        value={emailMessageText}
+                        onEditorChange={setEmailMessageText}
+                        init={{
+                          height: 300,
+                          menubar: false,
+                          plugins:
+                            "advlist autolink lists link charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime table paste code help wordcount",
+                          toolbar:
+                            "undo redo | formatselect | bold italic underline forecolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link table | removeformat | fullscreen preview | help",
+                          content_style: `
+                            body { font-family: Helvetica, Arial, sans-serif; font-size: 14px; }
+                            .mention { background:#e6f3ff; color:#1e90ff; padding:2px 6px; border-radius:3px; }
+                          `,
+                          paste_data_images: false,
+                          automatic_uploads: false,
+                          images_upload_handler: undefined,
                         }}
                       />
                     </div>
+
+                    <div className="mb-4 form-group mt-3">
+                      <label className="form-label" style={{ fontWeight: 500 }}>
+                        {t("discussion.Attachments")}
+                      </label>
+                      <Dragger
+                        {...emailUploadProps}
+                        style={{ background: "#fafafa" }}
+                      >
+                        <p className="ant-upload-drag-icon">
+                          <HiInbox style={{ fontSize: 48, color: "#1890ff" }} />
+                        </p>
+                        <p className="ant-upload-text">
+                          {t("discussion.Click or drag files to upload")}
+                        </p>
+                      </Dragger>
+                    </div>
+                  </>
+                )}
+                {formState?.type !== "Calendly" &&
+                  !isEmailConversation(meeting) && (
                     <RepetitionSettings
                       formState={formState}
                       setFormState={setFormState}
                       meeting={meeting}
                     />
-                  </>
-                )}
+                  )}
               </div>
             </div>
           );
+        case 3:
+          return renderEmailStep();
         default:
           return null;
       }
@@ -4678,7 +5265,10 @@ const QuickMomentForm = ({
                 )}
 
                 {/* Location & Integration info */}
-               {(meetingData?.location || meeting?.location || meeting?.agenda || meetingData?.agenda) && (
+                {(meetingData?.location ||
+                  meeting?.location ||
+                  meeting?.agenda ||
+                  meetingData?.agenda) && (
                   <div className="form-group mb-3">
                     <label className="form-label">
                       {t("meeting.NewMeetingTabs.tab4")}
@@ -4820,19 +5410,208 @@ const QuickMomentForm = ({
                         >
                           <input
                             type="radio"
-                            checked={!!linkedinLink && formState.location === "LinkedIn"}
+                            checked={
+                              !!linkedinLink &&
+                              formState.location === "LinkedIn"
+                            }
                             readOnly
                           />
                           <FaLinkedin size={20} color="#0A66C2" />
                           <span style={{ fontSize: "14px", fontWeight: "500" }}>
-                            {linkedinLink ? user?.linkedin_name : "Connect Your LinkedIn"}
+                            {linkedinLink
+                              ? user?.linkedin_name
+                              : "Connect Your LinkedIn"}
                             {linkedinLink && (
-                              <span style={{ fontSize: "11px", color: "#2fb36b", marginLeft: "6px" }}>✓ Connecté</span>
+                              <span
+                                style={{
+                                  fontSize: "11px",
+                                  color: "#2fb36b",
+                                  marginLeft: "6px",
+                                }}
+                              >
+                                ✓ Connecté
+                              </span>
                             )}
                           </span>
                         </div>
                       )}
 
+                      {/* Gmail */}
+                      {meeting?.location === "gmail" && (
+                        <div
+                          className="d-flex align-items-center gap-2"
+                          style={{
+                            cursor: "pointer",
+                            opacity: gmailLink ? 1 : 0.6,
+                          }}
+                          title={!gmailLink ? t("Click to connect Gmail") : ""}
+                          onClick={() => {
+                            if (!gmailLink) {
+                              setShowGmailConnect(true);
+                            } else {
+                              setFormState((prev) => ({
+                                ...prev,
+                                location:
+                                  prev.location === "gmail" ? null : "gmail",
+                              }));
+                            }
+                          }}
+                        >
+                          <input
+                            type="radio"
+                            checked={
+                              !!gmailLink && formState.location === "gmail"
+                            }
+                            readOnly
+                          />
+                          <SiGmail size={20} color="#EA4335" />
+                          <span style={{ fontSize: "14px", fontWeight: "500" }}>
+                            {gmailLink ? gmailLink.email || "Gmail" : "Gmail"}
+                            {gmailLink && (
+                              <span
+                                style={{
+                                  fontSize: "11px",
+                                  color: "#2fb36b",
+                                  marginLeft: "6px",
+                                }}
+                              >
+                                ✓ Connecté
+                              </span>
+                            )}
+                          </span>
+                          {!gmailLink && (
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                color: "#94a3b8",
+                                marginLeft: 2,
+                              }}
+                            >
+                              ({t("Connect")})
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Ionos */}
+                      {meeting?.location === "ionos" && (
+                        <div
+                          className="d-flex align-items-center gap-2"
+                          style={{
+                            cursor: "pointer",
+                            opacity: ionosLink ? 1 : 0.6,
+                          }}
+                          title={!ionosLink ? t("Click to connect Ionos") : ""}
+                          onClick={() => {
+                            if (!ionosLink) {
+                              setShowIonosModal(true);
+                            } else {
+                              setFormState((prev) => ({
+                                ...prev,
+                                location:
+                                  prev.location === "ionos" ? null : "ionos",
+                              }));
+                            }
+                          }}
+                        >
+                          <input
+                            type="radio"
+                            checked={
+                              !!ionosLink && formState.location === "ionos"
+                            }
+                            readOnly
+                          />
+                          <SiIonos size={20} color="#003D8F" />
+                          <span style={{ fontSize: "14px", fontWeight: "500" }}>
+                            {ionosLink
+                              ? ionosLink.email || ionosLink.username || "Ionos"
+                              : "Ionos"}
+                            {ionosLink && (
+                              <span
+                                style={{
+                                  fontSize: "11px",
+                                  color: "#2fb36b",
+                                  marginLeft: "6px",
+                                }}
+                              >
+                                ✓ Connecté
+                              </span>
+                            )}
+                          </span>
+                          {!ionosLink && (
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                color: "#94a3b8",
+                                marginLeft: 2,
+                              }}
+                            >
+                              ({t("Connect")})
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Outlook */}
+                      {meeting?.location === "Outlook" && (
+                        <div
+                          className="d-flex align-items-center gap-2"
+                          style={{
+                            cursor: "pointer",
+                            opacity: outlookLink ? 1 : 0.6,
+                          }}
+                          title={
+                            !outlookLink ? t("Click to connect Outlook") : ""
+                          }
+                          onClick={() => {
+                            if (!outlookLink) {
+                              outlookLoginAndSaveProfile();
+                            } else {
+                              setFormState((prev) => ({
+                                ...prev,
+                                location:
+                                  prev.location === "Outlook"
+                                    ? null
+                                    : "Outlook",
+                              }));
+                            }
+                          }}
+                        >
+                          <input
+                            type="radio"
+                            checked={
+                              !!outlookLink && formState.location === "Outlook"
+                            }
+                            readOnly
+                          />
+                          <SiMicrosoftoutlook size={20} color="#0078d4" />
+                          <span style={{ fontSize: "14px", fontWeight: "500" }}>
+                            {outlookLink ? outlookLink.value : "Outlook"}
+                            {outlookLink && (
+                              <span
+                                style={{
+                                  fontSize: "11px",
+                                  color: "#2fb36b",
+                                  marginLeft: "6px",
+                                }}
+                              >
+                                ✓ Connecté
+                              </span>
+                            )}
+                          </span>
+                          {!outlookLink && (
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                color: "#94a3b8",
+                                marginLeft: 2,
+                              }}
+                            >
+                              ({t("Connect")})
+                            </span>
+                          )}
+                        </div>
+                      )}
                       {/* Google Agenda */}
                       {meeting?.agenda === "Google Agenda" && (
                         <div
@@ -4947,112 +5726,163 @@ const QuickMomentForm = ({
                 )}
 
                 {/* Physical Location Details */}
-                {((formState.address !== null && formState.address !== undefined) ||
-                  (formState.room_details !== null && formState.room_details !== undefined) ||
-                  (formState.phone !== null && formState.phone !== undefined)) && (
+                {((formState.address !== null &&
+                  formState.address !== undefined) ||
+                  (formState.room_details !== null &&
+                    formState.room_details !== undefined) ||
+                  (formState.phone !== null &&
+                    formState.phone !== undefined)) && (
                   <div className="row mt-2 g-2">
-                    {formState.address !== null && formState.address !== undefined && (
-                      <div className="form-group col-md-12 mb-3" style={{ position: 'relative' }}>
-                        <label className="form-label">
-                          {t("meeting.formState.address")}
-                        </label>
-                        <InputGroup>
+                    {formState.address !== null &&
+                      formState.address !== undefined && (
+                        <div
+                          className="form-group col-md-12 mb-3"
+                          style={{ position: "relative" }}
+                        >
+                          <label className="form-label">
+                            {t("meeting.formState.address")}
+                          </label>
+                          <InputGroup>
+                            <input
+                              type="text"
+                              className="form-control"
+                              value={formState.address || ""}
+                              name="address"
+                              autoComplete="off"
+                              onChange={handleAddressChange}
+                              onFocus={() =>
+                                formState.address?.length > 2 &&
+                                addressSuggestions.length > 0 &&
+                                setShowSuggestions(true)
+                              }
+                              onBlur={() =>
+                                setTimeout(() => setShowSuggestions(false), 300)
+                              }
+                              style={{ borderRight: isSearching ? "none" : "" }}
+                            />
+                            {isSearching && (
+                              <InputGroup.Text
+                                style={{
+                                  background: "white",
+                                  borderLeft: "none",
+                                }}
+                              >
+                                <Spinner
+                                  animation="border"
+                                  size="sm"
+                                  variant="primary"
+                                />
+                              </InputGroup.Text>
+                            )}
+                          </InputGroup>
+
+                          {/* Suggestions List */}
+                          {showSuggestions && addressSuggestions.length > 0 && (
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: "100%",
+                                left: "6px",
+                                right: "6px",
+                                backgroundColor: "white",
+                                border: "1px solid #ced4da",
+                                borderRadius: "0 0 8px 8px",
+                                zIndex: 1050,
+                                boxShadow: "0 8px 16px rgba(0,0,0,0.1)",
+                                marginTop: "-1px",
+                              }}
+                            >
+                              {addressSuggestions.map((item, index) => (
+                                <div
+                                  key={index}
+                                  onClick={() => selectAddress(item)}
+                                  style={{
+                                    padding: "12px 15px",
+                                    cursor: "pointer",
+                                    borderBottom:
+                                      index !== addressSuggestions.length - 1
+                                        ? "1px solid #f1f1f1"
+                                        : "none",
+                                    fontSize: "14px",
+                                  }}
+                                  onMouseOver={(e) =>
+                                    (e.currentTarget.style.backgroundColor =
+                                      "#f8f9fa")
+                                  }
+                                  onMouseOut={(e) =>
+                                    (e.currentTarget.style.backgroundColor =
+                                      "white")
+                                  }
+                                >
+                                  <div className="d-flex align-items-start">
+                                    <span className="me-2">📍</span>
+                                    <div>
+                                      <strong
+                                        style={{
+                                          display: "block",
+                                          color: "#333",
+                                          textAlign: "left",
+                                        }}
+                                      >
+                                        {item.mainText}
+                                      </strong>
+                                      {item.secondaryText && (
+                                        <small
+                                          style={{
+                                            color: "#6c757d",
+                                            display: "block",
+                                            textAlign: "left",
+                                          }}
+                                        >
+                                          {item.secondaryText}
+                                        </small>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    {formState.room_details !== null &&
+                      formState.room_details !== undefined && (
+                        <div className="form-group col-md-6 mb-3">
+                          <label className="form-label">
+                            {t("meeting.formState.RoomDetail")}
+                          </label>
                           <input
                             type="text"
                             className="form-control"
-                            value={formState.address || ""}
-                            name="address"
-                            autoComplete="off"
-                            onChange={handleAddressChange}
-                            onFocus={() => formState.address?.length > 2 && addressSuggestions.length > 0 && setShowSuggestions(true)}
-                            onBlur={() => setTimeout(() => setShowSuggestions(false), 300)}
-                            style={{ borderRight: isSearching ? 'none' : '' }}
+                            value={formState.room_details}
+                            onChange={(e) =>
+                              setFormState((prev) => ({
+                                ...prev,
+                                room_details: e.target.value,
+                              }))
+                            }
                           />
-                          {isSearching && (
-                            <InputGroup.Text style={{ background: 'white', borderLeft: 'none' }}>
-                              <Spinner animation="border" size="sm" variant="primary" />
-                            </InputGroup.Text>
-                          )}
-                        </InputGroup>
-
-                        {/* Suggestions List */}
-                        {showSuggestions && addressSuggestions.length > 0 && (
-                          <div style={{
-                            position: 'absolute',
-                            top: '100%',
-                            left: '6px',
-                            right: '6px',
-                            backgroundColor: 'white',
-                            border: '1px solid #ced4da',
-                            borderRadius: '0 0 8px 8px',
-                            zIndex: 1050,
-                            boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
-                            marginTop: '-1px'
-                          }}>
-                            {addressSuggestions.map((item, index) => (
-                              <div
-                                key={index}
-                                onClick={() => selectAddress(item)}
-                                style={{
-                                  padding: '12px 15px',
-                                  cursor: 'pointer',
-                                  borderBottom: index !== addressSuggestions.length - 1 ? '1px solid #f1f1f1' : 'none',
-                                  fontSize: '14px'
-                                }}
-                                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
-                                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
-                              >
-                                <div className="d-flex align-items-start">
-                                  <span className="me-2">📍</span>
-                                  <div>
-                                    <strong style={{ display: 'block', color: '#333', textAlign: 'left' }}>{item.mainText}</strong>
-                                    {item.secondaryText && (
-                                      <small style={{ color: '#6c757d', display: 'block', textAlign: 'left' }}>{item.secondaryText}</small>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {formState.room_details !== null && formState.room_details !== undefined && (
-                      <div className="form-group col-md-6 mb-3">
-                        <label className="form-label">
-                          {t("meeting.formState.RoomDetail")}
-                        </label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={formState.room_details}
-                          onChange={(e) =>
-                            setFormState((prev) => ({
-                              ...prev,
-                              room_details: e.target.value,
-                            }))
-                          }
-                        />
-                      </div>
-                    )}
-                    {formState.phone !== null && formState.phone !== undefined && (
-                      <div className="form-group col-md-6 mb-3">
-                        <label className="form-label">
-                          {t("meeting.formState.phone")}
-                        </label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={formState.phone}
-                          onChange={(e) =>
-                            setFormState((prev) => ({
-                              ...prev,
-                              phone: e.target.value,
-                            }))
-                          }
-                        />
-                      </div>
-                    )}
+                        </div>
+                      )}
+                    {formState.phone !== null &&
+                      formState.phone !== undefined && (
+                        <div className="form-group col-md-6 mb-3">
+                          <label className="form-label">
+                            {t("meeting.formState.phone")}
+                          </label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            value={formState.phone}
+                            onChange={(e) =>
+                              setFormState((prev) => ({
+                                ...prev,
+                                phone: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                      )}
                   </div>
                 )}
 
@@ -5073,104 +5903,104 @@ const QuickMomentForm = ({
                 {formState?.casting_type === "Registration" ? (
                   <div className="row g-2">
                     {/* {(isStripeConnected || (isStripeRequired && !isStripeConnected)) && ( */}
-                      <div className="col-12 mb-3">
-                        {isStripeConnected ? (
-                          <div
-                            className="d-flex align-items-center justify-content-between p-3 rounded"
+                    <div className="col-12 mb-3">
+                      {isStripeConnected ? (
+                        <div
+                          className="d-flex align-items-center justify-content-between p-3 rounded"
+                          style={{
+                            backgroundColor: "rgba(47, 187, 103, 0.1)",
+                            border: "1px solid #2fa25d",
+                          }}
+                        >
+                          <div className="d-flex align-items-center">
+                            <div
+                              className="me-3 bg-white p-2 rounded-circle d-flex align-items-center justify-content-center"
+                              style={{ width: "40px", height: "40px" }}
+                            >
+                              <SiStripe size={24} color="#635BFF" />
+                            </div>
+                            <div>
+                              <h6
+                                className="mb-0 fw-bold"
+                                style={{ color: "#2fa25d" }}
+                              >
+                                {t("Stripe Account Connected")}
+                              </h6>
+                              <small className="text-muted">
+                                {t(
+                                  "You can now receive payments for this registration.",
+                                )}
+                              </small>
+                            </div>
+                          </div>
+                          <button
                             style={{
-                              backgroundColor: "rgba(47, 187, 103, 0.1)",
-                              border: "1px solid #2fa25d",
+                              background: "none",
+                              border: "none",
+                              color: "#dc3545",
+                              fontWeight: "bold",
+                              padding: "6px 16px",
+                              borderRadius: "6px",
+                              cursor: loadingStripe ? "not-allowed" : "pointer",
+                              transition: "background-color 0.2s ease",
                             }}
-                          >
-                            <div className="d-flex align-items-center">
-                              <div
-                                className="me-3 bg-white p-2 rounded-circle d-flex align-items-center justify-content-center"
-                                style={{ width: "40px", height: "40px" }}
-                              >
-                                <SiStripe size={24} color="#635BFF" />
-                              </div>
-                              <div>
-                                <h6
-                                  className="mb-0 fw-bold"
-                                  style={{ color: "#2fa25d" }}
-                                >
-                                  {t("Stripe Account Connected")}
-                                </h6>
-                                <small className="text-muted">
-                                  {t(
-                                    "You can now receive payments for this registration.",
-                                  )}
-                                </small>
-                              </div>
-                            </div>
-                            <button
-                              style={{
-                                background: "none",
-                                border: "none",
-                                color: "#dc3545",
-                                fontWeight: "bold",
-                                padding: "6px 16px",
-                                borderRadius: "6px",
-                                cursor: loadingStripe ? "not-allowed" : "pointer",
-                                transition: "background-color 0.2s ease",
-                              }}
-                              onMouseEnter={(e) => {
-                                if (!loadingStripe)
-                                  e.currentTarget.style.backgroundColor =
-                                    "rgba(220,53,69,0.12)";
-                              }}
-                              onMouseLeave={(e) => {
+                            onMouseEnter={(e) => {
+                              if (!loadingStripe)
                                 e.currentTarget.style.backgroundColor =
-                                  "transparent";
-                              }}
-                              onClick={handleStripeDisconnect}
-                              disabled={loadingStripe}
+                                  "rgba(220,53,69,0.12)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor =
+                                "transparent";
+                            }}
+                            onClick={handleStripeDisconnect}
+                            disabled={loadingStripe}
+                          >
+                            {loadingStripe ? (
+                              <Spinner size="sm" />
+                            ) : (
+                              t("Disconnect")
+                            )}
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="d-flex align-items-center justify-content-between p-3 rounded bg-light border border-warning">
+                          <div className="d-flex align-items-center">
+                            <div
+                              className="me-3 bg-white p-2 rounded-circle d-flex align-items-center justify-content-center border"
+                              style={{ width: "40px", height: "40px" }}
                             >
-                              {loadingStripe ? (
-                                <Spinner size="sm" />
-                              ) : (
-                                t("Disconnect")
-                              )}
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="d-flex align-items-center justify-content-between p-3 rounded bg-light border border-warning">
-                            <div className="d-flex align-items-center">
-                              <div
-                                className="me-3 bg-white p-2 rounded-circle d-flex align-items-center justify-content-center border"
-                                style={{ width: "40px", height: "40px" }}
-                              >
-                                <SiStripe size={24} color="#635BFF" />
-                              </div>
-                              <div>
-                                <h6 className="mb-0 fw-bold text-dark">
-                                  {t("Stripe Integration Required")}
-                                </h6>
-                                <small className="text-muted">
-                                  {t(
-                                    "Connect your Stripe account to enable registration.",
-                                  )}
-                                </small>
-                              </div>
+                              <SiStripe size={24} color="#635BFF" />
                             </div>
-                            <button
-                              className="btn text-white fw-bold px-4"
-                              style={{
-                                backgroundColor: "#635BFF",
-                                borderRadius: "8px",
-                              }}
-                              onClick={handleStripeConnect}
-                              disabled={loadingStripe}
-                            >
-                              {loadingStripe ? (
-                                <Spinner size="sm" />
-                              ) : (
-                                t("Connect Stripe")
-                              )}
-                            </button>
+                            <div>
+                              <h6 className="mb-0 fw-bold text-dark">
+                                {t("Stripe Integration Required")}
+                              </h6>
+                              <small className="text-muted">
+                                {t(
+                                  "Connect your Stripe account to enable registration.",
+                                )}
+                              </small>
+                            </div>
                           </div>
-                        )}
-                      </div>
+                          <button
+                            className="btn text-white fw-bold px-4"
+                            style={{
+                              backgroundColor: "#635BFF",
+                              borderRadius: "8px",
+                            }}
+                            onClick={handleStripeConnect}
+                            disabled={loadingStripe}
+                          >
+                            {loadingStripe ? (
+                              <Spinner size="sm" />
+                            ) : (
+                              t("Connect Stripe")
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
                     {/* )} */}
                     <div className="col-md-6 mb-2 form">
                       <div className="form-group">
@@ -5211,10 +6041,10 @@ const QuickMomentForm = ({
                           min="0"
                           onChange={(e) => {
                             const valStr = e.target.value;
-                            const val = valStr === "" ? "" : Math.max(
-                              0,
-                              parseInt(valStr) || 0,
-                            );
+                            const val =
+                              valStr === ""
+                                ? ""
+                                : Math.max(0, parseInt(valStr) || 0);
                             setFormState((prev) => ({
                               ...prev,
                               price: val,
@@ -5261,36 +6091,91 @@ const QuickMomentForm = ({
                   </>
                 ) : (
                   <>
-                    <div className="mb-4 form d-flex flex-column form-group">
-                      <label className="form-label">
-                        {t("meeting.formState.dateTime")}
-                        <small style={{ color: "red", fontSize: "15px" }}>
-                          *
-                        </small>
+                    {!isEmailConversation(meeting) && (
+                      <div className="mb-4 form d-flex flex-column form-group">
+                        <label className="form-label">
+                          {t("meeting.formState.dateTime")}
+                          <small style={{ color: "red", fontSize: "15px" }}>
+                            *
+                          </small>
+                        </label>
+                        <Flatpickr
+                          data-enable-time
+                          value={selectedDateTime}
+                          onChange={handleChange}
+                          options={{
+                            locale: locale,
+                            dateFormat: "d/m/Y, H:i",
+                            time_24hr: true,
+                            formatDate: (date) =>
+                              formatDateWithCustomTime(date),
+                          }}
+                        />
+                      </div>
+                    )}
+                  </>
+                )}
+                {isEmailConversation(meeting) && (
+                  <>
+                    <div className="mb-4 form-group mt-3">
+                      <label className="form-label" style={{ fontWeight: 500 }}>
+                        {t("discussion.Message")}{" "}
+                        <span style={{ color: "red" }}>*</span>
                       </label>
-                      <Flatpickr
-                        data-enable-time
-                        value={selectedDateTime}
-                        onChange={handleChange}
-                        options={{
-                          locale: locale,
-                          dateFormat: "d/m/Y, H:i",
-                          time_24hr: true,
-                          formatDate: (date) => formatDateWithCustomTime(date),
+                      <Editor
+                        apiKey={process.env.REACT_APP_TINYMCE_API}
+                        value={emailMessageText}
+                        onEditorChange={setEmailMessageText}
+                        init={{
+                          height: 300,
+                          menubar: false,
+                          plugins:
+                            "advlist autolink lists link charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime table paste code help wordcount",
+                          toolbar:
+                            "undo redo | formatselect | bold italic underline forecolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link table | removeformat | fullscreen preview | help",
+                          content_style: `
+                            body { font-family: Helvetica, Arial, sans-serif; font-size: 14px; }
+                            .mention { background:#e6f3ff; color:#1e90ff; padding:2px 6px; border-radius:3px; }
+                          `,
+                          paste_data_images: false,
+                          automatic_uploads: false,
+                          images_upload_handler: undefined,
                         }}
                       />
                     </div>
+
+                    <div className="mb-4 form-group mt-3">
+                      <label className="form-label" style={{ fontWeight: 500 }}>
+                        {t("discussion.Attachments")}
+                      </label>
+                      <Dragger
+                        {...emailUploadProps}
+                        style={{ background: "#fafafa" }}
+                      >
+                        <p className="ant-upload-drag-icon">
+                          <HiInbox style={{ fontSize: 48, color: "#1890ff" }} />
+                        </p>
+                        <p className="ant-upload-text">
+                          {t("discussion.Click or drag files to upload")}
+                        </p>
+                      </Dragger>
+                    </div>
+                  </>
+                )}
+                {formState?.type !== "Calendly" &&
+                  !isEmailConversation(meeting) && (
                     <RepetitionSettings
                       formState={formState}
                       setFormState={setFormState}
                       meeting={meeting}
                     />
-                  </>
-                )}
+                  )}
               </div>
             </div>
           </div>
         );
+      case 3:
+        return renderEmailStep();
 
       default:
         return null;
@@ -5331,45 +6216,19 @@ const QuickMomentForm = ({
                   <div
                     className="progress-fill"
                     style={{
-                      width:
-                        openedFrom === "mission"
-                          ? `${((step - 1) / 1) * 100}%` // For mission flow (2 steps: 0% to 100%)
-                          : `${((step - 1) / 3) * 100}%`, // For normal flow (4 steps: 0% to 100%)
+                      width: `${((step - 1) / 1) * 100}%`,
                     }}
                   ></div>
                 </div>
                 <div className="progress-steps">
-                  {openedFrom === "mission" ? (
-                    <>
-                      <div
-                        className={`progress-step ${step >= 1 ? "active" : ""}`}
-                      >
-                        <div className="step-number">1</div>
-                        <div className="step-label">{t("Solution")}</div>
-                      </div>
-                      <div
-                        className={`progress-step ${step >= 2 ? "active" : ""}`}
-                      >
-                        <div className="step-number">2</div>
-                        <div className="step-label">{t("Moment")}</div>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div
-                        className={`progress-step ${step >= 1 ? "active" : ""}`}
-                      >
-                        <div className="step-number">1</div>
-                        <div className="step-label">{t("Solution")}</div>
-                      </div>
-                      <div
-                        className={`progress-step ${step >= 2 ? "active" : ""}`}
-                      >
-                        <div className="step-number">2</div>
-                        <div className="step-label">{t("Moment")}</div>
-                      </div>
-                    </>
-                  )}
+                  <div className={`progress-step ${step >= 1 ? "active" : ""}`}>
+                    <div className="step-number">1</div>
+                    <div className="step-label">{t("Solution")}</div>
+                  </div>
+                  <div className={`progress-step ${step >= 2 ? "active" : ""}`}>
+                    <div className="step-number">2</div>
+                    <div className="step-label">{t("Moment")}</div>
+                  </div>
                 </div>
               </div>
             )}
@@ -5414,139 +6273,175 @@ const QuickMomentForm = ({
             {renderStepContent()}
           </div>
 
-          <div className="modal-footer-fixed">
-            <button className="btn btn-danger" onClick={handleCancel}>
-              {t("Cancel")}
-            </button>
-            <div className="d-flex gap-2">
-              {openedFrom === "mission" ? (
-                <>
-                  {step === 1 ? (
-                    <button
-                      className="btn btn-primary"
-                      style={{ outline: 0, borderRadius: "9px" }}
-                      onClick={handleCreate}
-                      disabled={loading}
-                    >
-                      {loading ? (
-                        <Spinner as="span" animation="border" size="sm" />
-                      ) : (
-                        t("meeting.formState.Save and Continue")
-                      )}
-                    </button>
-                  ) : (
-                    <>
+          {step !== 3 && (
+            <div className="modal-footer-fixed">
+              <button className="btn btn-danger" onClick={handleCancel}>
+                {t("Cancel")}
+              </button>
+              <div className="d-flex gap-2">
+                {openedFrom === "mission" ? (
+                  <>
+                    {step === 1 ? (
                       <button
                         className="btn btn-primary"
                         style={{ outline: 0, borderRadius: "9px" }}
-                        onClick={() =>
-                          meetingData?.created_from_whatsapp
-                            ? handleMeetingUpdate()
-                            : handleFinalSubmit()
-                        }
-                        disabled={
-                          !momentName ||
-                          loading ||
-                          (isStripeRequired && !isStripeConnected)
-                        }
+                        onClick={handleCreate}
+                        disabled={loading}
                       >
                         {loading ? (
                           <Spinner as="span" animation="border" size="sm" />
                         ) : (
-                          t("Validate")
+                          t("meeting.formState.Save and Continue")
                         )}
                       </button>
-                      {isTemplate &&
-                        formState?.type !== "Calendly" &&
-                        selectedSolution?.is_step_exists !== false &&
-                        formState?.type !== "AI Social Media Newsletter" &&
-                        !meetingData?.created_from_whatsapp && (
-                          <button
-                            className="btn btn-primary"
-                            style={{ outline: 0, borderRadius: "9px" }}
-                            onClick={createAndPlay}
-                            disabled={
-                              !momentName ||
-                              loadingPlay ||
-                              (isStripeRequired && !isStripeConnected)
-                            }
-                          >
-                            {loadingPlay ? (
-                              <Spinner as="span" animation="border" size="sm" />
-                            ) : (
-                              t("Validate and Play")
-                            )}
-                          </button>
-                        )}
-                    </>
-                  )}
-                </>
-              ) : (
-                <>
-                  {step < 2 ? (
-                    <button
-                      className="btn btn-primary"
-                      style={{ outline: 0, borderRadius: "9px" }}
-                      onClick={handleCreate}
-                      disabled={loading}
-                    >
-                      {loading ? (
-                        <Spinner as="span" animation="border" size="sm" />
-                      ) : (
-                        t("meeting.formState.Save and Continue")
-                      )}
-                    </button>
-                  ) : (
-                    <>
+                    ) : (
+                      <>
+                        <button
+                          className="btn btn-primary"
+                          style={{ outline: 0, borderRadius: "9px" }}
+                          onClick={() =>
+                            meetingData?.created_from_whatsapp
+                              ? handleMeetingUpdate()
+                              : handleFinalSubmit()
+                          }
+                          disabled={
+                            !momentName ||
+                            loading ||
+                            (formState?.casting_type === "Registration" &&
+                              !isStripeConnected) ||
+                            isOutlookRequiredButNotConnected ||
+                            (isEmailConversation(meeting) &&
+                              !emailMessageText.trim()) ||
+                            // Jab isEmailConversation true ho aur participants khali hon toh disable rakhein
+                            (isEmailConversation(meeting) &&
+                              (!formState?.participants ||
+                                formState.participants.length === 0) &&
+                              (!meeting?.participants ||
+                                meeting.participants.length === 0))
+                          }
+                        >
+                          {loading ? (
+                            <Spinner as="span" animation="border" size="sm" />
+                          ) : (
+                            t("Validate")
+                          )}
+                        </button>
+                        {isTemplate &&
+                          formState?.type !== "Calendly" &&
+                          selectedSolution?.is_step_exists !== false &&
+                          formState?.type !== "AI Social Media Newsletter" &&
+                          !meetingData?.created_from_whatsapp &&
+                          !isEmailConversation(meeting) && (
+                            <button
+                              className="btn btn-primary"
+                              style={{ outline: 0, borderRadius: "9px" }}
+                              onClick={createAndPlay}
+                              disabled={
+                                !momentName ||
+                                loadingPlay ||
+                                (formState?.casting_type === "Registration" &&
+                                  !isStripeConnected) ||
+                                isOutlookRequiredButNotConnected
+                              }
+                            >
+                              {loadingPlay ? (
+                                <Spinner
+                                  as="span"
+                                  animation="border"
+                                  size="sm"
+                                />
+                              ) : (
+                                t("Validate and Play")
+                              )}
+                            </button>
+                          )}
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {step < 2 ? (
                       <button
                         className="btn btn-primary"
                         style={{ outline: 0, borderRadius: "9px" }}
-                        onClick={() =>
-                          meetingData?.created_from_whatsapp
-                            ? handleMeetingUpdate()
-                            : handleFinalSubmit()
-                        }
-                        disabled={
-                          !momentName ||
-                          loading ||
-                          (isStripeRequired && !isStripeConnected)
-                        }
+                        onClick={handleCreate}
+                        disabled={loading}
                       >
                         {loading ? (
                           <Spinner as="span" animation="border" size="sm" />
                         ) : (
-                          t("Validate")
+                          t("meeting.formState.Save and Continue")
                         )}
                       </button>
+                    ) : (
+                      <>
+                        <button
+                          className="btn btn-primary"
+                          style={{ outline: 0, borderRadius: "9px" }}
+                          onClick={() =>
+                            meetingData?.created_from_whatsapp
+                              ? handleMeetingUpdate()
+                              : handleFinalSubmit()
+                          }
+                          disabled={
+                            !momentName ||
+                            loading ||
+                            (formState?.casting_type === "Registration" &&
+                              !isStripeConnected) ||
+                            isOutlookRequiredButNotConnected ||
+                            (isEmailConversation(meeting) &&
+                              !emailMessageText.trim()) ||
+                            // Jab isEmailConversation true ho aur participants khali hon toh disable rakhein
+                            (isEmailConversation(meeting) &&
+                              (!formState?.participants ||
+                                formState.participants.length === 0) &&
+                              (!meeting?.participants ||
+                                meeting.participants.length === 0))
+                          }
+                        >
+                          {loading ? (
+                            <Spinner as="span" animation="border" size="sm" />
+                          ) : (
+                            t("Validate")
+                          )}
+                        </button>
 
-                      {isTemplate &&
-                        formState?.type !== "Calendly" &&
-                        selectedSolution?.is_step_exists !== false &&
-                        formState?.type !== "AI Social Media Newsletter" &&
-                        !meetingData?.created_from_whatsapp && (
-                          <button
-                            className="btn btn-primary"
-                            style={{ outline: 0, borderRadius: "9px" }}
-                            onClick={createAndPlay}
-                            disabled={
-                              !momentName ||
-                              loadingPlay ||
-                              (isStripeRequired && !isStripeConnected)
-                            }
-                          >
-                            {loadingPlay ? (
-                              <Spinner as="span" animation="border" size="sm" />
-                            ) : (
-                              t("Validate and Play")
-                            )}
-                          </button>
-                        )}
-                    </>
-                  )}
-                </>
-              )}
+                        {isTemplate &&
+                          formState?.type !== "Calendly" &&
+                          selectedSolution?.is_step_exists !== false &&
+                          formState?.type !== "AI Social Media Newsletter" &&
+                          !meetingData?.created_from_whatsapp &&
+                          !isEmailConversation(meeting) && (
+                            <button
+                              className="btn btn-primary"
+                              style={{ outline: 0, borderRadius: "9px" }}
+                              onClick={createAndPlay}
+                              disabled={
+                                !momentName ||
+                                loadingPlay ||
+                                (formState?.casting_type === "Registration" &&
+                                  !isStripeConnected) ||
+                                isOutlookRequiredButNotConnected
+                              }
+                            >
+                              {loadingPlay ? (
+                                <Spinner
+                                  as="span"
+                                  animation="border"
+                                  size="sm"
+                                />
+                              ) : (
+                                t("Validate and Play")
+                              )}
+                            </button>
+                          )}
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
@@ -5792,6 +6687,128 @@ const QuickMomentForm = ({
           </div>,
           document.body,
         )}
+
+      {/* Gmail Connect Modal */}
+      <AntModal
+        open={showGmailConnect}
+        onCancel={() => setShowGmailConnect(false)}
+        footer={null}
+        width={700}
+        centered
+        destroyOnClose
+        zIndex={1200}
+      >
+        <GoogleConnectFlow
+          user={user}
+          onUpdate={() => {
+            setShowGmailConnect(false);
+            if (setCallUser) setCallUser((prev) => !prev);
+          }}
+        />
+      </AntModal>
+
+      {/* Ionos Modal */}
+      <Modal
+        show={showIonosModal}
+        onHide={() => setShowIonosModal(false)}
+        centered
+        style={{ zIndex: 1200 }}
+        backdropClassName="custom-high-z-backdrop"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Connect Ionos Account</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <BootstrapForm
+            noValidate
+            validated={ionosValidated}
+            onSubmit={handleIonosSubmit}
+          >
+            <BootstrapForm.Group className="mb-3" controlId="ionosHost">
+              <BootstrapForm.Label>Host</BootstrapForm.Label>
+              <InputGroup>
+                <BootstrapForm.Control
+                  readOnly
+                  value="imap.ionos."
+                  style={{ backgroundColor: "#e9ecef", maxWidth: "120px" }}
+                />
+                <BootstrapForm.Select
+                  name="domain"
+                  value={ionosForm.domain}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setIonosForm((prev) => ({
+                      ...prev,
+                      domain: value,
+                      host: `imap.ionos.${value}`,
+                    }));
+                  }}
+                >
+                  <option value="com">com</option>
+                  <option value="us">us</option>
+                  <option value="fr">fr</option>
+                  <option value="eu">eu</option>
+                  <option value="it">it</option>
+                  <option value="es">es</option>
+                </BootstrapForm.Select>
+              </InputGroup>
+            </BootstrapForm.Group>
+
+            <BootstrapForm.Group className="mb-3" controlId="ionosUsername">
+              <BootstrapForm.Label>Username / Email</BootstrapForm.Label>
+              <BootstrapForm.Control
+                type="text"
+                placeholder="email@example.com"
+                required
+                value={ionosForm.username}
+                onChange={(e) =>
+                  setIonosForm({ ...ionosForm, username: e.target.value })
+                }
+              />
+              <BootstrapForm.Control.Feedback type="invalid">
+                Please provide a valid username.
+              </BootstrapForm.Control.Feedback>
+            </BootstrapForm.Group>
+
+            <BootstrapForm.Group className="mb-3" controlId="ionosPassword">
+              <BootstrapForm.Label>Password</BootstrapForm.Label>
+              <InputGroup hasValidation>
+                <BootstrapForm.Control
+                  type={showIonosPassword ? "text" : "password"}
+                  placeholder="Password"
+                  required
+                  value={ionosForm.password}
+                  onChange={(e) =>
+                    setIonosForm({ ...ionosForm, password: e.target.value })
+                  }
+                />
+                <Button
+                  variant="outline-secondary"
+                  onClick={() => setShowIonosPassword(!showIonosPassword)}
+                  type="button"
+                >
+                  {showIonosPassword ? <FaEyeSlash /> : <FaEye />}
+                </Button>
+                <BootstrapForm.Control.Feedback type="invalid">
+                  Please provide a password.
+                </BootstrapForm.Control.Feedback>
+              </InputGroup>
+            </BootstrapForm.Group>
+
+            <div className="d-flex justify-content-end gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => setShowIonosModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button variant="primary" type="submit" disabled={ionosLoading}>
+                {ionosLoading ? <Spinner size="sm" /> : "Connect"}
+              </Button>
+            </div>
+          </BootstrapForm>
+        </Modal.Body>
+      </Modal>
     </>
   );
 };

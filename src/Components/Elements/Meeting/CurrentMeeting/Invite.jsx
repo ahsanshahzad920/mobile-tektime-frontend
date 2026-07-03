@@ -1900,7 +1900,7 @@ const Invite = () => {
                           {
                             (showButton || meeting?.type === "Calendly") && (
                               <Dropdown.Menu>
-                                {((meeting?.status !== "in_progress" && meeting?.status !== "no_status") || meeting?.type === "Calendly") && (
+                                {((meeting?.status !== "in_progress" && meeting?.status !== "no_status") || meeting?.type === "Calendly" || meeting?.type === "Conversation") && (
                                   <>
                                     {/* {(meeting?.type === "Google Agenda Event" || meeting?.type === "Outlook Agenda Event") && */}
 
@@ -1926,7 +1926,7 @@ const Invite = () => {
                                     {t("dropdown.change Privacy")}
                                   </Dropdown.Item>
                                 )}
-                                {(meeting?.status !== "no_status" || meeting?.type === "Calendly") && (
+                                {(meeting?.status !== "no_status" || meeting?.type === "Calendly" || meeting?.type === "Conversation") && (
                                   <Dropdown.Item
                                     onClick={(e) => handleChangeContext(meeting)}
                                   >
@@ -1934,7 +1934,7 @@ const Invite = () => {
                                     {t("dropdown.change Context")}
                                   </Dropdown.Item>
                                 )}
-                                {(meeting?.status !== "no_status" || meeting?.type === "Calendly") && (
+                                {(meeting?.status !== "no_status" || meeting?.type === "Calendly" || meeting?.type === "Conversation") && (
                                   <Dropdown.Item
                                     onClick={(e) => handleChangeOptions(meeting)}
                                   >
@@ -1943,7 +1943,7 @@ const Invite = () => {
                                   </Dropdown.Item>
                                 )}
 
-                                {(meeting?.status !== "no_status" || meeting?.type === "Calendly") && (
+                                {(meeting?.status !== "no_status" || meeting?.type === "Calendly" || meeting?.type === "Conversation") && (
                                   <Dropdown.Item
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -1984,7 +1984,7 @@ const Invite = () => {
                                     {t("dropdown.invitation")}
                                   </Dropdown.Item>
                                 )}
-                                {(meeting?.status !== "no_status" || meeting?.type === "Calendly") && (
+                                {(meeting?.status !== "no_status" || meeting?.type === "Calendly" || meeting?.type === "Conversation") && (
                                   <Dropdown.Item
                                     onClick={() =>
                                       setIsCloseMomentModalOpen(true)
@@ -2019,7 +2019,7 @@ const Invite = () => {
                                   (meeting?.event_organizer && meeting?.event_organizer?.email === sessionEmail) ||
                                   meeting?.user?.email === sessionEmail) && (
                                   <>
-                                    {(meeting?.status !== "no_status" || meeting?.type === "Calendly") && (
+                                    {(meeting?.status !== "no_status" || meeting?.type === "Calendly" || meeting?.type === "Conversation") && (
                                       <hr
                                         style={{
                                           margin: "10px 0 0 0",

@@ -1503,11 +1503,11 @@ export const getOptions = (t, roleId) => {
       label: t("meeting.newMeeting.options.activityTypes.calendly"),
       svg: <FaCalendarCheck size={36} color="#DAE6ED" />,
     },
-    // {
-    //   title: "Conversation",
-    //   label: t("meeting.newMeeting.options.activityTypes.conversation") || "Conversation",
-    //   svg: <FaComments size={36} color="#DAE6ED" />,
-    // },
+    {
+      title: "Conversation",
+      label: t("meeting.newMeeting.options.activityTypes.conversation") || "Conversation",
+      svg: <FaComments size={36} color="#DAE6ED" />,
+    },
     // {
     //   title: "Law",
     //   label: t("meeting.newMeeting.options.activityTypes.law"),

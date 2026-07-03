@@ -888,7 +888,8 @@ function Location({ setActiveTab }) {
                                     )}
                                 </div>
                                 
-                                {/* <div className="col-md-6 mt-3">
+                                 {/* Email */}
+                                <div className="col-md-6 mt-3">
                                     <button
                                         className={`list-group-item list-group-item-action p-3 ${["Outlook", "gmail", "ionos"].includes(selectedLocation.meeting)
                                             ? "border-primary"
@@ -919,6 +920,7 @@ function Location({ setActiveTab }) {
                                     {toggleStates.email && (
                                         <div className="p-4 pt-0 pb-1 create-moment-modal">
                                             <div className="row form mt-3">
+                                                {/* Outlook */}
                                                 <div className="mb-3 col-md-6 d-flex align-items-center gap-2">
                                                     <input
                                                         type="radio"
@@ -933,6 +935,7 @@ function Location({ setActiveTab }) {
                                                     </label>
                                                 </div>
 
+                                                {/* Gmail */}
                                                 <div className="mb-3 col-md-6 d-flex align-items-center gap-2">
                                                     <input
                                                         type="radio"
@@ -947,6 +950,7 @@ function Location({ setActiveTab }) {
                                                     </label>
                                                 </div>
 
+                                                {/* Ionos */}
                                                 <div className="mb-3 col-md-6 d-flex align-items-center gap-2">
                                                     <input
                                                         type="radio"
@@ -963,7 +967,7 @@ function Location({ setActiveTab }) {
                                             </div>
                                         </div>
                                     )}
-                                </div> */}
+                                </div>
 
                                 {/* Social Media */}
                                 <div className="col-md-6 mt-3">

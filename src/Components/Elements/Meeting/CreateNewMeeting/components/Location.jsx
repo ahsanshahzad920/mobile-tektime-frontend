@@ -1564,8 +1564,9 @@ function Location({}) {
                 </div>
                 )}
 
-                {/* {(!isFromTemplate || allowedLocations.email) && (
+                {(!isFromTemplate || allowedLocations.email) && (
                 <div className="col-md-6 mt-3">
+                                    {/* Email */}
                                     <button
                                         className={`list-group-item list-group-item-action p-3 ${
                                           ["Outlook", "gmail", "ionos"].includes(selectedLocation.meeting)
@@ -1597,6 +1598,7 @@ function Location({}) {
                                     {toggleStates.email && (
                                         <div className="p-4 pt-0 pb-1 create-moment-modal">
                                             <div className="row form mt-3">
+                                                {/* Outlook */}
                                                 <div className="mb-3 col-md-6 d-flex align-items-center gap-2">
                                                     <input
                                                         type="radio"
@@ -1611,6 +1613,7 @@ function Location({}) {
                                                     </label>
                                                 </div>
 
+                                                {/* Gmail */}
                                                 <div className="mb-3 col-md-6 d-flex align-items-center gap-2">
                                                     <input
                                                         type="radio"
@@ -1625,6 +1628,7 @@ function Location({}) {
                                                     </label>
                                                 </div>
 
+                                                {/* Ionos */}
                                                 <div className="mb-3 col-md-6 d-flex align-items-center gap-2">
                                                     <input
                                                         type="radio"
@@ -1642,7 +1646,7 @@ function Location({}) {
                                         </div>
                                     )}
                 </div>
-                )} */}
+                )}
               </div>
             </div>
           </Col>

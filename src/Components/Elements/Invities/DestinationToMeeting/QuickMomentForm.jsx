@@ -6339,8 +6339,7 @@ const QuickMomentForm = ({
                               disabled={
                                 !momentName ||
                                 loadingPlay ||
-                                (formState?.casting_type === "Registration" &&
-                                  !isStripeConnected) ||
+                                (isStripeRequired && !isStripeConnected) ||
                                 isOutlookRequiredButNotConnected
                               }
                             >
@@ -6386,8 +6385,7 @@ const QuickMomentForm = ({
                           disabled={
                             !momentName ||
                             loading ||
-                            (formState?.casting_type === "Registration" &&
-                              !isStripeConnected) ||
+                            (isStripeRequired && !isStripeConnected) ||
                             isOutlookRequiredButNotConnected ||
                             (isEmailConversation(meeting) &&
                               !emailMessageText.trim()) ||
@@ -6419,8 +6417,7 @@ const QuickMomentForm = ({
                               disabled={
                                 !momentName ||
                                 loadingPlay ||
-                                (formState?.casting_type === "Registration" &&
-                                  !isStripeConnected) ||
+                                (isStripeRequired && !isStripeConnected) ||
                                 isOutlookRequiredButNotConnected
                               }
                             >

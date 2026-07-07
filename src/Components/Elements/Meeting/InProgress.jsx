@@ -4007,37 +4007,71 @@ Please categorize the relevant details into their corresponding sections.`;
       document.body.removeChild(a);
       URL.revokeObjectURL(downloadUrl);
     }
-    formData.append("meeting_id", meetId);
-    formData.append("voice_notes", file);
-
-    const endPoint = `${API_BASE_URL}/audio-route`;
     const token = CookieService.get("token");
+    const delay = (ms) => new Promise((res) => setTimeout(res, ms));
+
+    // Upload direct au stockage via URL signée : le front demande une petite URL
+    // à l'API, puis envoie l'audio DIRECTEMENT au stockage (Backblaze). Cela
+    // contourne complètement le CDN/Cloudflare -> pas de bridage, pas de limite
+    // de taille, ~8x plus rapide (indispensable pour les longues réunions).
+    const uploadViaSignedUrl = async () => {
+      // 1. Demander une URL signée à l'API (requête minuscule)
+      const { data: presign } = await axios.post(
+        `${API_BASE_URL}/audio-upload-url`,
+        { meeting_id: meetId, content_type: file.type, extension: "wav" },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (!presign?.upload_url || !presign?.key) {
+        throw new Error("Signed upload URL invalid");
+      }
+      // 2. Envoyer l'audio DIRECTEMENT au stockage (fetch : pas de token envoyé,
+      //    pas d'intercepteur axios, seule l'en-tête Content-Type est jointe)
+      const putRes = await fetch(presign.upload_url, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type },
+      });
+      if (!putRes.ok) {
+        throw new Error(`Storage upload failed (HTTP ${putRes.status})`);
+      }
+      // 3. Confirmer à l'API -> enregistre voice_notes sur la réunion
+      const { data: confirm } = await axios.post(
+        `${API_BASE_URL}/audio-confirm`,
+        { meeting_id: meetId, key: presign.key },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      return confirm?.data;
+    };
+
+    // Repli (dernier recours) : ancienne route qui passe par le CDN. Conservée
+    // pour ne jamais régresser si l'upload signé échouait (fichiers courts).
+    const uploadViaLegacyRoute = async () => {
+      const formData = new FormData();
+      formData.append("meeting_id", meetId);
+      formData.append("voice_notes", file);
+      const { data } = await axios.post(`${API_BASE_URL}/audio-route`, formData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return data?.data;
+    };
 
     let attempts = 0;
     const maxRetries = 5;
-    const delay = (ms) => new Promise((res) => setTimeout(res, ms));
-
     try {
-      let response;
       while (attempts < maxRetries) {
         try {
-          response = await axios.post(endPoint, formData, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-
-          if (response?.status === 200) {
-            const data = response.data?.data;
-            if (data?.status === "closed") {
-              // navigate(`/destination/${data?.unique_id}/${data?.id}`);
-              return data;
-            }
-          }
-          break;
+          return await uploadViaSignedUrl();
         } catch (err) {
           attempts++;
           if (attempts >= maxRetries) {
-            console.error("S3 upload failed after retries:", err);
-            throw err;
+            console.error("Direct S3 upload failed after retries:", err);
+            // Dernier recours : l'ancienne route (CDN)
+            try {
+              return await uploadViaLegacyRoute();
+            } catch (legacyErr) {
+              console.error("Legacy upload also failed:", legacyErr);
+              throw legacyErr;
+            }
           }
           await delay(1000 * attempts);
         }

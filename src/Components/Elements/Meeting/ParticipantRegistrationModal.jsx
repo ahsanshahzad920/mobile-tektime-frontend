@@ -13,7 +13,7 @@ const ParticipantRegistrationModal = ({ show, handleClose, meetingData, refreshD
   const [step, setStep] = useState(1);
   const [ticketCount, setTicketCount] = useState(1);
   const [participants, setParticipants] = useState([
-    { email: "", firstName: "", lastName: "" }
+    { email: "", firstName: "", lastName: "", contribution: "" }
   ]);
   const [loading, setLoading] = useState(false);
 
@@ -29,10 +29,11 @@ const ParticipantRegistrationModal = ({ show, handleClose, meetingData, refreshD
         setParticipants([{ 
           email: user.email || "", 
           firstName: user.name || "", 
-          lastName: user.last_name || "" 
+          lastName: user.last_name || "",
+          contribution: ""
         }]);
       } else {
-        setParticipants([{ email: "", firstName: "", lastName: "" }]);
+        setParticipants([{ email: "", firstName: "", lastName: "", contribution: "" }]);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -45,7 +46,7 @@ const ParticipantRegistrationModal = ({ show, handleClose, meetingData, refreshD
       
       // Update participants array length
       if (delta > 0) {
-        setParticipants([...participants, { email: "", firstName: "", lastName: "" }]);
+        setParticipants([...participants, { email: "", firstName: "", lastName: "", contribution: "" }]);
       } else {
         setParticipants(participants.slice(0, -1));
       }
@@ -123,6 +124,7 @@ const ParticipantRegistrationModal = ({ show, handleClose, meetingData, refreshD
         first_name: p.firstName,
         last_name: p.lastName,
         email: p.email.toLowerCase().trim(),
+        contribution: p.contribution,
       })),
       total_amount: totalPrice,
       currency: "EUR",
@@ -145,7 +147,10 @@ const ParticipantRegistrationModal = ({ show, handleClose, meetingData, refreshD
       const checkoutUrl = response.data?.checkout_url || response.data?.url || response.data?.data?.url;
       
       if (checkoutUrl) {
-        window.location.href = checkoutUrl;
+        // La page événement peut être chargée dans une iframe (carte "Sites"
+        // du profil) ; Stripe Checkout refuse de s'afficher en iframe, donc on
+        // redirige la fenêtre de premier niveau.
+        (window.top || window).location.href = checkoutUrl;
       } else {
         toast.success(t("Registration successful!"));
         setLoading(false);
@@ -278,7 +283,7 @@ const ParticipantRegistrationModal = ({ show, handleClose, meetingData, refreshD
                           />
                         </Form.Group>
                       </Col>
-                      <Col md={12}>
+                      <Col md={12} className="mb-3">
                         <Form.Group>
                           <Form.Label>{t("Email Address")}</Form.Label>
                           <Form.Control
@@ -286,6 +291,18 @@ const ParticipantRegistrationModal = ({ show, handleClose, meetingData, refreshD
                             placeholder={t("Enter email address")}
                             value={participant.email}
                             onChange={(e) => handleParticipantChange(index, "email", e.target.value)}
+                          />
+                        </Form.Group>
+                      </Col>
+                      <Col md={12} className="mb-3">
+                        <Form.Group>
+                          <Form.Label>{t("Contribution")}</Form.Label>
+                          <Form.Control
+                            as="textarea"
+                            rows={3}
+                            placeholder={t("Enter contribution")}
+                            value={participant.contribution || ""}
+                            onChange={(e) => handleParticipantChange(index, "contribution", e.target.value)}
                           />
                         </Form.Group>
                       </Col>

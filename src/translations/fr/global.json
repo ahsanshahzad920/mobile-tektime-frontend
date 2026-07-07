@@ -78,7 +78,15 @@
       "deleted": "Type de mission supprimé.",
       "loadFailed": "Échec du chargement des types de mission.",
       "deleteFailed": "Échec de la suppression du type de mission."
-    }
+    },
+    "features": "Onglets / Modules",
+    "suivi_planning": "Suivi Planning",
+    "suivi_budget": "Suivi Budget",
+    "suivi_action": "Suivi des actions",
+    "suivi_charge": "Suivi charge de travail / disponibilité",
+    "casting": "Casting",
+    "file": "Fichiers",
+    "facture": "Facturation / Facture"
   },
   
   "whatsapp_in_tooltip": "Activer WhatsApp",
@@ -828,7 +836,15 @@
       "participants": "Veuillez remplir tous les champs des participants",
       "confirmation": "Etes-vous sûr que vous voulez supprimer?",
       "Add new invite": "Ajouter un nouveau Invité",
+       "errors":{
+        "problemToResolve":"Le problème que vous résolvez est requis.",
+        "solutionToBring":"La solution que vous apportez est nécessaire.",
+        "howItFixes":"Il est nécessaire d'expliquer comment cela résoudra le problème."
+      },
       "labels": {
+         "solutionToBring":"La solution que vous apportez",
+        "problemToResolve":"Le problème que vous résolvez",
+        "howItFixes":"Comment cela va résoudre le problème?",
         "typeOfChange": "Type d'échange",
         "objective": "Objectif du moment",
         "Destinations": "Missions",
@@ -1333,12 +1349,14 @@
     "participantSubText": "Seuls les participants de ce moment peuvent voir vos informations",
     "membersOnly": "Membres de TekTIME",
     "membersSubText": "Seuls les membres de TekTIME peuvent voir vos informations",
+    "enterpriseLogo": "Logo Entreprise",
     "buttons": {
       "changeProfile": "Changer la photo de profil",
       "removeProfile": "Supprimer la photo de profil",
       "update": "Modifier",
       "changeVideo": "Changer la vidéo de présentation",
-      "removeVideo": "Supprimer la vidéo de présentation"
+      "removeVideo": "Supprimer la vidéo de présentation",
+      "changeEnterpriseLogo": "Changer le logo de l'entreprise"
     },
     "viewProfile": {
       "phoneNumber": "Numéro de téléphone non disponible",
@@ -2009,6 +2027,7 @@
   "destination_name": "Nom de la mission",
   "destination_type": "Type de mission",
   "destination_desc": "Description détaillée du besoin client",
+  "suivi_charge_travail": "Suivi de la charge de travail",
   "max_participant_register": "Nombre maximum de participants",
   "price": "Prix",
   "Member": "Membre",
@@ -2160,6 +2179,7 @@
   "Enter Last Name": "Entrez le nom de famille",
   "Enter Post": "Entrez le poste",
   "Enter Phone Number": "Entrez le numéro de téléphone",
+  "Enter contribution": "Entrez la contribution",
   "Subscriptions End of date": "Abonnement Fin de date",
   "Select moment end time": "Sélectionnez l'heure de fin du moment",
   "Select Date and Time": "Sélectionnez la date et l'heure",
@@ -2247,7 +2267,7 @@
   "Check MicroPhone and Audio Sharing Permissions of your browser": "Veuillez vérifier les autorisations de microphone et de partage audio de votre navigateur.",
   "Do you want to open the visioconference in a new tab?": "Voulez-vous ouvrir la visioconférence dans un nouvel onglet?",
   "Presentation Banner": "Bannière de présentation",
-  "Contribution": "En quoi sa participation à ce moment est-elle indispensable ?",
+  "Contribution": "Quelles sont vos attentes par rapport à ce moment?",
   "Destination": "Mission",
   "Objective": "Quel est le but de ce moment ?",
   "The destination is the end result you want your client to achieve.": "Pour ceux qui veulent une vision claire des objectifs, un budget maîtrisé, et des projets alignés avec les ressources.",
@@ -4187,7 +4207,17 @@
       "message_line2": "Une fois que tout sera prêt, vous rejoindrez automatiquement la réunion."
     },
     "Restart":"Reprendre",
-    "Remaining Places":"Places restantes"
+    "Remaining Places":"Places restantes",
+  "destination_home_participants":"Participants",
+  "Monday": "Lundi",
+  "Tuesday": "Mardi",
+  "Wednesday": "Mercredi",
+  "Thursday": "Jeudi",
+  "Friday": "Vendredi",
+  "Saturday": "Samedi",
+  "Sunday": "Dimanche",
+  "yes": "Oui",
+  "no": "Non"
 }
 
 

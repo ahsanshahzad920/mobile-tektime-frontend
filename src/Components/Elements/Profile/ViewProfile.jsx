@@ -471,7 +471,7 @@ const ViewProfile = ({ user }) => {
               <h2 className="name">{user?.full_name || "N/A"}</h2>
               <p className="enterprise-name">
                 <img
-                  src={Assets_URL + "/" + user?.enterprise?.logo}
+                  src={user?.enterprise?.logo?.startsWith("http") ? user?.enterprise?.logo : Assets_URL + "/" + user?.enterprise?.logo}
                   alt="enterprise"
                   width="30px"
                   className="img-fluid"

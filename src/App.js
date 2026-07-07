@@ -84,6 +84,7 @@ const Assistant = lazy(() => import("./Components/Elements/Profile/Assistant.jsx
 const PaymentSuccess = lazy(() => import("./Pages/PaymentSuccess.jsx"));
 const PaymentCancel = lazy(() => import("./Pages/PaymentCancel.jsx"));
 const AccessDenied = lazy(() => import("./Pages/AccessDenied"));
+const NotFound = lazy(() => import("./Pages/NotFound.jsx"));
 const HomeMessages = lazy(() => import("./Pages/Discussion/HomeMessages.jsx"));
 const StripeSuccess = lazy(() => import("./Components/Elements/StripeSuccess"));
 const StripePaymentCompleted = lazy(() => import("./Components/Elements/StripePaymentCompleted"));
@@ -973,6 +974,10 @@ function App() {
               </PrivateRoute>
             }
           />
+            {/* Page 404 : rendue seulement si aucune route (ni ce bloc, ni le bloc
+            BasePace ci-dessous) ne correspond — NotFound rend null sur les
+            chemins vitrine pour éviter toute superposition. */}
+          <Route path="*" element={<NotFound />} />
         </Route>
         {/* Wildcard Route - Redirects Based on Auth Status */}
         {/* <Route

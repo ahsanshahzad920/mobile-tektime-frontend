@@ -78,7 +78,15 @@
       "deleted": "Mission type deleted.",
       "loadFailed": "Failed to load mission types.",
       "deleteFailed": "Failed to delete mission type."
-    }
+    },
+    "features": "Tabs / Modules",
+    "suivi_planning": "Schedule monitoring",
+    "suivi_budget": "Budget monitoring",
+    "suivi_action": "Action monitoring",
+    "suivi_charge": "Workload / Availability monitoring",
+    "casting": "Casting / Participants",
+    "file": "Files / Documents",
+    "facture": "Invoicing / Facture"
   },
   "searchEngine": {
     "subtitle": "FRENCH B2B SOLUTIONS ENGINE",
@@ -871,7 +879,15 @@
       "participants": "Please complete all participant fields",
       "confirmation": "Are you sure you want to delete this Step?",
       "Add new invite": "Add new Invite",
+      "errors":{
+        "problemToResolve":"The problem you resolve is required",
+        "solutionToBring":"The solution you bring is required",
+        "howItFixes":"How it will fix it is required"
+      },
       "labels": {
+        "solutionToBring":"The solution you bring",
+        "problemToResolve":"The problem you resolve",
+        "howItFixes":"How it will fix it?",
         "typeOfChange": "Type of exchange",
         "objective": "Objective",
         "Destinations": "Missions",
@@ -1375,12 +1391,14 @@
     "participantSubText": "Seuls les participants à ce moment peuvent voir vos informations",
     "membersOnly": "TekTIME  members",
     "membersSubText": "only tektime members can see your information",
+    "enterpriseLogo": "Enterprise Logo",
     "buttons": {
       "changeProfile": "Change Profile Picture",
       "removeProfile": "Remove Profile Picture",
       "update": "Update",
       "changeVideo": "Change presentation video",
-      "removeVideo": "Remove presentation video"
+      "removeVideo": "Remove presentation video",
+      "changeEnterpriseLogo": "Change Enterprise Logo"
     },
     "viewProfile": {
       "phoneNumber": "Phone number not available",
@@ -2050,6 +2068,7 @@
   "destination_budget": "What is the initial budget",
   "destination_type": "Type of mission",
   "destination_desc": "Detailed description of client needs",
+  "suivi_charge_travail": "Workload tracking",
   "max_participant_register": "Maximum participants",
   "price": "Price",
   "Member": "Member",
@@ -2204,6 +2223,7 @@
   "Enter Last Name": "Enter Last Name",
   "Enter Post": "Enter Post",
   "Enter Phone Number": "Enter Phone Number",
+  "Enter contribution": "Enter contribution",
   "Subscriptions End of date": "Subscription End of date",
   "Select moment end time": "Select moment end time",
   "Select Date and Time": "Select Date and Time",
@@ -2291,7 +2311,7 @@
   "Check MicroPhone and Audio Sharing Permissions of your browser": "Please check your browser's microphone and audio-sharing permissions.",
   "Do you want to open the visioconference in a new tab?": "Do you want to open the visioconference in a new tab?",
   "Presentation Banner": "Presentation Banner",
-  "Contribution": "Why is his participation at this moment essential ?",
+  "Contribution": "What are your expectations for this moment?",
   "Destination": "Mission",
   "Objective": "What is the purpose of this moment ?",
   "The destination is the end result you want your client to achieve.": "For those who want a clear vision of objectives, a controlled budget, and projects aligned with resources.",
@@ -4213,5 +4233,15 @@
     "title": "AI Processing",
     "message": "AI Content and Media Generation is in progress...",
     "message_line2": "When it's ready you will automatically go in the meeting"
-  }
+  },
+  "destination_home_participants":"Participants",
+  "Monday": "Monday",
+  "Tuesday": "Tuesday",
+  "Wednesday": "Wednesday",
+  "Thursday": "Thursday",
+  "Friday": "Friday",
+  "Saturday": "Saturday",
+  "Sunday": "Sunday",
+  "yes": "Yes",
+  "no": "No"
 }

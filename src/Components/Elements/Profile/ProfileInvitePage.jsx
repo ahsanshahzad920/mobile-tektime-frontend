@@ -129,6 +129,37 @@ const ProfileInvitePage = () => {
   const [user, setUser] = useState(null);
 
   const [loading, setLoading] = useState(false);
+
+  const getBannerContent = (textColor) => {
+    return (
+      <div className="container-fluid banner-content px-md-5 px-3">
+        <div className="row align-items-center h-100">
+          <div
+            className="col-12 col-md-8 text-center text-md-start position-relative animate__animated animate__fadeInUp"
+          >
+            <h1 className="banner-title" style={{ color: textColor }}>
+              {user?.title || t("profile.inviteProfile.visitingCard")}
+            </h1>
+          </div>
+          <div
+            className="col-12 col-md-4 text-center text-md-end client-section mt-3 mt-md-0 animate__animated animate__zoomIn"
+          >
+            {user?.enterprise?.logo && (
+              <img
+                src={
+                  user?.enterprise?.logo?.startsWith("http")
+                    ? user?.enterprise?.logo
+                    : `${Assets_URL}/${user?.enterprise?.logo}`
+                }
+                alt="Enterprise Logo"
+                className="banner-logo"
+              />
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
   const navigate = useNavigate();
   const { nick_name } = useParams();
   const [pageViews, setPageViews] = useState(0);
@@ -733,112 +764,82 @@ const ProfileInvitePage = () => {
             >
 
               {user?.profile_banner ? (
-                <img
-                  src={Assets_URL + "/" + user?.profile_banner}
-                  alt="Destination Banner"
+                <section
+                  className="banner has-image"
                   style={{
-                    width: "100%",
-                    height: "338px",
-                    objectFit: "cover",
-                    filter: "opacity(0.5)",
+                    backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url(${Assets_URL + "/" + user?.profile_banner})`,
+                    minHeight: "338px",
                   }}
-                />
+                >
+                  {getBannerContent("white")}
+                </section>
               ) : (
-                <div className="gradient-header profile-header">
-                  <svg
-                    width="100%"
-                    height="338"
-                    viewBox="0 0 1453 338"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <g filter="url(#filter0_f_902_7997)">
-                      <rect
-                        width="100%"
-                        height="271"
-                        fill="url(#paint0_linear_902_7997)"
-                      />
-                    </g>
-                    <defs>
-                      <filter
-                        id="filter0_f_902_7997"
-                        x="-66.5"
-                        y="-66.5"
-                        width="1573"
-                        height="404"
-                        filterUnits="userSpaceOnUse"
-                        color-interpolation-filters="sRGB"
-                      >
-                        <feFlood
-                          flood-opacity="0"
-                          result="BackgroundImageFix"
+                <section
+                  className="banner"
+                  style={{
+                    minHeight: "338px",
+                  }}
+                >
+                  <div className="gradient-header profile-header">
+                    <svg
+                      width="100%"
+                      height="100%"
+                      viewBox="0 0 1453 338"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      preserveAspectRatio="none"
+                    >
+                      <g filter="url(#filter0_f_902_7997)">
+                        <rect
+                          width="100%"
+                          height="271"
+                          fill="url(#paint0_linear_902_7997)"
                         />
-                        <feBlend
-                          mode="normal"
-                          in="SourceGraphic"
-                          in2="BackgroundImageFix"
-                          result="shape"
-                        />
-                        <feGaussianBlur
-                          stdDeviation="33.25"
-                          result="effect1_foregroundBlur_902_7997"
-                        />
-                      </filter>
-                      <linearGradient
-                        id="paint0_linear_902_7997"
-                        x1="856"
-                        y1="281.934"
-                        x2="863.131"
-                        y2="-138.913"
-                        gradientUnits="userSpaceOnUse"
-                      >
-                        <stop stop-color="white" />
-                        <stop offset="1" stop-color="#76C3EE" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
-                </div>
+                      </g>
+                      <defs>
+                        <filter
+                          id="filter0_f_902_7997"
+                          x="-66.5"
+                          y="-66.5"
+                          width="1573"
+                          height="404"
+                          filterUnits="userSpaceOnUse"
+                          colorInterpolationFilters="sRGB"
+                        >
+                          <feFlood
+                            floodOpacity="0"
+                            result="BackgroundImageFix"
+                          />
+                          <feBlend
+                            mode="normal"
+                            in="SourceGraphic"
+                            in2="BackgroundImageFix"
+                            result="shape"
+                          />
+                          <feGaussianBlur
+                            stdDeviation="33.25"
+                            result="effect1_foregroundBlur_902_7997"
+                          />
+                        </filter>
+                        <linearGradient
+                          id="paint0_linear_902_7997"
+                          x1="856"
+                          y1="281.934"
+                          x2="863.131"
+                          y2="-138.913"
+                          gradientUnits="userSpaceOnUse"
+                        >
+                          <stop stopColor="white" />
+                          <stop offset="1" stopColor="#76C3EE" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                  </div>
+                  {getBannerContent("black")}
+                </section>
               )}
 
               <div className="content">
-                <div className="row profile-ivite-card report-row">
-                  <div className="col-12 col-md-8 d-flex flex-column flex-md-row align-items-center align-items-md-start text-center text-md-start">
-                    <h5 className="content-heading fw-bold">
-                      {user?.title
-                        ? user?.title
-                        : t("profile.inviteProfile.visitingCard")}
-                    </h5>
-                  </div>
-                  <div className="col-md-4">
-                    <div className="position-relative">
-                      <Card className="mt-3 host-card destination-dev-team">
-                        <Card.Body>
-                          <div className="d-flex justify-content-center">
-                            <div className="profile-logo">
-                              <Card.Img
-                                className="avatar-img"
-                                src={
-                                  user?.enterprise?.logo?.startsWith("http")
-                                    ? user?.enterprise?.logo
-                                    : Assets_URL + "/" + user?.enterprise?.logo
-                                }
-                              />
-                            </div>
-                          </div>
-                          {/* <Card.Title className="text-center mt-3 card-heading">
-                            {meetingData?.user?.enterprise?.name}
-                          </Card.Title> */}
-                          {/* <Card.Subtitle className="mb-2 card-subtext">
-                        {meeting?.user?.post} -{" "}
-                        {meeting?.user?.teams?.map((item) => item.name)}
-                      </Card.Subtitle> */}
-                        </Card.Body>
-                      </Card>
-                    </div>
-                  </div>
-
-                  {/* ------------------------------------------------ HOST */}
-                </div>
                 {/* {user?.bio && (
                   <div className="row mt-5">
                     <div className="col-md-12">
@@ -856,7 +857,7 @@ const ProfileInvitePage = () => {
                         className={`participant-card participant-card-meeting position-relative`}
                         style={{
                           width: "fit-content",
-                          marginTop: "4rem",
+                          marginTop: "12rem",
                         }}
                       >
                         <Card.Body className="profile-invite-card-body profilecard-width px-5 py-4">

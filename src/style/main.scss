@@ -1085,7 +1085,7 @@ body {
     color: #38993c;
   }
 
-  .active {
+  .active:not(.tab-pane):not(.tab):not(.nav-link) {
     background: rgba(47, 187, 103, 0.1019607843);
     padding: 9px 10px;
     border-radius: 4px;
@@ -2103,7 +2103,7 @@ body {
       text-align: left;
     }
 
-    .active {
+    .active:not(.tab-pane):not(.tab):not(.nav-link) {
       background: rgba(47, 187, 103, 0.1019607843);
       padding: 9px 10px;
       border-radius: 4px;
@@ -2130,7 +2130,7 @@ body {
       margin: 9px 6px;
     }
 
-    .active {
+    .active:not(.tab-pane):not(.tab):not(.nav-link) {
       background: rgba(47, 187, 103, 0.1019607843);
       padding: 9px 10px;
       border-radius: 4px;
@@ -4851,24 +4851,25 @@ body {
     border-radius: 10px;
   }
 
-  input {
+  input,
+  .form-control {
     padding: 0.5rem;
-    border: double 2px transparent;
+    border: double 2px transparent !important;
     border-radius: 10px;
     background-image:
       linear-gradient(white, white),
-      linear-gradient(to bottom, rgba(88, 130, 242, 1), rgba(15, 184, 203, 1));
+      linear-gradient(to bottom, rgba(88, 130, 242, 1), rgba(15, 184, 203, 1)) !important;
     background-origin: border-box;
     background-clip: padding-box, border-box;
   }
 
   .react-select {
     padding: 0.07rem;
-    border: double 2px transparent;
+    border: double 2px transparent !important;
     border-radius: 10px;
     background-image:
       linear-gradient(white, white),
-      linear-gradient(to bottom, rgb(88, 130, 242), rgb(15, 184, 203));
+      linear-gradient(to bottom, rgb(88, 130, 242), rgb(15, 184, 203)) !important;
     background-origin: border-box;
     background-clip: padding-box, border-box;
   }
@@ -4879,11 +4880,11 @@ body {
 
   .select {
     padding: 0.5rem;
-    border: double 2px transparent;
+    border: double 2px transparent !important;
     border-radius: 10px;
     background-image:
       linear-gradient(white, white),
-      linear-gradient(to bottom, rgba(88, 130, 242, 1), rgba(15, 184, 203, 1));
+      linear-gradient(to bottom, rgba(88, 130, 242, 1), rgba(15, 184, 203, 1)) !important;
     background-origin: border-box;
     background-clip: padding-box, border-box;
     transition:
@@ -4895,16 +4896,17 @@ body {
   .select:focus {
     background-image:
       linear-gradient(white, white),
-      linear-gradient(to bottom, rgba(88, 130, 242, 1), rgba(15, 184, 203, 1));
+      linear-gradient(to bottom, rgba(88, 130, 242, 1), rgba(15, 184, 203, 1)) !important;
     outline: none;
   }
 
-  textarea {
-    border: double 2px transparent;
+  textarea,
+  textarea.form-control {
+    border: double 2px transparent !important;
     border-radius: 10px;
     background-image:
       linear-gradient(white, white),
-      linear-gradient(to bottom, rgba(88, 130, 242, 1), rgba(15, 184, 203, 1));
+      linear-gradient(to bottom, rgba(88, 130, 242, 1), rgba(15, 184, 203, 1)) !important;
     background-origin: border-box;
     background-clip: padding-box, border-box;
     width: 100%;
@@ -4912,7 +4914,7 @@ body {
     &:focus {
       background-image:
         linear-gradient(white, white),
-        linear-gradient(to bottom, rgba(88, 130, 242, 1), rgba(15, 184, 203, 1));
+        linear-gradient(to bottom, rgba(88, 130, 242, 1), rgba(15, 184, 203, 1)) !important;
       outline: none;
     }
   }
@@ -10107,6 +10109,66 @@ viewer-toolbar {
 }
 
 .profile-link {
+  .banner {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 338px;
+    padding: 1rem;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    overflow: hidden;
+  }
+
+  .gradient-header {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+
+  .banner-content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 1rem;
+    width: 100%;
+  }
+
+  .banner-title {
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    font-weight: 800;
+    line-height: 1.2;
+    text-transform: capitalize;
+    transition: color 0.3s ease-in-out;
+  }
+
+  /* Only apply gradient text when banner exists */
+  .banner.has-image .banner-title {
+    background: linear-gradient(90deg, #ffffff, #76c3ee);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .banner-logo {
+    width: clamp(80px, 18vw, 150px);
+    height: clamp(80px, 18vw, 150px);
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 0.5rem;
+    backdrop-filter: blur(10px);
+    border: 4px solid #fff;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    transition: transform 0.3s ease-in-out;
+  }
+
+  .banner-logo:hover {
+    transform: scale(1.1) rotate(3deg);
+  }
+
   .show-save-profile {
     background: #31a6ff;
     color: white;

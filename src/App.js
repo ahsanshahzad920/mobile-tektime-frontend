@@ -502,6 +502,8 @@ function App() {
         <Routes>
         {/* <Route path="/" element={<Login onLogin={signin} />} /> */}
         <Route path="/" element={<Login onLogin={signin} />} />
+        <Route path="/login" element={<Login onLogin={signin} />} />
+
         <Route
           path="/heroes/:nick_name/emissary/:referral_id"
           element={<ReferralLanding />}
@@ -974,22 +976,11 @@ function App() {
               </PrivateRoute>
             }
           />
-            {/* Page 404 : rendue seulement si aucune route (ni ce bloc, ni le bloc
+        </Route>
+        {/* Page 404 : rendue seulement si aucune route (ni ce bloc, ni le bloc
             BasePace ci-dessous) ne correspond — NotFound rend null sur les
             chemins vitrine pour éviter toute superposition. */}
-          <Route path="*" element={<NotFound />} />
-        </Route>
-        {/* Wildcard Route - Redirects Based on Auth Status */}
-        {/* <Route
-          path="*"
-          element={
-            isSignedIn ? (
-              <Navigate to="/Team" replace />
-            ) : (
-              <Navigate to="/" replace />
-            )
-          }
-        /> */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
 
       <BasePage>

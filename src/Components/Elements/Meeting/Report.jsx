@@ -1,4 +1,4 @@
-import CookieService from '../../Utils/CookieService';
+import CookieService from "../../Utils/CookieService";
 import React, {
   useCallback,
   useEffect,
@@ -30,6 +30,7 @@ import {
   FaHome,
   FaBackward,
   FaFile,
+  FaTh,
 } from "react-icons/fa";
 
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
@@ -114,6 +115,8 @@ import ParticipantRegistrationModal from "./ParticipantRegistrationModal";
 import { SiMicrosoftoutlook, SiMicrosoftteams } from "react-icons/si";
 import { FcGoogle } from "react-icons/fc";
 import { BiDetail } from "react-icons/bi";
+import Moments from "../Invities/DestinationToMeeting/Moments";
+import FileDiaporamaViewer from "./Report/FileDiaporamaViewer";
 
 const localizer = momentLocalizer(moment);
 ChartJS.register(
@@ -122,7 +125,7 @@ ChartJS.register(
   BarElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
 );
 const Report = () => {
   const location = useLocation();
@@ -172,6 +175,52 @@ const Report = () => {
   const [milestones, setMilestones] = useState(null);
   const [roadmapMeetings, setRoadmapMeetings] = useState(null);
   const [timeWindowOffset, setTimeWindowOffset] = useState(0);
+  const [defaultAgendaView, setDefaultAgendaView] = useState("month");
+
+  // const {
+  //   meetingStartDate,
+  //   meetingEndDate,
+  //   formattedStartDate,
+  //   formattedMeetingEndDate,
+  // } = useMemo(() => {
+  //   const meetings = destinationDate?.meetings || [];
+  //   let baseDate;
+
+  //   if (meetings && meetings.length > 0) {
+  //     // Find the earliest meeting date
+  //     const earliestMeetingDate = new Date(
+  //       Math.min(...meetings.map((meeting) => new Date(meeting.date)))
+  //     );
+  //     baseDate = new Date(earliestMeetingDate);
+  //     // Apply timeWindowOffset to the earliest meeting's month
+  //     baseDate.setMonth(baseDate.getMonth() + timeWindowOffset);
+  //   } else {
+  //     // Fallback to current month with offset
+  //     baseDate = new Date();
+  //     baseDate.setMonth(baseDate.getMonth() + timeWindowOffset);
+  //   }
+
+  //   baseDate.setDate(1); // Start from first of the month
+  //   baseDate.setHours(0, 0, 0, 0);
+
+  //   const start = new Date(baseDate);
+  //   start.setDate(start.getDate() - start.getDay()); // Align to previous Sunday
+
+  //   const end = new Date(start);
+  //   end.setDate(start.getDate() + 27); // 4 weeks (28 days) - 1 day = 27 days
+
+  //   const format = (date) =>
+  //     `${String(date.getDate()).padStart(2, "0")}-${String(
+  //       date.getMonth() + 1
+  //     ).padStart(2, "0")}-${date.getFullYear()}`;
+
+  //   return {
+  //     meetingStartDate: start,
+  //     meetingEndDate: end,
+  //     formattedStartDate: format(start),
+  //     formattedMeetingEndDate: format(end),
+  //   };
+  // }, [timeWindowOffset, destinationDate?.meetings]);
 
   const {
     meetingStartDate,
@@ -179,35 +228,26 @@ const Report = () => {
     formattedStartDate,
     formattedMeetingEndDate,
   } = useMemo(() => {
-    const meetings = destinationDate?.meetings || [];
-    let baseDate;
+    // 1. Hamesha current month (aaj ki date) se shuru karein
+    const baseDate = new Date();
 
-    if (meetings && meetings.length > 0) {
-      // Find the earliest meeting date
-      const earliestMeetingDate = new Date(
-        Math.min(...meetings.map((meeting) => new Date(meeting.date)))
-      );
-      baseDate = new Date(earliestMeetingDate);
-      // Apply timeWindowOffset to the earliest meeting's month
-      baseDate.setMonth(baseDate.getMonth() + timeWindowOffset);
-    } else {
-      // Fallback to current month with offset
-      baseDate = new Date();
-      baseDate.setMonth(baseDate.getMonth() + timeWindowOffset);
-    }
-
-    baseDate.setDate(1); // Start from first of the month
+    // 2. Offset apply karein current month par
+    baseDate.setMonth(baseDate.getMonth() + timeWindowOffset);
+    baseDate.setDate(1); // Month ki 1st date par set karein
     baseDate.setHours(0, 0, 0, 0);
 
+    // 3. Sunday se align karein (Start Date)
     const start = new Date(baseDate);
-    start.setDate(start.getDate() - start.getDay()); // Align to previous Sunday
+    start.setDate(start.getDate() - start.getDay());
 
+    // 4. End date nikaalein (4 weeks / 28 days ka window)
     const end = new Date(start);
-    end.setDate(start.getDate() + 27); // 4 weeks (28 days) - 1 day = 27 days
+    end.setDate(start.getDate() + 27);
 
+    // Helper function format karne ke liye (DD-MM-YYYY)
     const format = (date) =>
       `${String(date.getDate()).padStart(2, "0")}-${String(
-        date.getMonth() + 1
+        date.getMonth() + 1,
       ).padStart(2, "0")}-${date.getFullYear()}`;
 
     return {
@@ -216,7 +256,55 @@ const Report = () => {
       formattedStartDate: format(start),
       formattedMeetingEndDate: format(end),
     };
-  }, [timeWindowOffset, destinationDate?.meetings]);
+  }, [timeWindowOffset]); //
+
+  // Calculate time difference and set default view based on meeting dates
+  useEffect(() => {
+    if (
+      destinationDate?.meeting_start_date &&
+      destinationDate?.meeting_end_date
+    ) {
+      const meetingStartDate = new Date(destinationDate.meeting_start_date);
+      const meetingEndDate = new Date(destinationDate.meeting_end_date);
+      const now = new Date();
+
+      // Calculate time difference from now to meeting start date
+      const timeDiffToStart = meetingStartDate.getTime() - now.getTime();
+      const daysToStart = Math.ceil(timeDiffToStart / (1000 * 3600 * 24));
+
+      const totalDurationDays =
+        (meetingEndDate.getTime() - meetingStartDate.getTime()) /
+        (1000 * 3600 * 24);
+      // Calculate meeting duration
+      const meetingDuration =
+        meetingEndDate.getTime() - meetingStartDate.getTime();
+      const meetingDays = meetingDuration / (1000 * 3600 * 24);
+
+      console.log("totalDurationDays", totalDurationDays);
+      // Determine default view based on proximity to meeting and meeting duration
+      if (totalDurationDays < 1 || totalDurationDays === 0) {
+        // Meeting starts in less than 1 day - show day view
+        setDefaultAgendaView("day");
+      } else if (totalDurationDays < 7) {
+        // Meeting starts in less than 1 week - show week view
+        setDefaultAgendaView("week");
+      } else if (totalDurationDays < 30) {
+        // Meeting starts in less than 1 month - show month view
+        setDefaultAgendaView("month");
+      } else {
+        // Meeting starts in more than 1 month - show year view
+        setDefaultAgendaView("agenda");
+      }
+
+      console.log(
+        `Meeting starts in ${daysToStart.toFixed(
+          1,
+        )} days, duration: ${meetingDays.toFixed(
+          1,
+        )} days, default view: ${defaultAgendaView}`,
+      );
+    }
+  }, [destinationDate]);
 
   const parseDate = (dateString) => {
     if (!dateString) return new Date();
@@ -261,7 +349,7 @@ const Report = () => {
     today.setHours(0, 0, 0, 0);
     const earliestWeekStart = new Date(earliestMeetingDate);
     earliestWeekStart.setDate(
-      earliestMeetingDate.getDate() - earliestMeetingDate.getDay()
+      earliestMeetingDate.getDate() - earliestMeetingDate.getDay(),
     ); // Sunday of earliest meeting's week
     earliestWeekStart.setHours(0, 0, 0, 0);
     const todayWeekStart = new Date(today);
@@ -300,12 +388,16 @@ const Report = () => {
             headers: {
               Authorization: `Bearer ${CookieService.get("token")}`,
             },
-          }
+          },
         );
         if (response?.status === 200) {
-          const data = response?.data?.data;
-          const sortedMessages = [...(data || [])].sort(
-            (a, b) => new Date(a.created_at) - new Date(b.created_at)
+          const rawData = Array.isArray(response?.data?.data?.data)
+            ? response.data.data.data
+            : Array.isArray(response?.data?.data)
+              ? response.data.data
+              : [];
+          const sortedMessages = [...rawData].sort(
+            (a, b) => new Date(a.created_at) - new Date(b.created_at),
           );
           setMeetingMessages(sortedMessages);
         }
@@ -473,7 +565,7 @@ const Report = () => {
 
     const options = { timeZone: userTimeZone };
     const timeInUserZone = new Date(
-      currentTime.toLocaleString("en-US", options)
+      currentTime.toLocaleString("en-US", options),
     );
 
     const formattedTime = formatTime(timeInUserZone);
@@ -486,7 +578,7 @@ const Report = () => {
           headers: {
             Authorization: `Bearer ${CookieService.get("token")}`,
           },
-        }
+        },
       );
       if (response.status) {
         const data = response?.data?.data;
@@ -504,7 +596,7 @@ const Report = () => {
 
     const options = { timeZone: userTimeZone };
     const timeInUserZone = new Date(
-      currentTime.toLocaleString("en-US", options)
+      currentTime.toLocaleString("en-US", options),
     );
 
     const formattedTime = formatTime(timeInUserZone);
@@ -517,7 +609,7 @@ const Report = () => {
           headers: {
             Authorization: `Bearer ${CookieService.get("token")}`,
           },
-        }
+        },
       );
       if (response.status) {
         const data = response?.data?.data;
@@ -538,7 +630,7 @@ const Report = () => {
 
     const options = { timeZone: userTimeZone };
     const timeInUserZone = new Date(
-      currentTime.toLocaleString("en-US", options)
+      currentTime.toLocaleString("en-US", options),
     );
 
     const formattedTime = formatTime(timeInUserZone);
@@ -552,7 +644,7 @@ const Report = () => {
           headers: {
             Authorization: `Bearer ${CookieService.get("token")}`,
           },
-        }
+        },
       );
       const data = response?.data?.data;
       // `${API_BASE_URL}/get-destination-meetings/${meetId}?current_time=${formattedTime}&current_date=${formattedDate}`,
@@ -581,8 +673,17 @@ const Report = () => {
       } else {
         console.warn("UUID is missing in the response:", response);
       }
+      return true;
     } catch (error) {
-      setIsModalOpen(false);
+      const status = error?.response?.status || 500;
+      const message = error?.response?.data?.message || "An error occurred.";
+      if (status === 403) {
+        setVisibilityMessage(message);
+        setIsModalOpen(true);
+      } else {
+        setIsModalOpen(false);
+      }
+      return false;
     } finally {
       setSpecialMeetingLoading(false);
     }
@@ -590,14 +691,13 @@ const Report = () => {
 
   const [participants, setParticipants] = useState([]);
   const getSpecialParticipants = async () => {
-    setIsModalOpen(false);
     setIsModalOpen1(false);
     const currentTime = new Date();
     const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     const options = { timeZone: userTimeZone };
     const timeInUserZone = new Date(
-      currentTime.toLocaleString("en-US", options)
+      currentTime.toLocaleString("en-US", options),
     );
 
     const formattedTime = formatTime(timeInUserZone);
@@ -610,14 +710,13 @@ const Report = () => {
           headers: {
             Authorization: `Bearer ${CookieService.get("token")}`,
           },
-        }
+        },
       );
       const data = response?.data?.data;
       // `${API_BASE_URL}/get-destination-meetings/${meetId}?current_time=${formattedTime}&current_date=${formattedDate}`,
       setParticipants(data?.participant || []);
-      setIsModalOpen(false);
     } catch (error) {
-      setIsModalOpen(false);
+      console.log("error", error);
     } finally {
     }
   };
@@ -658,7 +757,7 @@ const Report = () => {
 
   const decisions = getAllDecisionsFromMeetings(destinationDate?.meetings);
   const sortedMilestones = decisions.sort(
-    (a, b) => new Date(a.milestone_date) - new Date(b.milestone_date)
+    (a, b) => new Date(a.milestone_date) - new Date(b.milestone_date),
   );
   function calculateTotalTime(steps) {
     let totalSeconds = 0;
@@ -743,7 +842,7 @@ const Report = () => {
       timeDisplay =
         hours > 0
           ? // ? `${days} ${t("time_unit.days")} - ${hours} ${t("time_unit.hours")} `
-          `${days} ${t("time_unit.days")} `
+            `${days} ${t("time_unit.days")} `
           : `${days} ${t("time_unit.days")} `;
     } else if (hours > 0) {
       timeDisplay =
@@ -766,13 +865,13 @@ const Report = () => {
     formatMissionDate(destinationDate?.meeting_start_date)
       ?.split("/")
       ?.reverse()
-      ?.join("/")
+      ?.join("/"),
   ); // Convert to MM/DD/YYYY
   const endDate1 = new Date(
     formatMissionDate(destinationDate?.meeting_end_date)
       ?.split("/")
       ?.reverse()
-      ?.join("/")
+      ?.join("/"),
   ); // Convert to MM/DD/YYYY
 
   // Calculate the difference in milliseconds
@@ -783,8 +882,9 @@ const Report = () => {
   // Format the result
   let result;
   if (totalDays2 > 0) {
-    result = `${totalDays2} ${totalDays2 > 1 ? t("time_unit.days") : t("time_unit.day")
-      }`;
+    result = `${totalDays2} ${
+      totalDays2 > 1 ? t("time_unit.days") : t("time_unit.day")
+    }`;
   } else {
     // result = t("time_unit.no_days"); // Handle cases where the end date is before the start date
     result = `1 ${t("time_unit.day")}`;
@@ -796,7 +896,7 @@ const Report = () => {
     ?.map((meeting) => {
       const userTimezoneOffset = new Date().getTimezoneOffset() * 60000;
       const meetingDateTime = new Date(
-        new Date(meeting.date).getTime() - userTimezoneOffset
+        new Date(meeting.date).getTime() - userTimezoneOffset,
       );
       const currentDateTime = new Date();
 
@@ -832,7 +932,7 @@ const Report = () => {
       const getStepColor = (step) => {
         const stepTimeInSeconds = convertToSeconds(step?.time_taken);
         const count2InSeconds = convertToSeconds(
-          `${step?.count2} ${step?.time_unit || ""}`
+          `${step?.count2} ${step?.time_unit || ""}`,
         );
         return stepTimeInSeconds > count2InSeconds ? "#F12D2B" : "#FFDB01";
       };
@@ -869,13 +969,13 @@ const Report = () => {
       if (meeting?.status === "in_progress") {
         const totalSteps = meeting?.steps?.length || 1;
         const completedSteps = meeting?.steps?.filter(
-          (step) => step?.step_status === "completed"
+          (step) => step?.step_status === "completed",
         ).length;
         percentage =
           totalSteps > 0
             ? ((completedSteps + totalCompletedTime / totalAllTime) /
-              totalSteps) *
-            100
+                totalSteps) *
+              100
             : 0;
       }
 
@@ -884,13 +984,14 @@ const Report = () => {
       if (meeting?.status === "in_progress" && meeting?.starts_at) {
         const formattedStartTime = convertTo12HourFormatPrepareData(
           meeting?.starts_at,
-          meeting?.steps
+          meeting?.steps,
         );
         const startDateStringInProgress = `${meeting?.date}T${formattedStartTime}`;
         start = new Date(startDateStringInProgress);
       } else {
-        const startDateString = `${meeting?.date}T${meeting?.start_time || "00:00:00"
-          }`; // Add a fallback for undefined start_time
+        const startDateString = `${meeting?.date}T${
+          meeting?.start_time || "00:00:00"
+        }`; // Add a fallback for undefined start_time
         start = new Date(startDateString);
       }
 
@@ -977,7 +1078,7 @@ const Report = () => {
       // setIsLoading(true)
       try {
         const response = await axios.get(
-          `${API_BASE_URL}/page-views/${pageId}`
+          `${API_BASE_URL}/page-views/${pageId}`,
         );
         if (response.status === 200) {
           setPageViews(response?.data?.data?.views);
@@ -1043,7 +1144,7 @@ const Report = () => {
 
   const startTimeActive = meeting?.start_time;
   const formattedTimeActive = new Date(
-    `1970-01-01T${startTimeActive}`
+    `1970-01-01T${startTimeActive}`,
   ).toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
@@ -1072,7 +1173,7 @@ const Report = () => {
 
     const options = { timeZone: userTimeZone };
     const timeInUserZone = new Date(
-      currentTime.toLocaleString("en-US", options)
+      currentTime.toLocaleString("en-US", options),
     );
 
     const formattedTime = formatTime(timeInUserZone);
@@ -1087,7 +1188,7 @@ const Report = () => {
           headers: {
             Authorization: `Bearer ${CookieService.get("token")}`,
           },
-        }
+        },
       );
 
       if (response.status === 200) {
@@ -1115,7 +1216,7 @@ const Report = () => {
           parseAndFormatDateTime(
             meeting?.estimate_time,
             meeting?.type,
-            meeting?.timezone
+            meeting?.timezone,
           );
         setEstimateTime(estimateTime);
         setEstimateDate(estimateDate);
@@ -1136,7 +1237,7 @@ const Report = () => {
             hour: "2-digit",
             minute: "2-digit",
             hour12: true,
-          })
+          }),
         );
 
         setSelectedMeeting({ value: meeting?.id, label: meeting?.title });
@@ -1149,19 +1250,19 @@ const Report = () => {
         //   (step) => step.note?.trim() === step.original_note?.trim()
         // );
         const allEqual = steps.every(
-          (step) => step.note?.trim() === step.original_note?.trim()
+          (step) => step.note?.trim() === step.original_note?.trim(),
         );
 
         const someEqual = steps.some(
-          (step) => step.note?.trim() === step.original_note?.trim()
+          (step) => step.note?.trim() === step.original_note?.trim(),
         );
 
         const areNotesSummarized = allEqual || someEqual; // true if all or some equal, false if none
 
         const areStepNotesSummarized = steps
           ? steps.every((step) => step.note === null) || // All notes are null
-          (steps.some((step) => step.note === null) &&
-            steps.some((step) => step.note !== null)) // One note is null and one is not
+            (steps.some((step) => step.note === null) &&
+              steps.some((step) => step.note !== null)) // One note is null and one is not
           : undefined; // Handle the case when `steps` is null or undefined
 
         // if (
@@ -1208,7 +1309,7 @@ const Report = () => {
             getMeetingByID(meeting.objective, meeting.user.id);
           } else if (
             ["active", "in_progress", "to_finish", "todo"].includes(
-              meeting.status
+              meeting.status,
             )
           ) {
             getActiveMeetingByID(meeting.objective, meeting.user.id);
@@ -1216,7 +1317,7 @@ const Report = () => {
         } else if (reportResponse?.message || reportResponse?.status === 403) {
           console.error(
             "Visibility message or Forbidden status found:",
-            reportResponse?.message
+            reportResponse?.message,
           );
           // setVisibilityMessage(reportResponse?.message || "Access Denied");
           // setIsModalOpen(true);
@@ -1228,14 +1329,19 @@ const Report = () => {
 
     if (unqiue_id?.endsWith("--es")) {
       setUniqueId(true);
-      getSpecialMeeting();
-      getSpecialParticipants();
-      getMilestones();
-      getParticipantsByDestinationId();
+      const loadSpecialData = async () => {
+        const success = await getSpecialMeeting();
+        if (success) {
+          getSpecialParticipants();
+          getMilestones();
+          getParticipantsByDestinationId();
+        }
+      };
+      loadSpecialData();
     } else {
       fetchData();
     }
-  }, [unqiue_id]);
+  }, [unqiue_id, meetId]);
 
   const [allMeetings, setAllMeetings] = useState([]);
 
@@ -1261,7 +1367,12 @@ const Report = () => {
 
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/get-public-destination-files/${destinationId}`
+        `${API_BASE_URL}/get-public-destination-files/${destinationId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${CookieService.get("token")}`,
+          },
+        },
       );
 
       if (response?.status === 200) {
@@ -1287,7 +1398,7 @@ const Report = () => {
           );
         });
 
-        setAllFiles(documentFiles);
+        setAllFiles(files);
         setAllMedia(mediaFiles);
       }
     } catch (error) {
@@ -1313,7 +1424,7 @@ const Report = () => {
 
       const options = { timeZone: userTimeZone };
       const timeInUserZone = new Date(
-        currentTime.toLocaleString("en-US", options)
+        currentTime.toLocaleString("en-US", options),
       );
 
       const formattedTime = formatTime(timeInUserZone);
@@ -1350,7 +1461,7 @@ const Report = () => {
 
       const options = { timeZone: userTimeZone };
       const timeInUserZone = new Date(
-        currentTime.toLocaleString("en-US", options)
+        currentTime.toLocaleString("en-US", options),
       );
 
       const formattedTime = formatTime(timeInUserZone);
@@ -1393,7 +1504,7 @@ const Report = () => {
         setTranscriptLoading(true);
         try {
           const response = await axios.get(
-            `${API_BASE_URL}/transcripte-meeting-notes/${meetId}`
+            `${API_BASE_URL}/transcripte-meeting-notes/${meetId}`,
           );
 
           const transcript =
@@ -1438,7 +1549,7 @@ const Report = () => {
       const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const options = { timeZone: userTimeZone };
       const timeInUserZone = new Date(
-        currentTime.toLocaleString("en-US", options)
+        currentTime.toLocaleString("en-US", options),
       );
 
       const formattedTime = formatTime(timeInUserZone);
@@ -1448,11 +1559,6 @@ const Report = () => {
       // STEP 1: Fetch current meeting before transcription (optional but can help)
       const initialResponse = await axios.get(
         `${API_BASE_URL}/get-meeting/${meetId}?current_time=${formattedTime}&current_date=${formattedDate}&timezone=${userTimeZone}${userId ? `&user_id=${userId}` : ""}`,
-        {
-          headers: {
-            Authorization: `Bearer ${CookieService.get("token")}`,
-          },
-        }
       );
 
       const meeting = initialResponse?.data?.data;
@@ -1465,11 +1571,6 @@ const Report = () => {
       // STEP 3: Now fetch latest version after transcription is saved
       const refreshedResponse = await axios.get(
         `${API_BASE_URL}/get-meeting/${meetId}?current_time=${formattedTime}&current_date=${formattedDate}&timezone=${userTimeZone}${userId ? `&user_id=${userId}` : ""}`,
-        {
-          headers: {
-            Authorization: `Bearer ${CookieService.get("token")}`,
-          },
-        }
       );
 
       clearInterval(interval); // Stop progress simulation
@@ -1486,7 +1587,7 @@ const Report = () => {
 
         console.log(
           "🎉 Refreshed meeting with updated step notes:",
-          updatedMeeting
+          updatedMeeting,
         );
       }
     } catch (err) {
@@ -1503,7 +1604,7 @@ const Report = () => {
         setSummaryLoading(true);
         try {
           const response = await axios.get(
-            `${API_BASE_URL}/summarize-meeting-notes/${meetId}`
+            `${API_BASE_URL}/summarize-meeting-notes/${meetId}`,
           );
           console.log("Summary response:", response);
 
@@ -1527,18 +1628,18 @@ const Report = () => {
   const formattedDate = convertDateToUserTimezone(
     meetingData?.date,
     meetingData?.start_time,
-    meetingData?.timezone
+    meetingData?.timezone,
   );
 
   const startTime = meetingData?.starts_at || meetingData?.start_time;
   const formattedTime = new Date(`1970-01-01T${startTime}`).toLocaleTimeString(
     "en-US",
-    { hour: "2-digit", minute: "2-digit", hour12: true }
+    { hour: "2-digit", minute: "2-digit", hour12: true },
   );
 
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [selectedTitleOrder, setSelectedTitleOrder] = useState(
-    meetingData?.title_order
+    meetingData?.title_order,
   );
   const dropdownRef = useRef(null);
 
@@ -1621,7 +1722,7 @@ const Report = () => {
   const lastStep = steps[steps.length - 1];
   const lastStepTime = lastStep?.end_time;
   const lastStepFormattedTime = new Date(
-    `1970-01-01T${lastStepTime}`
+    `1970-01-01T${lastStepTime}`,
   ).toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
@@ -1663,12 +1764,12 @@ const Report = () => {
   if (meetingData?.type === "Action") {
     // If the meeting type is "Active", treat totalDays as total days
     endDateForHour = new Date(
-      startDate.getTime() + totalDays1 * 24 * 60 * 60 * 1000
+      startDate.getTime() + totalDays1 * 24 * 60 * 60 * 1000,
     );
   } else if (meetingData?.type === "Task") {
     // If the meeting type is "Task", treat totalDays as total hours
     endDateForHour = new Date(
-      startDate.getTime() + totalDays1 * 60 * 60 * 1000
+      startDate.getTime() + totalDays1 * 60 * 60 * 1000,
     );
   } else if (meetingData?.type === "Quiz") {
     // If the meeting type is "Quiz", treat totalDays as total seconds
@@ -1689,7 +1790,7 @@ const Report = () => {
       (obj) =>
         obj.action === item.action &&
         obj.order === item.order &&
-        obj.action_days === item.action_days
+        obj.action_days === item.action_days,
     );
 
     // If it exists, we skip adding the current item to the accumulator
@@ -1745,7 +1846,7 @@ const Report = () => {
     if (date && time) {
       setCalendlyData({
         selected_date: moment(date).format("YYYY-MM-DD"),
-        selected_time: time
+        selected_time: time,
       });
     }
     setShowStepperModal(true);
@@ -1793,7 +1894,7 @@ const Report = () => {
     try {
       const response = await axios.post(
         `${API_BASE_URL}/check-meeting-password`,
-        payload
+        payload,
       );
       if (response?.status) {
         const meeting = response?.data?.data;
@@ -1805,19 +1906,19 @@ const Report = () => {
         setMeetingData(meeting);
         if (meeting.status === "closed") {
           const allEqual = steps.every(
-            (step) => step.note?.trim() === step.original_note?.trim()
+            (step) => step.note?.trim() === step.original_note?.trim(),
           );
 
           const someEqual = steps.some(
-            (step) => step.note?.trim() === step.original_note?.trim()
+            (step) => step.note?.trim() === step.original_note?.trim(),
           );
 
           const areNotesSummarized = allEqual || someEqual; // true if all or some equal, false if none
 
           const areStepNotesSummarized = steps
             ? steps.every((step) => step.note === null) || // All notes are null
-            (steps.some((step) => step.note === null) &&
-              steps.some((step) => step.note !== null)) // One note is null and one is not
+              (steps.some((step) => step.note === null) &&
+                steps.some((step) => step.note !== null)) // One note is null and one is not
             : undefined; // Handle the case when `steps` is null or undefined
 
           if (
@@ -1848,10 +1949,42 @@ const Report = () => {
 
   const [view, setView] = useState("list");
   // const [open1, setOpen1] = useState(false);
-  const handleToggle = () => {
-    setView(view === "list" ? "graph" : "list");
-    // setOpen1(!open1);
+  const handleToggle = (newView) => {
+    setView(newView);
   };
+
+  console.log("destinationDate", destinationDate);
+  const rawDeadline = new Date(
+    Date.parse(destinationDate?.destination_end_date_time),
+  );
+
+  // If your meeting_end_date is in dd/mm/yyyy format (with slashes), it may parse incorrectly in some browsers.
+  // Convert it safely like this:
+  // Parse meeting_end_date (dd/mm/yyyy)
+  const [day, month, year] =
+    destinationDate?.meeting_end_date?.split("/") || [];
+  const rawMissionEnd = new Date(`${year}-${month}-${day}`);
+  // Normalize both to remove time
+  const deadline = new Date(
+    rawDeadline.getFullYear(),
+    rawDeadline.getMonth(),
+    rawDeadline.getDate(),
+  );
+  const missionEnd = new Date(
+    rawMissionEnd.getFullYear(),
+    rawMissionEnd.getMonth(),
+    rawMissionEnd.getDate(),
+  );
+
+  const isDeadlinePassed = missionEnd > deadline;
+  // console.log("isDeadlinePassed", isDeadlinePassed);
+
+  // Calculate days difference if passed
+  let diffDays = 0;
+  if (isDeadlinePassed) {
+    const diffTime = missionEnd.getTime() - deadline.getTime();
+    diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+  }
 
   const [activeEventKey, setActiveEventKey] = useState(null);
 
@@ -1861,10 +1994,10 @@ const Report = () => {
       window.location.origin + "/heroes" + "/" + nick_name;
 
     navigator.clipboard.writeText(visitingCardUrl).then(
-      () => { },
+      () => {},
       (err) => {
         console.error("Failed to copy: ", err);
-      }
+      },
     );
     // navigate("/" + "heros" + "/" + user?.uuid);
     window.open("/" + "heroes" + "/" + nick_name, "_blank");
@@ -1905,7 +2038,7 @@ const Report = () => {
       (prevKeys) =>
         prevKeys.includes(key)
           ? prevKeys.filter((k) => k !== key) // Close if open
-          : [...prevKeys, key] // Open if closed
+          : [...prevKeys, key], // Open if closed
     );
   };
 
@@ -1928,9 +2061,9 @@ const Report = () => {
       meetingData?.status === "closed" || meetingData?.status === "in_progress"
         ? `/destination/${meetingData?.destination_unique_id}--es/${meetingData?.destination_id}`
         : meetingData?.status === "active" ||
-          meetingData?.status === "in_progress" ||
-          meetingData?.status === "to_finish" ||
-          meetingData?.status === "todo"
+            meetingData?.status === "in_progress" ||
+            meetingData?.status === "to_finish" ||
+            meetingData?.status === "todo"
           ? `/destination/${meetingData?.destination_unique_id}--es/${meetingData?.destination_id}`
           : `/destination/${destinationDate?.uuid}--es/${destinationDate?.id}`;
 
@@ -1956,21 +2089,21 @@ const Report = () => {
 
   const [isSticky, setIsSticky] = useState(false);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 0) {
-        setIsSticky(true);
-      } else {
-        setIsSticky(false);
-      }
-    };
+  // useEffect(() => {
+  //   const handleScroll = () => {
+  //     if (window.scrollY > 0) {
+  //       setIsSticky(true);
+  //     } else {
+  //       setIsSticky(false);
+  //     }
+  //   };
 
-    window.addEventListener("scroll", handleScroll);
+  //   window.addEventListener("scroll", handleScroll);
 
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-    };
-  }, []);
+  //   return () => {
+  //     window.removeEventListener("scroll", handleScroll);
+  //   };
+  // }, []);
 
   const navbarStyle = {
     position: isSticky ? "fixed" : "relative",
@@ -1999,7 +2132,7 @@ const Report = () => {
 
     if (selectedOption) {
       const selectedItem = destinationDate?.meetings?.find(
-        (item) => item.id === selectedOption.value
+        (item) => item.id === selectedOption.value,
       );
 
       if (selectedItem) {
@@ -2059,7 +2192,7 @@ const Report = () => {
   const shouldBlurContent = meetingData?.user_with_participants?.some(
     (item) =>
       item?.email === sessionUser?.email &&
-      item?.email !== meetingData?.user?.email // exclude meeting creator
+      item?.email !== meetingData?.user?.email, // exclude meeting creator
   );
 
   // console.log("shouldBlurContent", shouldBlurContent);
@@ -2086,7 +2219,7 @@ const Report = () => {
     if (meetingData?.status === "closed" && meetingData?.feedback) {
       const hasGivenFeedback = checkUserFeedback(
         userid,
-        meetingData.meeting_feedbacks
+        meetingData.meeting_feedbacks,
       );
       if (!hasGivenFeedback) {
         setShowFeedbackPopup(true);
@@ -2128,7 +2261,7 @@ const Report = () => {
           headers: {
             Authorization: `Bearer ${CookieService.get("token")}`,
           },
-        }
+        },
       );
 
       // Hide feedback popup after submission
@@ -2195,14 +2328,14 @@ const Report = () => {
 
   const [play, setPlay] = useState(false);
   const loggedInUserId =
-    CookieService.get("user_id")
+    CookieService.get("user_id") || CookieService.get("user_id");
   const [workingHours, setWorkingHours] = useState([]);
   useEffect(() => {
     if (meetingData?.destination?.id) {
       const getWorkingHours = async () => {
         try {
           const response = await axios.get(
-            `${API_BASE_URL}/user-scheduled-days/${loggedInUserId}/${meetingData?.destination?.id}`
+            `${API_BASE_URL}/user-scheduled-days/${loggedInUserId}/${meetingData?.destination?.id}`,
           );
           if (response?.status === 200) {
             setWorkingHours(response?.data?.data?.working_days);
@@ -2333,7 +2466,7 @@ const Report = () => {
 
       // Find working hours for this day
       const dayWorkingHours = workingHours.find(
-        (day) => day.day.toLowerCase() === englishDayName.toLowerCase()
+        (day) => day.day.toLowerCase() === englishDayName.toLowerCase(),
       );
 
       if (!dayWorkingHours) {
@@ -2354,11 +2487,11 @@ const Report = () => {
 
         console.log(
           "stepTimeObj.isBefore(workStartObj):",
-          stepTimeObj.isBefore(workStartObj)
+          stepTimeObj.isBefore(workStartObj),
         );
         console.log(
           "stepTimeObj.isAfter(workEndObj):",
-          stepTimeObj.isAfter(workEndObj)
+          stepTimeObj.isAfter(workEndObj),
         );
 
         // Check if step time + count2 is before work start or after work end
@@ -2382,8 +2515,8 @@ const Report = () => {
       _method: "put",
       moment_privacy_teams:
         item?.moment_privacy === "team" &&
-          item?.moment_privacy_teams?.length &&
-          typeof item?.moment_privacy_teams[0] === "object"
+        item?.moment_privacy_teams?.length &&
+        typeof item?.moment_privacy_teams[0] === "object"
           ? item?.moment_privacy_teams.map((team) => team.id)
           : item?.moment_privacy_teams || [], // Send as-is if IDs are already present
       apply_day_off: 0,
@@ -2398,7 +2531,7 @@ const Report = () => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${CookieService.get("token")}`,
           },
-        }
+        },
       );
       if (response.status) {
         const firstInProgressStep = item?.steps[0];
@@ -2481,8 +2614,8 @@ const Report = () => {
               src={
                 meetingData?.destination?.clients?.client_logo
                   ? meetingData?.destination?.clients?.client_logo?.startsWith(
-                    "http"
-                  )
+                      "http",
+                    )
                     ? meetingData?.destination?.clients.client_logo
                     : `${Assets_URL}/${meetingData?.destination?.clients?.client_logo}`
                   : "/Assets/logo2.png"
@@ -2580,7 +2713,7 @@ const Report = () => {
       .replace(/\n/g, "<br>")
       .replace(
         /_{2,}/g,
-        '<hr style="border: none; border-top: 1px solid #ccc; margin: 10px 0;">'
+        '<hr style="border: none; border-top: 1px solid #ccc; margin: 10px 0;">',
       );
 
     return processedHtml;
@@ -2603,10 +2736,11 @@ const Report = () => {
         `${API_BASE_URL}/meeting/${meetId}/all-media`,
         {
           headers: {
-            Authorization: `Bearer ${CookieService.get("token") || CookieService.get("token")
-              }`,
+            Authorization: `Bearer ${
+              CookieService.get("token") || CookieService.get("token")
+            }`,
           },
-        }
+        },
       );
 
       if (response.status === 200) {
@@ -2656,10 +2790,11 @@ const Report = () => {
         postData,
         {
           headers: {
-            Authorization: `Bearer ${CookieService.get("token")
-              }`,
+            Authorization: `Bearer ${
+              CookieService.get("token") || CookieService.get("token")
+            }`,
           },
-        }
+        },
       );
       if (response?.status) {
         // await getMeetingById();
@@ -2684,7 +2819,7 @@ const Report = () => {
 
     const options = { timeZone: userTimeZone };
     const timeInUserZone = new Date(
-      currentTime.toLocaleString("en-US", options)
+      currentTime.toLocaleString("en-US", options),
     );
 
     const formattedTime = formatTime(timeInUserZone);
@@ -2705,10 +2840,11 @@ const Report = () => {
         {
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${CookieService.get("token") || CookieService.get("token")
-              }`,
+            Authorization: `Bearer ${
+              CookieService.get("token") || CookieService.get("token")
+            }`,
           },
-        }
+        },
       );
       if (response?.status) {
         await markToFinish(step?.id);
@@ -2727,10 +2863,12 @@ const Report = () => {
     backgroundColor: "#a3bae7 !important",
   };
 
-
   const cleanText = (text) => {
     if (!text) return "";
-    return text.replace(/^```markdown\s*/, '').replace(/```$/, '').replace(/---/g, '');
+    return text
+      .replace(/^```markdown\s*/, "")
+      .replace(/```$/, "")
+      .replace(/---/g, "");
   };
 
   const isMarkdownContent = (text) => {
@@ -2752,64 +2890,64 @@ const Report = () => {
         </>
       ) : (
         <>
-          {(!isModalOpen1 && meetingData?.status !== "in_progress" && meetingData?.status !== "to_finish") && (
-            <div className="home-header">
-              <nav
-                id="navbar"
-                className="container-fluid navbar bg-white navbar-expand-lg py-3"
-                style={navbarStyle}
-              >
-                <div className="container">
-
-
-                  <div>
-                    {/* Logo - Always Centered */}
-                    <Link
-                      to="/"
-                      className="navbar-brand "
-                      style={{ zIndex: 10 }}
+          {!isModalOpen1 &&
+            meetingData?.status !== "in_progress" &&
+            meetingData?.status !== "to_finish" && (
+              <div className="home-header">
+                <nav
+                  id="navbar"
+                  className="container-fluid navbar bg-white navbar-expand-lg py-3"
+                  style={navbarStyle}
+                >
+                  <div className="container">
+                    <div>
+                      {/* Logo - Always Centered */}
+                      <Link
+                        to="/"
+                        className="navbar-brand "
+                        style={{ zIndex: 10 }}
+                      >
+                        <img
+                          src="/Assets/landing/logo.png"
+                          alt="Logo"
+                          className="img-fluid"
+                          // style={{ height: "42px" }}
+                        />
+                      </Link>
+                    </div>
+                    <button
+                      className="navbar-toggler bg-white"
+                      type="button"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#navbarSupportedContent"
+                      aria-controls="navbarSupportedContent"
+                      aria-expanded="false"
+                      aria-label="Toggle navigation"
                     >
-                      <img
-                        src="/Assets/landing/logo.png"
-                        alt="Logo"
-                        className="img-fluid"
-                      // style={{ height: "42px" }}
-                      />
-                    </Link>
-                  </div>
-                  <button
-                    className="navbar-toggler bg-white"
-                    type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#navbarSupportedContent"
-                    aria-controls="navbarSupportedContent"
-                    aria-expanded="false"
-                    aria-label="Toggle navigation"
-                  >
-                    <span className="navbar-toggler-icon" />
-                  </button>
-                  <div
-                    className="collapse navbar-collapse "
-                    id="navbarSupportedContent"
-                  >
-                    <div className="navbar-nav ms-auto d-flex right-dropdown-profile w-100">
-                      <ul className="navbar-nav mb-2 mb-lg-0 align-items-center justify-content-between w-100 ">
-                        {
-                          <div
-                            className="d-flex align-items-center ms-5"
-                          // style={{
-                          //   visibility: uniqueId
-                          //     ? "visible"
-                          //     : !uniqueId &&
-                          //       allMeetings?.filter(
-                          //         (item) =>
-                          //           Number(item?.id) !== Number(meetId)
-                          //       )?.length > 0
-                          //     ? "visible"
-                          //     : "hidden",
-                          // }}
-                          >
-                            {/* <li
+                      <span className="navbar-toggler-icon" />
+                    </button>
+                    <div
+                      className="collapse navbar-collapse "
+                      id="navbarSupportedContent"
+                    >
+                      <div className="navbar-nav ms-auto d-flex right-dropdown-profile w-100">
+                        <ul className="navbar-nav mb-2 mb-lg-0 align-items-center justify-content-between w-100 ">
+                          {
+                            <div
+                              className="d-flex align-items-center ms-5"
+                              // style={{
+                              //   visibility: uniqueId
+                              //     ? "visible"
+                              //     : !uniqueId &&
+                              //       allMeetings?.filter(
+                              //         (item) =>
+                              //           Number(item?.id) !== Number(meetId)
+                              //       )?.length > 0
+                              //     ? "visible"
+                              //     : "hidden",
+                              // }}
+                            >
+                              {/* <li
                               className={`nav-item ${
                                 activeLink === "/destination" && !fileClicked
                                   ? "active"
@@ -2824,7 +2962,7 @@ const Report = () => {
                                 {t("navbar.home")}
                               </span>
                             </li> */}
-                            {/* <li
+                              {/* <li
                               className={`nav-item ${
                                 fileClicked ? "active" : ""
                               }`}
@@ -2838,7 +2976,7 @@ const Report = () => {
                               </span>
                             </li> */}
 
-                            {/* <li
+                              {/* <li
                               className={`nav-item dropdown ${
                                 selectedMeeting && !fileClicked ? "active" : ""
                               }`} // Add 'active' class if selectedMeeting exists
@@ -2922,118 +3060,120 @@ const Report = () => {
                                 </>
                               )}
                             </li> */}
-                          </div>
-                        }
-
-                        <div className="d-flex align-items-center gap-4">
-                          <li className="nav-item">
-                            <div className="mt-1 swtich">
-                              <label
-                                className="form-check-label mr-2"
-                                htmlFor="languageSwitch"
-                                style={{
-                                  fontFamily: "Inter",
-                                  fontSize: "13px",
-                                  lineHeight: "15.73px",
-                                  textAlign: "left",
-                                  color: "#4C4C4C",
-                                  fontWeight:
-                                    i18n.language === "fr" ? 200 : "bold",
-                                }}
-                              >
-                                {/* {i18n.language === "en" && "En"} */}
-                                En
-                              </label>
-
-                              <div
-                                className="form-check form-switch p-0"
-                                style={{ minHeight: "0px" }}
-                              >
-                                <input
-                                  className="form-check-input m-0"
-                                  type="checkbox"
-                                  id="languageSwitch"
-                                  role="switch"
-                                  checked={i18n.language === "fr"} // Set the checked state based on the current language
-                                  onChange={() =>
-                                    handleChangeLanguage(
-                                      i18n.language === "fr" ? "en" : "fr"
-                                    )
-                                  }
-                                />
-                              </div>
-                              <label
-                                className="form-check-label"
-                                htmlFor="languageSwitch"
-                                style={{
-                                  fontFamily: "Inter",
-                                  fontSize: "13px",
-                                  lineHeight: "15.73px",
-                                  textAlign: "left",
-                                  color: "#4C4C4C",
-                                  fontWeight:
-                                    i18n.language === "en" ? 200 : "bold",
-                                }}
-                              >
-                                {/* {i18n.language === "fr" && "Fr"} */}
-                                Fr
-                              </label>
                             </div>
-                          </li>
+                          }
 
-                          {sessionUser ? (
-                            <div className="connected_users">
-                              <div className=" d-flex align-items-center flex-wrap">
-                                <Avatar.Group>
-                                  <Avatar
-                                    size="large"
-                                    src={
-                                      sessionUser?.image?.startsWith("users/")
-                                        ? Assets_URL + "/" + sessionUser?.image
-                                        : sessionUser?.image
-                                    }
-                                  />
-                                </Avatar.Group>
-                                <span
+                          <div className="d-flex align-items-center gap-4">
+                            <li className="nav-item">
+                              <div className="mt-1 swtich">
+                                <label
+                                  className="form-check-label mr-2"
+                                  htmlFor="languageSwitch"
                                   style={{
-                                    marginLeft: "8px",
+                                    fontFamily: "Inter",
+                                    fontSize: "13px",
+                                    lineHeight: "15.73px",
+                                    textAlign: "left",
+                                    color: "#4C4C4C",
+                                    fontWeight:
+                                      i18n.language === "fr" ? 200 : "bold",
                                   }}
                                 >
-                                  {sessionUser?.full_name}
-                                </span>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="nav-item">
-                              <button
-                                onClick={handleLogin}
-                                className="nav-link ps-0 pb-1"
-                              >
-                                <div className="container-door align-items-center">
-                                  {t("navbar.login")}
+                                  {/* {i18n.language === "en" && "En"} */}
+                                  En
+                                </label>
 
-                                  <div className="flipbox top-0">
-                                    <div className="flipbox-active"></div>
-                                  </div>
+                                <div
+                                  className="form-check form-switch p-0"
+                                  style={{ minHeight: "0px" }}
+                                >
+                                  <input
+                                    className="form-check-input m-0"
+                                    type="checkbox"
+                                    id="languageSwitch"
+                                    role="switch"
+                                    checked={i18n.language === "fr"} // Set the checked state based on the current language
+                                    onChange={() =>
+                                      handleChangeLanguage(
+                                        i18n.language === "fr" ? "en" : "fr",
+                                      )
+                                    }
+                                  />
                                 </div>
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </ul>
+                                <label
+                                  className="form-check-label"
+                                  htmlFor="languageSwitch"
+                                  style={{
+                                    fontFamily: "Inter",
+                                    fontSize: "13px",
+                                    lineHeight: "15.73px",
+                                    textAlign: "left",
+                                    color: "#4C4C4C",
+                                    fontWeight:
+                                      i18n.language === "en" ? 200 : "bold",
+                                  }}
+                                >
+                                  {/* {i18n.language === "fr" && "Fr"} */}
+                                  Fr
+                                </label>
+                              </div>
+                            </li>
+
+                            {sessionUser ? (
+                              <div className="connected_users">
+                                <div className=" d-flex align-items-center flex-wrap">
+                                  <Avatar.Group>
+                                    <Avatar
+                                      size="large"
+                                      src={
+                                        sessionUser?.image?.startsWith("users/")
+                                          ? Assets_URL +
+                                            "/" +
+                                            sessionUser?.image
+                                          : sessionUser?.image
+                                      }
+                                    />
+                                  </Avatar.Group>
+                                  <span
+                                    style={{
+                                      marginLeft: "8px",
+                                    }}
+                                  >
+                                    {sessionUser?.full_name}
+                                  </span>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="nav-item">
+                                <button
+                                  onClick={handleLogin}
+                                  className="nav-link ps-0 pb-1"
+                                >
+                                  <div className="container-door align-items-center">
+                                    {t("navbar.login")}
+
+                                    <div className="flipbox top-0">
+                                      <div className="flipbox-active"></div>
+                                    </div>
+                                  </div>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </ul>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </nav>
-            </div>
-          )}
+                </nav>
+              </div>
+            )}
 
           <>
             {!uniqueId ? (
               <div className={showProgressBar1 ? "blur-container" : ""}>
                 {/* feedbact location */}
                 {meetingData?.status === "closed" ||
-                  meetingData?.status === "abort" ? (
+                meetingData?.status === "abort" ? (
                   <div className="app-container">
                     <div
                       className={
@@ -3041,7 +3181,7 @@ const Report = () => {
                           (meeting?.location === "Google Meet" ||
                             meeting?.location === "Microsoft Teams") &&
                           !["Task", "Quiz", "Media", "Law"].includes(
-                            meeting?.type
+                            meeting?.type,
                           )
                         )
                           ? showProgressBar
@@ -3052,8 +3192,9 @@ const Report = () => {
                     >
                       <div>
                         <section
-                          className={`banner ${meetingData?.destination_banner ? "has-image" : ""
-                            }`}
+                          className={`banner ${
+                            meetingData?.destination_banner ? "has-image" : ""
+                          }`}
                           style={{
                             backgroundImage: meetingData?.destination_banner
                               ? `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url(${meetingData.destination_banner})`
@@ -3122,7 +3263,7 @@ const Report = () => {
 
                               {
                                 getBannerContent(
-                                  "black"
+                                  "black",
                                 ) /* gradient → black text */
                               }
                             </>
@@ -3132,17 +3273,18 @@ const Report = () => {
                         <nav
                           role="navigation"
                           aria-label="Main navigation"
-                          className={`sidebar-nav ${isNavVisible ? "visible" : "hidden"
-                            }`}
+                          className={`sidebar-nav ${
+                            isNavVisible ? "visible" : "hidden"
+                          }`}
                           style={reportNavbarStyle}
                         >
                           <ul className="nav-list">
                             {[
-                              // {
-                              //   id: "home",
-                              //   label: t("navbar.home"),
-                              //   icon: <FaHome />,
-                              // },
+                              {
+                                id: "home",
+                                label: t("navbar.home"),
+                                icon: <FaHome />,
+                              },
                               {
                                 id: "report",
                                 label: t("Report"),
@@ -3160,14 +3302,14 @@ const Report = () => {
                               },
                               ...(meetingData?.meeting_files?.length > 0
                                 ? [
-                                  {
-                                    id: "meeting_files",
-                                    label: t(
-                                      "meeting.newMeeting.labels.file"
-                                    ),
-                                    icon: <FaFileAlt />,
-                                  },
-                                ]
+                                    {
+                                      id: "meeting_files",
+                                      label: t(
+                                        "meeting.newMeeting.labels.file",
+                                      ),
+                                      icon: <FaFileAlt />,
+                                    },
+                                  ]
                                 : []),
                               {
                                 id: "decision",
@@ -3176,27 +3318,34 @@ const Report = () => {
                               },
                               ...(meetingData?.plan_d_actions?.length > 0
                                 ? [
-                                  {
-                                    id: "strategy",
-                                    label: t("planDActions"),
-                                    icon: <FaLightbulb />,
-                                  },
-                                ]
+                                    {
+                                      id: "strategy",
+                                      label: t("planDActions"),
+                                      icon: <FaLightbulb />,
+                                    },
+                                  ]
                                 : []),
                               ...(meetingData?.meeting_feedbacks?.length > 0
                                 ? [
-                                  {
-                                    id: "feedbacks",
-                                    label: t("Feedbacks"),
-                                    icon: <MdOutlineReviews />,
-                                  },
-                                ]
+                                    {
+                                      id: "feedbacks",
+                                      label: t("Feedbacks"),
+                                      icon: <MdOutlineReviews />,
+                                    },
+                                  ]
                                 : []),
-                              {
-                                id: "discussion",
-                                label: "Discussion",
-                                icon: <FaComments />,
-                              },
+                              ...(meetingData?.show_discussion === 1 ||
+                              meetingData?.show_discussion === true ||
+                              meetingData?.show_discussion === "true" ||
+                              meetingData?.show_discussion === "1"
+                                ? [
+                                    {
+                                      id: "discussion",
+                                      label: "Discussion",
+                                      icon: <FaComments />,
+                                    },
+                                  ]
+                                : []),
                             ].map((item) => (
                               <li key={item.id}>
                                 <button
@@ -3242,7 +3391,11 @@ const Report = () => {
                               padding: ".75rem 1.5rem",
                               transition: "all .2s ease",
                             }}
-                            onClick={() => navigate(`/gate/moment?contract_id=${process.env.REACT_APP_CONTRACT_ID}`)}
+                            onClick={() =>
+                              navigate(
+                                `/gate/moment?contract_id=${process.env.REACT_APP_CONTRACT_ID}`,
+                              )
+                            }
                           >
                             <span>Essayer l'aventure TekTIME</span>
 
@@ -3285,16 +3438,16 @@ const Report = () => {
                                           background: moment().isAfter(
                                             moment(
                                               `${meetingData?.date} ${meetingData?.start_time}`,
-                                              "YYYY-MM-DD HH:mm"
-                                            )
+                                              "YYYY-MM-DD HH:mm",
+                                            ),
                                           )
                                             ? "#bb372f1a" // Red for late
                                             : "#e2e7f8", // Green for future
                                           color: moment().isAfter(
                                             moment(
                                               `${meetingData?.date} ${meetingData?.start_time}`,
-                                              "YYYY-MM-DD HH:mm"
-                                            )
+                                              "YYYY-MM-DD HH:mm",
+                                            ),
                                           )
                                             ? "#bb372f"
                                             : "#5b7aca",
@@ -3306,8 +3459,8 @@ const Report = () => {
                                         {moment().isAfter(
                                           moment(
                                             `${meetingData?.date} ${meetingData?.start_time}`,
-                                            "YYYY-MM-DD HH:mm"
-                                          )
+                                            "YYYY-MM-DD HH:mm",
+                                          ),
                                         )
                                           ? t("badge.late")
                                           : t("badge.future")}
@@ -3358,17 +3511,17 @@ const Report = () => {
                                     )}
                                     {allMeetings?.filter(
                                       (item) =>
-                                        Number(item?.id) !== Number(meetId)
+                                        Number(item?.id) !== Number(meetId),
                                     )?.length > 0 && (
-                                        <MdKeyboardArrowDown
-                                          size={30}
-                                          onClick={toggleDropdown}
-                                          style={{
-                                            cursor: "pointer",
-                                            marginBottom: "6px",
-                                          }}
-                                        />
-                                      )}
+                                      <MdKeyboardArrowDown
+                                        size={30}
+                                        onClick={toggleDropdown}
+                                        style={{
+                                          cursor: "pointer",
+                                          marginBottom: "6px",
+                                        }}
+                                      />
+                                    )}
                                   </div>
                                   {dropdownVisible && (
                                     <div className="dropdown-content-filter">
@@ -3377,7 +3530,7 @@ const Report = () => {
                                           ?.filter(
                                             (item) =>
                                               item.id.toString() !==
-                                              meetId.toString()
+                                              meetId.toString(),
                                           )
                                           ?.map((item, index) => (
                                             <div
@@ -3417,14 +3570,15 @@ const Report = () => {
                                     {meetingData?.solution
                                       ? meetingData?.solution?.title
                                       : meetingData?.type ===
-                                        "Google Agenda Event"
+                                          "Google Agenda Event"
                                         ? "Google Agenda Event"
                                         : meetingData?.type ===
-                                          "Outlook Agenda Event"
+                                            "Outlook Agenda Event"
                                           ? "Outlook Agenda Event"
                                           : meetingData?.type === "Special"
                                             ? "Media"
-                                            : meetingData?.type === "Prise de contact"
+                                            : meetingData?.type ===
+                                                "Prise de contact"
                                               ? "Prise de contact"
                                               : t(`types.${meetingData?.type}`)}
                                   </span>
@@ -3440,8 +3594,8 @@ const Report = () => {
 
                                   <div className="date-details">
                                     {meetingData?.type === "Action" ||
-                                      meetingData?.type === "Newsletter" ||
-                                      meetingData?.type === "Strategy" ? (
+                                    meetingData?.type === "Newsletter" ||
+                                    meetingData?.type === "Strategy" ? (
                                       <>
                                         <span className="date-text">
                                           {formattedDate}
@@ -3464,7 +3618,7 @@ const Report = () => {
                                             meetingData?.start_time,
                                             meetingData?.date,
                                             meetingData?.steps,
-                                            meetingData?.timezone
+                                            meetingData?.timezone,
                                           )}
                                         </span>
                                         <span className="date-separator">
@@ -3478,7 +3632,7 @@ const Report = () => {
                                             meetingData?.start_time,
                                             meetingData?.date,
                                             meetingData?.steps,
-                                            meetingData?.timezone
+                                            meetingData?.timezone,
                                           )}
                                         </span>
                                       </>
@@ -3490,10 +3644,10 @@ const Report = () => {
                                         <span className="date-text">
                                           {convertTo12HourFormat(
                                             meetingData?.starts_at ||
-                                            meetingData?.start_time,
+                                              meetingData?.start_time,
                                             meetingData?.date,
                                             meetingData?.steps,
-                                            meetingData?.timezone
+                                            meetingData?.timezone,
                                           )}
                                         </span>
                                         <span className="date-separator">
@@ -3510,7 +3664,7 @@ const Report = () => {
 
                                     <span className="timezone-text">
                                       {getTimezoneSymbol(
-                                        CookieService.get("timezone")
+                                        CookieService.get("timezone"),
                                       )}
                                     </span>
                                   </div>
@@ -3520,8 +3674,8 @@ const Report = () => {
                               <div>
                                 {(meetingData?.location &&
                                   meetingData?.location !== "None") ||
-                                  (meetingData?.agenda &&
-                                    meetingData?.agenda !== "None") ? (
+                                (meetingData?.agenda &&
+                                  meetingData?.agenda !== "None") ? (
                                   <div className="d-flex gap-4 align-items-center mt-2 mb-2">
                                     {meetingData?.location &&
                                       meetingData?.location !== "None" && (
@@ -3579,7 +3733,7 @@ const Report = () => {
                                                 {meetingData?.user?.visioconference_links?.find(
                                                   (item) =>
                                                     item.platform ===
-                                                    "Microsoft Teams"
+                                                    "Microsoft Teams",
                                                 )?.value || "Microsoft Teams"}
                                               </span>
                                             </>
@@ -3645,7 +3799,7 @@ const Report = () => {
                                                 {meetingData?.user?.visioconference_links?.find(
                                                   (item) =>
                                                     item.platform ===
-                                                    "Google Meet"
+                                                    "Google Meet",
                                                 )?.value || "Google Meet"}
                                               </span>
                                             </>
@@ -3656,7 +3810,7 @@ const Report = () => {
                                       meetingData?.agenda !== "None" && (
                                         <p className="d-flex gap-2 justify-content-start ps-0 fw-bold align-items-center mb-0">
                                           {meetingData?.agenda ===
-                                            "Zoom Agenda" ? (
+                                          "Zoom Agenda" ? (
                                             <>
                                               <svg
                                                 width="28px"
@@ -3709,7 +3863,7 @@ const Report = () => {
                                                 {meetingData?.user?.integration_links?.find(
                                                   (item) =>
                                                     item.platform ===
-                                                    "Outlook Agenda"
+                                                    "Outlook Agenda",
                                                 )?.value || "Outlook Agenda"}
                                               </span>
                                             </>
@@ -3721,7 +3875,7 @@ const Report = () => {
                                                 {meetingData?.user?.integration_links?.find(
                                                   (item) =>
                                                     item.platform ===
-                                                    "Google Agenda"
+                                                    "Google Agenda",
                                                 )?.value || "Google Agenda"}
                                               </span>
                                             </>
@@ -3769,95 +3923,214 @@ const Report = () => {
                                 meetingData?.playback === true ||
                                 meetingData?.notification === true ||
                                 meetingData?.automatic_strategy === true) && (
-                                  <div className="row mt-3">
-                                    <div className="col-md-12 d-flex align-items-center gap-3 flex-wrap">
-                                      {meetingData?.prise_de_notes ===
-                                        "Automatic" && (
-                                          <div className="d-flex align-items-center gap-2">
-                                            <svg
-                                              xmlns="http://www.w3.org/2000/svg"
+                                <div className="row mt-3">
+                                  <div className="col-md-12 d-flex align-items-center gap-3 flex-wrap">
+                                    {meetingData?.prise_de_notes ===
+                                      "Automatic" && (
+                                      <div className="d-flex align-items-center gap-2">
+                                        <svg
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          width="28"
+                                          height="28"
+                                          viewBox="0 0 28 28"
+                                          fill="none"
+                                        >
+                                          <g filter="url(#filter0_d_1_1154)">
+                                            <circle
+                                              cx="14"
+                                              cy="12"
+                                              r="10"
+                                              stroke="url(#paint0_linear_1_1154)"
+                                              strokeWidth="4"
+                                            />
+                                          </g>
+                                          <defs>
+                                            <filter
+                                              id="filter0_d_1_1154"
+                                              x="0"
+                                              y="0"
                                               width="28"
                                               height="28"
-                                              viewBox="0 0 28 28"
-                                              fill="none"
+                                              filterUnits="userSpaceOnUse"
+                                              colorInterpolationFilters="sRGB"
                                             >
-                                              <g filter="url(#filter0_d_1_1154)">
-                                                <circle
-                                                  cx="14"
-                                                  cy="12"
-                                                  r="10"
-                                                  stroke="url(#paint0_linear_1_1154)"
-                                                  strokeWidth="4"
-                                                />
-                                              </g>
-                                              <defs>
-                                                <filter
-                                                  id="filter0_d_1_1154"
-                                                  x="0"
-                                                  y="0"
-                                                  width="28"
-                                                  height="28"
-                                                  filterUnits="userSpaceOnUse"
-                                                  colorInterpolationFilters="sRGB"
-                                                >
-                                                  <feFlood
-                                                    floodOpacity="0"
-                                                    result="BackgroundImageFix"
-                                                  />
-                                                  <feColorMatrix
-                                                    in="SourceAlpha"
-                                                    type="matrix"
-                                                    values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-                                                    result="hardAlpha"
-                                                  />
-                                                  <feOffset dy="2" />
-                                                  <feGaussianBlur stdDeviation="1" />
-                                                  <feColorMatrix
-                                                    type="matrix"
-                                                    values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.15 0"
-                                                  />
-                                                  <feBlend
-                                                    mode="normal"
-                                                    in2="BackgroundImageFix"
-                                                    result="effect1_dropShadow_1_1154"
-                                                  />
-                                                  <feBlend
-                                                    mode="normal"
-                                                    in="SourceGraphic"
-                                                    in2="effect1_dropShadow_1_1154"
-                                                    result="shape"
-                                                  />
-                                                </filter>
-                                                <linearGradient
-                                                  id="paint0_linear_1_1154"
-                                                  x1="14"
-                                                  y1="0"
-                                                  x2="20.375"
-                                                  y2="21.75"
-                                                  gradientUnits="userSpaceOnUse"
-                                                >
-                                                  <stop stopColor="#B11FAB" />
-                                                  <stop
-                                                    offset="0.514"
-                                                    stopColor="#56E8F1"
-                                                  />
-                                                  <stop
-                                                    offset="1"
-                                                    stopColor="#2F47C1"
-                                                  />
-                                                </linearGradient>
-                                              </defs>
-                                            </svg>
-                                            <span className="solutioncards option-text text-muted">
-                                              {t(
-                                                "meeting.formState.Automatic note taking"
-                                              )}
-                                            </span>
-                                          </div>
-                                        )}
+                                              <feFlood
+                                                floodOpacity="0"
+                                                result="BackgroundImageFix"
+                                              />
+                                              <feColorMatrix
+                                                in="SourceAlpha"
+                                                type="matrix"
+                                                values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
+                                                result="hardAlpha"
+                                              />
+                                              <feOffset dy="2" />
+                                              <feGaussianBlur stdDeviation="1" />
+                                              <feColorMatrix
+                                                type="matrix"
+                                                values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.15 0"
+                                              />
+                                              <feBlend
+                                                mode="normal"
+                                                in2="BackgroundImageFix"
+                                                result="effect1_dropShadow_1_1154"
+                                              />
+                                              <feBlend
+                                                mode="normal"
+                                                in="SourceGraphic"
+                                                in2="effect1_dropShadow_1_1154"
+                                                result="shape"
+                                              />
+                                            </filter>
+                                            <linearGradient
+                                              id="paint0_linear_1_1154"
+                                              x1="14"
+                                              y1="0"
+                                              x2="20.375"
+                                              y2="21.75"
+                                              gradientUnits="userSpaceOnUse"
+                                            >
+                                              <stop stopColor="#B11FAB" />
+                                              <stop
+                                                offset="0.514"
+                                                stopColor="#56E8F1"
+                                              />
+                                              <stop
+                                                offset="1"
+                                                stopColor="#2F47C1"
+                                              />
+                                            </linearGradient>
+                                          </defs>
+                                        </svg>
+                                        <span className="solutioncards option-text text-muted">
+                                          {t(
+                                            "meeting.formState.Automatic note taking",
+                                          )}
+                                        </span>
+                                      </div>
+                                    )}
 
-                                      {meetingData?.alarm === true && (
-                                        <div className="d-flex align-items-center gap-2">
+                                    {meetingData?.alarm === true && (
+                                      <div className="d-flex align-items-center gap-2">
+                                        <svg
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          width="25"
+                                          height="24"
+                                          viewBox="0 0 25 24"
+                                          fill="none"
+                                        >
+                                          <path
+                                            fillRule="evenodd"
+                                            clipRule="evenodd"
+                                            d="M12.5001 1.35999C12.2879 1.35999 12.0844 1.44427 11.9344 1.5943C11.7844 1.74433 11.7001 1.94781 11.7001 2.15999V5.63519C11.7001 5.84736 11.7844 6.05084 11.9344 6.20087C12.0844 6.3509 12.2879 6.43519 12.5001 6.43519C12.7122 6.43519 12.9157 6.3509 13.0658 6.20087C13.2158 6.05084 13.3001 5.84736 13.3001 5.63519V2.99519C15.3173 3.17457 17.2159 4.02613 18.6915 5.41333C20.167 6.80054 21.134 8.64304 21.4373 10.6454C21.7407 12.6478 21.363 14.694 20.3646 16.4561C19.3662 18.2181 17.8051 19.5939 15.9315 20.3628C14.058 21.1317 11.9805 21.2492 10.0321 20.6965C8.08379 20.1437 6.37749 18.9528 5.1868 17.3145C3.99611 15.6763 3.39001 13.6857 3.46567 11.6619C3.54134 9.63811 4.29438 7.69833 5.60407 6.15358C5.67546 6.07402 5.73018 5.98095 5.765 5.87989C5.79981 5.77882 5.81402 5.6718 5.80678 5.56514C5.79954 5.45849 5.771 5.35437 5.72285 5.25893C5.67469 5.1635 5.6079 5.07868 5.52641 5.00949C5.44493 4.9403 5.3504 4.88815 5.24842 4.8561C5.14644 4.82406 5.03907 4.81278 4.93265 4.82293C4.82624 4.83308 4.72293 4.86446 4.62885 4.91521C4.53476 4.96595 4.4518 5.03504 4.38487 5.11839C2.81701 6.96726 1.92749 9.29609 1.86357 11.7194C1.79964 14.1427 2.56513 16.5152 4.03333 18.4442C5.50153 20.3731 7.58441 21.7429 9.9372 22.3268C12.29 22.9106 14.7716 22.6736 16.9713 21.6548C19.171 20.6361 20.9569 18.8967 22.0333 16.7247C23.1098 14.5526 23.4122 12.0781 22.8907 9.71074C22.3691 7.34336 21.0548 5.22506 19.1652 3.70646C17.2757 2.18787 14.9242 1.36003 12.5001 1.35999ZM11.2841 12.928L7.25847 7.31679C7.20487 7.23976 7.18006 7.14634 7.18838 7.05287C7.19669 6.9594 7.23761 6.87183 7.30396 6.80548C7.37031 6.73912 7.45789 6.69821 7.55135 6.68989C7.64482 6.68158 7.73824 6.70639 7.81527 6.75999L13.4297 10.784C13.6103 10.914 13.7605 11.0818 13.8699 11.2757C13.9793 11.4695 14.0453 11.6848 14.0632 11.9067C14.0812 12.1286 14.0507 12.3517 13.9738 12.5606C13.897 12.7695 13.7757 12.9592 13.6183 13.1166C13.4609 13.274 13.2712 13.3953 13.0623 13.4722C12.8534 13.549 12.6303 13.5795 12.4084 13.5615C12.1865 13.5436 11.9712 13.4776 11.7773 13.3682C11.5835 13.2588 11.4157 13.1086 11.2857 12.928"
+                                            fill="#3D57B5"
+                                          />
+                                        </svg>
+                                        <span
+                                          className="solutioncards"
+                                          style={{ color: "#3D57B5" }}
+                                        >
+                                          {t("meeting.formState.Beep alarm")}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {meetingData?.autostart === true && (
+                                      <div className="d-flex align-items-center gap-2">
+                                        <svg
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          width="25"
+                                          height="24"
+                                          viewBox="0 0 25 24"
+                                          fill="none"
+                                        >
+                                          <path
+                                            fillRule="evenodd"
+                                            clipRule="evenodd"
+                                            d="M12.5001 1.35999C12.2879 1.35999 12.0844 1.44427 11.9344 1.5943C11.7844 1.74433 11.7001 1.94781 11.7001 2.15999V5.63519C11.7001 5.84736 11.7844 6.05084 11.9344 6.20087C12.0844 6.3509 12.2879 6.43519 12.5001 6.43519C12.7122 6.43519 12.9157 6.3509 13.0658 6.20087C13.2158 6.05084 13.3001 5.84736 13.3001 5.63519V2.99519C15.3173 3.17457 17.2159 4.02613 18.6915 5.41333C20.167 6.80054 21.134 8.64304 21.4373 10.6454C21.7407 12.6478 21.363 14.694 20.3646 16.4561C19.3662 18.2181 17.8051 19.5939 15.9315 20.3628C14.058 21.1317 11.9805 21.2492 10.0321 20.6965C8.08379 20.1437 6.37749 18.9528 5.1868 17.3145C3.99611 15.6763 3.39001 13.6857 3.46567 11.6619C3.54134 9.63811 4.29438 7.69833 5.60407 6.15358C5.67546 6.07402 5.73018 5.98095 5.765 5.87989C5.79981 5.77882 5.81402 5.6718 5.80678 5.56514C5.79954 5.45849 5.771 5.35437 5.72285 5.25893C5.67469 5.1635 5.6079 5.07868 5.52641 5.00949C5.44493 4.9403 5.3504 4.88815 5.24842 4.8561C5.14644 4.82406 5.03907 4.81278 4.93265 4.82293C4.82624 4.83308 4.72293 4.86446 4.62885 4.91521C4.53476 4.96595 4.4518 5.03504 4.38487 5.11839C2.81701 6.96726 1.92749 9.29609 1.86357 11.7194C1.79964 14.1427 2.56513 16.5152 4.03333 18.4442C5.50153 20.3731 7.58441 21.7429 9.9372 22.3268C12.29 22.9106 14.7716 22.6736 16.9713 21.6548C19.171 20.6361 20.9569 18.8967 22.0333 16.7247C23.1098 14.5526 23.4122 12.0781 22.8907 9.71074C22.3691 7.34336 21.0548 5.22506 19.1652 3.70646C17.2757 2.18787 14.9242 1.36003 12.5001 1.35999ZM11.2841 12.928L7.25847 7.31679C7.20487 7.23976 7.18006 7.14634 7.18838 7.05287C7.19669 6.9594 7.23761 6.87183 7.30396 6.80548C7.37031 6.73912 7.45789 6.69821 7.55135 6.68989C7.64482 6.68158 7.73824 6.70639 7.81527 6.75999L13.4297 10.784C13.6103 10.914 13.7605 11.0818 13.8699 11.2757C13.9793 11.4695 14.0453 11.6848 14.0632 11.9067C14.0812 12.1286 14.0507 12.3517 13.9738 12.5606C13.897 12.7695 13.7757 12.9592 13.6183 13.1166C13.4609 13.274 13.2712 13.3953 13.0623 13.4722C12.8534 13.549 12.6303 13.5795 12.4084 13.5615C12.1865 13.5436 11.9712 13.4776 11.7773 13.3682C11.5835 13.2588 11.4157 13.1086 11.2857 12.928"
+                                            fill="#3D57B5"
+                                          />
+                                        </svg>
+                                        <span
+                                          className="solutioncards text-muted"
+                                          style={{ color: "#3D57B5" }}
+                                        >
+                                          {t("meeting.formState.Autostart")}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {meetingData?.playback === "automatic" && (
+                                      <div className="d-flex align-items-center gap-2">
+                                        <svg
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          width="25"
+                                          height="24"
+                                          viewBox="0 0 25 24"
+                                          fill="none"
+                                        >
+                                          <path
+                                            fillRule="evenodd"
+                                            clipRule="evenodd"
+                                            d="M12.5001 1.35999C12.2879 1.35999 12.0844 1.44427 11.9344 1.5943C11.7844 1.74433 11.7001 1.94781 11.7001 2.15999V5.63519C11.7001 5.84736 11.7844 6.05084 11.9344 6.20087C12.0844 6.3509 12.2879 6.43519 12.5001 6.43519C12.7122 6.43519 12.9157 6.3509 13.0658 6.20087C13.2158 6.05084 13.3001 5.84736 13.3001 5.63519V2.99519C15.3173 3.17457 17.2159 4.02613 18.6915 5.41333C20.167 6.80054 21.134 8.64304 21.4373 10.6454C21.7407 12.6478 21.363 14.694 20.3646 16.4561C19.3662 18.2181 17.8051 19.5939 15.9315 20.3628C14.058 21.1317 11.9805 21.2492 10.0321 20.6965C8.08379 20.1437 6.37749 18.9528 5.1868 17.3145C3.99611 15.6763 3.39001 13.6857 3.46567 11.6619C3.54134 9.63811 4.29438 7.69833 5.60407 6.15358C5.67546 6.07402 5.73018 5.98095 5.765 5.87989C5.79981 5.77882 5.81402 5.6718 5.80678 5.56514C5.79954 5.45849 5.771 5.35437 5.72285 5.25893C5.67469 5.1635 5.6079 5.07868 5.52641 5.00949C5.44493 4.9403 5.3504 4.88815 5.24842 4.8561C5.14644 4.82406 5.03907 4.81278 4.93265 4.82293C4.82624 4.83308 4.72293 4.86446 4.62885 4.91521C4.53476 4.96595 4.4518 5.03504 4.38487 5.11839C2.81701 6.96726 1.92749 9.29609 1.86357 11.7194C1.79964 14.1427 2.56513 16.5152 4.03333 18.4442C5.50153 20.3731 7.58441 21.7429 9.9372 22.3268C12.29 22.9106 14.7716 22.6736 16.9713 21.6548C19.171 20.6361 20.9569 18.8967 22.0333 16.7247C23.1098 14.5526 23.4122 12.0781 22.8907 9.71074C22.3691 7.34336 21.0548 5.22506 19.1652 3.70646C17.2757 2.18787 14.9242 1.36003 12.5001 1.35999ZM11.2841 12.928L7.25847 7.31679C7.20487 7.23976 7.18006 7.14634 7.18838 7.05287C7.19669 6.9594 7.23761 6.87183 7.30396 6.80548C7.37031 6.73912 7.45789 6.69821 7.55135 6.68989C7.64482 6.68158 7.73824 6.70639 7.81527 6.75999L13.4297 10.784C13.6103 10.914 13.7605 11.0818 13.8699 11.2757C13.9793 11.4695 14.0453 11.6848 14.0632 11.9067C14.0812 12.1286 14.0507 12.3517 13.9738 12.5606C13.897 12.7695 13.7757 12.9592 13.6183 13.1166C13.4609 13.274 13.2712 13.3953 13.0623 13.4722C12.8534 13.549 12.6303 13.5795 12.4084 13.5615C12.1865 13.5436 11.9712 13.4776 11.7773 13.3682C11.5835 13.2588 11.4157 13.1086 11.2857 12.928"
+                                            fill="#3D57B5"
+                                          />
+                                        </svg>
+                                        <span
+                                          className="solutioncards text-muted"
+                                          style={{ color: "#3D57B5" }}
+                                        >
+                                          {t(
+                                            "meeting.formState.Lecture playback",
+                                          )}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {meetingData?.notification === true && (
+                                      <div className="d-flex align-items-center gap-2">
+                                        <svg
+                                          width="25px"
+                                          height="24px"
+                                          viewBox="0 0 24 24"
+                                          fill="none"
+                                          xmlns="http://www.w3.org/2000/svg"
+                                        >
+                                          <path
+                                            d="M22 10.5V12C22 16.714 22 19.0711 20.5355 20.5355C19.0711 22 16.714 22 12 22C7.28595 22 4.92893 22 3.46447 20.5355C2 19.0711 2 16.714 2 12C2 7.28595 2 4.92893 3.46447 3.46447C4.92893 2 7.28595 2 12 2H13.5"
+                                            stroke="#3D57B5"
+                                            strokeWidth="1.5"
+                                            strokeLinecap="round"
+                                          ></path>
+                                          <circle
+                                            cx="19"
+                                            cy="5"
+                                            r="3"
+                                            stroke="#3D57B5"
+                                            strokeWidth="1.5"
+                                          ></circle>
+                                          <path
+                                            d="M7 14H16"
+                                            stroke="#3D57B5"
+                                            strokeWidth="1.5"
+                                            strokeLinecap="round"
+                                          ></path>
+                                          <path
+                                            d="M7 17.5H13"
+                                            stroke="#3D57B5"
+                                            strokeWidth="1.5"
+                                            strokeLinecap="round"
+                                          ></path>
+                                        </svg>
+                                        <span
+                                          className="solutioncards text-muted"
+                                          style={{ color: "#3D57B5" }}
+                                        >
+                                          {t("meeting.formState.notification")}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {meetingData?.automatic_strategy ===
+                                      true && (
+                                      <>
+                                        <div>
                                           <svg
                                             xmlns="http://www.w3.org/2000/svg"
                                             width="25"
@@ -3866,8 +4139,8 @@ const Report = () => {
                                             fill="none"
                                           >
                                             <path
-                                              fillRule="evenodd"
-                                              clipRule="evenodd"
+                                              fill-rule="evenodd"
+                                              clip-rule="evenodd"
                                               d="M12.5001 1.35999C12.2879 1.35999 12.0844 1.44427 11.9344 1.5943C11.7844 1.74433 11.7001 1.94781 11.7001 2.15999V5.63519C11.7001 5.84736 11.7844 6.05084 11.9344 6.20087C12.0844 6.3509 12.2879 6.43519 12.5001 6.43519C12.7122 6.43519 12.9157 6.3509 13.0658 6.20087C13.2158 6.05084 13.3001 5.84736 13.3001 5.63519V2.99519C15.3173 3.17457 17.2159 4.02613 18.6915 5.41333C20.167 6.80054 21.134 8.64304 21.4373 10.6454C21.7407 12.6478 21.363 14.694 20.3646 16.4561C19.3662 18.2181 17.8051 19.5939 15.9315 20.3628C14.058 21.1317 11.9805 21.2492 10.0321 20.6965C8.08379 20.1437 6.37749 18.9528 5.1868 17.3145C3.99611 15.6763 3.39001 13.6857 3.46567 11.6619C3.54134 9.63811 4.29438 7.69833 5.60407 6.15358C5.67546 6.07402 5.73018 5.98095 5.765 5.87989C5.79981 5.77882 5.81402 5.6718 5.80678 5.56514C5.79954 5.45849 5.771 5.35437 5.72285 5.25893C5.67469 5.1635 5.6079 5.07868 5.52641 5.00949C5.44493 4.9403 5.3504 4.88815 5.24842 4.8561C5.14644 4.82406 5.03907 4.81278 4.93265 4.82293C4.82624 4.83308 4.72293 4.86446 4.62885 4.91521C4.53476 4.96595 4.4518 5.03504 4.38487 5.11839C2.81701 6.96726 1.92749 9.29609 1.86357 11.7194C1.79964 14.1427 2.56513 16.5152 4.03333 18.4442C5.50153 20.3731 7.58441 21.7429 9.9372 22.3268C12.29 22.9106 14.7716 22.6736 16.9713 21.6548C19.171 20.6361 20.9569 18.8967 22.0333 16.7247C23.1098 14.5526 23.4122 12.0781 22.8907 9.71074C22.3691 7.34336 21.0548 5.22506 19.1652 3.70646C17.2757 2.18787 14.9242 1.36003 12.5001 1.35999ZM11.2841 12.928L7.25847 7.31679C7.20487 7.23976 7.18006 7.14634 7.18838 7.05287C7.19669 6.9594 7.23761 6.87183 7.30396 6.80548C7.37031 6.73912 7.45789 6.69821 7.55135 6.68989C7.64482 6.68158 7.73824 6.70639 7.81527 6.75999L13.4297 10.784C13.6103 10.914 13.7605 11.0818 13.8699 11.2757C13.9793 11.4695 14.0453 11.6848 14.0632 11.9067C14.0812 12.1286 14.0507 12.3517 13.9738 12.5606C13.897 12.7695 13.7757 12.9592 13.6183 13.1166C13.4609 13.274 13.2712 13.3953 13.0623 13.4722C12.8534 13.549 12.6303 13.5795 12.4084 13.5615C12.1865 13.5436 11.9712 13.4776 11.7773 13.3682C11.5835 13.2588 11.4157 13.1086 11.2857 12.928"
                                               fill="#3D57B5"
                                             />
@@ -3876,135 +4149,16 @@ const Report = () => {
                                             className="solutioncards"
                                             style={{ color: "#3D57B5" }}
                                           >
-                                            {t("meeting.formState.Beep alarm")}
-                                          </span>
-                                        </div>
-                                      )}
-                                      {meetingData?.autostart === true && (
-                                        <div className="d-flex align-items-center gap-2">
-                                          <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            width="25"
-                                            height="24"
-                                            viewBox="0 0 25 24"
-                                            fill="none"
-                                          >
-                                            <path
-                                              fillRule="evenodd"
-                                              clipRule="evenodd"
-                                              d="M12.5001 1.35999C12.2879 1.35999 12.0844 1.44427 11.9344 1.5943C11.7844 1.74433 11.7001 1.94781 11.7001 2.15999V5.63519C11.7001 5.84736 11.7844 6.05084 11.9344 6.20087C12.0844 6.3509 12.2879 6.43519 12.5001 6.43519C12.7122 6.43519 12.9157 6.3509 13.0658 6.20087C13.2158 6.05084 13.3001 5.84736 13.3001 5.63519V2.99519C15.3173 3.17457 17.2159 4.02613 18.6915 5.41333C20.167 6.80054 21.134 8.64304 21.4373 10.6454C21.7407 12.6478 21.363 14.694 20.3646 16.4561C19.3662 18.2181 17.8051 19.5939 15.9315 20.3628C14.058 21.1317 11.9805 21.2492 10.0321 20.6965C8.08379 20.1437 6.37749 18.9528 5.1868 17.3145C3.99611 15.6763 3.39001 13.6857 3.46567 11.6619C3.54134 9.63811 4.29438 7.69833 5.60407 6.15358C5.67546 6.07402 5.73018 5.98095 5.765 5.87989C5.79981 5.77882 5.81402 5.6718 5.80678 5.56514C5.79954 5.45849 5.771 5.35437 5.72285 5.25893C5.67469 5.1635 5.6079 5.07868 5.52641 5.00949C5.44493 4.9403 5.3504 4.88815 5.24842 4.8561C5.14644 4.82406 5.03907 4.81278 4.93265 4.82293C4.82624 4.83308 4.72293 4.86446 4.62885 4.91521C4.53476 4.96595 4.4518 5.03504 4.38487 5.11839C2.81701 6.96726 1.92749 9.29609 1.86357 11.7194C1.79964 14.1427 2.56513 16.5152 4.03333 18.4442C5.50153 20.3731 7.58441 21.7429 9.9372 22.3268C12.29 22.9106 14.7716 22.6736 16.9713 21.6548C19.171 20.6361 20.9569 18.8967 22.0333 16.7247C23.1098 14.5526 23.4122 12.0781 22.8907 9.71074C22.3691 7.34336 21.0548 5.22506 19.1652 3.70646C17.2757 2.18787 14.9242 1.36003 12.5001 1.35999ZM11.2841 12.928L7.25847 7.31679C7.20487 7.23976 7.18006 7.14634 7.18838 7.05287C7.19669 6.9594 7.23761 6.87183 7.30396 6.80548C7.37031 6.73912 7.45789 6.69821 7.55135 6.68989C7.64482 6.68158 7.73824 6.70639 7.81527 6.75999L13.4297 10.784C13.6103 10.914 13.7605 11.0818 13.8699 11.2757C13.9793 11.4695 14.0453 11.6848 14.0632 11.9067C14.0812 12.1286 14.0507 12.3517 13.9738 12.5606C13.897 12.7695 13.7757 12.9592 13.6183 13.1166C13.4609 13.274 13.2712 13.3953 13.0623 13.4722C12.8534 13.549 12.6303 13.5795 12.4084 13.5615C12.1865 13.5436 11.9712 13.4776 11.7773 13.3682C11.5835 13.2588 11.4157 13.1086 11.2857 12.928"
-                                              fill="#3D57B5"
-                                            />
-                                          </svg>
-                                          <span
-                                            className="solutioncards text-muted"
-                                            style={{ color: "#3D57B5" }}
-                                          >
-                                            {t("meeting.formState.Autostart")}
-                                          </span>
-                                        </div>
-                                      )}
-                                      {meetingData?.playback === "automatic" && (
-                                        <div className="d-flex align-items-center gap-2">
-                                          <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            width="25"
-                                            height="24"
-                                            viewBox="0 0 25 24"
-                                            fill="none"
-                                          >
-                                            <path
-                                              fillRule="evenodd"
-                                              clipRule="evenodd"
-                                              d="M12.5001 1.35999C12.2879 1.35999 12.0844 1.44427 11.9344 1.5943C11.7844 1.74433 11.7001 1.94781 11.7001 2.15999V5.63519C11.7001 5.84736 11.7844 6.05084 11.9344 6.20087C12.0844 6.3509 12.2879 6.43519 12.5001 6.43519C12.7122 6.43519 12.9157 6.3509 13.0658 6.20087C13.2158 6.05084 13.3001 5.84736 13.3001 5.63519V2.99519C15.3173 3.17457 17.2159 4.02613 18.6915 5.41333C20.167 6.80054 21.134 8.64304 21.4373 10.6454C21.7407 12.6478 21.363 14.694 20.3646 16.4561C19.3662 18.2181 17.8051 19.5939 15.9315 20.3628C14.058 21.1317 11.9805 21.2492 10.0321 20.6965C8.08379 20.1437 6.37749 18.9528 5.1868 17.3145C3.99611 15.6763 3.39001 13.6857 3.46567 11.6619C3.54134 9.63811 4.29438 7.69833 5.60407 6.15358C5.67546 6.07402 5.73018 5.98095 5.765 5.87989C5.79981 5.77882 5.81402 5.6718 5.80678 5.56514C5.79954 5.45849 5.771 5.35437 5.72285 5.25893C5.67469 5.1635 5.6079 5.07868 5.52641 5.00949C5.44493 4.9403 5.3504 4.88815 5.24842 4.8561C5.14644 4.82406 5.03907 4.81278 4.93265 4.82293C4.82624 4.83308 4.72293 4.86446 4.62885 4.91521C4.53476 4.96595 4.4518 5.03504 4.38487 5.11839C2.81701 6.96726 1.92749 9.29609 1.86357 11.7194C1.79964 14.1427 2.56513 16.5152 4.03333 18.4442C5.50153 20.3731 7.58441 21.7429 9.9372 22.3268C12.29 22.9106 14.7716 22.6736 16.9713 21.6548C19.171 20.6361 20.9569 18.8967 22.0333 16.7247C23.1098 14.5526 23.4122 12.0781 22.8907 9.71074C22.3691 7.34336 21.0548 5.22506 19.1652 3.70646C17.2757 2.18787 14.9242 1.36003 12.5001 1.35999ZM11.2841 12.928L7.25847 7.31679C7.20487 7.23976 7.18006 7.14634 7.18838 7.05287C7.19669 6.9594 7.23761 6.87183 7.30396 6.80548C7.37031 6.73912 7.45789 6.69821 7.55135 6.68989C7.64482 6.68158 7.73824 6.70639 7.81527 6.75999L13.4297 10.784C13.6103 10.914 13.7605 11.0818 13.8699 11.2757C13.9793 11.4695 14.0453 11.6848 14.0632 11.9067C14.0812 12.1286 14.0507 12.3517 13.9738 12.5606C13.897 12.7695 13.7757 12.9592 13.6183 13.1166C13.4609 13.274 13.2712 13.3953 13.0623 13.4722C12.8534 13.549 12.6303 13.5795 12.4084 13.5615C12.1865 13.5436 11.9712 13.4776 11.7773 13.3682C11.5835 13.2588 11.4157 13.1086 11.2857 12.928"
-                                              fill="#3D57B5"
-                                            />
-                                          </svg>
-                                          <span
-                                            className="solutioncards text-muted"
-                                            style={{ color: "#3D57B5" }}
-                                          >
                                             {t(
-                                              "meeting.formState.Lecture playback"
+                                              "meeting.formState.Automatic Strategy",
                                             )}
                                           </span>
                                         </div>
-                                      )}
-                                      {meetingData?.notification === true && (
-                                        <div className="d-flex align-items-center gap-2">
-                                          <svg
-                                            width="25px"
-                                            height="24px"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                          >
-                                            <path
-                                              d="M22 10.5V12C22 16.714 22 19.0711 20.5355 20.5355C19.0711 22 16.714 22 12 22C7.28595 22 4.92893 22 3.46447 20.5355C2 19.0711 2 16.714 2 12C2 7.28595 2 4.92893 3.46447 3.46447C4.92893 2 7.28595 2 12 2H13.5"
-                                              stroke="#3D57B5"
-                                              strokeWidth="1.5"
-                                              strokeLinecap="round"
-                                            ></path>
-                                            <circle
-                                              cx="19"
-                                              cy="5"
-                                              r="3"
-                                              stroke="#3D57B5"
-                                              strokeWidth="1.5"
-                                            ></circle>
-                                            <path
-                                              d="M7 14H16"
-                                              stroke="#3D57B5"
-                                              strokeWidth="1.5"
-                                              strokeLinecap="round"
-                                            ></path>
-                                            <path
-                                              d="M7 17.5H13"
-                                              stroke="#3D57B5"
-                                              strokeWidth="1.5"
-                                              strokeLinecap="round"
-                                            ></path>
-                                          </svg>
-                                          <span
-                                            className="solutioncards text-muted"
-                                            style={{ color: "#3D57B5" }}
-                                          >
-                                            {t("meeting.formState.notification")}
-                                          </span>
-                                        </div>
-                                      )}
-                                      {meetingData?.automatic_strategy ===
-                                        true && (
-                                          <>
-                                            <div>
-                                              <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                width="25"
-                                                height="24"
-                                                viewBox="0 0 25 24"
-                                                fill="none"
-                                              >
-                                                <path
-                                                  fill-rule="evenodd"
-                                                  clip-rule="evenodd"
-                                                  d="M12.5001 1.35999C12.2879 1.35999 12.0844 1.44427 11.9344 1.5943C11.7844 1.74433 11.7001 1.94781 11.7001 2.15999V5.63519C11.7001 5.84736 11.7844 6.05084 11.9344 6.20087C12.0844 6.3509 12.2879 6.43519 12.5001 6.43519C12.7122 6.43519 12.9157 6.3509 13.0658 6.20087C13.2158 6.05084 13.3001 5.84736 13.3001 5.63519V2.99519C15.3173 3.17457 17.2159 4.02613 18.6915 5.41333C20.167 6.80054 21.134 8.64304 21.4373 10.6454C21.7407 12.6478 21.363 14.694 20.3646 16.4561C19.3662 18.2181 17.8051 19.5939 15.9315 20.3628C14.058 21.1317 11.9805 21.2492 10.0321 20.6965C8.08379 20.1437 6.37749 18.9528 5.1868 17.3145C3.99611 15.6763 3.39001 13.6857 3.46567 11.6619C3.54134 9.63811 4.29438 7.69833 5.60407 6.15358C5.67546 6.07402 5.73018 5.98095 5.765 5.87989C5.79981 5.77882 5.81402 5.6718 5.80678 5.56514C5.79954 5.45849 5.771 5.35437 5.72285 5.25893C5.67469 5.1635 5.6079 5.07868 5.52641 5.00949C5.44493 4.9403 5.3504 4.88815 5.24842 4.8561C5.14644 4.82406 5.03907 4.81278 4.93265 4.82293C4.82624 4.83308 4.72293 4.86446 4.62885 4.91521C4.53476 4.96595 4.4518 5.03504 4.38487 5.11839C2.81701 6.96726 1.92749 9.29609 1.86357 11.7194C1.79964 14.1427 2.56513 16.5152 4.03333 18.4442C5.50153 20.3731 7.58441 21.7429 9.9372 22.3268C12.29 22.9106 14.7716 22.6736 16.9713 21.6548C19.171 20.6361 20.9569 18.8967 22.0333 16.7247C23.1098 14.5526 23.4122 12.0781 22.8907 9.71074C22.3691 7.34336 21.0548 5.22506 19.1652 3.70646C17.2757 2.18787 14.9242 1.36003 12.5001 1.35999ZM11.2841 12.928L7.25847 7.31679C7.20487 7.23976 7.18006 7.14634 7.18838 7.05287C7.19669 6.9594 7.23761 6.87183 7.30396 6.80548C7.37031 6.73912 7.45789 6.69821 7.55135 6.68989C7.64482 6.68158 7.73824 6.70639 7.81527 6.75999L13.4297 10.784C13.6103 10.914 13.7605 11.0818 13.8699 11.2757C13.9793 11.4695 14.0453 11.6848 14.0632 11.9067C14.0812 12.1286 14.0507 12.3517 13.9738 12.5606C13.897 12.7695 13.7757 12.9592 13.6183 13.1166C13.4609 13.274 13.2712 13.3953 13.0623 13.4722C12.8534 13.549 12.6303 13.5795 12.4084 13.5615C12.1865 13.5436 11.9712 13.4776 11.7773 13.3682C11.5835 13.2588 11.4157 13.1086 11.2857 12.928"
-                                                  fill="#3D57B5"
-                                                />
-                                              </svg>
-                                              <span
-                                                className="solutioncards"
-                                                style={{ color: "#3D57B5" }}
-                                              >
-                                                {t(
-                                                  "meeting.formState.Automatic Strategy"
-                                                )}
-                                              </span>
-                                            </div>
-                                          </>
-                                        )}
-                                    </div>
+                                      </>
+                                    )}
                                   </div>
-                                )}
+                                </div>
+                              )}
                               <div className="row mt-3">
                                 <div className="col-md-12 mt-2 ms-1 d-flex align-items-center gap-3">
                                   <span
@@ -4022,7 +4176,7 @@ const Report = () => {
                                   <div className="">
                                     <div className="d-flex align-items-center flex-wrap">
                                       {meetingData?.moment_privacy ===
-                                        "public" ? (
+                                      "public" ? (
                                         <img
                                           src="/Assets/Tek.png"
                                           alt="Public"
@@ -4041,7 +4195,7 @@ const Report = () => {
                                                 <img
                                                   src={
                                                     item?.logo?.startsWith(
-                                                      "http"
+                                                      "http",
                                                     )
                                                       ? item.logo
                                                       : `${Assets_URL}/${item.logo}`
@@ -4057,7 +4211,7 @@ const Report = () => {
                                                   title={item?.name}
                                                 />
                                               </div>
-                                            )
+                                            ),
                                           )}
                                         </div>
                                       ) : meetingData?.moment_privacy ===
@@ -4069,7 +4223,7 @@ const Report = () => {
                                                 <img
                                                   src={
                                                     item?.participant_image?.startsWith(
-                                                      "http"
+                                                      "http",
                                                     )
                                                       ? item.participant_image
                                                       : `${Assets_URL}/${item.participant_image}`
@@ -4085,20 +4239,20 @@ const Report = () => {
                                                   title={item?.full_name}
                                                 />
                                               </div>
-                                            )
+                                            ),
                                           )}
                                         </div>
                                       ) : meetingData?.moment_privacy ===
                                         "tektime members" ? null : meetingData?.moment_privacy ===
-                                          "enterprise" ? (
+                                        "enterprise" ? (
                                         <div>
                                           <img
                                             src={
                                               meetingData?.user?.enterprise?.logo?.startsWith(
-                                                "http"
+                                                "http",
                                               )
                                                 ? meetingData?.user?.enterprise
-                                                  ?.logo
+                                                    ?.logo
                                                 : `${Assets_URL}/${meetingData?.user?.enterprise?.logo}`
                                             }
                                             alt={
@@ -4139,7 +4293,7 @@ const Report = () => {
                                         <img
                                           src={
                                             meetingData?.user?.image?.startsWith(
-                                              "users/"
+                                              "users/",
                                             )
                                               ? `${Assets_URL}/${meetingData?.user?.image}`
                                               : meetingData?.user?.image
@@ -4156,44 +4310,51 @@ const Report = () => {
                                         />
                                       )}
                                       <Badge
-                                        className={`ms-2 ${meetingData?.moment_privacy ===
+                                        className={`ms-2 ${
+                                          meetingData?.moment_privacy ===
                                           "private"
-                                          ? "solution-badge-red"
-                                          : meetingData?.moment_privacy ===
-                                            "public"
-                                            ? "solution-badge-green"
+                                            ? "solution-badge-red"
                                             : meetingData?.moment_privacy ===
-                                              "enterprise" ||
-                                              meetingData?.moment_privacy ===
-                                              "participant only" ||
-                                              meetingData?.moment_privacy ===
-                                              "tektime members"
-                                              ? "solution-badge-blue"
+                                                "public"
+                                              ? "solution-badge-green"
                                               : meetingData?.moment_privacy ===
-                                                "password"
-                                                ? "solution-badge-red"
-                                                : "solution-badge-yellow"
-                                          }`}
+                                                    "enterprise" ||
+                                                  meetingData?.moment_privacy ===
+                                                    "participant only" ||
+                                                  meetingData?.moment_privacy ===
+                                                    "tektime members"
+                                                ? "solution-badge-blue"
+                                                : meetingData?.moment_privacy ===
+                                                    "password"
+                                                  ? "solution-badge-red"
+                                                  : "solution-badge-yellow"
+                                        }`}
                                         style={{ padding: "3px 8px" }}
                                       >
                                         {meetingData?.moment_privacy ===
-                                          "private"
+                                        "private"
                                           ? t("solution.badge.private")
                                           : meetingData?.moment_privacy ===
-                                            "public"
+                                              "public"
                                             ? t("solution.badge.public")
                                             : meetingData?.moment_privacy ===
-                                              "enterprise"
+                                                "enterprise"
                                               ? t("solution.badge.enterprise")
                                               : meetingData?.moment_privacy ===
-                                                "participant only"
-                                                ? t("solution.badge.participantOnly")
+                                                  "participant only"
+                                                ? t(
+                                                    "solution.badge.participantOnly",
+                                                  )
                                                 : meetingData?.moment_privacy ===
-                                                  "tektime members"
-                                                  ? t("solution.badge.membersOnly")
+                                                    "tektime members"
+                                                  ? t(
+                                                      "solution.badge.membersOnly",
+                                                    )
                                                   : meetingData?.moment_privacy ===
-                                                    "password"
-                                                    ? t("solution.badge.password")
+                                                      "password"
+                                                    ? t(
+                                                        "solution.badge.password",
+                                                      )
                                                     : t("solution.badge.team")}
                                       </Badge>
                                     </div>
@@ -4204,20 +4365,44 @@ const Report = () => {
                               {meetingData?.description && (
                                 <div className="paragraph-parent mt-3 ps-2 ps-md-4 ps-lg-0">
                                   <span className="paragraph paragraph-images">
-                                    {isMarkdownContent(meetingData?.description) ? (
+                                    {isMarkdownContent(
+                                      meetingData?.description,
+                                    ) ? (
                                       <div className="markdown-content">
                                         <ReactMarkdown
                                           remarkPlugins={[remarkGfm]}
                                           components={{
-                                            h1: ({ node, ...props }) => <h3 {...props} />,
-                                            h2: ({ node, ...props }) => <h4 {...props} />,
-                                            h3: ({ node, ...props }) => <h5 {...props} />,
-                                            p: ({ node, ...props }) => <p {...props} />,
-                                            ul: ({ node, ...props }) => <ul {...props} />,
-                                            ol: ({ node, ...props }) => <ol {...props} />,
-                                            strong: ({ node, ...props }) => <strong {...props} />,
-                                            code: ({ node, inline, ...props }) =>
-                                              inline ? <code {...props} /> : <code {...props} />,
+                                            h1: ({ node, ...props }) => (
+                                              <h3 {...props} />
+                                            ),
+                                            h2: ({ node, ...props }) => (
+                                              <h4 {...props} />
+                                            ),
+                                            h3: ({ node, ...props }) => (
+                                              <h5 {...props} />
+                                            ),
+                                            p: ({ node, ...props }) => (
+                                              <p {...props} />
+                                            ),
+                                            ul: ({ node, ...props }) => (
+                                              <ul {...props} />
+                                            ),
+                                            ol: ({ node, ...props }) => (
+                                              <ol {...props} />
+                                            ),
+                                            strong: ({ node, ...props }) => (
+                                              <strong {...props} />
+                                            ),
+                                            code: ({
+                                              node,
+                                              inline,
+                                              ...props
+                                            }) =>
+                                              inline ? (
+                                                <code {...props} />
+                                              ) : (
+                                                <code {...props} />
+                                              ),
                                           }}
                                         >
                                           {cleanText(meetingData?.description)}
@@ -4226,7 +4411,8 @@ const Report = () => {
                                     ) : (
                                       <div
                                         dangerouslySetInnerHTML={{
-                                          __html: meetingData?.description || "",
+                                          __html:
+                                            meetingData?.description || "",
                                         }}
                                       />
                                     )}
@@ -4240,20 +4426,22 @@ const Report = () => {
                           <section id="report" className="section">
                             <h3 className="section-title-1 text-left">
                               {viewNote === "note"
-                                ? `${t("Summary of")}: ${meetingData?.type === "Google Agenda Event"
-                                  ? "Google Agenda Event"
-                                  : meetingData?.type ===
-                                    "Outlook Agenda Event"
-                                    ? "Outlook Agenda Event"
-                                    : t(`types.${meetingData?.type}`)
-                                }`
-                                : viewNote === "prompt"
-                                  ? `${t("Prompt")}: ${meetingData?.solution
-                                    ? meetingData?.solution?.title
-                                    : t(
-                                      `types.${meetingData?.prompts[0]?.meeting_type}`
-                                    )
+                                ? `${t("Summary of")}: ${
+                                    meetingData?.type === "Google Agenda Event"
+                                      ? "Google Agenda Event"
+                                      : meetingData?.type ===
+                                          "Outlook Agenda Event"
+                                        ? "Outlook Agenda Event"
+                                        : t(`types.${meetingData?.type}`)
                                   }`
+                                : viewNote === "prompt"
+                                  ? `${t("Prompt")}: ${
+                                      meetingData?.solution
+                                        ? meetingData?.solution?.title
+                                        : t(
+                                            `types.${meetingData?.prompts[0]?.meeting_type}`,
+                                          )
+                                    }`
                                   : `${t("Transcript")}`}
 
                               <span
@@ -4310,7 +4498,9 @@ const Report = () => {
                                       ),
                                   }}
                                 >
-                                  {cleanText(meetingData?.meeting_notes_summary || "")}
+                                  {cleanText(
+                                    meetingData?.meeting_notes_summary || "",
+                                  )}
                                 </ReactMarkdown>
                               </div>
                             )}
@@ -4336,38 +4526,39 @@ const Report = () => {
                             </div>
                           </section>
 
-                        {meetingData?.show_participants && (
-                          <>
-
-                          {meetingData?.type !== "Newsletter" &&
-                            meetingData?.participants?.filter(
-                              (item) => !guideEmails?.has(item.email)
-                            )?.length > 0 && (
-                              <section id="guides" className="section">
-                                <h2 className="section-title-1 text-left">
-                                  {t("invite")}
-                                  <span
-                                    style={{
-                                      fontFamily: "Roboto",
-                                      fontSize: "16px",
-                                      fontWeight: 400,
-                                      lineHeight: "18.75px",
-                                      textAlign: "left",
-                                    }}
-                                  >
-                                    {"(" +
-                                      meetingData?.participants?.filter(
-                                        (item) => !guideEmails?.has(item.email)
-                                      ).length +
-                                      "/" +
-                                      meetingData?.participants?.filter(
-                                        (item) => !guideEmails?.has(item.email)
-                                      ).length +
-                                      ")"}
-                                  </span>
-                                </h2>
-                                <div className="guides-container">
-                                  {/* {meetingData?.type !== "Newsletter" &&
+                          {meetingData?.show_participants && (
+                            <>
+                              {meetingData?.type !== "Newsletter" &&
+                                meetingData?.participants?.filter(
+                                  (item) => !guideEmails?.has(item.email),
+                                )?.length > 0 && (
+                                  <section id="guides" className="section">
+                                    <h2 className="section-title-1 text-left">
+                                      {t("invite")}
+                                      <span
+                                        style={{
+                                          fontFamily: "Roboto",
+                                          fontSize: "16px",
+                                          fontWeight: 400,
+                                          lineHeight: "18.75px",
+                                          textAlign: "left",
+                                        }}
+                                      >
+                                        {"(" +
+                                          meetingData?.participants?.filter(
+                                            (item) =>
+                                              !guideEmails?.has(item.email),
+                                          ).length +
+                                          "/" +
+                                          meetingData?.participants?.filter(
+                                            (item) =>
+                                              !guideEmails?.has(item.email),
+                                          ).length +
+                                          ")"}
+                                      </span>
+                                    </h2>
+                                    <div className="guides-container">
+                                      {/* {meetingData?.type !== "Newsletter" &&
                                       meetingData?.participants?.filter(
                                         (item) => !guideEmails?.has(item.email)
                                       )?.length > 0 &&
@@ -4387,23 +4578,22 @@ const Report = () => {
                                             Assets_URL={Assets_URL}
                                           />
                                         ))} */}
-                                  {meetingData?.type !== "Newsletter" && (
-                                    <>
-                                      <ReportParticipantCard
-                                        data={meetingData?.participants}
-                                        guides={meetingData?.guides}
-                                        handleShow={handleShow}
-                                        handleHide={hideShow}
-                                        showProfile={showProfile}
-                                        meeting={meetingData}
-                                      />
-                                    </>
-                                  )}
-                                </div>
-                              </section>
-                            )}
-                          </>
-
+                                      {meetingData?.type !== "Newsletter" && (
+                                        <>
+                                          <ReportParticipantCard
+                                            data={meetingData?.participants}
+                                            guides={meetingData?.guides}
+                                            handleShow={handleShow}
+                                            handleHide={hideShow}
+                                            showProfile={showProfile}
+                                            meeting={meetingData}
+                                          />
+                                        </>
+                                      )}
+                                    </div>
+                                  </section>
+                                )}
+                            </>
                           )}
 
                           {meetingData?.steps?.length > 0 && (
@@ -4497,12 +4687,12 @@ const Report = () => {
 
                           {meetingData.step_decisions &&
                             meetingData.step_decisions.some(
-                              (decision) => decision !== null
+                              (decision) => decision !== null,
                             ) && (
                               <section id="decision" className="section">
                                 <h4 className="section-title-1 text-left">
                                   {`${t(
-                                    "meeting.newMeeting.labels.decisions"
+                                    "meeting.newMeeting.labels.decisions",
                                   )} `}
                                 </h4>
                                 <DecisionCard
@@ -4580,7 +4770,7 @@ const Report = () => {
                                               <span className="duree">
                                                 {
                                                   String(
-                                                    user?.action_days
+                                                    user?.action_days,
                                                   ).split(".")[0]
                                                 }
                                               </span>
@@ -4589,11 +4779,11 @@ const Report = () => {
                                               <Avatar
                                                 src={
                                                   user?.participant_image?.includes(
-                                                    "users"
+                                                    "users",
                                                   )
                                                     ? Assets_URL +
-                                                    "/" +
-                                                    user?.participant_image
+                                                      "/" +
+                                                      user?.participant_image
                                                     : user?.participant_image
                                                 }
                                               />
@@ -4613,26 +4803,27 @@ const Report = () => {
                             <section id="feedbacks" className="section">
                               <h2 className="section-title-1 text-left">
                                 {`${t(
-                                  "meeting.newMeeting.labels.momentFeedback"
+                                  "meeting.newMeeting.labels.momentFeedback",
                                 )} `}
                               </h2>
                               <FeedbackCards meeting={meetingData} />
                             </section>
                           )}
-                        {meetingData?.show_discussion &&
-                          <section id="discussion" className="section">
-                            <h4 className="section-title-1 text-left">
-                              {`${t("meeting.newMeeting.labels.discussion")} `}
-                            </h4>
-                            <MeetingDiscussion
-                              meetingId={meetId}
-                              messages={meetingMessages}
-                              selectedMoment={meetingData}
-                              onMessagesUpdate={(newMeetings) =>
-                                setMeetingMessages(newMeetings)
-                              }
-                            />
-                          </section>}
+                          {meetingData?.show_discussion && (
+                            <section id="discussion" className="section">
+                              <h4 className="section-title-1 text-left">
+                                {`${t("meeting.newMeeting.labels.discussion")} `}
+                              </h4>
+                              <MeetingDiscussion
+                                meetingId={meetId}
+                                messages={meetingMessages}
+                                selectedMoment={meetingData}
+                                onMessagesUpdate={(newMeetings) =>
+                                  setMeetingMessages(newMeetings)
+                                }
+                              />
+                            </section>
+                          )}
                         </div>
 
                         <div className="form-actions d-flex justify-content-center mb-3">
@@ -4650,7 +4841,11 @@ const Report = () => {
                               padding: ".75rem 1.5rem",
                               transition: "all .2s ease",
                             }}
-                            onClick={() => navigate(`/gate/moment?contract_id=${process.env.REACT_APP_CONTRACT_ID}`)}
+                            onClick={() =>
+                              navigate(
+                                `/gate/moment?contract_id=${process.env.REACT_APP_CONTRACT_ID}`,
+                              )
+                            }
                           >
                             <span>Essayer l'aventure TekTIME</span>
 
@@ -4692,19 +4887,19 @@ const Report = () => {
                         meeting?.location === "Microsoft Teams") &&
                       !["Task", "Quiz", "Media", "Law"].includes(meeting?.type)
                     ) && (
-                        <>
-                          {showProgressBar && (
-                            <div className="progress-overlay">
-                              <div style={{ width: "50%" }}>
-                                <ProgressBar now={progress} animated />
-                                <h5 className="text-center my-3">
-                                  {t("progressBarText")}
-                                </h5>
-                              </div>
+                      <>
+                        {showProgressBar && (
+                          <div className="progress-overlay">
+                            <div style={{ width: "50%" }}>
+                              <ProgressBar now={progress} animated />
+                              <h5 className="text-center my-3">
+                                {t("progressBarText")}
+                              </h5>
                             </div>
-                          )}
-                        </>
-                      )}
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 ) : meetingData?.status === "in_progress" ||
                   meetingData?.status === "to_finish" ||
@@ -4766,8 +4961,9 @@ const Report = () => {
                     <div className="app-container">
                       <div>
                         <section
-                          className={`banner ${meetingData?.destination_banner ? "has-image" : ""
-                            }`}
+                          className={`banner ${
+                            meetingData?.destination_banner ? "has-image" : ""
+                          }`}
                           style={{
                             backgroundImage: meetingData?.destination_banner
                               ? `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url(${meetingData.destination_banner})`
@@ -4836,79 +5032,89 @@ const Report = () => {
 
                               {
                                 getBannerContent(
-                                  "black"
+                                  "black",
                                 ) /* gradient → black text */
                               }
                             </>
                           )}
                         </section>
-                        {meeting?.type !== "Calendly" && <nav
-                          role="navigation"
-                          aria-label="Main navigation"
-                          className={`sidebar-nav mb-5 ${isNavVisible ? "visible" : "hidden"
+                        {meeting?.type !== "Calendly" && (
+                          <nav
+                            role="navigation"
+                            aria-label="Main navigation"
+                            className={`sidebar-nav mb-5 ${
+                              isNavVisible ? "visible" : "hidden"
                             }`}
-                          style={reportNavbarStyle}
-                        >
-                          <ul className="nav-list">
-                            {[
-                              // {
-                              //   id: "home",
-                              //   label: t("navbar.home"),
-                              //   icon: <FaHome />,
-                              // },
-                              {
-                                id: "guides",
-                                label: t("Participants"),
+                            style={reportNavbarStyle}
+                          >
+                            <ul className="nav-list">
+                              {[
+                                {
+                                  id: "home",
+                                  label: t("navbar.home"),
+                                  icon: <FaHome />,
+                                },
+                                {
+                                  id: "guides",
+                                  label: t("Participants"),
 
-                                icon: <FaBook />,
-                              },
-                              {
-                                id: "steps",
-                                label: t("Program"),
-                                icon: <FaList />,
-                              },
+                                  icon: <FaBook />,
+                                },
+                                {
+                                  id: "steps",
+                                  label: t("Program"),
+                                  icon: <FaList />,
+                                },
 
-                              {
-                                id: "meeting_files",
-                                label: t("meeting.newMeeting.labels.file"),
-                                icon: <FaFileAlt />,
-                              },
+                                {
+                                  id: "meeting_files",
+                                  label: t("meeting.newMeeting.labels.file"),
+                                  icon: <FaFileAlt />,
+                                },
 
-                              {
-                                id: "discussion",
-                                label: "Discussion",
-                                icon: <FaComments />,
-                              },
-                            ].map((item) => (
-                              <li key={item.id}>
-                                <button
-                                  className="nav-link-custom"
-                                  aria-label={`Navigate to ${item.label}`}
-                                  title={item.label} // Add title attribute for tooltip
-                                  onClick={() => {
-                                    if (window.innerWidth < 768)
-                                      setIsNavVisible(false);
+                                ...(meetingData?.show_discussion === 1 ||
+                                meetingData?.show_discussion === true ||
+                                meetingData?.show_discussion === "true" ||
+                                meetingData?.show_discussion === "1"
+                                  ? [
+                                      {
+                                        id: "discussion",
+                                        label: "Discussion",
+                                        icon: <FaComments />,
+                                      },
+                                    ]
+                                  : []),
+                              ].map((item) => (
+                                <li key={item.id}>
+                                  <button
+                                    className="nav-link-custom"
+                                    aria-label={`Navigate to ${item.label}`}
+                                    title={item.label} // Add title attribute for tooltip
+                                    onClick={() => {
+                                      if (window.innerWidth < 768)
+                                        setIsNavVisible(false);
 
-                                    if (item.id === "home") {
-                                      // 👇 yeh tumhara custom function chalega sirf home ke liye
-                                      handleClick();
-                                    } else {
-                                      // 👇 baqi buttons pe smooth scroll
-                                      document
-                                        .getElementById(item.id)
-                                        ?.scrollIntoView({
-                                          behavior: "smooth",
-                                        });
-                                    }
-                                  }}
-                                >
-                                  {item.icon}
-                                  <span>{item.label}</span>
-                                </button>
-                              </li>
-                            ))}
-                          </ul>
-                        </nav>}
+                                      if (item.id === "home") {
+                                        // 👇 yeh tumhara custom function chalega sirf home ke liye
+                                        handleClick();
+                                      } else {
+                                        // 👇 baqi buttons pe smooth scroll
+                                        document
+                                          .getElementById(item.id)
+                                          ?.scrollIntoView({
+                                            behavior: "smooth",
+                                          });
+                                      }
+                                    }}
+                                  >
+                                    {item.icon}
+                                    <span>{item.label}</span>
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          </nav>
+                        )}
 
                         <div className="form-actions d-flex justify-content-center mt-4">
                           <Button
@@ -4925,7 +5131,11 @@ const Report = () => {
                               padding: ".75rem 1.5rem",
                               transition: "all .2s ease",
                             }}
-                            onClick={() => navigate(`/gate/moment?contract_id=${process.env.REACT_APP_CONTRACT_ID}`)}
+                            onClick={() =>
+                              navigate(
+                                `/gate/moment?contract_id=${process.env.REACT_APP_CONTRACT_ID}`,
+                              )
+                            }
                           >
                             <span>Essayer l'aventure TekTIME</span>
 
@@ -4968,16 +5178,16 @@ const Report = () => {
                                             background: moment().isAfter(
                                               moment(
                                                 `${meetingData?.date} ${meetingData?.start_time}`,
-                                                "YYYY-MM-DD HH:mm"
-                                              )
+                                                "YYYY-MM-DD HH:mm",
+                                              ),
                                             )
                                               ? "#bb372f1a" // Red for late
                                               : "#e2e7f8", // Green for future
                                             color: moment().isAfter(
                                               moment(
                                                 `${meetingData?.date} ${meetingData?.start_time}`,
-                                                "YYYY-MM-DD HH:mm"
-                                              )
+                                                "YYYY-MM-DD HH:mm",
+                                              ),
                                             )
                                               ? "#bb372f"
                                               : "#5b7aca",
@@ -4989,8 +5199,8 @@ const Report = () => {
                                           {moment().isAfter(
                                             moment(
                                               `${meetingData?.date} ${meetingData?.start_time}`,
-                                              "YYYY-MM-DD HH:mm"
-                                            )
+                                              "YYYY-MM-DD HH:mm",
+                                            ),
                                           )
                                             ? t("badge.late")
                                             : t("badge.future")}
@@ -5030,83 +5240,89 @@ const Report = () => {
                                         <>
                                           {allMeetings?.filter(
                                             (item) =>
-                                              Number(item?.id) !== Number(meetId)
+                                              Number(item?.id) !==
+                                              Number(meetId),
                                           )?.length > 0 && (
-                                              <MdKeyboardArrowDown
-                                                size={30}
-                                                onClick={toggleDropdown}
-                                                style={{
-                                                  cursor: "pointer",
-                                                  marginBottom: "6px",
-                                                }}
-                                              />
-                                            )}
-
+                                            <MdKeyboardArrowDown
+                                              size={30}
+                                              onClick={toggleDropdown}
+                                              style={{
+                                                cursor: "pointer",
+                                                marginBottom: "6px",
+                                              }}
+                                            />
+                                          )}
                                         </>
                                       )}
                                     </div>
 
-                                    {(meetingData?.type !== "Calendly" && meetingData?.presentation) &&<div className="d-flex gap-3 play-meeting-button">
-                                      <div className="d-flex w-100 play-btn-child">
-                                        <AntdTooltip
-                                          title={
-                                            !showButton
-                                              ? t(
-                                                "You are not authorized to start this moment"
-                                              )
-                                              : ""
-                                          }
-                                        >
-                                          <div
-                                            style={{
-                                              display: "inline-block",
-                                            }}
-                                          >
-                                            <Button
-                                              className="btn play-btn"
-                                              style={{ width: "fit-content" }}
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                handlePlay(meetingData);
-                                              }}
-                                              // disabled={
-                                              //   !meetingData?.guides?.some(
-                                              //     (item) =>
-                                              //       item?.email ===
-                                              //       sessionStorage.getItem(
-                                              //         "email"
-                                              //       )
-                                              //   ) || play
-                                              // }
-                                              disabled={!showButton || play}
-                                            >
-                                              {meetingData?.type ===
-                                                "Google Agenda Event" ||
-                                                meetingData?.type ===
-                                                "Outlook Agenda Event"
-                                                ? t("Join the meeting")
-                                                : `${t("startMoment")}: ${meetingData?.solution
-                                                  ? meetingData?.solution
-                                                    ?.title
-                                                  : meetingData?.type ===
-                                                    "Prise de contact"
-                                                    ? "Prise de contact"
-                                                    : t(
-                                                      `types.${meetingData?.type}`
+                                    {meetingData?.type !== "Calendly" &&
+                                      meetingData?.presentation && (
+                                        <div className="d-flex gap-3 play-meeting-button">
+                                          <div className="d-flex w-100 play-btn-child">
+                                            <AntdTooltip
+                                              title={
+                                                !showButton
+                                                  ? t(
+                                                      "You are not authorized to start this moment",
                                                     )
-                                                }`}
-                                              <FaArrowRight
-                                                size={12}
+                                                  : ""
+                                              }
+                                            >
+                                              <div
                                                 style={{
-                                                  marginLeft: ".5rem",
-                                                  fontWeight: 700,
+                                                  display: "inline-block",
                                                 }}
-                                              />
-                                            </Button>
+                                              >
+                                                <Button
+                                                  className="btn play-btn"
+                                                  style={{
+                                                    width: "fit-content",
+                                                  }}
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handlePlay(meetingData);
+                                                  }}
+                                                  // disabled={
+                                                  //   !meetingData?.guides?.some(
+                                                  //     (item) =>
+                                                  //       item?.email ===
+                                                  //       sessionStorage.getItem(
+                                                  //         "email"
+                                                  //       )
+                                                  //   ) || play
+                                                  // }
+                                                  disabled={!showButton || play}
+                                                >
+                                                  {meetingData?.type ===
+                                                    "Google Agenda Event" ||
+                                                  meetingData?.type ===
+                                                    "Outlook Agenda Event"
+                                                    ? t("Join the meeting")
+                                                    : `${t("startMoment")}: ${
+                                                        meetingData?.solution
+                                                          ? meetingData
+                                                              ?.solution?.title
+                                                          : meetingData?.type ===
+                                                              "Prise de contact"
+                                                            ? "Prise de contact"
+                                                            : t(
+                                                                `types.${meetingData?.type}`,
+                                                              )
+                                                      }`}
+                                                  <FaArrowRight
+                                                    size={12}
+                                                    style={{
+                                                      marginLeft: ".5rem",
+                                                      fontWeight: 700,
+                                                    }}
+                                                  />
+                                                </Button>
+                                              </div>
+                                            </AntdTooltip>
                                           </div>
-                                        </AntdTooltip>
-                                      </div>
-                                    </div>}
+                                        </div>
+                                      )}
                                   </div>
                                   {dropdownVisible && (
                                     <div className="dropdown-content-filter">
@@ -5115,7 +5331,7 @@ const Report = () => {
                                           ?.filter(
                                             (item) =>
                                               item.id.toString() !==
-                                              meetId.toString()
+                                              meetId.toString(),
                                           )
                                           ?.map((item, index) => (
                                             <div
@@ -5155,87 +5371,92 @@ const Report = () => {
                                     {meetingData?.solution
                                       ? meetingData?.solution?.title
                                       : meetingData?.type ===
-                                        "Google Agenda Event"
+                                          "Google Agenda Event"
                                         ? "Google Agenda Event"
                                         : meetingData?.type ===
-                                          "Outlook Agenda Event"
+                                            "Outlook Agenda Event"
                                           ? "Outlook Agenda Event"
                                           : meetingData?.type === "Special"
                                             ? "Media"
-                                            : meetingData?.type === "Prise de contact"
+                                            : meetingData?.type ===
+                                                "Prise de contact"
                                               ? "Prise de contact"
                                               : t(`types.${meetingData?.type}`)}
                                   </span>
                                 </div>
                               </div>
-                              {meetingData?.type !== "Calendly" && <div className="meeting-dates mt-3">
-                                <div className="date-row">
-                                  <img
-                                    src="/Assets/invite-date.svg"
-                                    alt="Date"
-                                    className="date-icon"
-                                  />
-                                  <div className="date-details">
-                                    {meetingData?.type === "Action" ||
+                              {meetingData?.type !== "Calendly" && (
+                                <div className="meeting-dates mt-3">
+                                  <div className="date-row">
+                                    <img
+                                      src="/Assets/invite-date.svg"
+                                      alt="Date"
+                                      className="date-icon"
+                                    />
+                                    <div className="date-details">
+                                      {meetingData?.type === "Action" ||
                                       meetingData?.type === "Newsletter" ||
                                       meetingData?.type === "Strategy" ? (
-                                      <>
-                                        <span className="date-text">
-                                          {formattedDate}
-                                        </span>
-                                        <span className="date-separator">
-                                          -
-                                        </span>
-                                        <span className="date-text">
-                                          {/* {formattedDateActive} */}
-                                          {estimateDate}
-                                        </span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <span className="date-text">
-                                          {formattedDate}&nbsp;{t("at")}
-                                        </span>
+                                        <>
+                                          <span className="date-text">
+                                            {formattedDate}
+                                          </span>
+                                          <span className="date-separator">
+                                            -
+                                          </span>
+                                          <span className="date-text">
+                                            {/* {formattedDateActive} */}
+                                            {estimateDate}
+                                          </span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <span className="date-text">
+                                            {formattedDate}&nbsp;{t("at")}
+                                          </span>
 
-                                        <span className="date-text">
-                                          {(meetingData?.status === "in_progress" || meetingData?.status === "to_finish")
-                                            ? convertTo12HourFormat(
-                                              meetingData?.starts_at,
-                                              meetingData?.date,
-                                              meetingData?.steps,
-                                              meetingData?.timezone
-                                            )
-                                            : convertTo12HourFormat(
-                                              meetingData?.start_time,
-                                              meetingData?.date,
-                                              meetingData?.steps,
-                                              meetingData?.timezone
-                                            )}
-                                        </span>
-                                        <span className="date-separator">
-                                          -
-                                        </span>
-                                        <span className="date-text">
-                                          {estimateDate}&nbsp;{t("at")}
-                                        </span>
-                                        <span className="date-text">
-                                          {estimateTime}
-                                        </span>
-                                      </>
-                                    )}
-                                    <span className="timezone-text">
-                                      {getTimezoneSymbol(
-                                        CookieService.get("timezone")
+                                          <span className="date-text">
+                                            {meetingData?.status ===
+                                              "in_progress" ||
+                                            meetingData?.status === "to_finish"
+                                              ? convertTo12HourFormat(
+                                                  meetingData?.starts_at,
+                                                  meetingData?.date,
+                                                  meetingData?.steps,
+                                                  meetingData?.timezone,
+                                                )
+                                              : convertTo12HourFormat(
+                                                  meetingData?.start_time,
+                                                  meetingData?.date,
+                                                  meetingData?.steps,
+                                                  meetingData?.timezone,
+                                                )}
+                                          </span>
+                                          <span className="date-separator">
+                                            -
+                                          </span>
+                                          <span className="date-text">
+                                            {estimateDate}&nbsp;{t("at")}
+                                          </span>
+                                          <span className="date-text">
+                                            {estimateTime}
+                                          </span>
+                                        </>
                                       )}
-                                    </span>
+                                      <span className="timezone-text">
+                                        {getTimezoneSymbol(
+                                          CookieService.get("timezone"),
+                                        )}
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>}
+                              )}
                               <div>
                                 {(meetingData?.location &&
                                   meetingData?.location !== "None") ||
-                                  (meetingData?.agenda &&
-                                    meetingData?.agenda !== "None") ? (
+                                (meetingData?.agenda &&
+                                  meetingData?.agenda !== "None") ? (
                                   <div className="d-flex gap-4 align-items-center mt-2 mb-2">
                                     {meetingData?.location &&
                                       meetingData?.location !== "None" && (
@@ -5293,7 +5514,7 @@ const Report = () => {
                                                 {meetingData?.user?.visioconference_links?.find(
                                                   (item) =>
                                                     item.platform ===
-                                                    "Microsoft Teams"
+                                                    "Microsoft Teams",
                                                 )?.value || "Microsoft Teams"}
                                               </span>
                                             </>
@@ -5359,7 +5580,7 @@ const Report = () => {
                                                 {meetingData?.user?.visioconference_links?.find(
                                                   (item) =>
                                                     item.platform ===
-                                                    "Google Meet"
+                                                    "Google Meet",
                                                 )?.value || "Google Meet"}
                                               </span>
                                             </>
@@ -5370,7 +5591,7 @@ const Report = () => {
                                       meetingData?.agenda !== "None" && (
                                         <p className="d-flex gap-2 justify-content-start ps-0 fw-bold align-items-center mb-0">
                                           {meetingData?.agenda ===
-                                            "Zoom Agenda" ? (
+                                          "Zoom Agenda" ? (
                                             <>
                                               <svg
                                                 width="28px"
@@ -5423,7 +5644,7 @@ const Report = () => {
                                                 {meetingData?.user?.integration_links?.find(
                                                   (item) =>
                                                     item.platform ===
-                                                    "Outlook Agenda"
+                                                    "Outlook Agenda",
                                                 )?.value || "Outlook Agenda"}
                                               </span>
                                             </>
@@ -5435,7 +5656,7 @@ const Report = () => {
                                                 {meetingData?.user?.integration_links?.find(
                                                   (item) =>
                                                     item.platform ===
-                                                    "Google Agenda"
+                                                    "Google Agenda",
                                                 )?.value || "Google Agenda"}
                                               </span>
                                             </>
@@ -5552,95 +5773,214 @@ const Report = () => {
                                 meetingData?.playback === true ||
                                 meetingData?.notification === true ||
                                 meetingData?.automatic_strategy === true) && (
-                                  <div className="row mt-3">
-                                    <div className="col-md-12 d-flex align-items-center gap-3 flex-wrap">
-                                      {meetingData?.prise_de_notes ===
-                                        "Automatic" && (
-                                          <div className="d-flex align-items-center gap-2">
-                                            <svg
-                                              xmlns="http://www.w3.org/2000/svg"
+                                <div className="row mt-3">
+                                  <div className="col-md-12 d-flex align-items-center gap-3 flex-wrap">
+                                    {meetingData?.prise_de_notes ===
+                                      "Automatic" && (
+                                      <div className="d-flex align-items-center gap-2">
+                                        <svg
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          width="28"
+                                          height="28"
+                                          viewBox="0 0 28 28"
+                                          fill="none"
+                                        >
+                                          <g filter="url(#filter0_d_1_1154)">
+                                            <circle
+                                              cx="14"
+                                              cy="12"
+                                              r="10"
+                                              stroke="url(#paint0_linear_1_1154)"
+                                              strokeWidth="4"
+                                            />
+                                          </g>
+                                          <defs>
+                                            <filter
+                                              id="filter0_d_1_1154"
+                                              x="0"
+                                              y="0"
                                               width="28"
                                               height="28"
-                                              viewBox="0 0 28 28"
-                                              fill="none"
+                                              filterUnits="userSpaceOnUse"
+                                              colorInterpolationFilters="sRGB"
                                             >
-                                              <g filter="url(#filter0_d_1_1154)">
-                                                <circle
-                                                  cx="14"
-                                                  cy="12"
-                                                  r="10"
-                                                  stroke="url(#paint0_linear_1_1154)"
-                                                  strokeWidth="4"
-                                                />
-                                              </g>
-                                              <defs>
-                                                <filter
-                                                  id="filter0_d_1_1154"
-                                                  x="0"
-                                                  y="0"
-                                                  width="28"
-                                                  height="28"
-                                                  filterUnits="userSpaceOnUse"
-                                                  colorInterpolationFilters="sRGB"
-                                                >
-                                                  <feFlood
-                                                    floodOpacity="0"
-                                                    result="BackgroundImageFix"
-                                                  />
-                                                  <feColorMatrix
-                                                    in="SourceAlpha"
-                                                    type="matrix"
-                                                    values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-                                                    result="hardAlpha"
-                                                  />
-                                                  <feOffset dy="2" />
-                                                  <feGaussianBlur stdDeviation="1" />
-                                                  <feColorMatrix
-                                                    type="matrix"
-                                                    values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.15 0"
-                                                  />
-                                                  <feBlend
-                                                    mode="normal"
-                                                    in2="BackgroundImageFix"
-                                                    result="effect1_dropShadow_1_1154"
-                                                  />
-                                                  <feBlend
-                                                    mode="normal"
-                                                    in="SourceGraphic"
-                                                    in2="effect1_dropShadow_1_1154"
-                                                    result="shape"
-                                                  />
-                                                </filter>
-                                                <linearGradient
-                                                  id="paint0_linear_1_1154"
-                                                  x1="14"
-                                                  y1="0"
-                                                  x2="20.375"
-                                                  y2="21.75"
-                                                  gradientUnits="userSpaceOnUse"
-                                                >
-                                                  <stop stopColor="#B11FAB" />
-                                                  <stop
-                                                    offset="0.514"
-                                                    stopColor="#56E8F1"
-                                                  />
-                                                  <stop
-                                                    offset="1"
-                                                    stopColor="#2F47C1"
-                                                  />
-                                                </linearGradient>
-                                              </defs>
-                                            </svg>
-                                            <span className="solutioncards option-text text-muted">
-                                              {t(
-                                                "meeting.formState.Automatic note taking"
-                                              )}
-                                            </span>
-                                          </div>
-                                        )}
+                                              <feFlood
+                                                floodOpacity="0"
+                                                result="BackgroundImageFix"
+                                              />
+                                              <feColorMatrix
+                                                in="SourceAlpha"
+                                                type="matrix"
+                                                values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
+                                                result="hardAlpha"
+                                              />
+                                              <feOffset dy="2" />
+                                              <feGaussianBlur stdDeviation="1" />
+                                              <feColorMatrix
+                                                type="matrix"
+                                                values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.15 0"
+                                              />
+                                              <feBlend
+                                                mode="normal"
+                                                in2="BackgroundImageFix"
+                                                result="effect1_dropShadow_1_1154"
+                                              />
+                                              <feBlend
+                                                mode="normal"
+                                                in="SourceGraphic"
+                                                in2="effect1_dropShadow_1_1154"
+                                                result="shape"
+                                              />
+                                            </filter>
+                                            <linearGradient
+                                              id="paint0_linear_1_1154"
+                                              x1="14"
+                                              y1="0"
+                                              x2="20.375"
+                                              y2="21.75"
+                                              gradientUnits="userSpaceOnUse"
+                                            >
+                                              <stop stopColor="#B11FAB" />
+                                              <stop
+                                                offset="0.514"
+                                                stopColor="#56E8F1"
+                                              />
+                                              <stop
+                                                offset="1"
+                                                stopColor="#2F47C1"
+                                              />
+                                            </linearGradient>
+                                          </defs>
+                                        </svg>
+                                        <span className="solutioncards option-text text-muted">
+                                          {t(
+                                            "meeting.formState.Automatic note taking",
+                                          )}
+                                        </span>
+                                      </div>
+                                    )}
 
-                                      {meetingData?.alarm === true && (
-                                        <div className="d-flex align-items-center gap-2">
+                                    {meetingData?.alarm === true && (
+                                      <div className="d-flex align-items-center gap-2">
+                                        <svg
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          width="25"
+                                          height="24"
+                                          viewBox="0 0 25 24"
+                                          fill="none"
+                                        >
+                                          <path
+                                            fillRule="evenodd"
+                                            clipRule="evenodd"
+                                            d="M12.5001 1.35999C12.2879 1.35999 12.0844 1.44427 11.9344 1.5943C11.7844 1.74433 11.7001 1.94781 11.7001 2.15999V5.63519C11.7001 5.84736 11.7844 6.05084 11.9344 6.20087C12.0844 6.3509 12.2879 6.43519 12.5001 6.43519C12.7122 6.43519 12.9157 6.3509 13.0658 6.20087C13.2158 6.05084 13.3001 5.84736 13.3001 5.63519V2.99519C15.3173 3.17457 17.2159 4.02613 18.6915 5.41333C20.167 6.80054 21.134 8.64304 21.4373 10.6454C21.7407 12.6478 21.363 14.694 20.3646 16.4561C19.3662 18.2181 17.8051 19.5939 15.9315 20.3628C14.058 21.1317 11.9805 21.2492 10.0321 20.6965C8.08379 20.1437 6.37749 18.9528 5.1868 17.3145C3.99611 15.6763 3.39001 13.6857 3.46567 11.6619C3.54134 9.63811 4.29438 7.69833 5.60407 6.15358C5.67546 6.07402 5.73018 5.98095 5.765 5.87989C5.79981 5.77882 5.81402 5.6718 5.80678 5.56514C5.79954 5.45849 5.771 5.35437 5.72285 5.25893C5.67469 5.1635 5.6079 5.07868 5.52641 5.00949C5.44493 4.9403 5.3504 4.88815 5.24842 4.8561C5.14644 4.82406 5.03907 4.81278 4.93265 4.82293C4.82624 4.83308 4.72293 4.86446 4.62885 4.91521C4.53476 4.96595 4.4518 5.03504 4.38487 5.11839C2.81701 6.96726 1.92749 9.29609 1.86357 11.7194C1.79964 14.1427 2.56513 16.5152 4.03333 18.4442C5.50153 20.3731 7.58441 21.7429 9.9372 22.3268C12.29 22.9106 14.7716 22.6736 16.9713 21.6548C19.171 20.6361 20.9569 18.8967 22.0333 16.7247C23.1098 14.5526 23.4122 12.0781 22.8907 9.71074C22.3691 7.34336 21.0548 5.22506 19.1652 3.70646C17.2757 2.18787 14.9242 1.36003 12.5001 1.35999ZM11.2841 12.928L7.25847 7.31679C7.20487 7.23976 7.18006 7.14634 7.18838 7.05287C7.19669 6.9594 7.23761 6.87183 7.30396 6.80548C7.37031 6.73912 7.45789 6.69821 7.55135 6.68989C7.64482 6.68158 7.73824 6.70639 7.81527 6.75999L13.4297 10.784C13.6103 10.914 13.7605 11.0818 13.8699 11.2757C13.9793 11.4695 14.0453 11.6848 14.0632 11.9067C14.0812 12.1286 14.0507 12.3517 13.9738 12.5606C13.897 12.7695 13.7757 12.9592 13.6183 13.1166C13.4609 13.274 13.2712 13.3953 13.0623 13.4722C12.8534 13.549 12.6303 13.5795 12.4084 13.5615C12.1865 13.5436 11.9712 13.4776 11.7773 13.3682C11.5835 13.2588 11.4157 13.1086 11.2857 12.928"
+                                            fill="#3D57B5"
+                                          />
+                                        </svg>
+                                        <span
+                                          className="solutioncards"
+                                          style={{ color: "#3D57B5" }}
+                                        >
+                                          {t("meeting.formState.Beep alarm")}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {meetingData?.autostart === true && (
+                                      <div className="d-flex align-items-center gap-2">
+                                        <svg
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          width="25"
+                                          height="24"
+                                          viewBox="0 0 25 24"
+                                          fill="none"
+                                        >
+                                          <path
+                                            fillRule="evenodd"
+                                            clipRule="evenodd"
+                                            d="M12.5001 1.35999C12.2879 1.35999 12.0844 1.44427 11.9344 1.5943C11.7844 1.74433 11.7001 1.94781 11.7001 2.15999V5.63519C11.7001 5.84736 11.7844 6.05084 11.9344 6.20087C12.0844 6.3509 12.2879 6.43519 12.5001 6.43519C12.7122 6.43519 12.9157 6.3509 13.0658 6.20087C13.2158 6.05084 13.3001 5.84736 13.3001 5.63519V2.99519C15.3173 3.17457 17.2159 4.02613 18.6915 5.41333C20.167 6.80054 21.134 8.64304 21.4373 10.6454C21.7407 12.6478 21.363 14.694 20.3646 16.4561C19.3662 18.2181 17.8051 19.5939 15.9315 20.3628C14.058 21.1317 11.9805 21.2492 10.0321 20.6965C8.08379 20.1437 6.37749 18.9528 5.1868 17.3145C3.99611 15.6763 3.39001 13.6857 3.46567 11.6619C3.54134 9.63811 4.29438 7.69833 5.60407 6.15358C5.67546 6.07402 5.73018 5.98095 5.765 5.87989C5.79981 5.77882 5.81402 5.6718 5.80678 5.56514C5.79954 5.45849 5.771 5.35437 5.72285 5.25893C5.67469 5.1635 5.6079 5.07868 5.52641 5.00949C5.44493 4.9403 5.3504 4.88815 5.24842 4.8561C5.14644 4.82406 5.03907 4.81278 4.93265 4.82293C4.82624 4.83308 4.72293 4.86446 4.62885 4.91521C4.53476 4.96595 4.4518 5.03504 4.38487 5.11839C2.81701 6.96726 1.92749 9.29609 1.86357 11.7194C1.79964 14.1427 2.56513 16.5152 4.03333 18.4442C5.50153 20.3731 7.58441 21.7429 9.9372 22.3268C12.29 22.9106 14.7716 22.6736 16.9713 21.6548C19.171 20.6361 20.9569 18.8967 22.0333 16.7247C23.1098 14.5526 23.4122 12.0781 22.8907 9.71074C22.3691 7.34336 21.0548 5.22506 19.1652 3.70646C17.2757 2.18787 14.9242 1.36003 12.5001 1.35999ZM11.2841 12.928L7.25847 7.31679C7.20487 7.23976 7.18006 7.14634 7.18838 7.05287C7.19669 6.9594 7.23761 6.87183 7.30396 6.80548C7.37031 6.73912 7.45789 6.69821 7.55135 6.68989C7.64482 6.68158 7.73824 6.70639 7.81527 6.75999L13.4297 10.784C13.6103 10.914 13.7605 11.0818 13.8699 11.2757C13.9793 11.4695 14.0453 11.6848 14.0632 11.9067C14.0812 12.1286 14.0507 12.3517 13.9738 12.5606C13.897 12.7695 13.7757 12.9592 13.6183 13.1166C13.4609 13.274 13.2712 13.3953 13.0623 13.4722C12.8534 13.549 12.6303 13.5795 12.4084 13.5615C12.1865 13.5436 11.9712 13.4776 11.7773 13.3682C11.5835 13.2588 11.4157 13.1086 11.2857 12.928"
+                                            fill="#3D57B5"
+                                          />
+                                        </svg>
+                                        <span
+                                          className="solutioncards text-muted"
+                                          style={{ color: "#3D57B5" }}
+                                        >
+                                          {t("meeting.formState.Autostart")}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {meetingData?.playback === "automatic" && (
+                                      <div className="d-flex align-items-center gap-2">
+                                        <svg
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          width="25"
+                                          height="24"
+                                          viewBox="0 0 25 24"
+                                          fill="none"
+                                        >
+                                          <path
+                                            fillRule="evenodd"
+                                            clipRule="evenodd"
+                                            d="M12.5001 1.35999C12.2879 1.35999 12.0844 1.44427 11.9344 1.5943C11.7844 1.74433 11.7001 1.94781 11.7001 2.15999V5.63519C11.7001 5.84736 11.7844 6.05084 11.9344 6.20087C12.0844 6.3509 12.2879 6.43519 12.5001 6.43519C12.7122 6.43519 12.9157 6.3509 13.0658 6.20087C13.2158 6.05084 13.3001 5.84736 13.3001 5.63519V2.99519C15.3173 3.17457 17.2159 4.02613 18.6915 5.41333C20.167 6.80054 21.134 8.64304 21.4373 10.6454C21.7407 12.6478 21.363 14.694 20.3646 16.4561C19.3662 18.2181 17.8051 19.5939 15.9315 20.3628C14.058 21.1317 11.9805 21.2492 10.0321 20.6965C8.08379 20.1437 6.37749 18.9528 5.1868 17.3145C3.99611 15.6763 3.39001 13.6857 3.46567 11.6619C3.54134 9.63811 4.29438 7.69833 5.60407 6.15358C5.67546 6.07402 5.73018 5.98095 5.765 5.87989C5.79981 5.77882 5.81402 5.6718 5.80678 5.56514C5.79954 5.45849 5.771 5.35437 5.72285 5.25893C5.67469 5.1635 5.6079 5.07868 5.52641 5.00949C5.44493 4.9403 5.3504 4.88815 5.24842 4.8561C5.14644 4.82406 5.03907 4.81278 4.93265 4.82293C4.82624 4.83308 4.72293 4.86446 4.62885 4.91521C4.53476 4.96595 4.4518 5.03504 4.38487 5.11839C2.81701 6.96726 1.92749 9.29609 1.86357 11.7194C1.79964 14.1427 2.56513 16.5152 4.03333 18.4442C5.50153 20.3731 7.58441 21.7429 9.9372 22.3268C12.29 22.9106 14.7716 22.6736 16.9713 21.6548C19.171 20.6361 20.9569 18.8967 22.0333 16.7247C23.1098 14.5526 23.4122 12.0781 22.8907 9.71074C22.3691 7.34336 21.0548 5.22506 19.1652 3.70646C17.2757 2.18787 14.9242 1.36003 12.5001 1.35999ZM11.2841 12.928L7.25847 7.31679C7.20487 7.23976 7.18006 7.14634 7.18838 7.05287C7.19669 6.9594 7.23761 6.87183 7.30396 6.80548C7.37031 6.73912 7.45789 6.69821 7.55135 6.68989C7.64482 6.68158 7.73824 6.70639 7.81527 6.75999L13.4297 10.784C13.6103 10.914 13.7605 11.0818 13.8699 11.2757C13.9793 11.4695 14.0453 11.6848 14.0632 11.9067C14.0812 12.1286 14.0507 12.3517 13.9738 12.5606C13.897 12.7695 13.7757 12.9592 13.6183 13.1166C13.4609 13.274 13.2712 13.3953 13.0623 13.4722C12.8534 13.549 12.6303 13.5795 12.4084 13.5615C12.1865 13.5436 11.9712 13.4776 11.7773 13.3682C11.5835 13.2588 11.4157 13.1086 11.2857 12.928"
+                                            fill="#3D57B5"
+                                          />
+                                        </svg>
+                                        <span
+                                          className="solutioncards text-muted"
+                                          style={{ color: "#3D57B5" }}
+                                        >
+                                          {t(
+                                            "meeting.formState.Lecture playback",
+                                          )}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {meetingData?.notification === true && (
+                                      <div className="d-flex align-items-center gap-2">
+                                        <svg
+                                          width="25px"
+                                          height="24px"
+                                          viewBox="0 0 24 24"
+                                          fill="none"
+                                          xmlns="http://www.w3.org/2000/svg"
+                                        >
+                                          <path
+                                            d="M22 10.5V12C22 16.714 22 19.0711 20.5355 20.5355C19.0711 22 16.714 22 12 22C7.28595 22 4.92893 22 3.46447 20.5355C2 19.0711 2 16.714 2 12C2 7.28595 2 4.92893 3.46447 3.46447C4.92893 2 7.28595 2 12 2H13.5"
+                                            stroke="#3D57B5"
+                                            strokeWidth="1.5"
+                                            strokeLinecap="round"
+                                          ></path>
+                                          <circle
+                                            cx="19"
+                                            cy="5"
+                                            r="3"
+                                            stroke="#3D57B5"
+                                            strokeWidth="1.5"
+                                          ></circle>
+                                          <path
+                                            d="M7 14H16"
+                                            stroke="#3D57B5"
+                                            strokeWidth="1.5"
+                                            strokeLinecap="round"
+                                          ></path>
+                                          <path
+                                            d="M7 17.5H13"
+                                            stroke="#3D57B5"
+                                            strokeWidth="1.5"
+                                            strokeLinecap="round"
+                                          ></path>
+                                        </svg>
+                                        <span
+                                          className="solutioncards text-muted"
+                                          style={{ color: "#3D57B5" }}
+                                        >
+                                          {t("meeting.formState.notification")}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {meetingData?.automatic_strategy ===
+                                      true && (
+                                      <>
+                                        <div>
                                           <svg
                                             xmlns="http://www.w3.org/2000/svg"
                                             width="25"
@@ -5649,8 +5989,8 @@ const Report = () => {
                                             fill="none"
                                           >
                                             <path
-                                              fillRule="evenodd"
-                                              clipRule="evenodd"
+                                              fill-rule="evenodd"
+                                              clip-rule="evenodd"
                                               d="M12.5001 1.35999C12.2879 1.35999 12.0844 1.44427 11.9344 1.5943C11.7844 1.74433 11.7001 1.94781 11.7001 2.15999V5.63519C11.7001 5.84736 11.7844 6.05084 11.9344 6.20087C12.0844 6.3509 12.2879 6.43519 12.5001 6.43519C12.7122 6.43519 12.9157 6.3509 13.0658 6.20087C13.2158 6.05084 13.3001 5.84736 13.3001 5.63519V2.99519C15.3173 3.17457 17.2159 4.02613 18.6915 5.41333C20.167 6.80054 21.134 8.64304 21.4373 10.6454C21.7407 12.6478 21.363 14.694 20.3646 16.4561C19.3662 18.2181 17.8051 19.5939 15.9315 20.3628C14.058 21.1317 11.9805 21.2492 10.0321 20.6965C8.08379 20.1437 6.37749 18.9528 5.1868 17.3145C3.99611 15.6763 3.39001 13.6857 3.46567 11.6619C3.54134 9.63811 4.29438 7.69833 5.60407 6.15358C5.67546 6.07402 5.73018 5.98095 5.765 5.87989C5.79981 5.77882 5.81402 5.6718 5.80678 5.56514C5.79954 5.45849 5.771 5.35437 5.72285 5.25893C5.67469 5.1635 5.6079 5.07868 5.52641 5.00949C5.44493 4.9403 5.3504 4.88815 5.24842 4.8561C5.14644 4.82406 5.03907 4.81278 4.93265 4.82293C4.82624 4.83308 4.72293 4.86446 4.62885 4.91521C4.53476 4.96595 4.4518 5.03504 4.38487 5.11839C2.81701 6.96726 1.92749 9.29609 1.86357 11.7194C1.79964 14.1427 2.56513 16.5152 4.03333 18.4442C5.50153 20.3731 7.58441 21.7429 9.9372 22.3268C12.29 22.9106 14.7716 22.6736 16.9713 21.6548C19.171 20.6361 20.9569 18.8967 22.0333 16.7247C23.1098 14.5526 23.4122 12.0781 22.8907 9.71074C22.3691 7.34336 21.0548 5.22506 19.1652 3.70646C17.2757 2.18787 14.9242 1.36003 12.5001 1.35999ZM11.2841 12.928L7.25847 7.31679C7.20487 7.23976 7.18006 7.14634 7.18838 7.05287C7.19669 6.9594 7.23761 6.87183 7.30396 6.80548C7.37031 6.73912 7.45789 6.69821 7.55135 6.68989C7.64482 6.68158 7.73824 6.70639 7.81527 6.75999L13.4297 10.784C13.6103 10.914 13.7605 11.0818 13.8699 11.2757C13.9793 11.4695 14.0453 11.6848 14.0632 11.9067C14.0812 12.1286 14.0507 12.3517 13.9738 12.5606C13.897 12.7695 13.7757 12.9592 13.6183 13.1166C13.4609 13.274 13.2712 13.3953 13.0623 13.4722C12.8534 13.549 12.6303 13.5795 12.4084 13.5615C12.1865 13.5436 11.9712 13.4776 11.7773 13.3682C11.5835 13.2588 11.4157 13.1086 11.2857 12.928"
                                               fill="#3D57B5"
                                             />
@@ -5659,135 +5999,16 @@ const Report = () => {
                                             className="solutioncards"
                                             style={{ color: "#3D57B5" }}
                                           >
-                                            {t("meeting.formState.Beep alarm")}
-                                          </span>
-                                        </div>
-                                      )}
-                                      {meetingData?.autostart === true && (
-                                        <div className="d-flex align-items-center gap-2">
-                                          <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            width="25"
-                                            height="24"
-                                            viewBox="0 0 25 24"
-                                            fill="none"
-                                          >
-                                            <path
-                                              fillRule="evenodd"
-                                              clipRule="evenodd"
-                                              d="M12.5001 1.35999C12.2879 1.35999 12.0844 1.44427 11.9344 1.5943C11.7844 1.74433 11.7001 1.94781 11.7001 2.15999V5.63519C11.7001 5.84736 11.7844 6.05084 11.9344 6.20087C12.0844 6.3509 12.2879 6.43519 12.5001 6.43519C12.7122 6.43519 12.9157 6.3509 13.0658 6.20087C13.2158 6.05084 13.3001 5.84736 13.3001 5.63519V2.99519C15.3173 3.17457 17.2159 4.02613 18.6915 5.41333C20.167 6.80054 21.134 8.64304 21.4373 10.6454C21.7407 12.6478 21.363 14.694 20.3646 16.4561C19.3662 18.2181 17.8051 19.5939 15.9315 20.3628C14.058 21.1317 11.9805 21.2492 10.0321 20.6965C8.08379 20.1437 6.37749 18.9528 5.1868 17.3145C3.99611 15.6763 3.39001 13.6857 3.46567 11.6619C3.54134 9.63811 4.29438 7.69833 5.60407 6.15358C5.67546 6.07402 5.73018 5.98095 5.765 5.87989C5.79981 5.77882 5.81402 5.6718 5.80678 5.56514C5.79954 5.45849 5.771 5.35437 5.72285 5.25893C5.67469 5.1635 5.6079 5.07868 5.52641 5.00949C5.44493 4.9403 5.3504 4.88815 5.24842 4.8561C5.14644 4.82406 5.03907 4.81278 4.93265 4.82293C4.82624 4.83308 4.72293 4.86446 4.62885 4.91521C4.53476 4.96595 4.4518 5.03504 4.38487 5.11839C2.81701 6.96726 1.92749 9.29609 1.86357 11.7194C1.79964 14.1427 2.56513 16.5152 4.03333 18.4442C5.50153 20.3731 7.58441 21.7429 9.9372 22.3268C12.29 22.9106 14.7716 22.6736 16.9713 21.6548C19.171 20.6361 20.9569 18.8967 22.0333 16.7247C23.1098 14.5526 23.4122 12.0781 22.8907 9.71074C22.3691 7.34336 21.0548 5.22506 19.1652 3.70646C17.2757 2.18787 14.9242 1.36003 12.5001 1.35999ZM11.2841 12.928L7.25847 7.31679C7.20487 7.23976 7.18006 7.14634 7.18838 7.05287C7.19669 6.9594 7.23761 6.87183 7.30396 6.80548C7.37031 6.73912 7.45789 6.69821 7.55135 6.68989C7.64482 6.68158 7.73824 6.70639 7.81527 6.75999L13.4297 10.784C13.6103 10.914 13.7605 11.0818 13.8699 11.2757C13.9793 11.4695 14.0453 11.6848 14.0632 11.9067C14.0812 12.1286 14.0507 12.3517 13.9738 12.5606C13.897 12.7695 13.7757 12.9592 13.6183 13.1166C13.4609 13.274 13.2712 13.3953 13.0623 13.4722C12.8534 13.549 12.6303 13.5795 12.4084 13.5615C12.1865 13.5436 11.9712 13.4776 11.7773 13.3682C11.5835 13.2588 11.4157 13.1086 11.2857 12.928"
-                                              fill="#3D57B5"
-                                            />
-                                          </svg>
-                                          <span
-                                            className="solutioncards text-muted"
-                                            style={{ color: "#3D57B5" }}
-                                          >
-                                            {t("meeting.formState.Autostart")}
-                                          </span>
-                                        </div>
-                                      )}
-                                      {meetingData?.playback === "automatic" && (
-                                        <div className="d-flex align-items-center gap-2">
-                                          <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            width="25"
-                                            height="24"
-                                            viewBox="0 0 25 24"
-                                            fill="none"
-                                          >
-                                            <path
-                                              fillRule="evenodd"
-                                              clipRule="evenodd"
-                                              d="M12.5001 1.35999C12.2879 1.35999 12.0844 1.44427 11.9344 1.5943C11.7844 1.74433 11.7001 1.94781 11.7001 2.15999V5.63519C11.7001 5.84736 11.7844 6.05084 11.9344 6.20087C12.0844 6.3509 12.2879 6.43519 12.5001 6.43519C12.7122 6.43519 12.9157 6.3509 13.0658 6.20087C13.2158 6.05084 13.3001 5.84736 13.3001 5.63519V2.99519C15.3173 3.17457 17.2159 4.02613 18.6915 5.41333C20.167 6.80054 21.134 8.64304 21.4373 10.6454C21.7407 12.6478 21.363 14.694 20.3646 16.4561C19.3662 18.2181 17.8051 19.5939 15.9315 20.3628C14.058 21.1317 11.9805 21.2492 10.0321 20.6965C8.08379 20.1437 6.37749 18.9528 5.1868 17.3145C3.99611 15.6763 3.39001 13.6857 3.46567 11.6619C3.54134 9.63811 4.29438 7.69833 5.60407 6.15358C5.67546 6.07402 5.73018 5.98095 5.765 5.87989C5.79981 5.77882 5.81402 5.6718 5.80678 5.56514C5.79954 5.45849 5.771 5.35437 5.72285 5.25893C5.67469 5.1635 5.6079 5.07868 5.52641 5.00949C5.44493 4.9403 5.3504 4.88815 5.24842 4.8561C5.14644 4.82406 5.03907 4.81278 4.93265 4.82293C4.82624 4.83308 4.72293 4.86446 4.62885 4.91521C4.53476 4.96595 4.4518 5.03504 4.38487 5.11839C2.81701 6.96726 1.92749 9.29609 1.86357 11.7194C1.79964 14.1427 2.56513 16.5152 4.03333 18.4442C5.50153 20.3731 7.58441 21.7429 9.9372 22.3268C12.29 22.9106 14.7716 22.6736 16.9713 21.6548C19.171 20.6361 20.9569 18.8967 22.0333 16.7247C23.1098 14.5526 23.4122 12.0781 22.8907 9.71074C22.3691 7.34336 21.0548 5.22506 19.1652 3.70646C17.2757 2.18787 14.9242 1.36003 12.5001 1.35999ZM11.2841 12.928L7.25847 7.31679C7.20487 7.23976 7.18006 7.14634 7.18838 7.05287C7.19669 6.9594 7.23761 6.87183 7.30396 6.80548C7.37031 6.73912 7.45789 6.69821 7.55135 6.68989C7.64482 6.68158 7.73824 6.70639 7.81527 6.75999L13.4297 10.784C13.6103 10.914 13.7605 11.0818 13.8699 11.2757C13.9793 11.4695 14.0453 11.6848 14.0632 11.9067C14.0812 12.1286 14.0507 12.3517 13.9738 12.5606C13.897 12.7695 13.7757 12.9592 13.6183 13.1166C13.4609 13.274 13.2712 13.3953 13.0623 13.4722C12.8534 13.549 12.6303 13.5795 12.4084 13.5615C12.1865 13.5436 11.9712 13.4776 11.7773 13.3682C11.5835 13.2588 11.4157 13.1086 11.2857 12.928"
-                                              fill="#3D57B5"
-                                            />
-                                          </svg>
-                                          <span
-                                            className="solutioncards text-muted"
-                                            style={{ color: "#3D57B5" }}
-                                          >
                                             {t(
-                                              "meeting.formState.Lecture playback"
+                                              "meeting.formState.Automatic Strategy",
                                             )}
                                           </span>
                                         </div>
-                                      )}
-                                      {meetingData?.notification === true && (
-                                        <div className="d-flex align-items-center gap-2">
-                                          <svg
-                                            width="25px"
-                                            height="24px"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                          >
-                                            <path
-                                              d="M22 10.5V12C22 16.714 22 19.0711 20.5355 20.5355C19.0711 22 16.714 22 12 22C7.28595 22 4.92893 22 3.46447 20.5355C2 19.0711 2 16.714 2 12C2 7.28595 2 4.92893 3.46447 3.46447C4.92893 2 7.28595 2 12 2H13.5"
-                                              stroke="#3D57B5"
-                                              strokeWidth="1.5"
-                                              strokeLinecap="round"
-                                            ></path>
-                                            <circle
-                                              cx="19"
-                                              cy="5"
-                                              r="3"
-                                              stroke="#3D57B5"
-                                              strokeWidth="1.5"
-                                            ></circle>
-                                            <path
-                                              d="M7 14H16"
-                                              stroke="#3D57B5"
-                                              strokeWidth="1.5"
-                                              strokeLinecap="round"
-                                            ></path>
-                                            <path
-                                              d="M7 17.5H13"
-                                              stroke="#3D57B5"
-                                              strokeWidth="1.5"
-                                              strokeLinecap="round"
-                                            ></path>
-                                          </svg>
-                                          <span
-                                            className="solutioncards text-muted"
-                                            style={{ color: "#3D57B5" }}
-                                          >
-                                            {t("meeting.formState.notification")}
-                                          </span>
-                                        </div>
-                                      )}
-                                      {meetingData?.automatic_strategy ===
-                                        true && (
-                                          <>
-                                            <div>
-                                              <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                width="25"
-                                                height="24"
-                                                viewBox="0 0 25 24"
-                                                fill="none"
-                                              >
-                                                <path
-                                                  fill-rule="evenodd"
-                                                  clip-rule="evenodd"
-                                                  d="M12.5001 1.35999C12.2879 1.35999 12.0844 1.44427 11.9344 1.5943C11.7844 1.74433 11.7001 1.94781 11.7001 2.15999V5.63519C11.7001 5.84736 11.7844 6.05084 11.9344 6.20087C12.0844 6.3509 12.2879 6.43519 12.5001 6.43519C12.7122 6.43519 12.9157 6.3509 13.0658 6.20087C13.2158 6.05084 13.3001 5.84736 13.3001 5.63519V2.99519C15.3173 3.17457 17.2159 4.02613 18.6915 5.41333C20.167 6.80054 21.134 8.64304 21.4373 10.6454C21.7407 12.6478 21.363 14.694 20.3646 16.4561C19.3662 18.2181 17.8051 19.5939 15.9315 20.3628C14.058 21.1317 11.9805 21.2492 10.0321 20.6965C8.08379 20.1437 6.37749 18.9528 5.1868 17.3145C3.99611 15.6763 3.39001 13.6857 3.46567 11.6619C3.54134 9.63811 4.29438 7.69833 5.60407 6.15358C5.67546 6.07402 5.73018 5.98095 5.765 5.87989C5.79981 5.77882 5.81402 5.6718 5.80678 5.56514C5.79954 5.45849 5.771 5.35437 5.72285 5.25893C5.67469 5.1635 5.6079 5.07868 5.52641 5.00949C5.44493 4.9403 5.3504 4.88815 5.24842 4.8561C5.14644 4.82406 5.03907 4.81278 4.93265 4.82293C4.82624 4.83308 4.72293 4.86446 4.62885 4.91521C4.53476 4.96595 4.4518 5.03504 4.38487 5.11839C2.81701 6.96726 1.92749 9.29609 1.86357 11.7194C1.79964 14.1427 2.56513 16.5152 4.03333 18.4442C5.50153 20.3731 7.58441 21.7429 9.9372 22.3268C12.29 22.9106 14.7716 22.6736 16.9713 21.6548C19.171 20.6361 20.9569 18.8967 22.0333 16.7247C23.1098 14.5526 23.4122 12.0781 22.8907 9.71074C22.3691 7.34336 21.0548 5.22506 19.1652 3.70646C17.2757 2.18787 14.9242 1.36003 12.5001 1.35999ZM11.2841 12.928L7.25847 7.31679C7.20487 7.23976 7.18006 7.14634 7.18838 7.05287C7.19669 6.9594 7.23761 6.87183 7.30396 6.80548C7.37031 6.73912 7.45789 6.69821 7.55135 6.68989C7.64482 6.68158 7.73824 6.70639 7.81527 6.75999L13.4297 10.784C13.6103 10.914 13.7605 11.0818 13.8699 11.2757C13.9793 11.4695 14.0453 11.6848 14.0632 11.9067C14.0812 12.1286 14.0507 12.3517 13.9738 12.5606C13.897 12.7695 13.7757 12.9592 13.6183 13.1166C13.4609 13.274 13.2712 13.3953 13.0623 13.4722C12.8534 13.549 12.6303 13.5795 12.4084 13.5615C12.1865 13.5436 11.9712 13.4776 11.7773 13.3682C11.5835 13.2588 11.4157 13.1086 11.2857 12.928"
-                                                  fill="#3D57B5"
-                                                />
-                                              </svg>
-                                              <span
-                                                className="solutioncards"
-                                                style={{ color: "#3D57B5" }}
-                                              >
-                                                {t(
-                                                  "meeting.formState.Automatic Strategy"
-                                                )}
-                                              </span>
-                                            </div>
-                                          </>
-                                        )}
-                                    </div>
+                                      </>
+                                    )}
                                   </div>
-                                )}
+                                </div>
+                              )}
                               <div className="row mt-3">
                                 <div className="col-md-12 mt-2 ms-1 d-flex align-items-center gap-3">
                                   <span
@@ -5805,7 +6026,7 @@ const Report = () => {
                                   <div className="">
                                     <div className="d-flex align-items-center flex-wrap">
                                       {meetingData?.moment_privacy ===
-                                        "public" ? (
+                                      "public" ? (
                                         <img
                                           src="/Assets/Tek.png"
                                           alt="Public"
@@ -5824,7 +6045,7 @@ const Report = () => {
                                                 <img
                                                   src={
                                                     item?.logo?.startsWith(
-                                                      "http"
+                                                      "http",
                                                     )
                                                       ? item.logo
                                                       : `${Assets_URL}/${item.logo}`
@@ -5840,7 +6061,7 @@ const Report = () => {
                                                   title={item?.name}
                                                 />
                                               </div>
-                                            )
+                                            ),
                                           )}
                                         </div>
                                       ) : meetingData?.moment_privacy ===
@@ -5852,7 +6073,7 @@ const Report = () => {
                                                 <img
                                                   src={
                                                     item?.participant_image?.startsWith(
-                                                      "http"
+                                                      "http",
                                                     )
                                                       ? item.participant_image
                                                       : `${Assets_URL}/${item.participant_image}`
@@ -5868,20 +6089,20 @@ const Report = () => {
                                                   title={item?.full_name}
                                                 />
                                               </div>
-                                            )
+                                            ),
                                           )}
                                         </div>
                                       ) : meetingData?.moment_privacy ===
                                         "tektime members" ? null : meetingData?.moment_privacy ===
-                                          "enterprise" ? (
+                                        "enterprise" ? (
                                         <div>
                                           <img
                                             src={
                                               meetingData?.user?.enterprise?.logo?.startsWith(
-                                                "http"
+                                                "http",
                                               )
                                                 ? meetingData?.user?.enterprise
-                                                  ?.logo
+                                                    ?.logo
                                                 : `${Assets_URL}/${meetingData?.user?.enterprise?.logo}`
                                             }
                                             alt={
@@ -5922,7 +6143,7 @@ const Report = () => {
                                         <img
                                           src={
                                             meetingData?.user?.image?.startsWith(
-                                              "users/"
+                                              "users/",
                                             )
                                               ? `${Assets_URL}/${meetingData?.user?.image}`
                                               : meetingData?.user?.image
@@ -5939,44 +6160,51 @@ const Report = () => {
                                         />
                                       )}
                                       <Badge
-                                        className={`ms-2 ${meetingData?.moment_privacy ===
+                                        className={`ms-2 ${
+                                          meetingData?.moment_privacy ===
                                           "private"
-                                          ? "solution-badge-red"
-                                          : meetingData?.moment_privacy ===
-                                            "public"
-                                            ? "solution-badge-green"
+                                            ? "solution-badge-red"
                                             : meetingData?.moment_privacy ===
-                                              "enterprise" ||
-                                              meetingData?.moment_privacy ===
-                                              "participant only" ||
-                                              meetingData?.moment_privacy ===
-                                              "tektime members"
-                                              ? "solution-badge-blue"
+                                                "public"
+                                              ? "solution-badge-green"
                                               : meetingData?.moment_privacy ===
-                                                "password"
-                                                ? "solution-badge-red"
-                                                : "solution-badge-yellow"
-                                          }`}
+                                                    "enterprise" ||
+                                                  meetingData?.moment_privacy ===
+                                                    "participant only" ||
+                                                  meetingData?.moment_privacy ===
+                                                    "tektime members"
+                                                ? "solution-badge-blue"
+                                                : meetingData?.moment_privacy ===
+                                                    "password"
+                                                  ? "solution-badge-red"
+                                                  : "solution-badge-yellow"
+                                        }`}
                                         style={{ padding: "3px 8px" }}
                                       >
                                         {meetingData?.moment_privacy ===
-                                          "private"
+                                        "private"
                                           ? t("solution.badge.private")
                                           : meetingData?.moment_privacy ===
-                                            "public"
+                                              "public"
                                             ? t("solution.badge.public")
                                             : meetingData?.moment_privacy ===
-                                              "enterprise"
+                                                "enterprise"
                                               ? t("solution.badge.enterprise")
                                               : meetingData?.moment_privacy ===
-                                                "participant only"
-                                                ? t("solution.badge.participantOnly")
+                                                  "participant only"
+                                                ? t(
+                                                    "solution.badge.participantOnly",
+                                                  )
                                                 : meetingData?.moment_privacy ===
-                                                  "tektime members"
-                                                  ? t("solution.badge.membersOnly")
+                                                    "tektime members"
+                                                  ? t(
+                                                      "solution.badge.membersOnly",
+                                                    )
                                                   : meetingData?.moment_privacy ===
-                                                    "password"
-                                                    ? t("solution.badge.password")
+                                                      "password"
+                                                    ? t(
+                                                        "solution.badge.password",
+                                                      )
                                                     : t("solution.badge.team")}
                                       </Badge>
                                     </div>
@@ -5987,20 +6215,44 @@ const Report = () => {
                               {meetingData?.description && (
                                 <div className="paragraph-parent mt-3 ps-2 ps-md-4 ps-lg-0">
                                   <span className="paragraph paragraph-images">
-                                    {isMarkdownContent(meetingData?.description) ? (
+                                    {isMarkdownContent(
+                                      meetingData?.description,
+                                    ) ? (
                                       <div className="markdown-content">
                                         <ReactMarkdown
                                           remarkPlugins={[remarkGfm]}
                                           components={{
-                                            h1: ({ node, ...props }) => <h3 {...props} />,
-                                            h2: ({ node, ...props }) => <h4 {...props} />,
-                                            h3: ({ node, ...props }) => <h5 {...props} />,
-                                            p: ({ node, ...props }) => <p {...props} />,
-                                            ul: ({ node, ...props }) => <ul {...props} />,
-                                            ol: ({ node, ...props }) => <ol {...props} />,
-                                            strong: ({ node, ...props }) => <strong {...props} />,
-                                            code: ({ node, inline, ...props }) =>
-                                              inline ? <code {...props} /> : <code {...props} />,
+                                            h1: ({ node, ...props }) => (
+                                              <h3 {...props} />
+                                            ),
+                                            h2: ({ node, ...props }) => (
+                                              <h4 {...props} />
+                                            ),
+                                            h3: ({ node, ...props }) => (
+                                              <h5 {...props} />
+                                            ),
+                                            p: ({ node, ...props }) => (
+                                              <p {...props} />
+                                            ),
+                                            ul: ({ node, ...props }) => (
+                                              <ul {...props} />
+                                            ),
+                                            ol: ({ node, ...props }) => (
+                                              <ol {...props} />
+                                            ),
+                                            strong: ({ node, ...props }) => (
+                                              <strong {...props} />
+                                            ),
+                                            code: ({
+                                              node,
+                                              inline,
+                                              ...props
+                                            }) =>
+                                              inline ? (
+                                                <code {...props} />
+                                              ) : (
+                                                <code {...props} />
+                                              ),
                                           }}
                                         >
                                           {cleanText(meetingData?.description)}
@@ -6009,7 +6261,8 @@ const Report = () => {
                                     ) : (
                                       <div
                                         dangerouslySetInnerHTML={{
-                                          __html: meetingData?.description || "",
+                                          __html:
+                                            meetingData?.description || "",
                                         }}
                                       />
                                     )}
@@ -6019,7 +6272,12 @@ const Report = () => {
                             </div>
                           </section>
 
-                          {meeting?.type === "Calendly" && <CalendlyBooking meetingData={meetingData} onConfirm={handleShowStepperModal} />}
+                          {meeting?.type === "Calendly" && (
+                            <CalendlyBooking
+                              meetingData={meetingData}
+                              onConfirm={handleShowStepperModal}
+                            />
+                          )}
 
                           {meetingData?.type === "Newsletter" ? (
                             <Card>
@@ -6073,7 +6331,7 @@ const Report = () => {
                                 <div className="d-flex align-items-center justify-content-between">
                                   {meetingData?.participants?.some(
                                     (participant) =>
-                                      participant.email === sessionUser?.email
+                                      participant.email === sessionUser?.email,
                                   ) ? null : (
                                     <>
                                       <div className="d-flex flex-column">
@@ -6100,7 +6358,7 @@ const Report = () => {
                                           }}
                                         >
                                           {t(
-                                            "Sign up to be a part of this moment."
+                                            "Sign up to be a part of this moment.",
                                           )}
                                         </h6>
                                       </div>
@@ -6109,7 +6367,7 @@ const Report = () => {
                                         {meetingData?.max_participants_register -
                                           meetingData?.participants?.filter(
                                             (item) =>
-                                              item.email !== sessionUser?.email
+                                              item.email !== sessionUser?.email,
                                           )?.length}{" "}
                                         {t("Remaining Places")}
                                       </div>
@@ -6119,7 +6377,7 @@ const Report = () => {
                                 <div className="subscribe-button mt-2">
                                   {meetingData?.participants?.some(
                                     (participant) =>
-                                      participant.email === sessionUser?.email
+                                      participant.email === sessionUser?.email,
                                   ) ? (
                                     <button
                                       className="btn moment-btn w-100"
@@ -6146,7 +6404,9 @@ const Report = () => {
                                         border: "1px solid #E2E2E2",
                                         color: "white",
                                       }}
-                                      onClick={() => handleShowRegistrationModal()}
+                                      onClick={() =>
+                                        handleShowRegistrationModal()
+                                      }
                                     >
                                       {t("Register")}
                                     </button>
@@ -6179,77 +6439,78 @@ const Report = () => {
                             {/* ------------------------------------------------ Participants */}
                           </section>
 
-                         {meetingData?.show_participants && <>
-                          {meetingData?.participants?.length > 0 &&
-                            meetingData?.type !== "Newsletter" && (
-                              <section
-                                id="guides"
-                                className="section report-host-card"
-                              >
-                                <h2 className="section-title-1 text-left">
-                                  {t("invite")}
-                                </h2>
-                                {/* <div className="guides-container"> */}
-                                {!blurContent && (
-                                  <div
-                                    className="guides-container"
-                                    style={{
-                                      filter: !blurContent
-                                        ? "none"
-                                        : "blur(13px)",
-                                    }}
+                          {meetingData?.show_participants && (
+                            <>
+                              {meetingData?.participants?.length > 0 &&
+                                meetingData?.type !== "Newsletter" && (
+                                  <section
+                                    id="guides"
+                                    className="section report-host-card"
                                   >
-                                    {meetingData?.type !== "Newsletter" && (
-                                      <>
-                                        <ReportParticipantCard
-                                          data={meetingData?.participants}
-                                          guides={meetingData?.guides}
-                                          handleShow={handleShow}
-                                          handleHide={hideShow}
-                                          showProfile={showProfile}
-                                          meeting={meetingData}
-                                        />
-                                      </>
+                                    <h2 className="section-title-1 text-left">
+                                      {t("invite")}
+                                    </h2>
+                                    {/* <div className="guides-container"> */}
+                                    {!blurContent && (
+                                      <div
+                                        className="guides-container"
+                                        style={{
+                                          filter: !blurContent
+                                            ? "none"
+                                            : "blur(13px)",
+                                        }}
+                                      >
+                                        {meetingData?.type !== "Newsletter" && (
+                                          <>
+                                            <ReportParticipantCard
+                                              data={meetingData?.participants}
+                                              guides={meetingData?.guides}
+                                              handleShow={handleShow}
+                                              handleHide={hideShow}
+                                              showProfile={showProfile}
+                                              meeting={meetingData}
+                                            />
+                                          </>
+                                        )}
+                                      </div>
                                     )}
-                                  </div>
+
+                                    {/* </div> */}
+                                  </section>
                                 )}
+                              {meetingData?.type === "Newsletter" && (
+                                <section
+                                  id="guides"
+                                  className="section report-host-card"
+                                >
+                                  <h4
+                                    className={
+                                      fromMeeting
+                                        ? "participant-heading-meeting"
+                                        : "participant-heading"
+                                    }
+                                  >
+                                    {t("Abonnés")}
+                                  </h4>
+                                  <div className="guides-container">
+                                    {/* {meetingData?.type === "Newsletter" && ( */}
 
-                                {/* </div> */}
-                              </section>
-                            )}
-                          {meetingData?.type === "Newsletter" && (
-                            <section
-                              id="guides"
-                              className="section report-host-card"
-                            >
-                              <h4
-                                className={
-                                  fromMeeting
-                                    ? "participant-heading-meeting"
-                                    : "participant-heading"
-                                }
-                              >
-                                {t("Abonnés")}
-                              </h4>
-                              <div className="guides-container">
-                                {/* {meetingData?.type === "Newsletter" && ( */}
-
-                                <ReportSubscriberCard
-                                  subscribers={
-                                    meetingData?.newsletter_subscribers
-                                  }
-                                  data={meetingData?.newsletter_subscribers}
-                                  fromMeeting={fromMeeting}
-                                  meeting={meetingData}
-                                  // handleShow={handleShow1}
-                                  // handleHide={hideShow}
-                                  showProfile={showProfile}
-                                />
-                              </div>
-                            </section>
+                                    <ReportSubscriberCard
+                                      subscribers={
+                                        meetingData?.newsletter_subscribers
+                                      }
+                                      data={meetingData?.newsletter_subscribers}
+                                      fromMeeting={fromMeeting}
+                                      meeting={meetingData}
+                                      // handleShow={handleShow1}
+                                      // handleHide={hideShow}
+                                      showProfile={showProfile}
+                                    />
+                                  </div>
+                                </section>
+                              )}
+                            </>
                           )}
-</>}
-                          
 
                           {meetingData?.steps?.length > 0 && (
                             <section id="steps" className="section">
@@ -6344,19 +6605,21 @@ const Report = () => {
                             </section>
                           )}
 
-                       {meetingData?.show_discussion &&   <section id="discussion" className="section">
-                            <h4 className="section-title-1 text-left">
-                              {`${t("meeting.newMeeting.labels.discussion")} `}
-                            </h4>
-                            <MeetingDiscussion
-                              meetingId={meetId}
-                              messages={meetingMessages}
-                              selectedMoment={meetingData}
-                              onMessagesUpdate={(newMeetings) =>
-                                setMeetingMessages(newMeetings)
-                              }
-                            />
-                          </section>}
+                          {meetingData?.show_discussion && (
+                            <section id="discussion" className="section">
+                              <h4 className="section-title-1 text-left">
+                                {`${t("meeting.newMeeting.labels.discussion")} `}
+                              </h4>
+                              <MeetingDiscussion
+                                meetingId={meetId}
+                                messages={meetingMessages}
+                                selectedMoment={meetingData}
+                                onMessagesUpdate={(newMeetings) =>
+                                  setMeetingMessages(newMeetings)
+                                }
+                              />
+                            </section>
+                          )}
                         </div>
 
                         <div className="form-actions d-flex justify-content-center mb-3">
@@ -6374,7 +6637,11 @@ const Report = () => {
                               padding: ".75rem 1.5rem",
                               transition: "all .2s ease",
                             }}
-                            onClick={() => navigate(`/gate/moment?contract_id=${process.env.REACT_APP_CONTRACT_ID}`)}
+                            onClick={() =>
+                              navigate(
+                                `/gate/moment?contract_id=${process.env.REACT_APP_CONTRACT_ID}`,
+                              )
+                            }
                           >
                             <span>Essayer l'aventure TekTIME</span>
                           </Button>
@@ -6451,8 +6718,9 @@ const Report = () => {
               <>
                 <div className="app-container">
                   <section
-                    className={`banner ${destinationDate?.banner ? "has-image" : ""
-                      }`}
+                    className={`banner ${
+                      destinationDate?.banner ? "has-image" : ""
+                    }`}
                     style={{
                       backgroundImage: destinationDate?.banner
                         ? `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url(${destinationDate?.banner})`
@@ -6526,44 +6794,53 @@ const Report = () => {
                   <nav
                     role="navigation"
                     aria-label="Main navigation"
-                    className={`sidebar-nav ${isNavVisible ? "visible" : "hidden"
-                      }`}
+                    className={`sidebar-nav ${
+                      isNavVisible ? "visible" : "hidden"
+                    }`}
                     style={reportNavbarStyle}
                   >
                     <ul className="nav-list">
                       {[
+                        {
+                          id: "home",
+                          label: t("navbar.home"),
+                          icon: <FaHome />,
+                        },
+                        ...(destinationDate?.description
+                          ? [
+                              {
+                                id: "description",
+                                label: t("navbar.description"),
+                                icon: <BiDetail />,
+                              },
+                            ]
+                          : []),
                         // {
-                        //   id: "home",
-                        //   label: t("navbar.home"),
-                        //   icon: <FaHome />,
+                        //   id: "moments",
+                        //   label: t("moments"),
+
+                        //   icon: <FaList />,
                         // },
-                        {
-                          id: "description",
-                          label: t("navbar.description"),
-                          icon: <BiDetail />,
-                        },
-                        {
-                          id: "moments",
-                          label: t("moments"),
-
-                          icon: <FaList />,
-                        },
-                        {
-                          id: "casting",
-                          label: t("invite"),
-
-                          icon: <FaBook />,
-                        },
-                        {
-                          id: "files",
-                          label: t("navbar.file"),
-                          icon: <FaFile />,
-                        },
                         {
                           id: "roadmap",
                           label: t("roadmap"),
                           icon: <FaChartBar />,
                         },
+                        {
+                          id: "casting",
+                          label: t("destination_home_participants"),
+
+                          icon: <FaBook />,
+                        },
+                        ...(allFiles?.length > 0
+                          ? [
+                              {
+                                id: "files",
+                                label: t("navbar.file"),
+                                icon: <FaFile />,
+                              },
+                            ]
+                          : []),
                       ].map((item) => (
                         <li key={item.id}>
                           <button
@@ -6625,8 +6902,137 @@ const Report = () => {
                     </section>
                   </Container>
 
+                  <Container className="home-link mt-4">
+                    <section
+                      id="roadmap"
+                      className=" detail-section animate__animated animate__fadeIn"
+                    >
+                      <div className="casting-section-1">
+                        <h2 className="participant-heading">Roadmap</h2>
+                      </div>
+                      <Card className="roadmap-container shadow mt-5">
+                        <div>
+                          <h4
+                            className={`${
+                              fromMeeting
+                                ? "participant-heading-meeting"
+                                : "participant-heading"
+                            } d-flex align-items-center justify-content-between`}
+                          >
+                            {view === "graph"
+                              ? `${t("time_unit.Roadmap")} `
+                              : `${t("time_unit.Calendar")} `}
+                            <span style={{ cursor: "pointer" }}>
+                              <div className="toggle-button">
+                                <button
+                                  className={`toggle-button-option ${
+                                    view === "list" ? "active" : ""
+                                  }`}
+                                  onClick={() => handleToggle("list")}
+                                >
+                                  <div className="icon-list" />
+                                  <FaRegCalendarDays size={18} />
+                                </button>
+                                <button
+                                  className={`toggle-button-option ${
+                                    view === "graph" ? "active" : ""
+                                  }`}
+                                  onClick={() => handleToggle("graph")}
+                                >
+                                  <div className="icon-graph" />
+                                  <FaChartGantt size={20} />
+                                </button>
+                                <button
+                                  className={`toggle-button-option ${
+                                    view === "card" ? "active" : ""
+                                  }`}
+                                  onClick={() => handleToggle("card")}
+                                >
+                                  <div className="icon-graph" />
+                                  <FaTh size={20} />
+                                </button>
+
+                                <button
+                                  className={`toggle-button-option ${
+                                    view === "Mlist" ? "active" : ""
+                                  }`}
+                                  onClick={() => handleToggle("Mlist")}
+                                >
+                                  <div className="icon-graph" />
+                                  <FaList size={20} />
+                                </button>
+                              </div>
+                            </span>
+                          </h4>
+
+                          <Card.Body>
+                            {view === "graph" ? (
+                              <>
+                                <Roadmap
+                                  loading={loading}
+                                  handleChangeMeetings={handleChangeMeetings}
+                                  data={roadmapData}
+                                  milestones={milestones}
+                                  startDate={meetingStartDate}
+                                  endDate={meetingEndDate}
+                                  onPrevious={() =>
+                                    setTimeWindowOffset((prev) => prev - 1)
+                                  }
+                                  onNext={() =>
+                                    setTimeWindowOffset((prev) => prev + 1)
+                                  }
+                                  onReset={resetToCurrentWeek}
+                                  from="report"
+                                />
+                              </>
+                            ) : view === "card" ? (
+                              <Moments
+                                meetings={destinationDate?.meetings || []}
+                                destination={destinationDate}
+                                isLoading={isLoading}
+                                // refreshedMeetings={getMeetingsByDestinationId}
+                                isDeadlinePassed={isDeadlinePassed}
+                                diffDays={diffDays}
+                                // showProgress={showMomentProgress}
+                                // progress={momentProgress}
+                                view={view}
+                                isReportView={true}
+                                handleChangeMeetings={handleChangeMeetings}
+                              />
+                            ) : view === "list" ? (
+                              <>
+                                <ReactCalendar
+                                  meetings={destinationDate?.meetings || []}
+                                  handleChangeMeetings={handleChangeMeetings}
+                                  from="report"
+                                  defaultView={defaultAgendaView}
+                                />
+                              </>
+                            ) : (
+                              <>
+                                <Moments
+                                  meetings={destinationDate?.meetings || []}
+                                  destination={destinationDate}
+                                  isLoading={isLoading}
+                                  // refreshedMeetings={getMeetingsByDestinationId}
+                                  isDeadlinePassed={isDeadlinePassed}
+                                  diffDays={diffDays}
+                                  // showProgress={showMomentProgress}
+                                  // progress={momentProgress}
+                                  view={view}
+                                  isReportView={true}
+                                  handleChangeMeetings={handleChangeMeetings}
+                                />
+                              </>
+                            )}
+                          </Card.Body>
+                        </div>
+                      </Card>
+                    </section>
+                  </Container>
+
                   <Container className="mt-4 home-link">
-                    {destinationDate?.meetings?.length > 0 && (
+                    {/* {destinationDate?.meetings?.length > 0 && (
                       <section
                         id="moments"
                         className=" detail-section animate__animated animate__fadeIn"
@@ -6889,7 +7295,7 @@ const Report = () => {
                           </Col>
                         </Row>
                       </section>
-                    )}
+                    )} */}
 
                     {participants?.length > 0 && (
                       <section
@@ -6918,11 +7324,11 @@ const Report = () => {
                                         <Avatar
                                           src={
                                             member?.participant_image?.startsWith(
-                                              "users/"
+                                              "users/",
                                             )
                                               ? Assets_URL +
-                                              "/" +
-                                              member?.participant_image
+                                                "/" +
+                                                member?.participant_image
                                               : member?.participant_image
                                           }
                                           className="custom-avatar"
@@ -6934,25 +7340,25 @@ const Report = () => {
                                             </h5>
                                             {activeEventKey ===
                                               index.toString() && (
-                                                <>
-                                                  {member?.user_id && (
-                                                    <div
-                                                      className="visiting-card-link"
-                                                      onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        copyToClipboard(
-                                                          member?.user
-                                                            ?.nick_name ||
-                                                          member?.nick_name
-                                                        );
-                                                      }}
-                                                    >
-                                                      {t("viewVisitingCard")}{" "}
-                                                      <FaArrowRight />
-                                                    </div>
-                                                  )}
-                                                </>
-                                              )}
+                                              <>
+                                                {member?.user_id && (
+                                                  <div
+                                                    className="visiting-card-link"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      copyToClipboard(
+                                                        member?.user
+                                                          ?.nick_name ||
+                                                          member?.nick_name,
+                                                      );
+                                                    }}
+                                                  >
+                                                    {t("viewVisitingCard")}{" "}
+                                                    <FaArrowRight />
+                                                  </div>
+                                                )}
+                                              </>
+                                            )}
                                           </div>
                                           <p className="mb-0 casting-post">
                                             {member?.email}
@@ -6989,7 +7395,7 @@ const Report = () => {
                                                   </th>
                                                   <th>
                                                     {t(
-                                                      "time_unit.moment_delay"
+                                                      "time_unit.moment_delay",
                                                     )}
                                                   </th>
                                                 </tr>
@@ -7002,54 +7408,54 @@ const Report = () => {
                                                       <td
                                                         className={
                                                           item.status ===
-                                                            "in_progress"
+                                                          "in_progress"
                                                             ? item?.meeting_steps?.some(
-                                                              (step) =>
-                                                                convertTimeTakenToSeconds(
-                                                                  step?.time_taken
-                                                                ) >
-                                                                convertCount2ToSeconds(
-                                                                  step?.count2,
-                                                                  step?.time_unit
-                                                                )
-                                                            )
+                                                                (step) =>
+                                                                  convertTimeTakenToSeconds(
+                                                                    step?.time_taken,
+                                                                  ) >
+                                                                  convertCount2ToSeconds(
+                                                                    step?.count2,
+                                                                    step?.time_unit,
+                                                                  ),
+                                                              )
                                                               ? "text-delay-warning"
                                                               : "text-delay-inprogress"
                                                             : item?.status ===
-                                                              "active"
+                                                                "active"
                                                               ? moment().isAfter(
-                                                                moment(
-                                                                  `${item.date} ${item.start_time}`,
-                                                                  "YYYY-MM-DD HH:mm"
+                                                                  moment(
+                                                                    `${item.date} ${item.start_time}`,
+                                                                    "YYYY-MM-DD HH:mm",
+                                                                  ),
                                                                 )
-                                                              )
                                                                 ? "text-delay-late"
                                                                 : "text-delay-active"
                                                               : item?.status ===
-                                                                "closed"
+                                                                  "closed"
                                                                 ? "text-delay-closed"
                                                                 : ""
                                                         }
                                                       >
                                                         {item?.status ===
-                                                          "in_progress"
+                                                        "in_progress"
                                                           ? calculateTimeDifferencePrepareData(
-                                                            item?.meeting_steps,
-                                                            item?.starts_at,
-                                                            item?.current_date,
-                                                            t
-                                                          )
-                                                          : item?.status ===
-                                                            "closed"
-                                                            ? calculateTotalTimeTaken(
-                                                              item?.meeting_steps
+                                                              item?.meeting_steps,
+                                                              item?.starts_at,
+                                                              item?.current_date,
+                                                              t,
                                                             )
+                                                          : item?.status ===
+                                                              "closed"
+                                                            ? calculateTotalTimeTaken(
+                                                                item?.meeting_steps,
+                                                              )
                                                             : calculateTotalTime(
-                                                              item?.meeting_steps
-                                                            )}
+                                                                item?.meeting_steps,
+                                                              )}
                                                       </td>
                                                     </tr>
-                                                  )
+                                                  ),
                                                 )}
                                               </tbody>
                                             </table>
@@ -7067,95 +7473,25 @@ const Report = () => {
                     )}
                   </Container>
 
-                  {allFiles?.length > 0 && <Container className="mt-4 home-link">
-                    <section
-                      id="files"
-                      className="detail-section animate__animated animate__fadeIn"
-                    >
-                      <div className="casting-section-1">
-                        <h2 className="participant-heading mb-4">
-                          {t("navbar.file")}
-                        </h2>
-                      </div>
-
-                      <ReportFileMenu
-                        meeting_files={allFiles}
-                        openModal={openModal}
-                      />
-                    </section>
-                  </Container>}
-                  <Container>
-                    <section
-                      id="roadmap"
-                      className=" detail-section animate__animated animate__fadeIn"
-                    >
-                      <Card className="roadmap-container shadow mt-5">
-                        <div>
-                          <h4
-                            className={`${fromMeeting
-                              ? "participant-heading-meeting"
-                              : "participant-heading"
-                              } d-flex align-items-center justify-content-between`}
-                          >
-                            {view === "graph"
-                              ? `${t("time_unit.Roadmap")} `
-                              : `${t("time_unit.Calendar")} `}
-                            <span style={{ cursor: "pointer" }}>
-                              <div className="toggle-button">
-                                <button
-                                  className={`toggle-button-option ${view === "list" ? "active" : ""
-                                    }`}
-                                  onClick={() => handleToggle("list")}
-                                >
-                                  <div className="icon-list" />
-                                  <FaRegCalendarDays size={18} />
-                                </button>
-                                <button
-                                  className={`toggle-button-option ${view === "graph" ? "active" : ""
-                                    }`}
-                                  onClick={() => handleToggle("graph")}
-                                >
-                                  <div className="icon-graph" />
-                                  <FaChartGantt size={20} />
-                                </button>
-                              </div>
-                            </span>
-                          </h4>
-
-                          <Card.Body>
-                            {view === "graph" ? (
-                              <>
-                                <Roadmap
-                                  loading={loading}
-                                  handleChangeMeetings={handleChangeMeetings}
-                                  data={roadmapData}
-                                  milestones={milestones}
-                                  startDate={meetingStartDate}
-                                  endDate={meetingEndDate}
-                                  onPrevious={() =>
-                                    setTimeWindowOffset((prev) => prev - 1)
-                                  }
-                                  onNext={() =>
-                                    setTimeWindowOffset((prev) => prev + 1)
-                                  }
-                                  onReset={resetToCurrentWeek}
-                                  from="report"
-                                />
-                              </>
-                            ) : (
-                              <>
-                                <ReactCalendar
-                                  meetings={destinationDate?.meetings || []}
-                                  handleChangeMeetings={handleChangeMeetings}
-                                  from="report"
-                                />
-                              </>
-                            )}
-                          </Card.Body>
+                  {allFiles?.length > 0 && (
+                    <Container className="mt-4 home-link">
+                      <section
+                        id="files"
+                        className="detail-section animate__animated animate__fadeIn"
+                      >
+                        <div className="casting-section-1">
+                          <h2 className="participant-heading mb-4">
+                            {t("navbar.file")}
+                          </h2>
                         </div>
-                      </Card>
-                    </section>
-                  </Container>
+
+                        <FileDiaporamaViewer
+                          meeting_files={allFiles}
+                          openModal={openModal}
+                        />
+                      </section>
+                    </Container>
+                  )}
                 </div>
                 {/* graph destination home page */}
               </>
@@ -7171,9 +7507,9 @@ const Report = () => {
           modalContent={modalContent}
           closeModal={closeModal}
           fromReport={true}
-        // isFileUploaded={isFileUploaded}
-        // setIsFileUploaded={setIsFileUploaded}
-        // refreshMeeting={getRefreshMeeting}
+          // isFileUploaded={isFileUploaded}
+          // setIsFileUploaded={setIsFileUploaded}
+          // refreshMeeting={getRefreshMeeting}
         />
       )}
 
@@ -7196,7 +7532,7 @@ const Report = () => {
                   window.open(
                     `https://tektime.io/meeting`,
 
-                    "_blank"
+                    "_blank",
                   ); // Open the current URL in a new tab
                 }}
                 style={{
@@ -7259,8 +7595,9 @@ const Report = () => {
                         )}
                       >
                         <div
-                          className={`emoji ${rating === item.value ? "selected" : ""
-                            }`}
+                          className={`emoji ${
+                            rating === item.value ? "selected" : ""
+                          }`}
                           onClick={() => setRating(item.value)}
                           style={{ cursor: "pointer" }}
                         >

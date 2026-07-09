@@ -3,20 +3,100 @@ import { useDraftMeetings } from "../../../../context/DraftMeetingContext";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { momentLocalizer, Views, Calendar } from "react-big-calendar";
-import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
+import moment from "moment";
 import ReactCalendarToolbar from "./ReactCalendarToolbar";
 import CustomEvent from "../../Meeting/CustomeEvent";
 import NewMeetingModal from "../../Meeting/CreateNewMeeting/NewMeetingModal";
 import { useFormContext } from "../../../../context/CreateMeetingContext";
 import { ProgressBar } from "react-bootstrap";
+import tektimeLogo from "../../../../Media/logo2.png";
+import googleLogo from "../../../../Media/google.png";
+import outlookLogo from "../../../../Media/outlook.jpeg";
 
 const EventWrapper = ({ children }) => {
   return <div style={{ marginBottom: "2px", width: "100%" }}>{children}</div>;
 };
 
+const MonthEvent = ({ event }) => {
+  const [t] = useTranslation("global");
+
+  // Progress logic
+  const totalSteps = event.steps?.length || 0;
+  const completedSteps =
+    event.steps?.filter((step) => step.step_status === "completed").length || 0;
+  const progress = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
+  const progressWidth = progress > 0 ? progress : 1;
+
+  // Determine status color
+  const status = event.resource?.status;
+  const timezone = event.resource?.timezone || "Europe/Paris";
+  const now = moment().utcOffset(timezone);
+  const meetingDateTime = moment(
+    `${event.resource.date}T${event.resource.start_time}`
+  ).utcOffset(timezone);
+  const isFutureMeeting = meetingDateTime.isAfter(now);
+
+  let progressColor = "#007bff";
+  if (status === "active") {
+    progressColor = isFutureMeeting ? "#5baaea" : "red";
+  } else if (status === "in_progress") {
+    progressColor = "yellow";
+  } else if (status === "to_finish") {
+    progressColor = "#ff9800";
+  } else if (status === "todo") {
+    progressColor = "#6c757d";
+  } else if (status === "closed") {
+    progressColor = "#28a745";
+  } else if (status === "abort") {
+    progressColor = "purple";
+  }
+
+  const logo =
+    event.resource?.created_from === "Google Calendar"
+      ? googleLogo
+      : event.resource?.created_from === "Outlook Calendar"
+      ? outlookLogo
+      : tektimeLogo;
+
+  return (
+    <div className="text-truncate" style={{ maxWidth: "100%", overflow: "hidden" }}>
+      <span style={{ fontSize: "small" }} className="d-flex justify-content-between">
+        {moment(event.start).format("HH:mm")}
+      </span>
+      <div style={{ fontSize: "small", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }} className="text-truncate">
+        <img
+          src={logo}
+          style={{ objectFit: "contain", marginRight: "4px" }}
+          width={15}
+          alt="logo"
+        />
+        {event.title}
+      </div>
+      {totalSteps > 0 && (
+        <div style={{ display: "flex", alignItems: "center", marginTop: "4px" }}>
+          <div style={{ flex: 1, height: "6px", background: "#eee", borderRadius: "4px" }}>
+            <div
+              style={{
+                height: "100%",
+                width: `${progressWidth}%`,
+                backgroundColor: progressColor,
+                borderRadius: "4px",
+                transition: "width 0.3s ease",
+              }}
+            />
+          </div>
+          <div style={{ marginLeft: "8px", fontSize: "12px", color: "#000000", width: "40px", textAlign: "center" }}>
+            {Math.round(progress)}%
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const CustomDateHeader = ({ label, date, localizer }) => {
-  return <div>{moment(date).format("ddd D MMM")}</div>;
+  return <div>{moment(date).format("ddd DD MMM")}</div>;
 };
 
 // Day view date header
@@ -31,6 +111,13 @@ const DayDateHeader = ({ label, date }) => {
       }}
     >
       {moment(date).format("dddd, MMMM D, YYYY")}
+    </div>
+  );
+};
+const MonthDateHeader = ({ label, date, localizer }) => {
+  return (
+    <div style={{ textAlign: "center", padding: "5px", fontWeight: "600", color: "#4a5568" }}>
+      {label}
     </div>
   );
 };
@@ -55,9 +142,116 @@ const ReactCalendar = ({
 
   const [myEventsList, setMyEventsList] = useState([]);
   const [overlappingSlots, setOverlappingSlots] = useState(new Set());
-  const [currentStartDate, setCurrentStartDate] = useState(
-    moment().startOf("week").toDate()
-  );
+  const [currentStartDate, setCurrentStartDate] = useState(new Date());
+
+  const MonthCellWrapper = ({ children, value }) => {
+    if (currentView !== Views.MONTH) {
+      return children;
+    }
+
+    const dayEvents = myEventsList.filter((event) => {
+      const start = moment(event.start);
+      const end = event.end ? moment(event.end) : start;
+      return moment(value).isBetween(start, end, "day", "[]");
+    });
+
+    const isToday = moment(value).isSame(moment(), "day");
+    const isOffRange = !moment(value).isSame(currentStartDate, "month");
+
+    return React.cloneElement(children, {
+      style: {
+        ...children.props.style,
+        position: "relative",
+        display: "flex",
+        flexDirection: "column",
+        minWidth: 0,
+        overflow: "hidden",
+      },
+      children: (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
+            width: "100%",
+            padding: "4px",
+            boxSizing: "border-box",
+            minWidth: 0,
+            overflow: "hidden",
+          }}
+        >
+          {/* Day Number Header */}
+          <div
+            style={{
+              alignSelf: "flex-end",
+              padding: "2px 6px",
+              fontSize: "12px",
+              fontWeight: "600",
+              color: isOffRange ? "#cbd5e1" : isToday ? "#0066cc" : "#4a5568",
+              backgroundColor: isToday ? "#e0f2fe" : "transparent",
+              borderRadius: isToday ? "50%" : "0",
+              width: isToday ? "20px" : "auto",
+              height: isToday ? "20px" : "auto",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: "4px",
+            }}
+          >
+            {moment(value).format("D")}
+          </div>
+
+          {/* Scrollable Events List */}
+          <div
+            style={{
+              flex: 1,
+              overflowY: "auto",
+              display: "flex",
+              flexDirection: "column",
+              gap: "4px",
+              width: "100%",
+              minWidth: 0,
+            }}
+            className="custom-month-cell-scrollable"
+          >
+            {dayEvents.map((event, idx) => (
+              <div
+                key={idx}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSelectEvent(event);
+                }}
+                style={{
+                  cursor: "pointer",
+                  background: "white",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "6px",
+                  padding: "6px",
+                  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
+                  transition: "all 0.2s ease",
+                  width: "100%",
+                  minWidth: 0,
+                  boxSizing: "border-box",
+                  overflow: "hidden",
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow = "0 3px 6px rgba(0, 0, 0, 0.08)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "none";
+                  e.currentTarget.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.05)";
+                }}
+              >
+                <MonthEvent event={event} />
+              </div>
+            ))}
+          </div>
+        </div>
+      ),
+    });
+  };
 
   // Fixed default view handling
   const getInitialView = () => {
@@ -75,26 +269,23 @@ const ReactCalendar = ({
     }
   };
 
-  // Fixed: Handle defaultView changes properly
+  // Fixed: Handle defaultView changes properly and reset date to today
   useEffect(() => {
     if (defaultView) {
       const newView = getInitialView();
       setCurrentView(newView);
 
-      // Also reset the start date based on the view
+      // Reset the start date to today's date based on the view
       const today = new Date();
       if (newView === Views.DAY) {
-        setCurrentStartDate(moment().startOf("day").toDate());
+        setCurrentStartDate(moment(today).startOf("day").toDate());
+      } else if (newView === Views.WEEK) {
+        setCurrentStartDate(moment(today).startOf("week").toDate());
+      } else if (newView === Views.MONTH) {
+        setCurrentStartDate(moment(today).startOf("month").toDate());
+      } else {
+        setCurrentStartDate(today);
       }
-    }
-  }, [defaultView]);
-
-  // Handle defaultView changes
-  useEffect(() => {
-    if (defaultView) {
-      const newView = getInitialView();
-      console.log("Setting view to:", newView);
-      setCurrentView(newView);
     }
   }, [defaultView]);
 
@@ -130,7 +321,6 @@ const ReactCalendar = ({
         const earliestMeetingDate = moment(sortedMeetings[0].start)
           .startOf("week")
           .toDate();
-        setCurrentStartDate(earliestMeetingDate);
 
         const startOfWeek = new Date(earliestMeetingDate);
         const endOfWeek = new Date(startOfWeek);
@@ -178,7 +368,7 @@ const ReactCalendar = ({
       endOfWeek.setDate(currentDate.getDate() - currentDate.getDay() + 6);
       endOfWeek.setHours(23, 59, 59, 999);
 
-      setCurrentStartDate(startOfWeek);
+      setCurrentStartDate(currentDate);
       setMin(startOfWeek);
       setMax(endOfWeek);
       setMyEventsList([]);
@@ -479,6 +669,47 @@ const ReactCalendar = ({
 
   return (
     <>
+      <style>{`
+        .reactCalendarCustomHeight {
+          height: 900px !important;
+        }
+
+        .reactCalendarAutoHeight {
+          height: auto !important;
+        }
+
+        /* Hide default foreground elements in Month view (so we only see background cells with our custom cards) */
+        .reactCalendarCustomHeight .rbc-month-view .rbc-row-content {
+          display: none !important;
+        }
+
+        /* Sleek custom scrollbars for individual cell scroll container */
+        .reactCalendarCustomHeight .custom-month-cell-scrollable {
+          overflow-y: auto !important;
+          scrollbar-width: thin !important;
+          scrollbar-color: #cbd5e1 rgba(0, 0, 0, 0.02) !important;
+        }
+
+        .reactCalendarCustomHeight .custom-month-cell-scrollable::-webkit-scrollbar {
+          width: 4px !important;
+          height: 4px !important;
+          background-color: transparent !important;
+        }
+
+        .reactCalendarCustomHeight .custom-month-cell-scrollable::-webkit-scrollbar-track {
+          background-color: rgba(0, 0, 0, 0.02) !important;
+          border-radius: 2px !important;
+        }
+
+        .reactCalendarCustomHeight .custom-month-cell-scrollable::-webkit-scrollbar-thumb {
+          background-color: #cbd5e1 !important;
+          border-radius: 2px !important;
+        }
+
+        .reactCalendarCustomHeight .custom-month-cell-scrollable::-webkit-scrollbar-thumb:hover {
+          background-color: #94a3b8 !important;
+        }
+      `}</style>
       {showProgress ? (
         <div
           style={{
@@ -494,7 +725,8 @@ const ReactCalendar = ({
         </div>
       ) : (
         <>
-          <Calendar
+          <div className={currentView === Views.MONTH ? "reactCalendarCustomHeight" : "reactCalendarAutoHeight"}>
+            <Calendar
             localizer={localizer}
             events={myEventsList}
             onSelectEvent={handleSelectEvent}
@@ -516,9 +748,17 @@ const ReactCalendar = ({
             allDayAccessor={null}
             toolbar={true}
             tooltipAccessor={() => null}
-            popup={true}
+            popup={false}
+            showAllEvents={true}
+            doShowMoreDrillDown={false}
+            onShowMore={(events, date) => {
+              // Navigate explicitly to the exact clicked date in Day view
+              setCurrentStartDate(date);
+              setCurrentView(Views.DAY);
+            }}
             allDaySlot={true}
             components={{
+              dateCellWrapper: currentView === Views.MONTH ? MonthCellWrapper : undefined,
               day: {
                 header: DayDateHeader,
                 event: CustomEvent,
@@ -530,8 +770,8 @@ const ReactCalendar = ({
                 timeGutterHeader: CustomGutter,
               },
               month: {
-                header: CustomDateHeader,
-                event: CustomEvent,
+                event: MonthEvent,
+                dateHeader: MonthDateHeader,
               },
               agenda: {
                 header: CustomAgendaHeader,
@@ -570,21 +810,22 @@ const ReactCalendar = ({
             min={minTime}
             max={maxTime}
           />
+        </div>
 
-          <div className="status-legend">
-            <div className="status-list">
-              {statuses.map((status, index) => (
-                <div key={index} className="status-item">
-                  <span
-                    className="status-dot"
-                    style={{ backgroundColor: status.color }}
-                  ></span>
-                  {status.name}
-                </div>
-              ))}
-            </div>
+        <div className="status-legend">
+          <div className="status-list">
+            {statuses.map((status, index) => (
+              <div key={index} className="status-item">
+                <span
+                  className="status-dot"
+                  style={{ backgroundColor: status.color }}
+                ></span>
+                {status.name}
+              </div>
+            ))}
           </div>
-        </>
+        </div>
+      </>
       )}
       {open && <NewMeetingModal open={open} closeModal={handleCloseModal} />}
     </>

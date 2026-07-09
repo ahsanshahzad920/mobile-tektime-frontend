@@ -645,12 +645,13 @@ export function localizeVisibilityMessage(
   message,
   t
 ) {
+  if (!message) return "";
   if (message === "Please log in to view meeting.") {
     return t("login_to_view_meeting");
   }
 
   return message.replace(
-    /This meeting is set to private, thanks to contact (.*?) to have access/,
+    /This (?:meeting|mission) is set to private, thanks to contact (.*?) to have access/,
     `${t("private_meeting_msg")}$1 ${t("access_meeting_msg")}`
   );
 }

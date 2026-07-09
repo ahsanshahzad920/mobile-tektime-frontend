@@ -80,6 +80,71 @@ export const subscribeToMeeting = (meetId, onEvent) => {
   return channel;
 };
 
+// Callbacks multiples par canal (plusieurs composants peuvent écouter
+// "agenda.synced" : la vue calendrier ET le contexte, par ex.).
+const agendaHandlers = {}; // channelName -> Set<function>
+
+/**
+ * S'abonner au canal personnel de l'utilisateur : user.{userId}
+ * Écoute l'event "agenda.synced" émis par le back quand l'agenda change
+ * (synchro Google/Outlook, ou création/suppression d'une réunion TekTIME)
+ * -> permet de rafraîchir la vue SANS refresh manuel.
+ *
+ * Supporte PLUSIEURS abonnés sur le même canal (bind Pusher fait une seule
+ * fois ; tous les callbacks enregistrés sont appelés).
+ *
+ * @param {string|number} userId
+ * @param {function} onSync - appelée (avec les données de l'event) à chaque event
+ * @returns {function} fonction de désabonnement de CE callback
+ */
+export const subscribeToUserAgenda = (userId, onSync) => {
+  if (!userId || typeof onSync !== "function") return () => {};
+  const channelName = `user.${userId}`;
+  const pusher = getPusherClient();
+
+  if (!subscriptions[channelName]) {
+    console.log(`[Pusher] Subscribing to channel: ${channelName}`);
+    subscriptions[channelName] = pusher.subscribe(channelName);
+    agendaHandlers[channelName] = new Set();
+    // bind UNE seule fois : dispatch à tous les callbacks enregistrés
+    subscriptions[channelName].bind("agenda.synced", (data) => {
+      console.log("[Pusher] agenda.synced received:", data);
+      (agendaHandlers[channelName] || new Set()).forEach((cb) => {
+        try {
+          cb(data);
+        } catch (e) {
+          /* un callback en échec ne doit pas bloquer les autres */
+        }
+      });
+    });
+  }
+
+  if (!agendaHandlers[channelName]) agendaHandlers[channelName] = new Set();
+  agendaHandlers[channelName].add(onSync);
+
+  // désabonnement de CE callback uniquement
+  return () => {
+    if (agendaHandlers[channelName]) agendaHandlers[channelName].delete(onSync);
+  };
+};
+
+/**
+ * Se désabonner complètement du canal personnel de l'utilisateur.
+ */
+export const unsubscribeFromUserAgenda = (userId) => {
+  if (!userId) return;
+  const channelName = `user.${userId}`;
+  const pusher = getPusherClient();
+
+  if (subscriptions[channelName]) {
+    console.log(`[Pusher] Unsubscribing from channel: ${channelName}`);
+    pusher.unsubscribe(channelName);
+    delete subscriptions[channelName];
+    delete boundHandlers[channelName];
+    delete agendaHandlers[channelName];
+  }
+};
+
 /**
  * Unsubscribe and clean up
  */

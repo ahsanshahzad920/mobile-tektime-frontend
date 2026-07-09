@@ -245,6 +245,9 @@
       "yearly": "Annuelle (1 an)"
     },
     "numberOfLicenses": "Nomber de licences",
+    "testDuration": "Durée de test (jours)",
+    "testDurationPlaceholder": "Nombre de jours",
+    "days": "jours",
     "price": "Prix",
     "currency": "Devise",
     "stripePayment": "Paiement Stripe",

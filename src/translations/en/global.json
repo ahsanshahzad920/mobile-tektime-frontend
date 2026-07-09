@@ -289,6 +289,9 @@
       "yearly": "Annual (1 year)"
     },
     "numberOfLicenses": "Number of licenses",
+    "testDuration": "Test duration (days)",
+    "testDurationPlaceholder": "Number of days",
+    "days": "days",
     "price": "Price",
     "currency": "Currency",
     "stripePayment": "Stripe Payment",

@@ -1,11 +1,10 @@
 import CookieService from '../../Utils/CookieService';
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { Modal, Button } from "antd";
 import { API_BASE_URL, Assets_URL } from "../../Apicongfig";
 import axios from "axios";
 import { useTranslation } from "react-i18next";
 import { Spinner } from "react-bootstrap";
-import * as XLSX from "xlsx";
 import DocViewer, { DocViewerRenderers } from "@cyntler/react-doc-viewer";
 import { toast } from "react-toastify";
 
@@ -23,53 +22,12 @@ function ViewFilePreview({
     ? `${Assets_URL}/${modalContent?.file_path}`
     : "";
   const [loading, setLoading] = useState(false);
-  const [excelData, setExcelData] = useState([]);
   const [t] = useTranslation("global");
 
-  useEffect(() => {
-    // If the file is Excel, load its data
-    if (
-      modalContent?.file_type ===
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
-      modalContent?.file_type === "application/vnd.ms-excel"
-    ) {
-      loadExcelData(modalContent?.file_path);
-    } else if (
-      modalContent?.file_type ===
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-      modalContent?.file_type ===
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    ) {
-      loadDocFile(modalContent?.file_path);
-    }
-  }, [modalContent]);
-
-  const loadExcelData = async (filePath) => {
-    setLoading(true);
-    try {
-      const response = await fetch(`${Assets_URL}/${filePath}`);
-      const blob = await response.blob();
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const data = e.target.result;
-        const workbook = XLSX.read(data, { type: "binary" });
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-        const json = XLSX.utils.sheet_to_json(sheet);
-        setExcelData(json);
-      };
-      reader.readAsBinaryString(blob);
-    } catch (error) {
-      console.error("Error loading Excel file", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadDocFile = (filePath) => {
-    // Optionally fetch or do other logic if required before displaying the document
-    // Currently, the file is directly passed to the FileViewer component
-  };
+  const docViewerDocs = useMemo(() => {
+    if (!modalContent?.file_path) return [];
+    return [{ uri: `${Assets_URL}/${modalContent?.file_path}` }];
+  }, [modalContent?.file_path]);
 
   const deleteFile = async () => {
     setLoading(true);
@@ -161,57 +119,17 @@ function ViewFilePreview({
                 </div>
               ) : null}
 
-              {/* Show Excel Preview if the file is Excel */}
-              {modalContent?.file_type === "application/vnd.ms-excel" ? (
-                <div className="table-responsive h-100">
-                  {loading ? (
-                    <div className="d-flex justify-content-center align-items-center h-100">
-                      <Spinner
-                        as="span"
-                        variant="light"
-                        size="lg"
-                        role="status"
-                        aria-hidden="true"
-                        animation="border"
-                        className="text-primary"
-                      />
-                    </div>
-                  ) : (
-                    <div className="table-responsive h-100">
-                      <table className="table table-bordered mb-0">
-                        <thead>
-                          <tr>
-                            {Object.keys(excelData[0] || {}).map((key, index) => (
-                              <th key={index}>{key}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {excelData.map((row, rowIndex) => (
-                            <tr key={rowIndex}>
-                              {Object.values(row).map((value, colIndex) => (
-                                <td key={colIndex}>{value}</td>
-                              ))}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              ) : (modalContent &&
-                modalContent?.file_type ===
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document") ||
-                modalContent?.file_type ===
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-                modalContent?.file_type === "text/plain" ||
-                modalContent?.file_type ===
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ? (
+              {modalContent && (
+                modalContent?.file_type === "application/vnd.ms-excel" ||
+                modalContent?.file_type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+                modalContent?.file_type === "text/csv" ||
+                modalContent?.file_type === "application/msword" ||
+                modalContent?.file_type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+                modalContent?.file_type === "text/plain"
+              ) ? (
                 <div className="file-viewer-container h-100">
                   <DocViewer
-                    documents={[
-                      { uri: `${Assets_URL}/${modalContent?.file_path}` },
-                    ]}
+                    documents={docViewerDocs}
                     pluginRenderers={DocViewerRenderers}
                     config={{
                       header: {

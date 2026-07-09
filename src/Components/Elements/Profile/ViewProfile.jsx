@@ -164,11 +164,7 @@ const ViewProfile = ({ user }) => {
                     <h2 className="viewprofile-username-font text-center text-md-start">{user?.full_name || "N/A"}</h2>
                     <p className="enterprise-name viewprofile-enterprise-font text-center text-md-start">
                       <img
-                        src={
-                                  user?.enterprise?.logo?.startsWith('http') ? user?.enterprise?.logo :
-                                    Assets_URL + "/" + user?.enterprise?.logo
-                                  
-                                }
+                        src={user?.enterprise?.logo?.startsWith('http') ? user?.enterprise?.logo : Assets_URL + "/" + user?.enterprise?.logo} 
                         alt="enterprise"
                         width="30px"
                         className="img-fluid"

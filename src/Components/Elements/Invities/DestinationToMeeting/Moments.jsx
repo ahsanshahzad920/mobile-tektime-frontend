@@ -48,6 +48,9 @@ const Moments = ({
   showProgress,
   progress,
   view,
+  isReportView=false,
+  handleChangeMeetings
+  
 }) => {
   const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
@@ -699,20 +702,33 @@ const Moments = ({
   };
 
   const viewPresentation = (data) => {
-    navigate(`/invite/${data.id}`, { state: { data, from: "meeting" } });
+    if(isReportView){
+      handleChangeMeetings(data)
+      // navigate(`/destination/${data?.unique_id}/${data?.id}`)
+    }else{
+      navigate(`/invite/${data.id}`, { state: { data, from: "meeting" } });
+    }
   };
 
-  const presentMeeting = (id) => {
-    // navigate(`/presentation/${meetingId}`, { state: meetingData });
-    // navigate(`/present/invite/${id}`);
-    navigate(`/present/invite/${id}`, { state: { from: "meeting" } });
+  const presentMeeting = (item) => {
+    if(isReportView){
+      // navigate(`/destination/${item?.unique_id}/${item?.id}`)
+      handleChangeMeetings(item);
+    }else{
+      navigate(`/present/invite/${item?.id}`, { state: { from: "meeting" } });
+    }
   };
   const viewMeeting = (item) => {
-    // navigate(`/presentation/${meetingId}`, { state: meetingData });
-    navigate(`/present/invite/${item.id}`, {
-      state: { item, from: "meeting" },
-      // state: { item, from: "inviteMeeting" },
-    });
+ if(isReportView){
+      // navigate(`/destination/${item?.unique_id}/${item?.id}`)
+      handleChangeMeetings(item);
+    }else{
+
+      navigate(`/present/invite/${item.id}`, {
+        state: { item, from: "meeting" },
+        // state: { item, from: "inviteMeeting" },
+      });
+    }
   };
   useEffect(() => {
     return () => {
@@ -1281,7 +1297,7 @@ const Moments = ({
               ) ||
               // Check if all participants have user_id equal to meeting.user.id
               item?.user?.id === parseInt(loggedInUserId)
-                ? presentMeeting(item.id)
+                ? presentMeeting(item)
                 : viewMeeting(item);
             }
           }}
@@ -2021,7 +2037,7 @@ const Moments = ({
                 </div>
               </div>
             </div>
-            <div className="col-md-1 d-flex justify-content-end">
+           {isReportView !== true && <div className="col-md-1 d-flex justify-content-end">
               {/* <BsThreeDotsVertical /> */}
               <div className="col-md-1 text-end obj1 d-flex justify-content-end ">
                 {item?.status === "active" ||
@@ -2492,7 +2508,7 @@ const Moments = ({
                   </>
                 )}
               </div>
-            </div>
+            </div>}
           </div>
         </Card>,
       );
@@ -2550,6 +2566,8 @@ const Moments = ({
                   destination={destination}
                   diffDays={diffDays}
                   isDeadlinePassed={isDeadlinePassed}
+                  isReportView={isReportView}
+                  handleChangeMeetings={handleChangeMeetings}
                 />
               )
             ) : (

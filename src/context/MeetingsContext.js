@@ -1,9 +1,10 @@
 import CookieService from '../Components/Utils/CookieService';
 import moment from "moment-timezone";
-import React, { createContext, useContext, useState, useCallback, useMemo } from "react";
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { API_BASE_URL } from "../Components/Apicongfig";
+import { subscribeToUserAgenda, unsubscribeFromUserAgenda } from "../Helpers/pusherHelper";
 import { askPermission } from "../Components/Utils/askPermission";
 import {
   formatDate,
@@ -940,6 +941,47 @@ export const MeetingsProvider = ({ children }) => {
     getUnreadMeetings, getUpcomingMeetings, getNoStatusMeetings, getAllMeetingsByType, perPage, closedPerPage,
     tabsVisibility
   ]);
+
+  // Temps réel agenda : le back signale un changement via l'event Pusher
+  // "agenda.synced" sur le canal user.{id}. La vue se met à jour SEULE, sans
+  // refresh manuel.
+  useEffect(() => {
+    const userId = CookieService.get("user_id");
+    if (!userId) return undefined;
+
+    const unsubAgenda = subscribeToUserAgenda(userId, async (payload) => {
+      // Suppression d'une réunion (TekTIME) : retrait chirurgical par id. On NE
+      // refetch PAS car la liste TekTIME est paginée (un refetch la tronquerait).
+      if (payload && payload.action === "deleted" && payload.meeting_id != null) {
+        const delId = String(payload.meeting_id);
+        setAllMeetings((prev) => prev.filter((m) => String(m.id) !== delId));
+        setAllEventMeetings((prev) => prev.filter((m) => String(m.id) !== delId));
+        return;
+      }
+      // Création d'une réunion (TekTIME) : on récupère la réunion par id et on
+      // l'ajoute (ajout chirurgical, pas de refetch paginé).
+      if (payload && payload.action === "created" && payload.meeting_id != null) {
+        try {
+          const res = await axios.get(`${API_BASE_URL}/meetings/${payload.meeting_id}`, {
+            headers: { Authorization: `Bearer ${CookieService.get("token")}` },
+          });
+          const m = res && res.data && res.data.data;
+          if (m) {
+            setAllMeetings((prev) =>
+              prev.some((x) => String(x.id) === String(m.id)) ? prev : [m, ...prev]
+            );
+          }
+        } catch (e) {
+          /* en cas d'échec, l'utilisateur verra la réunion au prochain chargement */
+        }
+        return;
+      }
+      // Synchro d'un agenda externe (Google/Outlook) : recharger les événements.
+      getAgendaEvents();
+    });
+
+    return () => unsubAgenda();
+  }, [getAgendaEvents]);
 
   return (
     <MeetingsContext.Provider value={contextValue}>

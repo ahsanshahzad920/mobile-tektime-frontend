@@ -1,4 +1,5 @@
 import CookieService from "../../Utils/CookieService";
+import { subscribeToUserAgenda } from "../../../Helpers/pusherHelper";
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import ReactDOM from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -507,6 +508,20 @@ const ReactBigCalendar = ({ quickMomentForm }) => {
       setSyncAgenda(false);
     }
   };
+
+  // Temps réel : le back diffuse "agenda.synced" sur user.{id} quand une réunion
+  // est créée/supprimée (ou lors d'une synchro Google/Outlook). On recharge alors
+  // le calendrier de la plage visible, SANS refresh manuel. (forceSync=false : la
+  // synchro externe a déjà eu lieu côté serveur, on ne fait que relire.)
+  useEffect(() => {
+    const userId = CookieService.get("user_id");
+    if (!userId) return undefined;
+    const unsub = subscribeToUserAgenda(userId, () => {
+      getCompletedMeetings(currentStartDate, false);
+    });
+    return () => unsub();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStartDate]);
 
   const renderAgendaDropdown = () => (
     <Card

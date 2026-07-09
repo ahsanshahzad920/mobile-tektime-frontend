@@ -26,8 +26,9 @@ import Moments from "./Moments";
 import Participants from "./Participants";
 import AddDestination from "../AddDestination";
 import moment from "moment";
-import { FaArrowRight, FaTh } from "react-icons/fa";
+import { FaArrowRight, FaTh, FaComments } from "react-icons/fa";
 import copy from "copy-to-clipboard";
+import DiscussionChat from "../../Discussion/DiscussionChat";
 import { openLinkInNewTab } from "../../../Utils/openLinkInNewTab";
 import { BiDotsVerticalRounded } from "react-icons/bi";
 import { RiEditBoxLine } from "react-icons/ri";
@@ -165,87 +166,110 @@ const navigate = useNavigate();
     return new Date(dateString);
   };
 
+  // const { startDate, endDate } = useMemo(() => {
+  //   let earliestMeetingDate = null;
+
+  //   // Find the earliest meeting date from roadmapData
+  //   if (Array.isArray(roadmapData)) {
+  //     roadmapData?.forEach((user) => {
+  //       (user.meetings || []).forEach((meeting) => {
+  //         const meetingDate = parseDate(meeting.date);
+  //         if (!earliestMeetingDate || meetingDate < earliestMeetingDate) {
+  //           earliestMeetingDate = meetingDate;
+  //         }
+  //       });
+  //     });
+  //   }
+
+  //   // If no meetings, fallback to current week
+  //   if (!earliestMeetingDate) {
+  //     const today = new Date();
+  //     today.setHours(0, 0, 0, 0);
+  //     const weekStart = new Date(today);
+  //     weekStart.setDate(
+  //       today.getDate() - today.getDay() + timeWindowOffset * 7
+  //     );
+  //     const weekEnd = new Date(weekStart);
+  //     weekEnd.setDate(weekStart.getDate() + 27); // 4 weeks
+  //     return { startDate: weekStart, endDate: weekEnd };
+  //   }
+
+  //   // Calculate startDate based on the earliest meeting date and offset
+  //   const weekStart = new Date(earliestMeetingDate);
+  //   weekStart.setDate(
+  //     earliestMeetingDate.getDate() -
+  //       earliestMeetingDate.getDay() +
+  //       timeWindowOffset * 7
+  //   );
+  //   weekStart.setHours(0, 0, 0, 0);
+
+  //   // Calculate endDate as 4 weeks from startDate
+  //   const weekEnd = new Date(weekStart);
+  //   weekEnd.setDate(weekStart.getDate() + 27); // 4 weeks
+
+  //   return { startDate: weekStart, endDate: weekEnd };
+  // }, [roadmapData, timeWindowOffset]);
   const { startDate, endDate } = useMemo(() => {
-    let earliestMeetingDate = null;
+  // 1. Hamesha aaj ki date se shuru karein
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-    // Find the earliest meeting date from roadmapData
-    if (Array.isArray(roadmapData)) {
-      roadmapData?.forEach((user) => {
-        (user.meetings || []).forEach((meeting) => {
-          const meetingDate = parseDate(meeting.date);
-          if (!earliestMeetingDate || meetingDate < earliestMeetingDate) {
-            earliestMeetingDate = meetingDate;
-          }
-        });
-      });
-    }
+  // 2. Current week ka start date nikaalein (Based on Current Date + Offset)
+  const weekStart = new Date(today);
+  weekStart.setDate(
+    today.getDate() - today.getDay() + timeWindowOffset * 7
+  );
 
-    // If no meetings, fallback to current week
-    if (!earliestMeetingDate) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const weekStart = new Date(today);
-      weekStart.setDate(
-        today.getDate() - today.getDay() + timeWindowOffset * 7
-      );
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekStart.getDate() + 27); // 4 weeks
-      return { startDate: weekStart, endDate: weekEnd };
-    }
+  // 3. End date nikaalein (4 weeks/28 days aage)
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 27); // 4 weeks
 
-    // Calculate startDate based on the earliest meeting date and offset
-    const weekStart = new Date(earliestMeetingDate);
-    weekStart.setDate(
-      earliestMeetingDate.getDate() -
-        earliestMeetingDate.getDay() +
-        timeWindowOffset * 7
-    );
-    weekStart.setHours(0, 0, 0, 0);
+  return { startDate: weekStart, endDate: weekEnd };
+}, [timeWindowOffset]); // Ab roadmapData ki dependency bhi zaroorat nahi hai
 
-    // Calculate endDate as 4 weeks from startDate
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 27); // 4 weeks
+  // const handleReset = useCallback(() => {
+  //   if (!Array.isArray(roadmapData) || roadmapData.length === 0) {
+  //     setTimeWindowOffset(0); // No meetings, reset to current week
+  //     return;
+  //   }
 
-    return { startDate: weekStart, endDate: weekEnd };
-  }, [roadmapData, timeWindowOffset]);
+  //   let earliestMeetingDate = null;
+  //   roadmapData?.forEach((user) => {
+  //     (user.meetings || []).forEach((meeting) => {
+  //       const meetingDate = parseDate(meeting.date);
+  //       if (!earliestMeetingDate || meetingDate < earliestMeetingDate) {
+  //         earliestMeetingDate = meetingDate;
+  //       }
+  //     });
+  //   });
+
+  //   if (!earliestMeetingDate) {
+  //     setTimeWindowOffset(0); // No meetings, reset to current week
+  //     return;
+  //   }
+
+  //   // Calculate the week difference between today and the earliest meeting
+  //   const today = new Date();
+  //   today.setHours(0, 0, 0, 0);
+  //   const earliestWeekStart = new Date(earliestMeetingDate);
+  //   earliestWeekStart.setDate(
+  //     earliestMeetingDate.getDate() - earliestMeetingDate.getDay()
+  //   );
+  //   earliestWeekStart.setHours(0, 0, 0, 0);
+  //   const todayWeekStart = new Date(today);
+  //   todayWeekStart.setDate(today.getDate() - today.getDay());
+  //   todayWeekStart.setHours(0, 0, 0, 0);
+
+  //   const diffTime = todayWeekStart - earliestWeekStart;
+  //   const diffWeeks = Math.round(diffTime / (7 * 24 * 60 * 60 * 1000));
+  //   setTimeWindowOffset(diffWeeks);
+  // }, [roadmapData]);
 
   const handleReset = useCallback(() => {
-    if (!Array.isArray(roadmapData) || roadmapData.length === 0) {
-      setTimeWindowOffset(0); // No meetings, reset to current week
-      return;
-    }
-
-    let earliestMeetingDate = null;
-    roadmapData?.forEach((user) => {
-      (user.meetings || []).forEach((meeting) => {
-        const meetingDate = parseDate(meeting.date);
-        if (!earliestMeetingDate || meetingDate < earliestMeetingDate) {
-          earliestMeetingDate = meetingDate;
-        }
-      });
-    });
-
-    if (!earliestMeetingDate) {
-      setTimeWindowOffset(0); // No meetings, reset to current week
-      return;
-    }
-
-    // Calculate the week difference between today and the earliest meeting
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const earliestWeekStart = new Date(earliestMeetingDate);
-    earliestWeekStart.setDate(
-      earliestMeetingDate.getDate() - earliestMeetingDate.getDay()
-    );
-    earliestWeekStart.setHours(0, 0, 0, 0);
-    const todayWeekStart = new Date(today);
-    todayWeekStart.setDate(today.getDate() - today.getDay());
-    todayWeekStart.setHours(0, 0, 0, 0);
-
-    const diffTime = todayWeekStart - earliestWeekStart;
-    const diffWeeks = Math.round(diffTime / (7 * 24 * 60 * 60 * 1000));
-    setTimeWindowOffset(diffWeeks);
-  }, [roadmapData]);
+  // Jab calendar hamesha aaj ki date se hi shuru ho raha hai,
+  // toh reset ka matlab hai offset ko wapas 0 (current week) par le aana.
+  setTimeWindowOffset(0);
+}, []); // Dependency array ab bilkul khali ho jayega
 
   const [progress, setProgress] = useState(0); // State for progress
   const [showProgress, setShowProgress] = useState(false); // State to control progress bar visibility
@@ -783,6 +807,27 @@ const navigate = useNavigate();
   }, [id]);
 
   const [activeTab, setActiveTab] = useState("Schedule monitoring");
+  const [userData, setUserData] = useState(null);
+
+  const fetchUserDetail = async () => {
+    try {
+      const resp = await axios.get(
+        `${API_BASE_URL}/users/${CookieService.get("user_id")}`,
+        {
+          headers: { Authorization: `Bearer ${CookieService.get("token")}` },
+        },
+      );
+      if (resp.status === 200) {
+        setUserData(resp.data.data);
+      }
+    } catch (e) {
+      console.error("Error fetching user details in mission tabs:", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchUserDetail();
+  }, []);
 
   useEffect(() => {
     const savedTab =
@@ -803,6 +848,66 @@ const navigate = useNavigate();
   const meetingsCount = meetings?.length;
   const participantsCount = participants?.length;
   const filesCount = files?.length;
+
+  const mType = destination?.mission_types || destination?.mission_type;
+  
+  const isFeatureEnabled = (mType, keysArray) => {
+    if (!mType) return true;
+    let val = undefined;
+    for (const key of keysArray) {
+      if (mType[key] !== undefined) {
+        val = mType[key];
+        break;
+      }
+    }
+    if (val === null || val === undefined) return true;
+    return val === 1 || val === true || val === "true" || val === "1";
+  };
+
+  const showSuiviPlanning = isFeatureEnabled(mType, ["schedule_monitoring", "planning_tracking", "suivi_planning"]);
+  const showSuiviBudget = isFeatureEnabled(mType, ["budget_monitoring", "budget_tracking", "suivi_budget"]);
+  const showSuiviAction = isFeatureEnabled(mType, ["actions_monitoring", "action_tracking", "suivi_action"]);
+  const showSuiviCharge = isFeatureEnabled(mType, ["workload_monitoring", "workload_tracking", "suivi_charge"]);
+  const showCasting = isFeatureEnabled(mType, ["casting"]);
+  const showFile = isFeatureEnabled(mType, ["file"]);
+  const showFacture = isFeatureEnabled(mType, ["invoice", "facture"]);
+  const showDiscussion = isFeatureEnabled(mType, ["discussion"]);
+
+  useEffect(() => {
+    if (!destination) return;
+    const isTabVisible = (tabName) => {
+      switch (tabName) {
+        case "Schedule monitoring": return showSuiviPlanning;
+        case "Suivi des actions": return showSuiviAction;
+        case "Budget": return showSuiviBudget && participants?.length > 0;
+        case "Participants": return showCasting && participants?.length > 0;
+        case "My working days": return showSuiviCharge && participants?.length > 0;
+        case "Files": return showFile && participants?.length > 0;
+        case "Facturation Tab": return showFacture;
+        case "Discussion": return showDiscussion;
+        case "Mission History": return true;
+        default: return true;
+      }
+    };
+
+    if (!isTabVisible(activeTab)) {
+      const availableTabs = [
+        { name: "Schedule monitoring", visible: showSuiviPlanning },
+        { name: "Suivi des actions", visible: showSuiviAction },
+        { name: "Budget", visible: showSuiviBudget && participants?.length > 0 },
+        { name: "Participants", visible: showCasting && participants?.length > 0 },
+        { name: "My working days", visible: showSuiviCharge && participants?.length > 0 },
+        { name: "Files", visible: showFile && participants?.length > 0 },
+        { name: "Facturation Tab", visible: showFacture },
+        { name: "Discussion", visible: showDiscussion },
+        { name: "Mission History", visible: true },
+      ];
+      const fallbackTab = availableTabs.find(t => t.visible);
+      if (fallbackTab) {
+        setActiveTab(fallbackTab.name);
+      }
+    }
+  }, [destination, participants, activeTab, showSuiviPlanning, showSuiviBudget, showSuiviAction, showSuiviCharge, showCasting, showFile, showFacture, showDiscussion]);
 
   // Determine if there is only one meeting and it is in draft
   const isSingleDraftMeeting =
@@ -1343,6 +1448,37 @@ const navigate = useNavigate();
                       </span>
                     </div>
 
+                    {/* Workload Monitoring */}
+                    <div className="d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-1 gap-sm-2 mb-3">
+                      <span
+                        className="label-text"
+                        style={{ minWidth: "200px", color: "#8590a3" }}
+                      >
+                        {t("suivi_charge_travail")}:
+                      </span>
+                      <span className="fw-bold value-text">
+                        {destination?.user_schedule?.working_days && destination.user_schedule.working_days.length > 0
+                          ? t("yes") || "Oui"
+                          : t("no") || "Non"}
+                      </span>
+                    </div>
+
+                    {destination?.user_schedule?.working_days && destination.user_schedule.working_days.length > 0 && (
+                      <div className="d-flex flex-column gap-2 mb-4">
+                        <div className="d-flex flex-wrap gap-2">
+                          {destination.user_schedule.working_days.map((wd) => (
+                            <span
+                              key={wd.id || wd.day}
+                              className="badge bg-light text-dark border px-3 py-2"
+                              style={{ fontSize: "0.85rem", fontWeight: "normal" }}
+                            >
+                              <strong>{t(wd.day) || wd.day}</strong>: {wd.start_time?.slice(0, 5)} - {wd.end_time?.slice(0, 5)}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Linked Missions */}
                     {destination?.all_linked &&
                       destination.all_linked.length > 0 && (
@@ -1682,36 +1818,38 @@ const navigate = useNavigate();
                             className="w-100 mb-2"
                             style={{ height: '45px' }}
                             options={[
-                              { 
+                              ...(showSuiviPlanning ? [{ 
                                 value: "Schedule monitoring", 
                                 label: <><FaRegCalendarDays className="me-2" /> {t("destination.destinationToMeeting.Schedule monitoring")}</> 
-                              },
-                              { 
+                              }] : []),
+                              ...(showSuiviAction ? [{ 
                                 value: "Suivi des actions", 
                                 label: <><FaList className="me-2" /> {t("Suivi des actions")}</> 
-                              },
-                              ...(participants?.length > 0 ? [
-                                { 
-                                  value: "Budget", 
-                                  label: <><FaMoneyBillWave className="me-2" /> {t("destination.destinationToMeeting.budgetMonitor")}</> 
-                                },
-                                { 
-                                  value: "Participants", 
-                                  label: <><FaUsers className="me-2" /> {t("destination.destinationToMeeting.participants")}</> 
-                                },
-                                { 
-                                  value: "Files", 
-                                  label: <><FaFolderOpen className="me-2" /> {t("destination.destinationToMeeting.files")}</> 
-                                }
-                              ] : []),
-                              { 
+                              }] : []),
+                              ...(showSuiviBudget && participants?.length > 0 ? [{ 
+                                value: "Budget", 
+                                label: <><FaMoneyBillWave className="me-2" /> {t("destination.destinationToMeeting.budgetMonitor")}</> 
+                              }] : []),
+                              ...(showCasting && participants?.length > 0 ? [{ 
+                                value: "Participants", 
+                                label: <><FaUsers className="me-2" /> {t("destination.destinationToMeeting.participants")}</> 
+                              }] : []),
+                              ...(showFile && participants?.length > 0 ? [{ 
+                                value: "Files", 
+                                label: <><FaFolderOpen className="me-2" /> {t("destination.destinationToMeeting.files")}</> 
+                              }] : []),
+                              ...(showFacture ? [{ 
                                 value: "Facturation Tab", 
                                 label: <><FaFileInvoiceDollar className="me-2" /> {t("destination.destinationToMeeting.Facturation Tab")}</> 
-                              },
-                              { 
+                              }] : []),
+                              ...(showSuiviCharge ? [{ 
                                 value: "My working days", 
                                 label: <><FaClock className="me-2" /> {t("destination.destinationToMeeting.My working days")}</> 
-                              },
+                              }] : []),
+                              // ...(showDiscussion ? [{ 
+                              //   value: "Discussion", 
+                              //   label: <><FaComments className="me-2" /> {t("meeting.newMeeting.labels.discussion") || "Discussion"}</> 
+                              // }] : []),
                               {
                                 value: "Mission History",
                                 label: <><FaFolderOpen className="me-2" /> {t("Mission History")}</>
@@ -1720,147 +1858,176 @@ const navigate = useNavigate();
                           />
                         ) : (
                           <>
-                            <button
-                              className={`tab ${activeTab === "Schedule monitoring" ? "active" : ""}`}
-                              onClick={() => {
-                                setActiveTab("Schedule monitoring");
-                                CookieService.set("missionTab", "Schedule monitoring");
-                              }}
-                              style={{ borderRadius: "0px" }}
-                            >
-                              <FaRegCalendarDays className="me-2" />
-                              <span className="d-none d-sm-inline">
-                                {t("destination.destinationToMeeting.Schedule monitoring")}
-                              </span>
-                              <span className={activeTab === "Schedule monitoring" ? "future" : "draft"}>
-                                {meetingsCount}
-                              </span>
-                            </button>
+                            {showSuiviPlanning && (
+                              <button
+                                className={`tab ${activeTab === "Schedule monitoring" ? "active" : ""}`}
+                                onClick={() => {
+                                  setActiveTab("Schedule monitoring");
+                                  CookieService.set("missionTab", "Schedule monitoring");
+                                }}
+                                style={{ borderRadius: "0px" }}
+                              >
+                                <FaRegCalendarDays className="me-2" />
+                                <span className="d-none d-sm-inline">
+                                  {t("destination.destinationToMeeting.Schedule monitoring")}
+                                </span>
+                                <span className={activeTab === "Schedule monitoring" ? "future" : "draft"}>
+                                  {meetingsCount}
+                                </span>
+                              </button>
+                            )}
 
-                            <button
-                              className={`tab ${activeTab === "Suivi des actions" ? "active" : ""}`}
-                              onClick={() => {
-                                setActiveTab("Suivi des actions");
-                                CookieService.set("missionTab", "Suivi des actions");
-                              }}
-                              style={{ borderRadius: "0px" }}
-                            >
-                              <FaList className="me-2" />
-                              <span className="d-none d-sm-inline">{t("Suivi des actions")}</span>
-                            </button>
+                            {showSuiviAction && (
+                              <button
+                                className={`tab ${activeTab === "Suivi des actions" ? "active" : ""}`}
+                                onClick={() => {
+                                  setActiveTab("Suivi des actions");
+                                  CookieService.set("missionTab", "Suivi des actions");
+                                }}
+                                style={{ borderRadius: "0px" }}
+                              >
+                                <FaList className="me-2" />
+                                <span className="d-none d-sm-inline">{t("Suivi des actions")}</span>
+                              </button>
+                            )}
 
                             {participants?.length > 0 && (
                               <>
-                                <button
-                                  className={`tab ${activeTab === "Budget" ? "active" : ""}`}
-                                  onClick={() => {
-                                    setActiveTab("Budget");
-                                    CookieService.set("missionTab", "Budget");
-                                  }}
-                                  style={{ borderRadius: "0px" }}
-                                >
-                                  <FaMoneyBillWave className="me-2" />
-                                  <span className="d-none d-sm-inline">
-                                    {t("destination.destinationToMeeting.budgetMonitor")}
-                                  </span>
-                                </button>
+                                {showSuiviBudget && (
+                                  <button
+                                    className={`tab ${activeTab === "Budget" ? "active" : ""}`}
+                                    onClick={() => {
+                                      setActiveTab("Budget");
+                                      CookieService.set("missionTab", "Budget");
+                                    }}
+                                    style={{ borderRadius: "0px" }}
+                                  >
+                                    <FaMoneyBillWave className="me-2" />
+                                    <span className="d-none d-sm-inline">
+                                      {t("destination.destinationToMeeting.budgetMonitor")}
+                                    </span>
+                                  </button>
+                                )}
 
-                                <button
-                                  className={`tab ${activeTab === "Participants" ? "active" : ""}`}
-                                  onClick={() => {
-                                    setActiveTab("Participants");
-                                    CookieService.set("missionTab", "Participants");
-                                  }}
-                                  style={{ borderRadius: "0px" }}
-                                >
-                                  <FaUsers className="me-2" />
-                                  <span className="d-none d-sm-inline">
-                                    {t("destination.destinationToMeeting.participants")}
-                                  </span>
-                                  <span className={activeTab === "Participants" ? "future" : "draft"}>
-                                    {participantsCount}
-                                  </span>
-                                </button>
+                                {showCasting && (
+                                  <button
+                                    className={`tab ${activeTab === "Participants" ? "active" : ""}`}
+                                    onClick={() => {
+                                      setActiveTab("Participants");
+                                      CookieService.set("missionTab", "Participants");
+                                    }}
+                                    style={{ borderRadius: "0px" }}
+                                  >
+                                    <FaUsers className="me-2" />
+                                    <span className="d-none d-sm-inline">
+                                      {t("destination.destinationToMeeting.participants")}
+                                    </span>
+                                    <span className={activeTab === "Participants" ? "future" : "draft"}>
+                                      {participantsCount}
+                                    </span>
+                                  </button>
+                                )}
                                 
-                                <Tooltip
-                                title={`${t(
-                                  "destination.destinationToMeeting.My working days"
-                                )}: ${
-                                  destination?.mission_types?.title ||
-                                  t(
-                                    `destinationTypes.${destination?.destination_type}`
-                                  )
-                                } ${destination?.destination_name}`}
-                                placement="bottom"
-                              >
-                                <button
-                                  className={`tab ${
-                                    activeTab === "My working days"
-                                      ? "active"
-                                      : ""
-                                  }`}
-                                  onClick={() => {
-                                    setActiveTab("My working days");
-                                    sessionStorage.setItem(
-                                      "missionTab",
-                                      "My working days"
-                                    );
-                                  }}
-                                  style={{
-                                    whiteSpace: "nowrap",
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    maxWidth: "200px", // Adjust based on your layout
-                                    textAlign: "left",
-                                    display: "inline-block",
-                                    borderRadius: "0px",
-                                  }}
-                                >
-                                  {t(
-                                    "destination.destinationToMeeting.My working days"
-                                  )}
-                                  :{" "}
-                                  {destination?.mission_types?.title ||
-                                    t(
-                                      `destinationTypes.${destination?.destination_type}`
-                                    )}{" "}
-                                  {destination?.destination_name}
-                                </button>
-                              </Tooltip>
+                                {showSuiviCharge && (
+                                  <Tooltip
+                                    title={`${t(
+                                      "destination.destinationToMeeting.My working days"
+                                    )}: ${
+                                      destination?.mission_types?.title ||
+                                      t(
+                                        `destinationTypes.${destination?.destination_type}`
+                                      )
+                                    } ${destination?.destination_name}`}
+                                    placement="bottom"
+                                  >
+                                    <button
+                                      className={`tab ${
+                                        activeTab === "My working days"
+                                          ? "active"
+                                          : ""
+                                      }`}
+                                      onClick={() => {
+                                        setActiveTab("My working days");
+                                        sessionStorage.setItem(
+                                          "missionTab",
+                                          "My working days"
+                                        );
+                                      }}
+                                      style={{
+                                        whiteSpace: "nowrap",
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        maxWidth: "200px",
+                                        textAlign: "left",
+                                        display: "inline-block",
+                                        borderRadius: "0px",
+                                      }}
+                                    >
+                                      {t(
+                                        "destination.destinationToMeeting.My working days"
+                                      )}
+                                      :{" "}
+                                      {destination?.mission_types?.title ||
+                                        t(
+                                          `destinationTypes.${destination?.destination_type}`
+                                        )}{" "}
+                                      {destination?.destination_name}
+                                    </button>
+                                  </Tooltip>
+                                )}
 
-
-                                <button
-                                  className={`tab ${activeTab === "Files" ? "active" : ""}`}
-                                  onClick={() => {
-                                    setActiveTab("Files");
-                                    CookieService.set("missionTab", "Files");
-                                  }}
-                                  style={{ borderRadius: "0px" }}
-                                >
-                                  <FaFolderOpen className="me-2" />
-                                  <span className="d-none d-sm-inline">
-                                    {t("destination.destinationToMeeting.files")}
-                                  </span>
-                                  <span className={activeTab === "Files" ? "future" : "draft"}>
-                                    {filesCount}
-                                  </span>
-                                </button>
+                                {showFile && (
+                                  <button
+                                    className={`tab ${activeTab === "Files" ? "active" : ""}`}
+                                    onClick={() => {
+                                      setActiveTab("Files");
+                                      CookieService.set("missionTab", "Files");
+                                    }}
+                                    style={{ borderRadius: "0px" }}
+                                  >
+                                    <FaFolderOpen className="me-2" />
+                                    <span className="d-none d-sm-inline">
+                                      {t("destination.destinationToMeeting.files")}
+                                    </span>
+                                    <span className={activeTab === "Files" ? "future" : "draft"}>
+                                      {filesCount}
+                                    </span>
+                                  </button>
+                                )}
                               </>
                             )}
 
-                            <button
-                              className={`tab ${activeTab === "Facturation Tab" ? "active" : ""}`}
-                              onClick={() => {
-                                setActiveTab("Facturation Tab");
-                                CookieService.set("missionTab", "Facturation Tab");
-                              }}
-                              style={{ borderRadius: "0px" }}
-                            >
-                              <FaFileInvoiceDollar className="me-2" />
-                              <span className="d-none d-sm-inline">
-                                {t("destination.destinationToMeeting.Facturation Tab")}
-                              </span>
-                            </button>
+                            {showFacture && (
+                              <button
+                                className={`tab ${activeTab === "Facturation Tab" ? "active" : ""}`}
+                                onClick={() => {
+                                  setActiveTab("Facturation Tab");
+                                  CookieService.set("missionTab", "Facturation Tab");
+                                }}
+                                style={{ borderRadius: "0px" }}
+                              >
+                                <FaFileInvoiceDollar className="me-2" />
+                                <span className="d-none d-sm-inline">
+                                  {t("destination.destinationToMeeting.Facturation Tab")}
+                                </span>
+                              </button>
+                            )}
+
+                            {/* {showDiscussion && (
+                              <button
+                                className={`tab ${activeTab === "Discussion" ? "active" : ""}`}
+                                onClick={() => {
+                                  setActiveTab("Discussion");
+                                  CookieService.set("missionTab", "Discussion");
+                                }}
+                                style={{ borderRadius: "0px" }}
+                              >
+                                <FaComments className="me-2" />
+                                <span className="d-none d-sm-inline">
+                                  {t("meeting.newMeeting.labels.discussion") || "Discussion"}
+                                </span>
+                              </button>
+                            )} */}
 
                             <button
                               className={`tab ${activeTab === "Mission History" ? "active" : ""}`}
@@ -1973,9 +2140,29 @@ const navigate = useNavigate();
                     diffDays={diffDays}
                     showProgress={showMomentProgress}
                     progress={momentProgress}
+                    isReportView={false}
+
                   />
                 </div>
               )}
+              {/* {activeTab === "Discussion" && (
+                <div className="invite" style={{ height: "600px", overflow: "hidden" }}>
+                  <DiscussionChat
+                    meetingId={meetings?.length > 0 ? meetings[0].id : null}
+                    meetingsData={meetings}
+                    isOutlook={false}
+                    userData={userData}
+                    onMeetingsUpdate={(updatedMeetings) => {
+                      setMeetings((prev) =>
+                        prev.map((m) => {
+                          const upd = updatedMeetings.find((n) => n.id === m.id);
+                          return upd ? { ...m, ...upd } : m;
+                        })
+                      );
+                    }}
+                  />
+                </div>
+              )} */}
               {activeTab === "Mission History" && (
                 <div className="invite">
                   <MissionHistoryTab destinationId={id} />
@@ -2140,6 +2327,9 @@ const navigate = useNavigate();
                       showProgress={showMomentProgress}
                       progress={momentProgress}
                       view={view}
+                      isReportView={false}
+
+
                     />
                   ) : (
                     <Moments
@@ -2152,6 +2342,8 @@ const navigate = useNavigate();
                       showProgress={showMomentProgress}
                       progress={momentProgress}
                       view={view}
+                      isReportView={false}
+
                     />
                   )}
                 </div>

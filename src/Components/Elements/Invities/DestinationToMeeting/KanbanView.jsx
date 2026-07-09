@@ -28,6 +28,9 @@ const KanbanView = ({
   Progress,
   isDeadlinePassed,
   diffDays,
+  isReportView,
+  handleChangeMeetings,
+
 }) => {
   const [t] = useTranslation("global");
   const { open, handleShow, handleCloseModal, getMeeting, setCheckId } =
@@ -121,7 +124,10 @@ const KanbanView = ({
     await getMeeting(item.id);
   };
   const handleClick = (item, index) => {
-    if (item?.status === "closed" || item?.status === "abort") {
+    if (isReportView) {
+      // navigate(`/destination/${item?.unique_id}/${item?.id}`);
+      handleChangeMeetings(item);
+        } else if (item?.status === "closed" || item?.status === "abort") {
       navigate(`/present/invite/${item?.id}`);
     } else if (item?.status === "draft") {
       //Open meeting modal

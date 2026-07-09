@@ -10432,6 +10432,7 @@ viewer-toolbar {
     margin-top: 6rem;
   }
 
+
   .gradient-header {
     height: 350px;
     width: 100%;
@@ -20461,6 +20462,20 @@ input[type="range"] {
     .red,
     .yellow{
       display: none;
+    }
+  }
+}
+
+/* Specific override for ProfileInvitePage banner fallback gradient to prevent layout breaks */
+.profile-link {
+  .banner {
+    .gradient-header {
+      position: absolute !important;
+      inset: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      z-index: 0 !important;
+      background: none !important; /* SVG provides the background */
     }
   }
 }

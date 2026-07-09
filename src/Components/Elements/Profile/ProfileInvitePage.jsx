@@ -792,7 +792,7 @@ const ProfileInvitePage = () => {
                       <g filter="url(#filter0_f_902_7997)">
                         <rect
                           width="100%"
-                          height="271"
+                          height="100%"
                           fill="url(#paint0_linear_902_7997)"
                         />
                       </g>

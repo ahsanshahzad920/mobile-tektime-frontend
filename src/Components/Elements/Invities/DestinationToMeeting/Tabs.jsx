@@ -2315,6 +2315,8 @@ const navigate = useNavigate();
                       defaultView={defaultAgendaView}
                       showProgress={showMomentProgress}
                       progress={momentProgress}
+                      minDate={destination?.meeting_start_date}
+                      maxDate={destination?.meeting_end_date}
                     />
                   ) : view === "card" ? (
                     <Moments
@@ -2412,6 +2414,8 @@ const navigate = useNavigate();
                           meetings={meetings}
                           from="tektime"
                           defaultView={defaultAgendaView}
+                          minDate={destination?.meeting_start_date}
+                          maxDate={destination?.meeting_end_date}
                         />
                       )}
                     </>

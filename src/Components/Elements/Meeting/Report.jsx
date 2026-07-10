@@ -6952,6 +6952,8 @@ const Report = () => {
                                   handleChangeMeetings={handleChangeMeetings}
                                   from="report"
                                   defaultView={defaultAgendaView}
+                                  minDate={destinationDate?.meeting_start_date}
+                                  maxDate={destinationDate?.meeting_end_date}
                                 />
                               </>
                             ) : (

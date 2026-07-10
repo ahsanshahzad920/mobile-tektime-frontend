@@ -126,6 +126,36 @@ const CustomAgendaHeader = ({ label }) => {
   return null;
 };
 
+const clampDate = (date, minD, maxD) => {
+  if (!minD || !maxD) return date;
+  const startLimit = moment(minD).startOf("day");
+  const endLimit = moment(maxD).endOf("day");
+  const current = moment(date);
+
+  if (current.isBefore(startLimit)) {
+    return startLimit.toDate();
+  }
+  if (current.isAfter(endLimit)) {
+    return endLimit.toDate();
+  }
+  return date;
+};
+
+const getInitialView = (defaultView) => {
+  switch (defaultView) {
+    case "day":
+      return Views.DAY;
+    case "week":
+      return Views.WEEK;
+    case "month":
+      return Views.MONTH;
+    case "agenda":
+      return Views.AGENDA;
+    default:
+      return Views.WEEK;
+  }
+};
+
 const ReactCalendar = ({
   meetings,
   from,
@@ -133,12 +163,19 @@ const ReactCalendar = ({
   defaultView,
   progress = 0,
   showProgress = false,
+  minDate,
+  maxDate,
 }) => {
   const { open, handleShow, setMeeting, handleCloseModal } = useFormContext();
   const [t] = useTranslation("global");
   const navigate = useNavigate();
 
   console.log("defaultView", defaultView);
+
+  const [currentView, setCurrentView] = useState(getInitialView(defaultView));
+  const { language } = useDraftMeetings();
+  const [earliestHour, setEarliestHour] = useState(9);
+  const [latestHour, setLatestHour] = useState(17);
 
   const [myEventsList, setMyEventsList] = useState([]);
   const [overlappingSlots, setOverlappingSlots] = useState(new Set());
@@ -253,46 +290,137 @@ const ReactCalendar = ({
     });
   };
 
-  // Fixed default view handling
-  const getInitialView = () => {
-    switch (defaultView) {
-      case "day":
-        return Views.DAY;
-      case "week":
-        return Views.WEEK;
-      case "month":
-        return Views.MONTH;
-      case "agenda":
-        return Views.AGENDA;
-      default:
-        return Views.WEEK;
+  const agendaLength = useMemo(() => {
+    if (minDate && maxDate) {
+      const start = moment(minDate).startOf("day");
+      const end = moment(maxDate).endOf("day");
+      const diffDays = end.diff(start, "days") + 1;
+      return diffDays > 0 ? diffDays : 30;
     }
-  };
+    return 365;
+  }, [minDate, maxDate]);
 
   // Fixed: Handle defaultView changes properly and reset date to today
   useEffect(() => {
     if (defaultView) {
-      const newView = getInitialView();
+      const newView = getInitialView(defaultView);
       setCurrentView(newView);
 
       // Reset the start date to today's date based on the view
       const today = new Date();
+      let targetDate = today;
+
+      if (minDate && maxDate) {
+        const startLimit = moment(minDate).startOf("day");
+        const endLimit = moment(maxDate).endOf("day");
+        if (newView === Views.AGENDA) {
+          targetDate = startLimit.toDate();
+        } else {
+          if (moment(today).isBefore(startLimit)) {
+            targetDate = startLimit.toDate();
+          } else if (moment(today).isAfter(endLimit)) {
+            targetDate = endLimit.toDate();
+          }
+        }
+      }
+
       if (newView === Views.DAY) {
-        setCurrentStartDate(moment(today).startOf("day").toDate());
+        setCurrentStartDate(moment(targetDate).startOf("day").toDate());
       } else if (newView === Views.WEEK) {
-        setCurrentStartDate(moment(today).startOf("week").toDate());
+        setCurrentStartDate(moment(targetDate).startOf("week").toDate());
       } else if (newView === Views.MONTH) {
-        setCurrentStartDate(moment(today).startOf("month").toDate());
+        setCurrentStartDate(moment(targetDate).startOf("month").toDate());
       } else {
-        setCurrentStartDate(today);
+        setCurrentStartDate(targetDate);
       }
     }
-  }, [defaultView]);
+  }, [defaultView, minDate, maxDate]);
 
-  const [currentView, setCurrentView] = useState(getInitialView());
-  const { language } = useDraftMeetings();
-  const [earliestHour, setEarliestHour] = useState(9);
-  const [latestHour, setLatestHour] = useState(17);
+  // Set initial currentStartDate when minDate/maxDate become available or if currentStartDate goes out of bounds
+  useEffect(() => {
+    if (minDate && maxDate) {
+      const startLimit = moment(minDate).startOf("day");
+      const endLimit = moment(maxDate).endOf("day");
+      const current = moment(currentStartDate);
+
+      if (current.isBefore(startLimit) || current.isAfter(endLimit)) {
+        let targetDate = new Date();
+        if (moment(targetDate).isBefore(startLimit)) {
+          targetDate = startLimit.toDate();
+        } else if (moment(targetDate).isAfter(endLimit)) {
+          targetDate = endLimit.toDate();
+        }
+
+        if (currentView === Views.WEEK) {
+          setCurrentStartDate(moment(targetDate).startOf("week").toDate());
+        } else if (currentView === Views.MONTH) {
+          setCurrentStartDate(moment(targetDate).startOf("month").toDate());
+        } else if (currentView === Views.DAY) {
+          setCurrentStartDate(moment(targetDate).startOf("day").toDate());
+        } else {
+          setCurrentStartDate(targetDate);
+        }
+      }
+    }
+  }, [minDate, maxDate, currentView]);
+
+  // Compute disabled states for toolbar buttons based on date constraints
+  const isPrevDisabled = useMemo(() => {
+    if (!minDate) return false;
+    const startLimit = moment(minDate).startOf("day");
+    const current = moment(currentStartDate);
+
+    if (currentView === Views.MONTH) {
+      const prevMonthEnd = current.clone().subtract(1, "month").endOf("month");
+      return prevMonthEnd.isBefore(startLimit);
+    } else if (currentView === Views.WEEK) {
+      const prevWeekEnd = current.clone().subtract(1, "week").endOf("week");
+      return prevWeekEnd.isBefore(startLimit);
+    } else {
+      const prevDay = current.clone().subtract(1, "day").startOf("day");
+      return prevDay.isBefore(startLimit);
+    }
+  }, [currentStartDate, currentView, minDate]);
+
+  const isNextDisabled = useMemo(() => {
+    if (!maxDate) return false;
+    const endLimit = moment(maxDate).endOf("day");
+    const current = moment(currentStartDate);
+
+    if (currentView === Views.MONTH) {
+      const nextMonthStart = current.clone().add(1, "month").startOf("month");
+      return nextMonthStart.isAfter(endLimit);
+    } else if (currentView === Views.WEEK) {
+      const nextWeekStart = current.clone().add(1, "week").startOf("week");
+      return nextWeekStart.isAfter(endLimit);
+    } else {
+      const nextDay = current.clone().add(1, "day").endOf("day");
+      return nextDay.isAfter(endLimit);
+    }
+  }, [currentStartDate, currentView, maxDate]);
+
+  const isTodayDisabled = useMemo(() => {
+    if (!minDate || !maxDate) return false;
+    const today = moment();
+    const startLimit = moment(minDate).startOf("day");
+    const endLimit = moment(maxDate).endOf("day");
+
+    let clampedToday = today;
+    if (today.isBefore(startLimit)) {
+      clampedToday = startLimit;
+    } else if (today.isAfter(endLimit)) {
+      clampedToday = endLimit;
+    }
+
+    const current = moment(currentStartDate);
+    if (currentView === Views.MONTH) {
+      return current.isSame(clampedToday, "month");
+    } else if (currentView === Views.WEEK) {
+      return current.isSame(clampedToday, "week");
+    } else {
+      return current.isSame(clampedToday, "day");
+    }
+  }, [currentStartDate, currentView, minDate, maxDate]);
 
   useEffect(() => {
     moment.locale(language);
@@ -360,21 +488,33 @@ const ReactCalendar = ({
       }
     } else {
       const currentDate = new Date();
-      const startOfWeek = new Date(currentDate);
-      startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
+      let targetDate = currentDate;
+
+      if (minDate && maxDate) {
+        const startLimit = moment(minDate).startOf("day");
+        const endLimit = moment(maxDate).endOf("day");
+        if (moment(currentDate).isBefore(startLimit)) {
+          targetDate = startLimit.toDate();
+        } else if (moment(currentDate).isAfter(endLimit)) {
+          targetDate = endLimit.toDate();
+        }
+      }
+
+      const startOfWeek = new Date(targetDate);
+      startOfWeek.setDate(targetDate.getDate() - targetDate.getDay());
       startOfWeek.setHours(0, 0, 0, 0);
 
-      const endOfWeek = new Date(currentDate);
-      endOfWeek.setDate(currentDate.getDate() - currentDate.getDay() + 6);
+      const endOfWeek = new Date(targetDate);
+      endOfWeek.setDate(targetDate.getDate() - targetDate.getDay() + 6);
       endOfWeek.setHours(23, 59, 59, 999);
 
-      setCurrentStartDate(currentDate);
+      setCurrentStartDate(targetDate);
       setMin(startOfWeek);
       setMax(endOfWeek);
       setMyEventsList([]);
       setOverlappingSlots(new Set());
     }
-  }, [meetings, currentView, defaultView]);
+  }, [meetings, currentView, defaultView, minDate, maxDate]);
 
   const minTime = useMemo(() => {
     const date = new Date();
@@ -618,18 +758,73 @@ const ReactCalendar = ({
     setCurrentView(view);
   };
 
+  // Custom navigation restrictor
+  const handleNavigate = (newDate, view) => {
+    if (!minDate || !maxDate) {
+      setCurrentStartDate(newDate);
+      return;
+    }
+
+    const startLimit = moment(minDate).startOf("day");
+    const endLimit = moment(maxDate).endOf("day");
+    const target = moment(newDate);
+    const currentViewToCheck = view || currentView;
+
+    let adjustedDate = newDate;
+
+    if (currentViewToCheck === Views.MONTH) {
+      const startOfProposedMonth = target.clone().startOf("month");
+      const endOfProposedMonth = target.clone().endOf("month");
+
+      if (endOfProposedMonth.isBefore(startLimit)) {
+        adjustedDate = startLimit.clone().startOf("month").toDate();
+      } else if (startOfProposedMonth.isAfter(endLimit)) {
+        adjustedDate = endLimit.clone().startOf("month").toDate();
+      }
+    } else if (currentViewToCheck === Views.WEEK) {
+      const startOfProposedWeek = target.clone().startOf("week");
+      const endOfProposedWeek = target.clone().endOf("week");
+
+      if (endOfProposedWeek.isBefore(startLimit)) {
+        adjustedDate = startLimit.clone().startOf("week").toDate();
+      } else if (startOfProposedWeek.isAfter(endLimit)) {
+        adjustedDate = endLimit.clone().startOf("week").toDate();
+      }
+    } else if (currentViewToCheck === Views.DAY || currentViewToCheck === Views.AGENDA) {
+      if (target.isBefore(startLimit)) {
+        adjustedDate = startLimit.toDate();
+      } else if (target.isAfter(endLimit)) {
+        adjustedDate = endLimit.toDate();
+      }
+    }
+
+    setCurrentStartDate(adjustedDate);
+  };
+
   // Fixed today button handler
   const handleNavigateToToday = () => {
     const today = new Date();
-    if (currentView === Views.WEEK) {
-      setCurrentStartDate(moment(today).startOf("week").toDate());
-    } else if (currentView === Views.MONTH) {
-      setCurrentStartDate(moment(today).startOf("month").toDate());
-    } else if (currentView === Views.DAY) {
-      setCurrentStartDate(moment(today).startOf("day").toDate());
-    } else if (currentView === Views.AGENDA) {
-      setCurrentStartDate(moment(today).toDate());
+    let proposedDate = today;
+
+    if (minDate && maxDate) {
+      const startLimit = moment(minDate).startOf("day");
+      const endLimit = moment(maxDate).endOf("day");
+      if (moment(today).isBefore(startLimit)) {
+        proposedDate = startLimit.toDate();
+      } else if (moment(today).isAfter(endLimit)) {
+        proposedDate = endLimit.toDate();
+      }
     }
+
+    if (currentView === Views.WEEK) {
+      proposedDate = moment(proposedDate).startOf("week").toDate();
+    } else if (currentView === Views.MONTH) {
+      proposedDate = moment(proposedDate).startOf("month").toDate();
+    } else if (currentView === Views.DAY) {
+      proposedDate = moment(proposedDate).startOf("day").toDate();
+    }
+
+    handleNavigate(proposedDate, currentView);
   };
 
   const handleSelectEvent = (event) => {
@@ -753,7 +948,8 @@ const ReactCalendar = ({
             doShowMoreDrillDown={false}
             onShowMore={(events, date) => {
               // Navigate explicitly to the exact clicked date in Day view
-              setCurrentStartDate(date);
+              const clamped = clampDate(date, minDate, maxDate);
+              setCurrentStartDate(clamped);
               setCurrentView(Views.DAY);
             }}
             allDaySlot={true}
@@ -783,6 +979,9 @@ const ReactCalendar = ({
                   view={currentView}
                   onView={handleViewChange}
                   onNavigateToToday={handleNavigateToToday}
+                  prevDisabled={isPrevDisabled}
+                  nextDisabled={isNextDisabled}
+                  todayDisabled={isTodayDisabled}
                 />
               ),
               eventWrapper: EventWrapper,
@@ -805,10 +1004,11 @@ const ReactCalendar = ({
               agendaTimeFormat: "HH:mm",
             }}
             date={currentStartDate}
-            onNavigate={(date) => setCurrentStartDate(date)}
+            onNavigate={handleNavigate}
             dayLayoutAlgorithm="no-overlap"
             min={minTime}
             max={maxTime}
+            length={agendaLength}
           />
         </div>
 

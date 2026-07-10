@@ -8,7 +8,10 @@ const ReactCalendarToolbar = ({
   onNavigate,
   onView,
   view,
-  onNavigateToToday, // NEW PROP
+  onNavigateToToday,
+  prevDisabled,
+  nextDisabled,
+  todayDisabled,
 }) => {
   const { t } = useTranslation("global");
 
@@ -43,15 +46,15 @@ const ReactCalendarToolbar = ({
           </ButtonGroup>
 
           <ButtonGroup>
-            <Button className="btn-nxt-pre" onClick={() => onNavigate("PREV")}>
+            <Button className="btn-nxt-pre" onClick={() => onNavigate("PREV")} disabled={prevDisabled}>
               {t("calendar.prev")}
             </Button>
 
-            <Button className="btn-nxt-pre" onClick={onNavigateToToday}>
+            <Button className="btn-nxt-pre" onClick={onNavigateToToday} disabled={todayDisabled}>
               {t("calendar.today")}
             </Button>
 
-            <Button className="btn-nxt-pre" onClick={() => onNavigate("NEXT")}>
+            <Button className="btn-nxt-pre" onClick={() => onNavigate("NEXT")} disabled={nextDisabled}>
               {t("calendar.next")}
             </Button>
           </ButtonGroup>

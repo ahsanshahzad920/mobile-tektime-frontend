@@ -9,7 +9,7 @@ const { Text, Title } = Typography;
 function DiscussionParticipant({ selectedMoment, isCollapsed }) {
   const [t] = useTranslation("global");
 
-  if (!selectedMoment?.user_with_participants?.length) {
+  if (!selectedMoment?.user_with_participants?.length && !selectedMoment?.participants?.length) {
     return (
       <div className="p-4 text-center text-muted">
         {isCollapsed ? "..." : "Aucun participant trouvé"}
@@ -17,7 +17,7 @@ function DiscussionParticipant({ selectedMoment, isCollapsed }) {
     );
   }
 
-  const uniqueParticipants = selectedMoment.user_with_participants.reduce((acc, current) => {
+  const uniqueParticipants = (selectedMoment?.user_with_participants || selectedMoment?.participants).reduce((acc, current) => {
     if (!acc.find((p) => p.email === current.email)) acc.push(current);
     return acc;
   }, []);

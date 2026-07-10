@@ -55,8 +55,8 @@ const ActiveEnterprises = ({ setActiveTab }) => {
     t("Entreprise.Activity area"),
     t("Entreprise.country name"),
     t("Entreprise.Number of renewals"),
-    t("Entreprise.Date of creation"),
-    // t("Entreprise.Start date"),
+    t("Entreprise.Number of renewals"),
+    t("Entreprise.Start date", "Date de début"),
     t("Entreprise.End date"),
     "Action",
   ];
@@ -280,116 +280,47 @@ const ActiveEnterprises = ({ setActiveTab }) => {
                                       {}
                                     </td>
                                     <td className="table-data enterprise-tabledata align-middle">
-                                      {
-                                        new Date(item?.created_at)
-                                          .toISOString()
-                                          .split("T")[0]
-                                      }
+                                      {(() => {
+                                          const subscriptions = item?.created_by?.active_subscription;
+                                          const latestSub = subscriptions && subscriptions.length > 0 
+                                              ? subscriptions[subscriptions.length - 1] 
+                                              : null;
+                                          
+                                          if (latestSub && latestSub.starts_at) {
+                                              return new Date(latestSub.starts_at).toLocaleDateString("fr-FR");
+                                          }
+                                          return new Date(item?.created_at).toLocaleDateString("fr-FR");
+                                      })()}
                                     </td>
-                                    {/* <td className="table-data">
-                                  {
-                                    new Date(item.contract?.created_at)
-                                      .toISOString()
-                                      .split("T")[0]
-                                  }
-                                </td> */}
                                     <td className="table-data enterprise-tabledata align-middle">
-                                      {item.contract?.payment_type ===
-                                        "Annuelle (12 mois)" && (
-                                        <>
-                                          {(() => {
-                                            let createdAt = new Date(
-                                              item.created_at
-                                            );
-                                            createdAt.setFullYear(
-                                              createdAt.getFullYear() + 1
-                                            );
-
-                                            let year = createdAt.getFullYear();
-                                            let month = String(
-                                              createdAt.getMonth() + 1
-                                            ).padStart(2, "0");
-                                            let day = String(
-                                              createdAt.getDate()
-                                            ).padStart(2, "0");
-
-                                            let formattedDate = `${year}-${month}-${day}`;
-                                            return formattedDate;
-                                          })()}
-                                        </>
-                                      )}
-                                      {item.contract?.payment_type ===
-                                        "Mensuelle (1 mois)" && (
-                                        <>
-                                          {(() => {
-                                            let createdAt = new Date(
-                                              item.created_at
-                                            );
-                                            createdAt.setMonth(
-                                              createdAt.getMonth() + 1
-                                            );
-
-                                            let year = createdAt.getFullYear();
-                                            let month = String(
-                                              createdAt.getMonth() + 1
-                                            ).padStart(2, "0");
-                                            let day = String(
-                                              createdAt.getDate()
-                                            ).padStart(2, "0");
-
-                                            let formattedDate = `${year}-${month}-${day}`;
-                                            return formattedDate;
-                                          })()}
-                                        </>
-                                      )}
-                                      {item.contract?.payment_type ===
-                                        "Trimestrielle (3 mois)" && (
-                                        <>
-                                          {(() => {
-                                            let createdAt = new Date(
-                                              item.created_at
-                                            );
-                                            createdAt.setMonth(
-                                              createdAt.getMonth() + 3
-                                            ); // Add 3 months
-
-                                            let year = createdAt.getFullYear();
-                                            let month = String(
-                                              createdAt.getMonth() + 1
-                                            ).padStart(2, "0");
-                                            let day = String(
-                                              createdAt.getDate()
-                                            ).padStart(2, "0");
-
-                                            let formattedDate = `${year}-${month}-${day}`;
-                                            return formattedDate;
-                                          })()}
-                                        </>
-                                      )}
-                                      {item.contract?.payment_type ===
-                                        "Semestrielle  (6 mois)" && (
-                                        <>
-                                          {(() => {
-                                            let createdAt = new Date(
-                                              item.created_at
-                                            );
-                                            createdAt.setMonth(
-                                              createdAt.getMonth() + 6
-                                            ); // Add 6 months
-
-                                            let year = createdAt.getFullYear();
-                                            let month = String(
-                                              createdAt.getMonth() + 1
-                                            ).padStart(2, "0");
-                                            let day = String(
-                                              createdAt.getDate()
-                                            ).padStart(2, "0");
-
-                                            let formattedDate = `${year}-${month}-${day}`;
-                                            return formattedDate;
-                                          })()}
-                                        </>
-                                      )}
+                                      {(() => {
+                                          const subscriptions = item?.created_by?.active_subscription;
+                                          const latestSub = subscriptions && subscriptions.length > 0 
+                                              ? subscriptions[subscriptions.length - 1] 
+                                              : null;
+                                              
+                                          if (latestSub && latestSub.ends_at && latestSub.ends_at !== latestSub.starts_at) {
+                                              return new Date(latestSub.ends_at).toLocaleDateString("fr-FR");
+                                          }
+                                          return getEndDate(latestSub?.starts_at || item?.created_at, item?.contract?.payment_type);
+                                      })()}
+                                      {(() => {
+                                          const subscriptions = item?.created_by?.active_subscription;
+                                          const trialSub = subscriptions && subscriptions.length > 0 
+                                              ? subscriptions.slice().reverse().find(s => s.status === 'trialing' || s.status === 'expired') // Check for any trial/expired trial
+                                              : null;
+                                          // Find specifically a subscription that has trialing status or a price of 0/is a trial
+                                          const actualTrial = subscriptions?.slice().reverse().find(s => s.status === 'trialing' || (s.status === 'expired' && s.stripe_subscription_id === null));
+                                          
+                                          if (actualTrial && actualTrial.ends_at) {
+                                              return (
+                                                  <div className="mt-1 text-danger fw-bold" style={{ fontSize: '0.85rem' }}>
+                                                      Fin d'essai : {new Date(actualTrial.ends_at).toLocaleDateString("fr-FR")}
+                                                  </div>
+                                              );
+                                          }
+                                          return null;
+                                      })()}
                                     </td>
                                     <td className="table-data d-flex align-items-center mt-2 align-middle">
                                       <IoEyeOutline
@@ -491,10 +422,18 @@ const ActiveEnterprises = ({ setActiveTab }) => {
                         const creatorName = `${item.created_by?.name || ""} ${
                           item.created_by?.last_name || ""
                         }`.trim();
-                        const endDate = getEndDate(
-                          item.created_at,
-                          item.contract?.payment_type
-                        );
+                        const subscriptions = item?.created_by?.active_subscription;
+                        const latestSub = subscriptions && subscriptions.length > 0 
+                            ? subscriptions[subscriptions.length - 1] 
+                            : null;
+                            
+                        const startDate = latestSub && latestSub.starts_at 
+                            ? new Date(latestSub.starts_at).toLocaleDateString("fr-FR")
+                            : new Date(item.created_at).toLocaleDateString("fr-FR");
+                            
+                        const endDate = latestSub && latestSub.ends_at && latestSub.ends_at !== latestSub.starts_at
+                            ? new Date(latestSub.ends_at).toLocaleDateString("fr-FR")
+                            : getEndDate(latestSub?.starts_at || item.created_at, item.contract?.payment_type);
 
                         return (
                           <div className="col-12 col-sm-6 col-md-4 col-lg-3 mb-4" key={item.id}>
@@ -603,13 +542,11 @@ const ActiveEnterprises = ({ setActiveTab }) => {
                                   </small>
                                 </div>
 
-                                {/* Creation Date */}
+                                {/* Start Date */}
                                 <div className="text-center mb-2">
                                   <small className="text-muted d-flex align-items-center justify-content-center">
                                     <FaCalendarAlt className="me-1" />
-                                    {new Date(
-                                      item.created_at
-                                    ).toLocaleDateString("fr-FR")}
+                                    {startDate}
                                   </small>
                                 </div>
 
@@ -620,6 +557,24 @@ const ActiveEnterprises = ({ setActiveTab }) => {
                                     {endDate}
                                   </small>
                                 </div>
+
+                                {/* Trial Date */}
+                                {(() => {
+                                  const subscriptions = item?.created_by?.active_subscription;
+                                  const actualTrial = subscriptions?.slice().reverse().find(s => s.status === 'trialing' || (s.status === 'expired' && s.stripe_subscription_id === null));
+                                  
+                                  if (actualTrial && actualTrial.ends_at) {
+                                      return (
+                                        <div className="text-center mb-3">
+                                          <small className="text-danger fw-bold d-flex align-items-center justify-content-center">
+                                            <FaCalendarAlt className="me-1" />
+                                            Fin d'essai : {new Date(actualTrial.ends_at).toLocaleDateString("fr-FR")}
+                                          </small>
+                                        </div>
+                                      );
+                                  }
+                                  return null;
+                                })()}
 
                                 {/* Action Buttons */}
                                 <div className="d-flex justify-content-center gap-2 mt-3">

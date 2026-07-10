@@ -1846,10 +1846,10 @@ const navigate = useNavigate();
                                 value: "My working days", 
                                 label: <><FaClock className="me-2" /> {t("destination.destinationToMeeting.My working days")}</> 
                               }] : []),
-                              // ...(showDiscussion ? [{ 
-                              //   value: "Discussion", 
-                              //   label: <><FaComments className="me-2" /> {t("meeting.newMeeting.labels.discussion") || "Discussion"}</> 
-                              // }] : []),
+                              ...(showDiscussion ? [{ 
+                                value: "Discussion", 
+                                label: <><FaComments className="me-2" /> {t("meeting.newMeeting.labels.discussion") || "Discussion"}</> 
+                              }] : []),
                               {
                                 value: "Mission History",
                                 label: <><FaFolderOpen className="me-2" /> {t("Mission History")}</>
@@ -2013,7 +2013,7 @@ const navigate = useNavigate();
                               </button>
                             )}
 
-                            {/* {showDiscussion && (
+                            {showDiscussion && (
                               <button
                                 className={`tab ${activeTab === "Discussion" ? "active" : ""}`}
                                 onClick={() => {
@@ -2027,7 +2027,7 @@ const navigate = useNavigate();
                                   {t("meeting.newMeeting.labels.discussion") || "Discussion"}
                                 </span>
                               </button>
-                            )} */}
+                            )}
 
                             <button
                               className={`tab ${activeTab === "Mission History" ? "active" : ""}`}
@@ -2145,7 +2145,7 @@ const navigate = useNavigate();
                   />
                 </div>
               )}
-              {/* {activeTab === "Discussion" && (
+              {activeTab === "Discussion" && (
                 <div className="invite" style={{ height: "600px", overflow: "hidden" }}>
                   <DiscussionChat
                     meetingId={meetings?.length > 0 ? meetings[0].id : null}
@@ -2162,7 +2162,7 @@ const navigate = useNavigate();
                     }}
                   />
                 </div>
-              )} */}
+              )}
               {activeTab === "Mission History" && (
                 <div className="invite">
                   <MissionHistoryTab destinationId={id} />

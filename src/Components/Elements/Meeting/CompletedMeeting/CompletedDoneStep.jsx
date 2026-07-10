@@ -1631,7 +1631,8 @@ function CompletedDoneStep() {
                 <div className="host">
                   {meeting?.type === "Newsletter" ||
                   meeting?.type === "Social Media Newsletter" ||
-                  meeting?.type === "AI Social Media Newsletter" ? (
+                  meeting?.type === "AI Social Media Newsletter" ||
+                  meeting?.type === "AI Instruction" ? (
                     <div className="row">
                       <div className="col-md-3">
                         <Card

@@ -27,6 +27,7 @@ import notificationSound from "./Media/notification.mp3";
 import AccessControl from "./Components/Elements/AccessControl";
 import CookieService from "./Components/Utils/CookieService";
 import { setupAxiosInterceptors } from "./Components/Utils/auth";
+import { subscribeToUser, unsubscribeFromUser } from "./Helpers/pusherHelper";
 
 // Lazy-loaded components to improve initial bundle size and page speed
 const Login = lazy(() => import("./Components/Elements/Login"));
@@ -90,6 +91,7 @@ const StripeSuccess = lazy(() => import("./Components/Elements/StripeSuccess"));
 const StripePaymentCompleted = lazy(() => import("./Components/Elements/StripePaymentCompleted"));
 const StripePaymentCancel = lazy(() => import("./Components/Elements/StripePaymentCancel"));
 const LinkedInCallback = lazy(() => import("./Pages/LinkedInCallback.jsx"));
+const SubscriptionExpiredPage = lazy(() => import("./Pages/SubscriptionExpiredPage"));
 
 i18next.init({
   interpolation: { escapevalue: false },
@@ -128,6 +130,7 @@ const publicRoutes = [
   "/stripe/cancel",
   "/stripe/refresh",
   "/auth/linkedin/callback",
+  "/subscription-expired",
 ];
 
 const privateRoutes = [
@@ -339,6 +342,10 @@ function App() {
     CookieService.set("logoutTime", logoutTime);
     setIsSignedIn(false);
     setRemoveLogo(false);
+    localStorage.removeItem("subscription_expired");
+    sessionStorage.removeItem("subscription_expired");
+    localStorage.removeItem("payment_url");
+    sessionStorage.removeItem("payment_url");
     CookieService.clear();
 
     // 3. Navigate to login RIGHT AWAY
@@ -401,6 +408,31 @@ function App() {
       navigate("/meeting");
     }
   }, [location.pathname, navigate]);
+
+  useEffect(() => {
+    if (!isSignedIn) return;
+
+    const userId = CookieService.get("user_id");
+    if (!userId) return;
+
+    const channel = subscribeToUser(userId, ({ type, data }) => {
+      if (type === "trial.expired") {
+        console.log("Pusher trial.expired event received via helper:", data);
+        const paymentUrl = data?.subscription?.stripe_payment_link || data?.payment_url || data?.stripe_payment_link || '';
+        sessionStorage.setItem("subscription_expired", "true");
+        localStorage.setItem("subscription_expired", "true");
+        if (paymentUrl) {
+          sessionStorage.setItem("payment_url", paymentUrl);
+          localStorage.setItem("payment_url", paymentUrl);
+        }
+        window.location.href = `/subscription-expired?payment_url=${encodeURIComponent(paymentUrl)}`;
+      }
+    });
+
+    return () => {
+      unsubscribeFromUser(userId);
+    };
+  }, [isSignedIn, navigate]);
   function refreshAccessToken() {
     const refreshToken = CookieService.get("refresh_token");
 
@@ -503,7 +535,6 @@ function App() {
         {/* <Route path="/" element={<Login onLogin={signin} />} /> */}
         <Route path="/" element={<Login onLogin={signin} />} />
         <Route path="/login" element={<Login onLogin={signin} />} />
-
         <Route
           path="/heroes/:nick_name/emissary/:referral_id"
           element={<ReferralLanding />}
@@ -518,6 +549,7 @@ function App() {
         <Route path="/stripe/completed" element={<StripePaymentCompleted />} />
         <Route path="/stripe/cancel" element={<StripePaymentCancel />} />
         <Route path="/stripe/refresh" element={<StripePaymentCancel />} />
+        <Route path="/subscription-expired" element={<SubscriptionExpiredPage />} />
         <Route
           path="/heroes/:nick_name"
           element={<ProfileInvitePage onLogout={signout} />}

@@ -151,12 +151,13 @@ const CreateUsers = ({ setActiveTab, }) => {
   const [enterprise, setEnterprise] = useState(null);
   console.log("enterprise", enterprise);
   useEffect(() => {
-    const sessionUser = JSON.parse(CookieService.get("user"));
-    if (preselectedTeam) {
+    const sessionUser = CookieService.get("user") ? JSON.parse(CookieService.get("user")) : null;
+    if (location.state?.preselectedEnterprise) {
+      setEnterprise(location.state.preselectedEnterprise);
+    } else if (preselectedTeam) {
       setEnterprise(preselectedTeam.enterprise);
-
-    }else{
-      setEnterprise(sessionUser.enterprise);
+    } else {
+      setEnterprise(sessionUser?.enterprise);
     }
   }, []);
 

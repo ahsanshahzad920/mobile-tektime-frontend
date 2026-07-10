@@ -12,18 +12,17 @@ const ReadContract = () => {
   const { id } = useParams();
   const [t] = useTranslation("global");
   const navigate = useNavigate();
-  const initialContractData = {
-    name: "",
-    start_date: "",
-    end_date: "",
-    no_of_licenses: "",
-    price: "",
-    currency: "",
-    payment_type: "",
-    type: "",
-    check_stripe: false,
 
-  };
+  const roleOptions = [
+    { emoji: "🧠", title: "Chef de projet / Product Owner", desc: "Je planifie, j'organise, je pilote.", value: "Project Manager / Product Owner" },
+    { emoji: "💼", title: "Chargé de relation client / Commercial", desc: "Je gère les clients, je prépare les rendez-vous, je suis les actions et je m’assure que tout avance côté client comme en interne.", value: "Customer Relations Officer / Sales Representative" },
+    { emoji: "🎯", title: "Manager / Responsable d'équipe", desc: "Je supervise les personnes, les objectifs, les résultats.", value: "Manager / Team Leader" },
+    { emoji: "💻", title: "Développeur / Contributeur opérationnel", desc: "Je veux de la clarté sur mes tâches, mon temps, mes priorités.", value: "Developer / Operational Contributor" },
+    { emoji: "🎓", title: "Formateur / Coach", desc: "J'organise des sessions, je produis du contenu, je suis des participants.", value: "Trainer / Coach" },
+    { emoji: "🛠️", title: "Consultant / Freelance", desc: "Je facture mon temps, j'enchaîne les missions, je veux aller à l'essentiel.", value: "Consultant / Freelance" },
+    { emoji: "🧪", title: "Autre / Explorateur", desc: "Je teste pour comprendre ce que TekTIME peut m'apporter.", value: "Other / Explorer" },
+  ];
+
   const [contractData, setContractData] = useState({
     name: "",
     start_date: "",
@@ -34,6 +33,9 @@ const ReadContract = () => {
     payment_type: "",
     type: "",
     check_stripe: false,
+    check_whatsapp: false,
+    roles: [],
+    trial_days: 0,
   });
 
   const [loading, setLoading] = useState(false);
@@ -46,7 +48,6 @@ const ReadContract = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (data) {
-          // console.log("dataaa", data?.data);
           setContractData({
             name: data?.data?.name,
             start_date: data?.data?.start_date,
@@ -63,11 +64,25 @@ const ReadContract = () => {
                   const parsed = JSON.parse(rawType);
                   if (Array.isArray(parsed)) return parsed;
                 } catch (e) { }
-                return rawType; // Return as string if not valid JSON array
+                return rawType; 
               }
               return "";
             })(),
             check_stripe: data?.data?.check_stripe === 1 || data?.data?.check_stripe === true,
+            check_whatsapp: data?.data?.check_whatsapp === 1 || data?.data?.check_whatsapp === true,
+            roles: (() => {
+              const rawRoles = data?.data?.roles;
+              if (Array.isArray(rawRoles)) return rawRoles;
+              if (typeof rawRoles === "string") {
+                try {
+                  const parsed = JSON.parse(rawRoles);
+                  if (Array.isArray(parsed)) return parsed;
+                } catch (e) {}
+                return [rawRoles];
+              }
+              return [];
+            })(),
+            trial_days: data?.data?.trial_days || 0,
           });
         }
       } catch (error) {
@@ -78,7 +93,7 @@ const ReadContract = () => {
     };
 
     getDataFromId();
-  }, [id]);
+  }, [id, t]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -112,7 +127,6 @@ const ReadContract = () => {
                     <input
                       type="text"
                       className="form-control"
-                      // placeholder={t("newContract.name")}
                       name="name"
                       value={contractData.name}
                       onChange={handleInputChange}
@@ -127,7 +141,6 @@ const ReadContract = () => {
                     <input
                       type="date"
                       className="form-control"
-                      //   placeholder="Nom du Contrat"
                       name="start_date"
                       value={contractData.start_date}
                       onChange={handleInputChange}
@@ -142,7 +155,6 @@ const ReadContract = () => {
                     <input
                       type="date"
                       className="form-control"
-                      //   placeholder="Nom du Contrat"
                       name="end_date"
                       value={contractData.end_date}
                       onChange={handleInputChange}
@@ -162,9 +174,6 @@ const ReadContract = () => {
                       readOnly
                       disabled
                     >
-                      {/* <option value="0" selected>
-                    Fréquence de paiement
-                  </option> */}
                       <option value="Mensuelle (1 mois)">
                         {" "}
                         Mensuelle (1 mois)
@@ -195,6 +204,30 @@ const ReadContract = () => {
                       readOnly
                     />
                   </div>
+
+                  <div className="mb-4">
+                    <label className="form-label">{t("profile.customizeRole") || "Roles"}</label>
+                    <div className="d-flex flex-wrap gap-2 mt-2">
+                      {Array.isArray(contractData.roles) && contractData.roles.length > 0 ? (
+                        contractData.roles.map((roleValue, index) => {
+                          const role = roleOptions.find((opt) => opt.value === roleValue);
+                          return (
+                            <div
+                              key={index}
+                              className="d-flex align-items-center gap-2 p-2 border rounded bg-light"
+                              style={{ fontSize: "0.85rem" }}
+                            >
+                              <span>{role ? role.emoji : ""}</span>
+                              <span style={{ fontWeight: "500" }}>{role ? role.title : roleValue}</span>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <span className="text-muted" style={{ fontSize: "0.9rem" }}>Aucun rôle sélectionné</span>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="mb-4">
                     <label className="form-label">
                       {t("newContract.currency")}
@@ -236,12 +269,20 @@ const ReadContract = () => {
                       readOnly
                       disabled
                     >
-                      {/* <option value="0" selected>
-                    Devise
-                  </option> */}
                       <option value="eur"> Euros</option>
                       <option value="usd"> Dollars</option>
                     </select>
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="form-label">Durée de test (en jours)</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      name="trial_days"
+                      value={contractData.trial_days}
+                      readOnly
+                    />
                   </div>
 
                   <div className="mb-4">
@@ -249,14 +290,31 @@ const ReadContract = () => {
                       <input
                         className="form-check-input"
                         type="checkbox"
-                        id="check_stripe"
+                        id="read_check_stripe"
                         name="check_stripe"
                         checked={contractData.check_stripe}
                         readOnly
                         disabled
                       />
-                      <label className="form-check-label" htmlFor="check_stripe">
+                      <label className="form-check-label" htmlFor="read_check_stripe">
                         {t("newContract.stripePayment")}
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <div className="form-check">
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
+                        id="read_check_whatsapp"
+                        name="check_whatsapp"
+                        checked={contractData.check_whatsapp}
+                        readOnly
+                        disabled
+                      />
+                      <label className="form-check-label" htmlFor="read_check_whatsapp">
+                        WhatsApp (Direct Message)
                       </label>
                     </div>
                   </div>

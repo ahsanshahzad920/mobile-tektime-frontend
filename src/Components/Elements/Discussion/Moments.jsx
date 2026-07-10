@@ -16,6 +16,7 @@ const Moments = ({
   onLoadMore,
   hasMore,
   isLoadingMore = false,
+  isMissionList = false,
 }) => {
   const [t] = useTranslation("global");
 
@@ -63,18 +64,81 @@ const Moments = ({
     );
   };
 
-  const getStatusColor = (status) => {
-    const s = status?.toLowerCase();
-    if (
-      s?.includes("terminé") ||
-      s?.includes("fini") ||
-      s === "done" ||
-      s === "closed"
-    )
-      return "#52c41a";
-    if (s?.includes("cours") || s?.includes("doing")) return "#1890ff";
-    if (s?.includes("attente") || s?.includes("pending")) return "#faad14";
-    return "#8c8c8c";
+  const getStatusDetails = (item, isMission) => {
+    const rawStatus = (item?.status || item?.meeting_status || item?.destination_status || "")?.toLowerCase();
+    
+    if (isMission) {
+      if (rawStatus === "in_progress") {
+        const isDelay = item.delay || item.budget_exceeded;
+        return {
+          label: t("mission-badges.inProgress"),
+          color: isDelay ? "#ff4d4f" : "#faad14",
+        };
+      } else if (rawStatus === "closed") {
+        return {
+          label: t("mission-badges.completed"),
+          color: "#52c41a",
+        };
+      } else if (rawStatus === "todo") {
+        return {
+          label: t("mission-badges.new"),
+          color: "#1890ff",
+        };
+      } else {
+        return {
+          label: t("mission-badges.upcoming"),
+          color: "#5b7aca",
+        };
+      }
+    } else {
+      if (rawStatus === "closed") {
+        return {
+          label: t("badge.finished"),
+          color: "#52c41a",
+        };
+      } else if (rawStatus === "in_progress") {
+        return {
+          label: t("badge.inprogress"),
+          color: "#bb372f",
+        };
+      } else if (rawStatus === "active") {
+        const meetingDate = item.date;
+        const startTime = item.start_time || item.starts_at;
+        let isLate = false;
+        if (meetingDate && startTime) {
+          isLate = moment().isAfter(moment(`${meetingDate} ${startTime}`, "YYYY-MM-DD HH:mm"));
+        }
+        return {
+          label: isLate ? t("badge.late") : t("badge.future"),
+          color: isLate ? "#bb372f" : "#5b7aca",
+        };
+      } else if (rawStatus === "to_finish") {
+        return {
+          label: t("badge.finish"),
+          color: "#faad14",
+        };
+      } else if (rawStatus === "todo") {
+        return {
+          label: t("badge.Todo"),
+          color: "#8c8c8c",
+        };
+      } else if (rawStatus === "draft") {
+        return {
+          label: t("badge.draft"),
+          color: "#8c8c8c",
+        };
+      } else if (rawStatus === "no_status") {
+        return {
+          label: t("badge.no_status"),
+          color: "#8c8c8c",
+        };
+      } else {
+        return {
+          label: t("badge.finished"),
+          color: "#52c41a",
+        };
+      }
+    }
   };
 
   return (
@@ -100,6 +164,8 @@ const Moments = ({
           const isSelected = selectedMoment?.id === item.id;
           const status =
             item.status || item.meeting_status || item.destination_status;
+          const isMission = isMissionList || !!(item.destination_name || item.destination_status);
+          const statusDetails = status ? getStatusDetails(item, isMission) : null;
 
           return (
             <div
@@ -185,26 +251,26 @@ const Moments = ({
                     </Text>
 
                     <div className="d-flex justify-content-between align-items-center">
-                      {status ? (
+                      {statusDetails ? (
                         <div className="d-flex align-items-center gap-1">
                           <div
                             style={{
                               width: "6px",
                               height: "6px",
                               borderRadius: "50%",
-                              backgroundColor: getStatusColor(status),
+                              backgroundColor: statusDetails.color,
                             }}
                           />
                           <Text
                             style={{
                               fontSize: "10px",
-                              color: getStatusColor(status),
+                              color: statusDetails.color,
                               fontWeight: 700,
                               textTransform: "uppercase",
                               letterSpacing: "0.05em",
                             }}
                           >
-                            {status}
+                            {statusDetails.label}
                           </Text>
                         </div>
                       ) : (

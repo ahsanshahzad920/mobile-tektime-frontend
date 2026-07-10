@@ -48,6 +48,7 @@ function mapContractToPlan(item, t) {
     id: item.id,
     stripe_price_id: item.stripe_price_id,
     check_stripe: item.check_stripe,
+    trial_days: item.trial_days ? parseInt(item.trial_days, 10) : 0,
   };
 }
 
@@ -290,6 +291,29 @@ export default function Pricing({ data }) {
                 }
               >
                 <h3>{plan.name}</h3>
+                {plan.trial_days > 0 && (
+                  <div
+                    style={{
+                      fontSize: "0.8rem",
+                      color: "#3aa5ed",
+                      backgroundColor: "rgba(58, 165, 237, 0.15)",
+                      padding: "4px 10px",
+                      borderRadius: "12px",
+                      fontWeight: "600",
+                      display: "inline-block",
+                      marginBottom: "0.5rem",
+                      width: "fit-content"
+                    }}
+                  >
+                    {t(
+                      plan.trial_days > 1
+                        ? "pricing-discussions.days_free_trial"
+                        : "pricing-discussions.day_free_trial",
+                      { count: plan.trial_days },
+                      `${plan.trial_days} days trial`
+                    )}
+                  </div>
+                )}
                 {plan.isEnterprise ? (
                   <div
                     style={{
@@ -373,7 +397,15 @@ export default function Pricing({ data }) {
               >
                 {plan.isEnterprise
                   ? t("pricing-discussions.enterprise.speak_to_sales")
-                  : t("pricing-discussions.subscribe")}
+                  : plan.trial_days > 0
+                    ? t(
+                        plan.trial_days > 1
+                          ? "pricing-discussions.subscribe_trial"
+                          : "pricing-discussions.subscribe_trial_1",
+                        { count: plan.trial_days },
+                        `Try it free for ${plan.trial_days} days`
+                      )
+                    : t("pricing-discussions.subscribe_now", "Subscribe")}
               </button>
             </div>
           ))}

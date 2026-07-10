@@ -1,4 +1,5 @@
 import CookieService from '../../../Utils/CookieService';
+import Select from "react-select";
 import { FiEdit } from "react-icons/fi";
 import React, { useMemo, useState } from "react";
 import moment from "moment";
@@ -15,6 +16,7 @@ import { useDropzone } from "react-dropzone";
 import { useFormContext } from "../../../../context/CreateMeetingContext";
 import { getUserRoleID } from "../../../Utils/getSessionstorageItems";
 import { RiFileExcel2Line, RiFolderVideoLine } from "react-icons/ri";
+import { PiMicrosoftPowerpointLogo } from "react-icons/pi";
 import * as XLSX from "xlsx";
 import Spreadsheet from "react-spreadsheet";
 import { read, utils } from "xlsx";
@@ -197,6 +199,13 @@ const StepChartUpcoming = ({
   const taskOption = [
     { value: "Subtask", label: t("stepModal.subtask"), icon: <DocumentIcon /> },
   ];
+  const aiInstructionOptions = [
+    { value: "Editeur", label: t("stepModal.editor") || "Editor", icon: <DocumentIcon /> },
+    { value: "Photo", label: t("stepModal.photo") || "Photo", icon: <CameraIcon /> },
+    { value: "File", label: t("stepModal.pdf") || "PDF", icon: <FileFolderIcon /> },
+    { value: "PowerPoint", label: t("stepModal.powerpoint") || "Power point", icon: <PiMicrosoftPowerpointLogo className="fs-5" /> },
+    { value: "Excel", label: t("stepModal.excel") || "Excel", icon: <RiFileExcel2Line className="fs-5" /> },
+  ];
   const storyOption = [
     { value: "Story", label: t("stepModal.story"), icon: <DocumentIcon /> },
   ];
@@ -279,7 +288,7 @@ const StepChartUpcoming = ({
     setFileName("");
     setExcelData(null);
     setLink(null);
-    if (meeting?.type === "AI Social Media Newsletter") {
+    if (meeting?.type === "AI Social Media Newsletter" || meeting?.type === "AI Instruction") {
       if (option.value === "File") {
         setAiOutputFormat("PDF");
       } else if (option.value === "PowerPoint") {
@@ -353,6 +362,65 @@ const StepChartUpcoming = ({
   const [aiPowerPointTemplate, setAiPowerPointTemplate] = useState(null);
   const [aiPdfTemplate, setAiPdfTemplate] = useState(null);
   const [aiOutputText, setAiOutputText] = useState("");
+  const [missions, setMissions] = useState([]);
+  const [selectedMission, setSelectedMission] = useState("");
+  const [isMissionsLoading, setIsMissionsLoading] = useState(false);
+
+  const [moments, setMoments] = useState([]);
+  const [selectedMoment, setSelectedMoment] = useState("");
+  const [isMomentsLoading, setIsMomentsLoading] = useState(false);
+
+  const fetchMissions = async () => {
+    setIsMissionsLoading(true);
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/user/get-destination-by-user`,
+        {
+          headers: {
+            Authorization: `Bearer ${CookieService.get("token")}`,
+          },
+        }
+      );
+      if (response.data && Array.isArray(response.data.data)) {
+        const formatted = response.data.data.map((m) => ({
+          value: m.id,
+          label: m.name || `Mission #${m.id}`,
+          status: m?.status,
+        }));
+        setMissions(formatted);
+      }
+    } catch (error) {
+      console.error("Error fetching missions:", error);
+    } finally {
+      setIsMissionsLoading(false);
+    }
+  };
+
+  const fetchMoments = async () => {
+    setIsMomentsLoading(true);
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/user/get-meetings-by-user`,
+        {
+          headers: {
+            Authorization: `Bearer ${CookieService.get("token")}`,
+          },
+        }
+      );
+      if (response.data && Array.isArray(response.data.data)) {
+        const formatted = response.data.data.map((m) => ({
+          value: m.id,
+          label: m.title || `Meeting #${m.id}`,
+          status: m?.status,
+        }));
+        setMoments(formatted);
+      }
+    } catch (error) {
+      console.error("Error fetching moments:", error);
+    } finally {
+      setIsMomentsLoading(false);
+    }
+  };
   const [assignUser, setAssignUser] = useState(null);
   const [assignTeam, setAssignTeam] = useState(null);
   const [stepOrder, setStepOrder] = useState(null);
@@ -1285,6 +1353,19 @@ const StepChartUpcoming = ({
     setTeam("");
     setModifiedFileText("");
     setInstructionPrompt("");
+    setAiSourceType("Text");
+    setAiSourceText("");
+    setAiSourceFile(null);
+    setAiRole("");
+    setAiAction("");
+    setAiObjective("");
+    setAiRules("");
+    setAiOutputFormat("Text");
+    setAiPowerPointTemplate(null);
+    setAiPdfTemplate(null);
+    setAiOutputText("");
+    setSelectedMoment("");
+    setSelectedMission("");
     setSelectedCount(0);
     closeModal();
     setIsValidate(false);
@@ -1509,7 +1590,7 @@ const StepChartUpcoming = ({
     }
   }, [id, selectedOrder, step]);
   const validateStep = async () => {
-    if (modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter") {
+    if (modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter" || meeting?.type === "AI Instruction") {
       if (!aiRole?.trim()) {
         toast.error(t("messages.aiRoleRequired"));
         setIsValidate(false);
@@ -1517,6 +1598,21 @@ const StepChartUpcoming = ({
       }
       if (!aiAction?.trim()) {
         toast.error(t("messages.aiActionRequired"));
+        setIsValidate(false);
+        return;
+      }
+      if (aiSourceType === "Mission" && !selectedMission) {
+        toast.error(t("messages.aiMissionRequired") || "Please select a mission source");
+        setIsValidate(false);
+        return;
+      }
+      if (aiSourceType === "Moment" && !selectedMoment) {
+        toast.error(t("messages.aiMomentRequired") || "Please select a moment source");
+        setIsValidate(false);
+        return;
+      }
+      if (aiSourceType === "Discussion" && !selectedMoment) {
+        toast.error(t("messages.aiDiscussionRequired") || "Please select a discussion source");
         setIsValidate(false);
         return;
       }
@@ -1611,7 +1707,7 @@ const StepChartUpcoming = ({
           modalType === "Subtask" ||
           modalType === "Story" ||
           modalType === "Question" ||
-          modalType === "Prestation" || modalType === "Email" || modalType === "Publication" || modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter" || 
+          modalType === "Prestation" || modalType === "Email" || modalType === "Publication" || modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter" || meeting?.type === "AI Instruction" ||
           modalType === "Message"
             ? optimizedEditorContent || ""
             : [
@@ -1627,10 +1723,19 @@ const StepChartUpcoming = ({
               ? staticContents[modalType]
               : null,
         prompt_ai:
-          modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter"
+          modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter" || meeting?.type === "AI Instruction"
             ? {
                 aiSourceType,
-                aiSourceText,
+                aiSourceText:
+                  aiSourceType === "Mission" || aiSourceType === "Moment" || aiSourceType === "Discussion"
+                    ? null
+                    : aiSourceText,
+                sourceId:
+                  aiSourceType === "Mission"
+                    ? selectedMission
+                    : aiSourceType === "Moment" || aiSourceType === "Discussion"
+                      ? selectedMoment
+                      : null,
                 aiSourceFile: aiSourceType === "Document" ? aiSourceFile : null,
                 aiRole,
                 aiAction,
@@ -1670,7 +1775,7 @@ const StepChartUpcoming = ({
           },
         };
 
-        if (modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter") {
+        if (modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter" || meeting?.type === "AI Instruction") {
           const formData = new FormData();
           Object.keys(payload).forEach((key) => {
             if (key !== "prompt_ai") {
@@ -1714,6 +1819,19 @@ const StepChartUpcoming = ({
         setTeam("");
         setModifiedFileText("");
         setInstructionPrompt("");
+        setAiSourceType("Text");
+        setAiSourceText("");
+        setAiSourceFile(null);
+        setAiRole("");
+        setAiAction("");
+        setAiObjective("");
+        setAiRules("");
+        setAiOutputFormat("Text");
+        setAiPowerPointTemplate(null);
+        setAiPdfTemplate(null);
+        setAiOutputText("");
+        setSelectedMoment("");
+        setSelectedMission("");
         setSelectedCount(0);
         setModalType("");
         setFileName(null);
@@ -1723,7 +1841,7 @@ const StepChartUpcoming = ({
         if (!createAnother) {
           closeModal();
         } else {
-          if (meeting?.type === "AI Social Media Newsletter") {
+          if (meeting?.type === "AI Social Media Newsletter" || meeting?.type === "AI Instruction") {
             setModalType("Editeur");
 
           }else if (meeting?.type === "Social Media Newsletter") {
@@ -1797,9 +1915,9 @@ const StepChartUpcoming = ({
         const normalize = (val) => (val || "").toString().trim().toLowerCase();
 
         const isAiFormUpdated =
-          (meeting?.type === "AI Social Media Newsletter" || modalType === "AI Instruction") &&
+          (meeting?.type === "AI Social Media Newsletter" || meeting?.type === "AI Instruction" || modalType === "AI Instruction") &&
           (normalize(aiSourceType) !== normalize(origPrompt.aiSourceType || "Text") ||
-            normalize(aiSourceText) !== normalize(origPrompt.aiSourceText || "") ||
+            normalize(aiSourceType === "Mission" ? selectedMission : aiSourceType === "Moment" ? selectedMoment : aiSourceText) !== normalize(origPrompt.aiSourceText || "") ||
             normalize(aiRole) !== normalize(origPrompt.aiRole || "") ||
             normalize(aiAction) !== normalize(origPrompt.aiAction || "") ||
             normalize(aiObjective) !== normalize(origPrompt.aiObjective || "") ||
@@ -1823,7 +1941,7 @@ const StepChartUpcoming = ({
             modalType === "Subtask" ||
             modalType === "Story" ||
             modalType === "Question" ||
-            modalType === "Prestation" || modalType === "Email" || modalType === "Publication" || modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter" || 
+            modalType === "Prestation" || modalType === "Email" || modalType === "Publication" || modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter" || meeting?.type === "AI Instruction" ||
             modalType === "Message"
               ? optimizedEditorContent || ""
               : [
@@ -1839,10 +1957,19 @@ const StepChartUpcoming = ({
                 ? staticContents[modalType] // Include the static content
                 : null,
           prompt_ai:
-          modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter"
+          modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter" || meeting?.type === "AI Instruction"
             ? {
                 aiSourceType,
-                aiSourceText,
+                aiSourceText:
+                  aiSourceType === "Mission" || aiSourceType === "Moment" || aiSourceType === "Discussion"
+                    ? null
+                    : aiSourceText,
+                sourceId:
+                  aiSourceType === "Mission"
+                    ? selectedMission
+                    : aiSourceType === "Moment" || aiSourceType === "Discussion"
+                      ? selectedMoment
+                      : null,
                 aiSourceFile: aiSourceType === "Document" ? aiSourceFile : null,
                 aiRole,
                 aiAction,
@@ -1896,7 +2023,7 @@ const StepChartUpcoming = ({
           },
         };
 
-        if (modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter") {
+        if (modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter" || meeting?.type === "AI Instruction") {
           const formData = new FormData();
           Object.keys(payload).forEach((key) => {
             if (key !== "prompt_ai") {
@@ -1942,6 +2069,19 @@ const StepChartUpcoming = ({
         setTeam("");
         setModifiedFileText("");
         setInstructionPrompt("");
+        setAiSourceType("Text");
+        setAiSourceText("");
+        setAiSourceFile(null);
+        setAiRole("");
+        setAiAction("");
+        setAiObjective("");
+        setAiRules("");
+        setAiOutputFormat("Text");
+        setAiPowerPointTemplate(null);
+        setAiPdfTemplate(null);
+        setAiOutputText("");
+        setSelectedMoment("");
+        setSelectedMission("");
         setSelectedCount(0);
         setModalType("");
         setFileName(null);
@@ -1951,7 +2091,7 @@ const StepChartUpcoming = ({
         if (!createAnother) {
           closeModal();
         } else {
-          if (meeting?.type === "AI Social Media Newsletter") {
+          if (meeting?.type === "AI Social Media Newsletter" || meeting?.type === "AI Instruction") {
             setModalType("Editeur");
           } else if (meeting?.type === "Social Media Newsletter") {
             setModalType("Publication");
@@ -2411,30 +2551,42 @@ const getStep = async () => {
               : stepData?.assigned_to_image || stepData?.image,
           );
           setModifiedFileText(stepData?.editor_content);
-          if (stepData?.prompt_ai && typeof stepData.prompt_ai === "object") {
-            setAiSourceType(stepData.prompt_ai.aiSourceType || "Text");
-            setAiSourceText(stepData.prompt_ai.aiSourceText || "");
-            setAiSourceFile(stepData.prompt_ai.aiSourceFile || null);
-            setAiRole(stepData.prompt_ai.aiRole || "");
-            setAiAction(stepData.prompt_ai.aiAction || "");
-            setAiObjective(stepData.prompt_ai.aiObjective || "");
-            setAiRules(stepData.prompt_ai.aiRules || "");
-            setAiOutputFormat(stepData.prompt_ai.aiOutputFormat || "PDF");
-            setAiOutputText(stepData.prompt_ai.aiOutputText || "");
-          } else {
-            if (stepData?.prompt_ai && typeof stepData.prompt_ai === "object") {
-            setAiSourceType(stepData.prompt_ai.aiSourceType || "Text");
-            setAiSourceText(stepData.prompt_ai.aiSourceText || "");
-            setAiSourceFile(stepData.prompt_ai.aiSourceFile || null);
-            setAiRole(stepData.prompt_ai.aiRole || "");
-            setAiAction(stepData.prompt_ai.aiAction || "");
-            setAiObjective(stepData.prompt_ai.aiObjective || "");
-            setAiRules(stepData.prompt_ai.aiRules || "");
-            setAiOutputFormat(stepData.prompt_ai.aiOutputFormat || "PDF");
-            setAiOutputText(stepData.prompt_ai.aiOutputText || "");
+
+          let parsedPrompt = null;
+          if (stepData?.prompt_ai) {
+            if (typeof stepData.prompt_ai === "object") {
+              parsedPrompt = stepData.prompt_ai;
+            } else if (typeof stepData.prompt_ai === "string") {
+              try {
+                parsedPrompt = JSON.parse(stepData.prompt_ai);
+              } catch (e) {
+                console.error("Failed to parse prompt_ai:", e);
+              }
+            }
+          }
+
+          if (parsedPrompt && typeof parsedPrompt === "object") {
+            setAiSourceType(parsedPrompt.aiSourceType || "Text");
+            if (parsedPrompt.aiSourceType === "Mission") {
+              setSelectedMission( stepData?.source_id || parsedPrompt.sourceId || "");
+              fetchMissions();
+            } else if (parsedPrompt.aiSourceType === "Moment" || parsedPrompt.aiSourceType === "Discussion") {
+              setSelectedMoment(stepData?.source_id || parsedPrompt.sourceId || "");
+              fetchMoments();
+            } else {
+              setAiSourceText(parsedPrompt?.aiSourceText || "");
+
+            }
+            setAiSourceFile(parsedPrompt?.aiSourceFile || null);
+            setAiRole(parsedPrompt?.aiRole || "");
+            setAiAction(parsedPrompt?.aiAction || "");
+            setAiObjective(parsedPrompt?.aiObjective || "");
+            setAiRules(parsedPrompt?.aiRules || "");
+            setAiOutputFormat(parsedPrompt?.aiOutputFormat || "Text");
+            setAiOutputText(parsedPrompt?.aiOutputText || "");
+
           } else {
             setInstructionPrompt(stepData?.prompt_ai || "");
-          }
           }
           setAssignUser(response.data?.data?.assigned_to_name);
           setSelectedCount(stepData?.count2 || 0);
@@ -3756,9 +3908,9 @@ const getStep = async () => {
                                           </li>
                                         ))}
                                       </>
-                                    ) : modalType === "AI Instruction" ? (
+                                    ) : meeting?.type  === "AI Instruction" ? (
                                       <>
-                                        {aiSocialMediaOption.map((option) => (
+                                        {aiInstructionOptions.map((option) => (
                                           <li
                                             key={option.value}
                                             className="dropdown-item"
@@ -3776,7 +3928,7 @@ const getStep = async () => {
                                           </li>
                                         ))}
                                       </>
-                                    ) : meeting?.location === "LinkedIn" || meeting?.type === "Social Media Newsletter" ? (
+                                    ) : meeting?.type === "Social Media Newsletter" ? (
                                       <>
                                         {socialMediaOption.map((option) => (
                                           <li
@@ -3882,12 +4034,12 @@ const getStep = async () => {
                 )}
                 <div>
                   <div className="row">
-                    {meeting?.type === "AI Social Media Newsletter" || modalType === "Publication" || modalType === "AI Instruction" ? (
+                    {meeting?.type === "AI Social Media Newsletter" || modalType === "Publication" || meeting?.type === "AI Instruction" ? (
                       <>
                         <div
-                          className="col-md-7"
+                          className={`${meeting?.type === "AI Instruction" ? "col-md-12" : "col-md-7"}`}
                           style={
-                            meeting?.type === "AI Social Media Newsletter" || modalType === "AI Instruction"
+                            meeting?.type === "AI Social Media Newsletter"
                              ? {
                                   maxHeight: "calc(90vh - 40px)",
                                   overflowY: "auto",
@@ -3899,7 +4051,7 @@ const getStep = async () => {
                         >
 
                           <div>
-                            {meeting?.type === "AI Social Media Newsletter" || modalType === "AI Instruction" ? (
+                            {meeting?.type === "AI Social Media Newsletter" || meeting?.type === "AI Instruction" ? (
                                 <div
                                 className="p-3"
                                 style={{
@@ -3921,15 +4073,15 @@ const getStep = async () => {
                                       className="me-2"
                                       style={{ width: "16px", height: "16px" }}
                                     />{" "}
-                                    Source
+                                    {t("messages.aiSourceLabel")}
                                   </label>
                                   <p
                                     className="text-muted mb-2"
                                     style={{ fontSize: "12px" }}
                                   >
-                                    Choose the input source for this instruction
+                                    {t("messages.aiSourceHelpText")}
                                   </p>
-                                  <div className="d-flex gap-2 mb-3">
+                                  <div className="d-flex flex-wrap gap-2 mb-3">
                                     <Button
                                       variant={
                                         aiSourceType === "Text"
@@ -3950,7 +4102,7 @@ const getStep = async () => {
                                             : "#fff",
                                       }}
                                     >
-                                      📄 Text
+                                      📄 {t("messages.aiSourceText")}
                                     </Button>
                                     <Button
                                       variant={
@@ -3974,7 +4126,7 @@ const getStep = async () => {
                                             : "#fff",
                                       }}
                                     >
-                                      📄 Document
+                                      📄 {t("messages.aiSourceDocument")}
                                     </Button>
                                     <Button
                                       variant={
@@ -3996,7 +4148,84 @@ const getStep = async () => {
                                             : "#fff",
                                       }}
                                     >
-                                      📺 YouTube
+                                      📺 {t("messages.aiSourceYouTube")}
+                                    </Button>
+                                    <Button
+                                      variant={
+                                        aiSourceType === "Moment"
+                                          ? "light"
+                                          : "outline-secondary"
+                                      }
+                                      className={
+                                        aiSourceType === "Moment"
+                                          ? "border-primary text-primary fw-semibold"
+                                          : ""
+                                      }
+                                      onClick={() => {
+                                        setAiSourceType("Moment");
+                                        if (moments.length === 0) {
+                                          fetchMoments();
+                                        }
+                                      }}
+                                      style={{
+                                        fontSize: "13px",
+                                        background:
+                                          aiSourceType === "Moment"
+                                            ? "#F4F6FF"
+                                            : "#fff",
+                                      }}
+                                    >
+                                      ⚡ {t("messages.aiSourceNotes")}
+                                    </Button>
+                                    <Button
+                                      variant={
+                                        aiSourceType === "Mission"
+                                          ? "light"
+                                          : "outline-secondary"
+                                      }
+                                      className={
+                                        aiSourceType === "Mission"
+                                          ? "border-primary text-primary fw-semibold"
+                                          : ""
+                                      }
+                                      onClick={() => {
+                                        setAiSourceType("Mission");
+                                        fetchMissions();
+                                      }}
+                                      style={{
+                                        fontSize: "13px",
+                                        background:
+                                          aiSourceType === "Mission"
+                                            ? "#F4F6FF"
+                                            : "#fff",
+                                      }}
+                                    >
+                                      🎯 {t("messages.aiSourceMission")}
+                                    </Button>
+                                    <Button
+                                      variant={
+                                        aiSourceType === "Discussion"
+                                          ? "light"
+                                          : "outline-secondary"
+                                      }
+                                      className={
+                                        aiSourceType === "Discussion"
+                                          ? "border-primary text-primary fw-semibold"
+                                          : ""
+                                      }
+                                      onClick={() => {
+                                        setAiSourceType("Discussion");
+                                        fetchMoments();
+                                      }}
+                                      style={{
+                                        fontSize: "13px",
+                                        background:
+                                          aiSourceType === "Discussion"
+                                            ? "#F4F6FF"
+                                            : "#fff",
+                                      }}
+                                    >
+                                      💬 {t("messages.aiSourceDiscussion")}
                                     </Button>
                                   </div>
 
@@ -4012,7 +4241,7 @@ const getStep = async () => {
                                       onChange={(e) =>
                                         setAiSourceText(e.target.value)
                                       }
-                                      placeholder="Enter your source text here..."
+                                      placeholder={t("messages.aiSourceTextPlaceholder")}
                                     />
                                   )}
 
@@ -4065,6 +4294,78 @@ const getStep = async () => {
                                       />
                                     </div>
                                   )}
+
+                                  {aiSourceType === "Moment" && (
+                                    <div className="mt-2">
+                                      <label className="form-label fw-semibold mb-1" style={{ fontSize: "13px", color: "#344054" }}>
+                                        {t("messages.aiSourceSelectMoment")}
+                                      </label>
+                                      <Select
+                                        isLoading={isMomentsLoading}
+                                        options={moments}
+                                        value={moments.find(m => m.value === selectedMoment) || null}
+                                        onChange={(opt) => setSelectedMoment(opt ? opt.value : "")}
+                                        placeholder={t("messages.aiSourceSearchMoment")}
+                                        isClearable
+                                        isSearchable
+                                        formatOptionLabel={(opt) => { const s = (opt.status || "").toLowerCase(); const bc = s === "done" || s === "completed" ? "#12b76a" : s === "active" || s === "in_progress" ? "#2e90fa" : s === "draft" ? "#98a2b3" : "#667085"; const bb = s === "done" || s === "completed" ? "#ecfdf3" : s === "active" || s === "in_progress" ? "#eff8ff" : "#f2f4f7"; return (<div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", width: "100%" }}><span style={{ fontSize: "13px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, textAlign: "left" }}>{opt.label}</span>{opt.status && (<span style={{ fontSize: "10px", fontWeight: 600, padding: "2px 7px", borderRadius: "10px", color: bc, backgroundColor: bb, textTransform: "uppercase", flexShrink: 0 }}>{opt.status === "active" ? t('badge.future') : opt.status === "in_progress" ? t("badge.inprogress") : opt.status === "todo" ? t("badge.todo") : opt.status === "to_finish" ? t("badge.finish") : opt.status === "abort" ? t("badge.cancel") : opt.status === "draft" ? t("badge.draft") : opt?.status === "closed" ? t("badge.completed") : null }</span>)}</div>); }}
+                                        styles={{
+                                          control: (b) => ({ ...b, minHeight: "38px", borderColor: "#D0D5DD", borderRadius: "6px", boxShadow: "none", textAlign: "left" }),
+                                          option: (b, s) => ({ ...b, fontSize: "13px", backgroundColor: s.isSelected ? "#F4F6FF" : s.isFocused ? "#f9fafb" : "#fff", color: "#344054", textAlign: "left" }),
+                                          singleValue: (b) => ({ ...b, fontSize: "13px", color: "#344054", textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }),
+                                          placeholder: (b) => ({ ...b, fontSize: "13px", color: "#98A2B3", textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" })
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+
+                                  {aiSourceType === "Mission" && (
+                                    <div className="mt-2">
+                                      <label className="form-label fw-semibold mb-1" style={{ fontSize: "13px", color: "#344054" }}>
+                                        {t("messages.aiSourceSelectMission")}
+                                      </label>
+                                      <Select
+                                        isLoading={isMissionsLoading}
+                                        options={missions}
+                                        value={missions.find(m => m.value === selectedMission) || null}
+                                        onChange={(opt) => setSelectedMission(opt ? opt.value : "")}
+                                        placeholder={t("messages.aiSourceSearchMission")}
+                                        isClearable
+                                        isSearchable
+                                        formatOptionLabel={(opt) => { const s = (opt.status || "").toLowerCase(); const bc = s === "done" || s === "completed" ? "#12b76a" : s === "active" || s === "in_progress" ? "#2e90fa" : s === "todo" ? "#f79009" : "#667085"; const bb = s === "done" || s === "completed" ? "#ecfdf3" : s === "active" || s === "in_progress" ? "#eff8ff" : s === "todo" ? "#fffaeb" : "#f2f4f7"; return (<div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", width: "100%" }}><span style={{ fontSize: "13px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, textAlign: "left" }}>{opt.label}</span>{opt.status && (<span style={{ fontSize: "10px", fontWeight: 600, padding: "2px 7px", borderRadius: "10px", color: bc, backgroundColor: bb, textTransform: "uppercase", flexShrink: 0 }}>{opt.status === "active" ? t('mission-badge.upcoming') : opt.status === "in_progress" ? t("mission-badge.inProgress") : t("mission-badge.completed")}</span>)}</div>); }}
+                                        styles={{
+                                          control: (b) => ({ ...b, minHeight: "38px", borderColor: "#D0D5DD", borderRadius: "6px", boxShadow: "none", textAlign: "left" }),
+                                          option: (b, s) => ({ ...b, fontSize: "13px", backgroundColor: s.isSelected ? "#F4F6FF" : s.isFocused ? "#f9fafb" : "#fff", color: "#344054", textAlign: "left" }),
+                                          singleValue: (b) => ({ ...b, fontSize: "13px", color: "#344054", textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }),
+                                          placeholder: (b) => ({ ...b, fontSize: "13px", color: "#98A2B3", textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" })
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+
+                                  {aiSourceType === "Discussion" && (
+                                    <div className="mt-2">
+                                      <label className="form-label fw-semibold mb-1" style={{ fontSize: "13px", color: "#344054" }}>
+                                        {t("messages.aiSourceSelectDiscussion")}
+                                      </label>
+                                      <Select
+                                        isLoading={isMomentsLoading}
+                                        options={moments}
+                                        value={moments.find(m => m.value === selectedMoment) || null}
+                                        onChange={(opt) => setSelectedMoment(opt ? opt.value : "")}
+                                        placeholder={t("messages.aiSourceSearchDiscussion")}
+                                        isClearable
+                                        isSearchable
+                                        formatOptionLabel={(opt) => { const s = (opt.status || "").toLowerCase(); const bc = s === "done" || s === "completed" ? "#12b76a" : s === "active" || s === "in_progress" ? "#2e90fa" : s === "draft" ? "#98a2b3" : "#667085"; const bb = s === "done" || s === "completed" ? "#ecfdf3" : s === "active" || s === "in_progress" ? "#eff8ff" : "#f2f4f7"; return (<div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", width: "100%" }}><span style={{ fontSize: "13px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, textAlign: "left" }}>{opt.label}</span>{opt.status && (<span style={{ fontSize: "10px", fontWeight: 600, padding: "2px 7px", borderRadius: "10px", color: bc, backgroundColor: bb, textTransform: "uppercase", flexShrink: 0 }}>{opt.status === "active" ? t('badge.future') : opt.status === "in_progress" ? t("badge.inprogress") : opt.status === "todo" ? t("badge.todo") : opt.status === "to_finish" ? t("badge.finish") : opt.status === "abort" ? t("badge.cancel") : opt.status === "draft" ? t("badge.draft") : opt?.status === "closed" ? t("badge.completed") : null }</span>)}</div>); }}
+                                        styles={{
+                                          control: (b) => ({ ...b, minHeight: "38px", borderColor: "#D0D5DD", borderRadius: "6px", boxShadow: "none", textAlign: "left" }),
+                                          option: (b, s) => ({ ...b, fontSize: "13px", backgroundColor: s.isSelected ? "#F4F6FF" : s.isFocused ? "#f9fafb" : "#fff", color: "#344054", textAlign: "left" }),
+                                          singleValue: (b) => ({ ...b, fontSize: "13px", color: "#344054", textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }),
+                                          placeholder: (b) => ({ ...b, fontSize: "13px", color: "#98A2B3", textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" })
+                                        }}
+                                      />
+                                    </div>
+                                  )}
                                 </div>
 
                                 {/* Role Section */}
@@ -4076,13 +4377,13 @@ const getStep = async () => {
                                       color: "#344054",
                                     }}
                                   >
-                                    <span className="me-2">👤</span> Rôle
+                                    <span className="me-2">👤</span> {t("messages.aiRoleLabel")}
                                   </label>
                                   <p
                                     className="text-muted mb-2"
                                     style={{ fontSize: "12px" }}
                                   >
-                                    Define the AI persona for this instruction
+                                    {t("messages.aiRoleHelpText")}
                                   </p>
                                   <input
                                     type="text"
@@ -4093,7 +4394,7 @@ const getStep = async () => {
                                     }}
                                     value={aiRole}
                                     onChange={(e) => setAiRole(e.target.value)}
-                                    placeholder="e.g. Expert marketing strategist, Senior developer, UX designer..."
+                                    placeholder={t("messages.aiRolePlaceholder")}
                                   />
                                 </div>
 
@@ -4107,13 +4408,13 @@ const getStep = async () => {
                                         color: "#344054",
                                       }}
                                     >
-                                      <span className="me-2">⚡</span> Action
+                                      <span className="me-2">⚡</span> {t("messages.aiActionLabel")}
                                     </label>
                                     <p
                                       className="text-muted mb-2"
                                       style={{ fontSize: "12px" }}
                                     >
-                                      What should the AI do?
+                                      {t("messages.aiActionHelpText")}
                                     </p>
                                     <textarea
                                       className="form-control"
@@ -4126,7 +4427,7 @@ const getStep = async () => {
                                       onChange={(e) =>
                                         setAiAction(e.target.value)
                                       }
-                                      placeholder="Describe the action to perform..."
+                                      placeholder={t("messages.aiActionPlaceholder")}
                                     />
                                   </div>
 
@@ -4139,14 +4440,13 @@ const getStep = async () => {
                                         color: "#344054",
                                       }}
                                     >
-                                      <span className="me-2">🎯</span> Objectif
-                                      / Résultat
+                                      <span className="me-2">🎯</span> {t("messages.aiObjectiveLabel")}
                                     </label>
                                     <p
                                       className="text-muted mb-2"
                                       style={{ fontSize: "12px" }}
                                     >
-                                      What outcome do you expect?
+                                      {t("messages.aiObjectiveHelpText")}
                                     </p>
                                     <textarea
                                       className="form-control"
@@ -4159,7 +4459,7 @@ const getStep = async () => {
                                       onChange={(e) =>
                                         setAiObjective(e.target.value)
                                       }
-                                      placeholder="Describe the desired result..."
+                                      placeholder={t("messages.aiObjectivePlaceholder")}
                                     />
                                   </div>
                                 </div>
@@ -4173,14 +4473,13 @@ const getStep = async () => {
                                       color: "#344054",
                                     }}
                                   >
-                                    <span className="me-2">🛡️</span> Règles
+                                    <span className="me-2">🛡️</span> {t("messages.aiRulesLabel")}
                                   </label>
                                   <p
                                     className="text-muted mb-2"
                                     style={{ fontSize: "12px" }}
                                   >
-                                    Restrictions, limits or constraints to
-                                    respect
+                                    {t("messages.aiRulesHelpText")}
                                   </p>
                                   <textarea
                                     className="form-control"
@@ -4191,12 +4490,12 @@ const getStep = async () => {
                                     }}
                                     value={aiRules}
                                     onChange={(e) => setAiRules(e.target.value)}
-                                    placeholder="e.g. Keep it concise. No technical jargon. Always cite sources. Max 500 words..."
+                                    placeholder={t("messages.aiRulesPlaceholder")}
                                   />
                                 </div>
 
                                 {/* Output Format Section */}
-                                {meeting?.type !== "AI Social Media Newsletter" && (
+                                {(meeting?.type !== "AI Social Media Newsletter" && meeting?.type !== "AI Instruction") &&  (
                                   <div>
                                   <label
                                     className="fw-semibold d-flex align-items-center mb-2"
@@ -4205,14 +4504,13 @@ const getStep = async () => {
                                       color: "#344054",
                                     }}
                                   >
-                                    <span className="me-2">📥</span> Sortie
+                                    <span className="me-2">📥</span> {t("messages.aiOutputLabel")}
                                   </label>
                                   <p
                                     className="text-muted mb-2"
                                     style={{ fontSize: "12px" }}
                                   >
-                                    Select the output format for this
-                                    instruction
+                                    {t("messages.aiOutputHelpText")}
                                   </p>
                                   <div className="d-flex flex-wrap gap-3">
                                     <Button
@@ -4234,13 +4532,13 @@ const getStep = async () => {
                                             : "#fff",
                                       }}
                                     >
-                                      <div className="mb-1">📊</div>
-                                      <div>PowerPoint</div>
+                                      <div className="mb-1"><PiMicrosoftPowerpointLogo className="fs-3" /></div>
+                                      <div>{t("messages.aiOutputPowerPoint")}</div>
                                       <div
                                         className="text-muted fw-normal"
                                         style={{ fontSize: "11px" }}
                                       >
-                                        Slides deck
+                                        {t("messages.aiOutputPowerPointDesc")}
                                       </div>
                                     </Button>
                                     <Button
@@ -4261,12 +4559,12 @@ const getStep = async () => {
                                       }}
                                     >
                                       <div className="mb-1">📄</div>
-                                      <div>PDF</div>
+                                      <div>{t("messages.aiOutputPDF")}</div>
                                       <div
                                         className="text-muted fw-normal"
                                         style={{ fontSize: "11px" }}
                                       >
-                                        Formatted document
+                                        {t("messages.aiOutputPDFDesc")}
                                       </div>
                                     </Button>
                                     <Button
@@ -4287,12 +4585,12 @@ const getStep = async () => {
                                       }}
                                     >
                                       <div className="mb-1">📝</div>
-                                      <div>Text</div>
+                                      <div>{t("messages.aiOutputText")}</div>
                                       <div
                                         className="text-muted fw-normal"
                                         style={{ fontSize: "11px" }}
                                       >
-                                        Plain content
+                                        {t("messages.aiOutputTextDesc")}
                                       </div>
                                     </Button>
                                   </div>
@@ -4333,7 +4631,7 @@ const getStep = async () => {
 
                           </div>
                         </div>
-                        <div className="col-md-5 p-4" style={{ backgroundColor: "#F2F4FB" }}>
+                        {meeting?.type !== "AI Instruction" && <div className="col-md-5 p-4" style={{ backgroundColor: "#F2F4FB" }}>
                           {!isUpload ? (
                             <>
                               {(step?.generate_ai_media == 1 || step?.generate_ai_media === true) ? (
@@ -4532,7 +4830,7 @@ const getStep = async () => {
                               className="center-spinner"
                             ></Spinner>
                           )}
-                        </div>
+                        </div>}
                       </>
                     ) : modalType === "Editeur" ||
                     modalType === "Subtask" ||
@@ -4668,7 +4966,7 @@ const getStep = async () => {
                             // }}
                             onEditorChange={(content) => {
                               setModifiedFileText(content);
-                              // debouncedAutoSave(content);
+                              debouncedAutoSave(content);
                             }}
                           />
                         </div>

@@ -2788,6 +2788,7 @@ const ActionPlay = () => {
                   {t("Content")}
                 </h4>
                 {meetingData?.type === "AI Social Media Newsletter" ||
+                meetingData?.type === "AI Instruction" ||
                 meetingData?.type === "Social Media Newsletter" ? (
                   <div className="d-flex flex-column gap-5">
                     {/* 1. Show editor if editor_content exists */}

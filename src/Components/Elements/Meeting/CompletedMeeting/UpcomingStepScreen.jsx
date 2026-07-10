@@ -108,7 +108,7 @@ function UpcomingStepScreen({
 
   // Subscribe to Pusher channel for real-time updates of AI Content / Media Generation
   useEffect(() => {
-    if (meeting?.id && (meeting?.type === "AI Social Media Newsletter" || step?.generate_ai_media == 1 || step?.generate_ai_media === true)) {
+    if (meeting?.id && (meeting?.type === "AI Social Media Newsletter" || meeting?.type === "AI Instruction" || step?.generate_ai_media == 1 || step?.generate_ai_media === true)) {
       console.log(`[Pusher] Subscribing to meeting channel: meeting.${meeting.id}`);
       
       const channel = subscribeToMeeting(meeting.id, async ({ type, data }) => {
@@ -132,6 +132,9 @@ function UpcomingStepScreen({
           console.log("[Pusher] AI Media generation finished. Fetching step media...");
           fetchStepMediaRef.current?.();
           getStepRef.current?.(true); // also fetch step silently to sync step state
+          // Always dismiss the AI popup when generation is done (even without pendingAiActionRef)
+          setAiProgress(100);
+          setTimeout(() => setShowAIPopup(false), 800);
         }
 
         // Keep fallback logic if type is standard step.updated without specific type
@@ -2733,8 +2736,9 @@ function UpcomingStepScreen({
             step?.editor_type === "Message" ||
             step?.editor_type === "Publication" ||
             step?.editor_type === "AI Instruction" ||
+            meeting?.type === "AI Instruction" ||
             meeting?.type === "Absence" ? (
-              meeting?.type === "AI Social Media Newsletter" && (!step?.editor_content || step.editor_content.trim() === "") ? (
+              (meeting?.type === "AI Social Media Newsletter" || meeting?.type === "AI Instruction") && (!step?.editor_content || step.editor_content.trim() === "") ? (
                 <div 
                   className="d-flex flex-column align-items-center justify-content-center p-5 rounded-4 shadow-sm border" 
                   style={{
@@ -3038,7 +3042,7 @@ function UpcomingStepScreen({
 
             {/* Empty State / AI Generation Progress Bar */}
             {!mediaLoading && stepMedias.length === 0 && (
-              (step?.generate_ai_media == 1 || step?.generate_ai_media === true) ? (
+              (step?.generate_ai_media == 1 || step?.generate_ai_media === true || meeting?.type === "AI Instruction") ? (
                 <div 
                   className="d-flex flex-column align-items-center justify-content-center p-5 rounded-4 shadow-sm border" 
                   style={{

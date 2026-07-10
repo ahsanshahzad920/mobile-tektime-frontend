@@ -1,4 +1,5 @@
 import CookieService from "../../../Utils/CookieService";
+import Select from "react-select";
 import { FiEdit } from "react-icons/fi";
 import React, { useCallback, useMemo, useState } from "react";
 import moment from "moment";
@@ -239,6 +240,13 @@ const StepChart = ({
       icon: <FaLinkedin className="fs-5" style={{ color: "#0a66c2" }} />,
     },
   ];
+    const aiInstructionOptions = [
+    { value: "Editeur", label: t("stepModal.editor") || "Editor", icon: <DocumentIcon /> },
+    { value: "Photo", label: t("stepModal.photo") || "Photo", icon: <CameraIcon /> },
+    { value: "File", label: t("stepModal.pdf") || "PDF", icon: <FileFolderIcon /> },
+    { value: "PowerPoint", label: t("stepModal.powerpoint") || "Power point", icon: <PiMicrosoftPowerpointLogo className="fs-5" /> },
+    { value: "Excel", label: t("stepModal.excel") || "Excel", icon: <RiFileExcel2Line className="fs-5" /> },
+  ];
   const discusionOptions = [
     { value: "Message", label: t("stepModal.message"), icon: <FaMessage /> },
   ];
@@ -314,7 +322,7 @@ const StepChart = ({
     setFileName("");
     setExcelData(null);
     setLink(null);
-    if (meeting?.type === "AI Social Media Newsletter") {
+    if (meeting?.type === "AI Social Media Newsletter" || meeting?.type === "AI Instruction") {
       if (option.value === "File") {
         setAiOutputFormat("PDF");
       } else if (option.value === "PowerPoint") {
@@ -355,16 +363,15 @@ const StepChart = ({
     const token = getCookie("token");
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-    const hasTranslation = typeof t === 'function';
-    if (!window.confirm(hasTranslation ? t("Delete this media permanently?") : "Delete this media permanently?")) return;
+    if (!window.confirm(t("messages.deleteMediaConfirm"))) return;
 
     try {
       await axios.delete(`${API_BASE_URL}/delete-media/${mediaId}`, { headers });
-      toast.success(hasTranslation ? t("Média supprimé avec succès !") : "Média supprimé avec succès !");
+      toast.success(t("messages.mediaDeleteSuccess"));
       setStepMedia((prev) => prev.filter((item) => item.id !== mediaId));
     } catch (error) {
       console.error("Error deleting media:", error);
-      toast.error(hasTranslation ? t("Failed to delete media") : "Échec de la suppression.");
+      toast.error(t("messages.mediaDeleteFailed"));
     }
   }
 
@@ -396,6 +403,65 @@ const StepChart = ({
   const [showPreview, setShowPreview] = useState(false);
   const [previewUrl, setPreviewUrl] = useState("");
   const [timeUnit, setTimeUnit] = useState("minutes");
+
+  const [missions, setMissions] = useState([]);
+  const [moments, setMoments] = useState([]);
+  const [isMissionsLoading, setIsMissionsLoading] = useState(false);
+  const [isMomentsLoading, setIsMomentsLoading] = useState(false);
+  const [selectedMission, setSelectedMission] = useState("");
+  const [selectedMoment, setSelectedMoment] = useState("");
+
+  const fetchMissions = async () => {
+    setIsMissionsLoading(true);
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/user/get-destination-by-user`,
+        {
+          headers: {
+            Authorization: `Bearer ${CookieService.get("token")}`,
+          },
+        }
+      );
+      if (response.data && Array.isArray(response.data.data)) {
+        const missionOptions = response.data.data.map((m) => ({
+          value: m.id,
+          label: m.name || `Mission #${m.id}`,
+          status: m?.status,
+        }));
+        setMissions(missionOptions);
+      }
+    } catch (error) {
+      console.error("Error fetching missions:", error);
+    } finally {
+      setIsMissionsLoading(false);
+    }
+  };
+
+  const fetchMoments = async () => {
+    setIsMomentsLoading(true);
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/user/get-meetings-by-user`,
+        {
+          headers: {
+            Authorization: `Bearer ${CookieService.get("token")}`,
+          },
+        }
+      );
+      if (response.data && Array.isArray(response.data.data)) {
+        const momentOptions = response.data.data.map((m) => ({
+          value: m.id,
+          label: m.title || `Meeting #${m.id}`,
+          status: m?.status,
+        }));
+        setMoments(momentOptions);
+      }
+    } catch (error) {
+      console.error("Error fetching moments:", error);
+    } finally {
+      setIsMomentsLoading(false);
+    }
+  };
 
   const [createAnother, setCreateAnother] = useState(false);
   const handleCheckboxChange = (e) => {
@@ -831,9 +897,7 @@ const StepChart = ({
                     : meeting?.type === "Special" ||
                         meeting?.type === "Social Media Newsletter" ||
                         meeting?.type === "AI Social Media Newsletter" ||
-                        meeting?.location === "LinkedIn" ||
-                        (typeof formState !== "undefined" &&
-                          formState?.location === "LinkedIn")
+                        meeting?.type === "AI Instruction"
                       ? timeUnit
                       : "minutes",
             time: selectedCount,
@@ -942,9 +1006,7 @@ const StepChart = ({
                     : meeting?.type === "Special" ||
                         meeting?.type === "Social Media Newsletter" ||
                         meeting?.type === "AI Social Media Newsletter" ||
-                        meeting?.location === "LinkedIn" ||
-                        (typeof formState !== "undefined" &&
-                          formState?.location === "LinkedIn")
+                        meeting?.type === "AI Instruction"
                       ? timeUnit
                       : "minutes",
             time: selectedCount || 0,
@@ -1160,7 +1222,8 @@ const StepChart = ({
                         ? "seconds"
                         : meeting?.type === "Special" ||
                             meeting?.type === "Social Media Newsletter" ||
-                            meeting?.type === "AI Social Media Newsletter"
+                            meeting?.type === "AI Social Media Newsletter" ||
+                            meeting?.type === "AI Instruction"
                           ? timeUnit
                           : "minutes",
                 time: count2,
@@ -1262,6 +1325,7 @@ const StepChart = ({
                         : meeting?.type === "Special" ||
                             meeting?.type === "Social Media Newsletter" ||
                             meeting?.type === "AI Social Media Newsletter" ||
+                            meeting?.type === "AI Instruction" ||
                             meeting?.location === "LinkedIn" ||
                             (typeof formState !== "undefined" &&
                               formState?.location === "LinkedIn")
@@ -1352,7 +1416,7 @@ const StepChart = ({
         ? { "video/*": [] } // Accept all video types
         : modalType === "Photo"
           ? { "image/*": [] } // Accept all image types
-          : modalType === "Publication"
+          : modalType === "Publication" || modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter" || meeting?.type === "AI Instruction"
             ? { "image/*": [], "video/*": [] } // Accept image and video
             : modalType === "File"
               ? { "application/pdf": [] } // Accept PDF files
@@ -1457,6 +1521,19 @@ const StepChart = ({
     setTeam("");
     setModifiedFileText("");
     setInstructionPrompt("");
+    setAiSourceType("Text");
+    setAiSourceText("");
+    setAiSourceFile(null);
+    setAiRole("");
+    setAiAction("");
+    setAiObjective("");
+    setAiRules("");
+    setAiOutputFormat("Text");
+    setAiPowerPointTemplate(null);
+    setAiPdfTemplate(null);
+    setAiOutputText("");
+    setSelectedMoment("");
+    setSelectedMission("");
     setSelectedCount(meeting?.type === "Sprint" ? 0.5 : 0);
     if (openedFrom === "discussion") {
       // Pass true to indicate success
@@ -1680,7 +1757,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
 
   //Create Steps Button
   const validateStep = async () => {
-    if (modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter") {
+    if (modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter" || meeting?.type === "AI Instruction") {
       if (!aiRole?.trim()) {
         toast.error(t("messages.aiRoleRequired"));
         setIsValidate(false);
@@ -1688,6 +1765,21 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
       }
       if (!aiAction?.trim()) {
         toast.error(t("messages.aiActionRequired"));
+        setIsValidate(false);
+        return;
+      }
+      if (aiSourceType === "Mission" && !selectedMission) {
+        toast.error(t("messages.aiMissionRequired") || "Please select a mission source");
+        setIsValidate(false);
+        return;
+      }
+      if (aiSourceType === "Moment" && !selectedMoment) {
+        toast.error(t("messages.aiMomentRequired") || "Please select a moment source");
+        setIsValidate(false);
+        return;
+      }
+      if (aiSourceType === "Discussion" && !selectedMoment) {
+        toast.error(t("messages.aiDiscussionRequired") || "Please select a discussion source");
         setIsValidate(false);
         return;
       }
@@ -1794,7 +1886,8 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                 ? "seconds"
                 : meeting?.type === "Special" ||
                     meeting?.type === "Social Media Newsletter" ||
-                    meeting?.type === "AI Social Media Newsletter"
+                    meeting?.type === "AI Social Media Newsletter" ||
+                    meeting?.type === "AI Instruction"
                   ? timeUnit
                   : "minutes",
         time: selectedCount,
@@ -1811,6 +1904,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
           modalType === "Publication" ||
           modalType === "AI Instruction" ||
           meeting?.type === "AI Social Media Newsletter" ||
+          meeting?.type === "AI Instruction" ||
           openedFrom === "discussion"
             ? optimizedEditorContent || ""
             : [
@@ -1827,10 +1921,20 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
               : null,
         prompt_ai:
           modalType === "AI Instruction" ||
-          meeting?.type === "AI Social Media Newsletter"
+          meeting?.type === "AI Social Media Newsletter" ||
+          meeting?.type === "AI Instruction"
             ? {
                 aiSourceType,
-                aiSourceText,
+                aiSourceText:
+                  aiSourceType === "Mission" || aiSourceType === "Moment" || aiSourceType === "Discussion"
+                    ? null
+                    : aiSourceText,
+                sourceId:
+                  aiSourceType === "Mission"
+                    ? selectedMission
+                    : aiSourceType === "Moment" || aiSourceType === "Discussion"
+                      ? selectedMoment
+                      : null,
                 aiSourceFile: aiSourceType === "Document" ? aiSourceFile : null,
                 aiRole,
                 aiAction,
@@ -1902,7 +2006,8 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
 
         if (
           modalType === "AI Instruction" ||
-          meeting?.type === "AI Social Media Newsletter"
+          meeting?.type === "AI Social Media Newsletter" ||
+          meeting?.type === "AI Instruction"
         ) {
           const formData = new FormData();
           Object.keys(payload).forEach((key) => {
@@ -1948,6 +2053,19 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
         setTeam("");
         setModifiedFileText("");
         setInstructionPrompt("");
+        setAiSourceType("Text");
+        setAiSourceText("");
+        setAiSourceFile(null);
+        setAiRole("");
+        setAiAction("");
+        setAiObjective("");
+        setAiRules("");
+        setAiOutputFormat("Text");
+        setAiPowerPointTemplate(null);
+        setAiPdfTemplate(null);
+        setAiOutputText("");
+        setSelectedMoment("");
+        setSelectedMission("");
         setSelectedCount(meeting?.type === "Sprint" ? 0.5 : 0);
         setModalType("");
         setFileName(null);
@@ -1965,7 +2083,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
             navigate(`/invite/${meetingId}`);
           }
         } else {
-          if (meeting?.type === "AI Social Media Newsletter") {
+          if (meeting?.type === "AI Social Media Newsletter" || meeting?.type === "AI Instruction") {
             setModalType("Editeur");
           } else if (meeting?.type === "Social Media Newsletter") {
             setModalType("Publication");
@@ -2041,9 +2159,13 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
         const normalize = (val) => (val || "").toString().trim().toLowerCase();
 
         const isAiFormUpdated =
-          (meeting?.type === "AI Social Media Newsletter" || modalType === "AI Instruction") &&
+          (meeting?.type === "AI Social Media Newsletter" || meeting?.type === "AI Instruction" || modalType === "AI Instruction") &&
           (normalize(aiSourceType) !== normalize(origPrompt.aiSourceType || "Text") ||
-            normalize(aiSourceText) !== normalize(origPrompt.aiSourceText || "") ||
+            (aiSourceType === "Mission"
+              ? normalize(selectedMission) !== normalize(origPrompt.sourceId || "")
+              : (aiSourceType === "Moment" || aiSourceType === "Discussion")
+                ? normalize(selectedMoment) !== normalize(origPrompt.sourceId || "")
+                : normalize(aiSourceText) !== normalize(origPrompt.aiSourceText || "")) ||
             normalize(aiRole) !== normalize(origPrompt.aiRole || "") ||
             normalize(aiAction) !== normalize(origPrompt.aiAction || "") ||
             normalize(aiObjective) !== normalize(origPrompt.aiObjective || "") ||
@@ -2072,6 +2194,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                   : meeting?.type === "Special" ||
                       meeting?.type === "Social Media Newsletter" ||
                       meeting?.type === "AI Social Media Newsletter" ||
+                      meeting?.type === "AI Instruction" ||
                       meeting?.location === "LinkedIn" ||
                       (typeof formState !== "undefined" &&
                         formState?.location === "LinkedIn")
@@ -2090,7 +2213,8 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
             modalType === "Email" ||
             modalType === "Publication" ||
             modalType === "AI Instruction" ||
-            meeting?.type === "AI Social Media Newsletter"
+            meeting?.type === "AI Social Media Newsletter" ||
+            meeting?.type === "AI Instruction"
               ? optimizedEditorContent || ""
               : [
                     "Absence CET non payable",
@@ -2106,10 +2230,20 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                 : null,
           prompt_ai:
             modalType === "AI Instruction" ||
-            meeting?.type === "AI Social Media Newsletter"
+            meeting?.type === "AI Social Media Newsletter" ||
+            meeting?.type === "AI Instruction"
               ? {
                   aiSourceType,
-                  aiSourceText,
+                  aiSourceText:
+                    aiSourceType === "Mission" || aiSourceType === "Moment" || aiSourceType === "Discussion"
+                      ? null
+                      : aiSourceText,
+                  sourceId:
+                    aiSourceType === "Mission"
+                      ? selectedMission
+                      : aiSourceType === "Moment" || aiSourceType === "Discussion"
+                        ? selectedMoment
+                        : null,
                   aiSourceFile: aiSourceType === "Document" ? aiSourceFile : null,
                   aiRole,
                   aiAction,
@@ -2181,7 +2315,8 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
 
         if (
           modalType === "AI Instruction" ||
-          meeting?.type === "AI Social Media Newsletter"
+          meeting?.type === "AI Social Media Newsletter" ||
+          meeting?.type === "AI Instruction"
         ) {
           const formData = new FormData();
           Object.keys(payload).forEach((key) => {
@@ -2225,6 +2360,19 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
         setTeam("");
         setModifiedFileText("");
         setInstructionPrompt("");
+        setAiSourceType("Text");
+        setAiSourceText("");
+        setAiSourceFile(null);
+        setAiRole("");
+        setAiAction("");
+        setAiObjective("");
+        setAiRules("");
+        setAiOutputFormat("Text");
+        setAiPowerPointTemplate(null);
+        setAiPdfTemplate(null);
+        setAiOutputText("");
+        setSelectedMoment("");
+        setSelectedMission("");
         setSelectedCount(meeting?.type === "Sprint" ? 0.5 : 0);
         setModalType("");
         setFileName(null);
@@ -2242,7 +2390,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
             closeModal();
           }
         } else {
-          if (meeting?.type === "AI Social Media Newsletter") {
+          if (meeting?.type === "AI Social Media Newsletter" || meeting?.type === "AI Instruction") {
             setModalType("Editeur");
           } else if (meeting?.type === "Social Media Newsletter") {
             setModalType("Publication");
@@ -2468,7 +2616,16 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
           (modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter")
             ? {
                 aiSourceType,
-                aiSourceText,
+                aiSourceText:
+                  aiSourceType === "Mission" || aiSourceType === "Moment" || aiSourceType === "Discussion"
+                    ? null
+                    : aiSourceText,
+                sourceId:
+                  aiSourceType === "Mission"
+                    ? selectedMission
+                    : aiSourceType === "Moment" || aiSourceType === "Discussion"
+                      ? selectedMoment
+                      : null,
                 aiSourceFile: aiSourceType === "Document" ? aiSourceFile : null,
                 aiRole,
                 aiAction,
@@ -2605,7 +2762,16 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
             (modalType === "AI Instruction" || meeting?.type === "AI Social Media Newsletter")
               ? {
                   aiSourceType,
-                  aiSourceText,
+                  aiSourceText:
+                    aiSourceType === "Mission" || aiSourceType === "Moment" || aiSourceType === "Discussion"
+                      ? null
+                      : aiSourceText,
+                  sourceId:
+                    aiSourceType === "Mission"
+                      ? selectedMission
+                      : aiSourceType === "Moment" || aiSourceType === "Discussion"
+                        ? selectedMoment
+                        : null,
                   aiSourceFile: aiSourceType === "Document" ? aiSourceFile : null,
                   aiRole,
                   aiAction,
@@ -2791,6 +2957,40 @@ const getStep = async () => {
           );
           console.log("stepData?.editor_content", stepData?.editor_content);
           setModifiedFileText(stepData?.editor_content);
+          
+          let origPrompt = stepData?.prompt_ai;
+          if (origPrompt) {
+            try {
+              if (typeof origPrompt === "string") {
+                origPrompt = JSON.parse(origPrompt);
+              }
+              setAiSourceType(origPrompt.aiSourceType || "Text");
+              if (origPrompt.aiSourceType === "Mission") {
+                setSelectedMission( stepData?.source_id || origPrompt.sourceId || "");
+                setAiSourceText("");
+                fetchMissions();
+              } else if (origPrompt.aiSourceType === "Moment" || origPrompt.aiSourceType === "Discussion") {
+                setSelectedMoment(stepData?.source_id || origPrompt.sourceId || "");
+                setAiSourceText("");
+                fetchMoments();
+              } else {
+                setAiSourceText(origPrompt.aiSourceText || "");
+                setSelectedMission("");
+                setSelectedMoment("");
+              }
+              setAiSourceFile(origPrompt.aiSourceFile || null);
+              setAiRole(origPrompt.aiRole || "");
+              setAiAction(origPrompt.aiAction || "");
+              setAiObjective(origPrompt.aiObjective || "");
+              setAiRules(origPrompt.aiRules || "");
+              setAiOutputFormat(origPrompt.aiOutputFormat || "Text");
+              setAiOutputText(origPrompt.aiOutputText || "");
+              setAiPowerPointTemplate(origPrompt.aiPowerPointTemplate || null);
+              setAiPdfTemplate(origPrompt.aiPdfTemplate || null);
+            } catch (err) {
+              console.error("Failed to parse prompt_ai:", err);
+            }
+          }
           setInstructionPrompt(stepData?.prompt_ai || "");
           setAssignUser(response.data?.data?.assigned_to_name);
           setSelectedCount(stepData?.count2 || 0);
@@ -3234,7 +3434,7 @@ const getStep = async () => {
                 }}
               >
                 <div
-                  className="col-12 col-lg-3 editor-header"
+                  className={`col-12 col-lg-3 editor-header`}
                   style={{
                     padding: isMobileView ? "8px 12px" : "12px 16px",
                     display: "flex",
@@ -3496,7 +3696,8 @@ const getStep = async () => {
                                     <span className="badge bg-light text-dark border px-2 py-1" style={{ fontSize: "11px" }}>{t("sec")}</span>
                                   ) : meeting?.type === "Special" ||
                                     meeting?.type === "Social Media Newsletter" ||
-                                    meeting?.type === "AI Social Media Newsletter" ? (
+                                    meeting?.type === "AI Social Media Newsletter" ||
+                                    meeting?.type === "AI Instruction" ? (
                                     <select
                                       className="form-select form-select-sm"
                                       value={timeUnit}
@@ -3607,7 +3808,7 @@ const getStep = async () => {
                     <div
                       className="col-12 col-sm-6 col-lg-2 editor-header"
                       style={{
-                        borderRight: isMobileView ? "none" : "1px solid #E4E7EC",
+                        borderRight: isMobileView ? "none" : meeting?.type === "AI Instruction" ? "none" : "1px solid #E4E7EC",
                         borderBottom: isMobileView ? "1px solid #EAECF0" : "none",
                         padding: isMobileView ? "8px 12px" : "12px 16px",
                         display: "flex",
@@ -3829,7 +4030,7 @@ const getStep = async () => {
                                       </ul>
                                     )}
                                   </>
-                                )}
+                               )}
                               </div>
                             </div>
                           </div>
@@ -3838,262 +4039,262 @@ const getStep = async () => {
                     </div>
                   </>
                 )}
-                <div
-                  className="col-6 col-sm-4 col-lg-2 editor-header"
-                  style={{
-                    padding: isMobileView ? "8px 12px" : "12px 16px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "flex-start",
-                    order: isMobileView ? 2 : "unset",
-                  }}
-                >
-                  <div className="p-0 timecard stepinfo">
-                    {!window.location.href.includes("/meetingDetail") && (
-                      <div className="p-0 timecard ">
-                        <p className="mb-2">
-                          {t("meeting.newMeeting.Step format")}
-                        </p>
-                        <div className="d-flex justify-content-start">
-                          <div className="Editor-custom-dropdown">
-                            <div
-                              className="editor-dropdown-header"
-                              onClick={() => setIsOpen(!isOpen)}
-                            >
-                              {modalType === "Editeur"
-                                ? t("stepModal.editor")
-                                : modalType === "File"
-                                  ? t("stepModal.pdf")
-                                  : modalType === "Video"
-                                    ? t("stepModal.video")
-                                    : modalType === "Subtask"
-                                      ? t("stepModal.subtask")
-                                      : modalType === "Prestation"
-                                        ? t("stepModal.prestation")
-                                        : modalType === "Video Report"
-                                          ? t("stepModal.videoReport")
-                                          : modalType === "Audio Report"
-                                            ? t("stepModal.audioReport")
-                                            : modalType === "Photo"
-                                              ? t("stepModal.photo")
-                                              : modalType === "Email"
-                                                ? t("stepModal.email")
-                                                : modalType === "Publication"
-                                                  ? t("stepModal.publication")
-                                                  : modalType ===
-                                                      "AI Instruction"
-                                                    ? t(
-                                                        "stepModal.aiInstruction",
-                                                      ) || "AI Instruction"
-                                                    : modalType === "Url"
-                                                      ? t("stepModal.url")
-                                                      : modalType === "Excel"
-                                                        ? t("stepModal.excel")
-                                                        : modalType === "Story"
-                                                          ? t("stepModal.story")
-                                                          : // : modalType === "PowerPoint"
-                                                            // ? t("stepModal.powerpoint")
-                                                            modalType ===
-                                                              "Question"
-                                                            ? t(
-                                                                "stepModal.laweditor",
-                                                              )
-                                                            : modalType ===
-                                                                "Message"
+                  <div
+                    className="col-6 col-sm-4 col-lg-2 editor-header"
+                    style={{
+                      padding: isMobileView ? "8px 12px" : "12px 16px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "flex-start",
+                      order: isMobileView ? 2 : "unset",
+                    }}
+                  >
+                    <div className="p-0 timecard stepinfo">
+                      {!window.location.href.includes("/meetingDetail") && (
+                        <div className="p-0 timecard ">
+                          <p className="mb-2">
+                            {t("meeting.newMeeting.Step format")}
+                          </p>
+                          <div className="d-flex justify-content-start">
+                            <div className="Editor-custom-dropdown">
+                              <div
+                                className="editor-dropdown-header"
+                                onClick={() => setIsOpen(!isOpen)}
+                              >
+                                {modalType === "Editeur"
+                                  ? t("stepModal.editor")
+                                  : modalType === "File"
+                                    ? t("stepModal.pdf")
+                                    : modalType === "Video"
+                                      ? t("stepModal.video")
+                                      : modalType === "Subtask"
+                                        ? t("stepModal.subtask")
+                                        : modalType === "Prestation"
+                                          ? t("stepModal.prestation")
+                                          : modalType === "Video Report"
+                                            ? t("stepModal.videoReport")
+                                            : modalType === "Audio Report"
+                                              ? t("stepModal.audioReport")
+                                              : modalType === "Photo"
+                                                ? t("stepModal.photo")
+                                                : modalType === "Email"
+                                                  ? t("stepModal.email")
+                                                  : modalType === "Publication"
+                                                    ? t("stepModal.publication")
+                                                    : modalType ===
+                                                        "AI Instruction"
+                                                      ? t(
+                                                          "stepModal.aiInstruction",
+                                                        ) || "AI Instruction"
+                                                      : modalType === "Url"
+                                                        ? t("stepModal.url")
+                                                        : modalType === "Excel"
+                                                          ? t("stepModal.excel")
+                                                          : modalType === "Story"
+                                                            ? t("stepModal.story")
+                                                            : // : modalType === "PowerPoint"
+                                                              // ? t("stepModal.powerpoint")
+                                                              modalType ===
+                                                                "Question"
                                                               ? t(
-                                                                  "stepModal.message",
+                                                                  "stepModal.laweditor",
                                                                 )
                                                               : modalType ===
-                                                                  "Absence CET non payable"
+                                                                  "Message"
                                                                 ? t(
-                                                                    "meeting.absence_step_type.absence_type_1",
+                                                                    "stepModal.message",
                                                                   )
                                                                 : modalType ===
-                                                                    "Absence CET payable"
+                                                                    "Absence CET non payable"
                                                                   ? t(
-                                                                      "meeting.absence_step_type.absence_type_2",
+                                                                      "meeting.absence_step_type.absence_type_1",
                                                                     )
                                                                   : modalType ===
-                                                                      "Partial unemployment"
+                                                                      "Absence CET payable"
                                                                     ? t(
-                                                                        "meeting.absence_step_type.absence_type_3",
-                                                                      )
+                                                                        "meeting.absence_step_type.absence_type_2",
+                                                                    )
                                                                     : modalType ===
-                                                                        "Paid leave"
+                                                                        "Partial unemployment"
                                                                       ? t(
-                                                                          "meeting.absence_step_type.absence_type_4",
+                                                                          "meeting.absence_step_type.absence_type_3",
                                                                         )
                                                                       : modalType ===
-                                                                          "Corporate event"
+                                                                          "Paid leave"
                                                                         ? t(
-                                                                            "meeting.absence_step_type.absence_type_5",
+                                                                            "meeting.absence_step_type.absence_type_4",
                                                                           )
                                                                         : modalType ===
-                                                                            "Skills sponsorship"
+                                                                            "Corporate event"
                                                                           ? t(
-                                                                              "meeting.absence_step_type.absence_type_6",
+                                                                              "meeting.absence_step_type.absence_type_5",
                                                                             )
                                                                           : modalType ===
-                                                                              "Recovery"
+                                                                              "Skills sponsorship"
                                                                             ? t(
-                                                                                "meeting.absence_step_type.absence_type_7",
+                                                                                "meeting.absence_step_type.absence_type_6",
                                                                               )
                                                                             : modalType ===
-                                                                                "RTT"
+                                                                                "Recovery"
                                                                               ? t(
-                                                                                  "meeting.absence_step_type.absence_type_8",
+                                                                                  "meeting.absence_step_type.absence_type_7",
                                                                                 )
-                                                                              : modalType}
-                              <ExpandIcon />
-                            </div>
-                            {isOpen && (
-                              <ul className="editor-dropdown-list">
-                                {meeting?.type === "AI Social Media Newsletter" ? (
-                                  <>
-                                    {options?.filter((item)=> item.value === "Editeur")?.map((option) => (
-                                      <li
-                                        key={option.value}
-                                        className="dropdown-item"
-                                        onClick={() => handleSelect(option)}
-                                      >
-                                        {option.icon} {option.label}
-                                      </li>
-                                    ))}
-                                  </>
-                                ) : modalType === "AI Instruction" ? (
-                                  <>
-                                    {aiSocialMediaOption.map((option) => (
-                                      <li
-                                        key={option.value}
-                                        className="dropdown-item"
-                                        onClick={() => handleSelect(option)}
-                                      >
-                                        {option.icon} {option.label}
-                                      </li>
-                                    ))}
-                                  </>
-                                ) : meeting?.type ===
-                                    "Social Media Newsletter" ? (
-                                  <>
-                                    {socialMediaOption.map((option) => (
-                                      <li
-                                        key={option.value}
-                                        className="dropdown-item"
-                                        onClick={() => handleSelect(option)}
-                                      >
-                                        {option.icon} {option.label}
-                                      </li>
-                                    ))}
-                                  </>
-                                ) : meeting?.type === "Newsletter" ? (
-                                  <>
-                                    {newsletterOption.map((option) => (
-                                      <li
-                                        key={option.value}
-                                        className="dropdown-item"
-                                        onClick={() => handleSelect(option)}
-                                      >
-                                        {option.icon} {option.label}
-                                      </li>
-                                    ))}
-                                  </>
-                                ) : meeting?.type === "Law" ? (
-                                  <>
-                                    {LawOption.map((option) => (
-                                      <li
-                                        key={option.value}
-                                        className="dropdown-item"
-                                        onClick={() => handleSelect(option)}
-                                      >
-                                        {option.icon} {option.label}
-                                      </li>
-                                    ))}
-                                  </>
-                                ) : meeting?.type === "Absence" ? (
-                                  <>
-                                    {AbsenceOption.map((option) => (
-                                      <li
-                                        key={option.value}
-                                        className="dropdown-item"
-                                        onClick={() => handleSelect(option)}
-                                      >
-                                        {option.icon} {option.label}
-                                      </li>
-                                    ))}
-                                  </>
-                                ) : meeting?.type === "Task" ? (
-                                  <>
-                                    {taskOption.map((option) => (
-                                      <li
-                                        key={option.value}
-                                        className="dropdown-item"
-                                        onClick={() => handleSelect(option)}
-                                      >
-                                        {option.icon} {option.label}
-                                      </li>
-                                    ))}
-                                  </>
-                                ) : meeting?.type === "Sprint" ? (
-                                  <>
-                                    {storyOption.map((option) => (
-                                      <li
-                                        key={option.value}
-                                        className="dropdown-item"
-                                        onClick={() => handleSelect(option)}
-                                      >
-                                        {option.icon} {option.label}
-                                      </li>
-                                    ))}
-                                  </>
-                                ) : meeting?.type === "Prestation Client" ? (
-                                  <>
-                                    {prestationOption.map((option) => (
-                                      <li
-                                        key={option.value}
-                                        className="dropdown-item"
-                                        onClick={() => handleSelect(option)}
-                                      >
-                                        {option.icon} {option.label}
-                                      </li>
-                                    ))}
-                                  </>
-                                ) : openedFrom === "discussion" ? (
-                                  <>
-                                    {discusionOptions.map((option) => (
-                                      <li
-                                        key={option.value}
-                                        className="dropdown-item"
-                                        onClick={() => handleSelect(option)}
-                                      >
-                                        {option.icon} {option.label}
-                                      </li>
-                                    ))}
-                                  </>
-                                ) : meeting?.type === "Special" ? (
-                                  <>
-                                    {SpecialMeetingOptions.map((option) => (
-                                      <li
-                                        key={option.value}
-                                        className="dropdown-item"
-                                        onClick={() => handleSelect(option)}
-                                      >
-                                        {option.icon} {option.label}
-                                      </li>
-                                    ))}
-                                  </>
-                                ) : (
-                                  <>
-                                    {options.map((option) => (
-                                      <li
-                                        key={option.value}
-                                        className="dropdown-item"
-                                        onClick={() => handleSelect(option)}
-                                      >
-                                        {option.icon} {option.label}
-                                      </li>
-                                    ))}
-                                  </>
-                                )}
+                                                                              : modalType ===
+                                                                                  "RTT"
+                                                                                ? t(
+                                                                                    "meeting.absence_step_type.absence_type_8",
+                                                                                  )
+                                                                                : modalType}
+                                <ExpandIcon />
+                              </div>
+                              {isOpen && (
+                                <ul className="editor-dropdown-list">
+                                  {meeting?.type === "AI Social Media Newsletter" ? (
+                                    <>
+                                      {options?.filter((item)=> item.value === "Editeur")?.map((option) => (
+                                        <li
+                                          key={option.value}
+                                          className="dropdown-item"
+                                          onClick={() => handleSelect(option)}
+                                        >
+                                          {option.icon} {option.label}
+                                        </li>
+                                      ))}
+                                    </>
+                                  ) : meeting?.type === "AI Instruction" ? (
+                                    <>
+                                      {aiInstructionOptions.map((option) => (
+                                        <li
+                                          key={option.value}
+                                          className="dropdown-item"
+                                          onClick={() => handleSelect(option)}
+                                        >
+                                          {option.icon} {option.label}
+                                        </li>
+                                      ))}
+                                    </>
+                                  ) : meeting?.type ===
+                                      "Social Media Newsletter" ? (
+                                    <>
+                                      {socialMediaOption.map((option) => (
+                                        <li
+                                          key={option.value}
+                                          className="dropdown-item"
+                                          onClick={() => handleSelect(option)}
+                                        >
+                                          {option.icon} {option.label}
+                                        </li>
+                                      ))}
+                                    </>
+                                  ) : meeting?.type === "Newsletter" ? (
+                                    <>
+                                      {newsletterOption.map((option) => (
+                                        <li
+                                          key={option.value}
+                                          className="dropdown-item"
+                                          onClick={() => handleSelect(option)}
+                                        >
+                                          {option.icon} {option.label}
+                                        </li>
+                                      ))}
+                                    </>
+                                  ) : meeting?.type === "Law" ? (
+                                    <>
+                                      {LawOption.map((option) => (
+                                        <li
+                                          key={option.value}
+                                          className="dropdown-item"
+                                          onClick={() => handleSelect(option)}
+                                        >
+                                          {option.icon} {option.label}
+                                        </li>
+                                      ))}
+                                    </>
+                                  ) : meeting?.type === "Absence" ? (
+                                    <>
+                                      {AbsenceOption.map((option) => (
+                                        <li
+                                          key={option.value}
+                                          className="dropdown-item"
+                                          onClick={() => handleSelect(option)}
+                                        >
+                                          {option.icon} {option.label}
+                                        </li>
+                                      ))}
+                                    </>
+                                  ) : meeting?.type === "Task" ? (
+                                    <>
+                                      {taskOption.map((option) => (
+                                        <li
+                                          key={option.value}
+                                          className="dropdown-item"
+                                          onClick={() => handleSelect(option)}
+                                        >
+                                          {option.icon} {option.label}
+                                        </li>
+                                      ))}
+                                    </>
+                                  ) : meeting?.type === "Sprint" ? (
+                                    <>
+                                      {storyOption.map((option) => (
+                                        <li
+                                          key={option.value}
+                                          className="dropdown-item"
+                                          onClick={() => handleSelect(option)}
+                                        >
+                                          {option.icon} {option.label}
+                                        </li>
+                                      ))}
+                                    </>
+                                  ) : meeting?.type === "Prestation Client" ? (
+                                    <>
+                                      {prestationOption.map((option) => (
+                                        <li
+                                          key={option.value}
+                                          className="dropdown-item"
+                                          onClick={() => handleSelect(option)}
+                                        >
+                                          {option.icon} {option.label}
+                                        </li>
+                                      ))}
+                                    </>
+                                  ) : openedFrom === "discussion" ? (
+                                    <>
+                                      {discusionOptions.map((option) => (
+                                        <li
+                                          key={option.value}
+                                          className="dropdown-item"
+                                          onClick={() => handleSelect(option)}
+                                        >
+                                          {option.icon} {option.label}
+                                        </li>
+                                      ))}
+                                    </>
+                                  ) : meeting?.type === "Special" ? (
+                                    <>
+                                      {SpecialMeetingOptions.map((option) => (
+                                        <li
+                                          key={option.value}
+                                          className="dropdown-item"
+                                          onClick={() => handleSelect(option)}
+                                        >
+                                          {option.icon} {option.label}
+                                        </li>
+                                      ))}
+                                    </>
+                                  ) : (
+                                    <>
+                                      {options.map((option) => (
+                                        <li
+                                          key={option.value}
+                                          className="dropdown-item"
+                                          onClick={() => handleSelect(option)}
+                                        >
+                                          {option.icon} {option.label}
+                                        </li>
+                                      ))}
+                                    </>
+                                  )}
                               </ul>
                             )}
                           </div>
@@ -4161,13 +4362,12 @@ const getStep = async () => {
                   <div className="row">
                     {meeting?.type === "AI Social Media Newsletter" ||
                     modalType === "Publication" ||
-                    modalType === "AI Instruction" ? (
+                    meeting?.type === "AI Instruction" ? (
                       <>
                         <div
-                          className="col-md-7"
+                          className={`${meeting?.type === "AI Instruction" ? "col-md-12" : "col-md-7"}`}
                           style={
-                            meeting?.type === "AI Social Media Newsletter" ||
-                            modalType === "AI Instruction"
+                            meeting?.type === "AI Social Media Newsletter" 
                               ? {
                                   maxHeight: "calc(90vh - 40px)",
                                   overflowY: "auto",
@@ -4179,7 +4379,7 @@ const getStep = async () => {
                         >
                           <div>
                             {meeting?.type === "AI Social Media Newsletter" ||
-                            modalType === "AI Instruction" ? (
+                            meeting?.type === "AI Instruction" ? (
                               <div
                                 className="p-3"
                                 style={{
@@ -4188,97 +4388,178 @@ const getStep = async () => {
                                   border: "1px solid #E4E7EC",
                                 }}
                               >
-                                {/* Source Section */}
-                                <div className="mb-4">
-                                  <label
-                                    className="fw-semibold d-flex align-items-center mb-2"
-                                    style={{
-                                      fontSize: "14px",
-                                      color: "#344054",
-                                    }}
-                                  >
-                                    <DocumentIcon
-                                      className="me-2"
-                                      style={{ width: "16px", height: "16px" }}
-                                    />{" "}
-                                    Source
-                                  </label>
-                                  <p
-                                    className="text-muted mb-2"
-                                    style={{ fontSize: "12px" }}
-                                  >
-                                    Choose the input source for this instruction
-                                  </p>
-                                  <div className="d-flex gap-2 mb-3">
-                                    <Button
-                                      variant={
-                                        aiSourceType === "Text"
-                                          ? "light"
-                                          : "outline-secondary"
-                                      }
-                                      className={
-                                        aiSourceType === "Text"
-                                          ? "border-primary text-primary fw-semibold"
-                                          : ""
-                                      }
-                                      onClick={() => setAiSourceType("Text")}
+                                  {/* Source Section */}
+                                  <div className="mb-4">
+                                    <label
+                                      className="fw-semibold d-flex align-items-center mb-2"
                                       style={{
-                                        fontSize: "13px",
-                                        background:
+                                        fontSize: "14px",
+                                        color: "#344054",
+                                      }}
+                                    >
+                                      <DocumentIcon
+                                        className="me-2"
+                                        style={{ width: "16px", height: "16px" }}
+                                      />{" "}
+                                      {t("messages.aiSourceLabel")}
+                                    </label>
+                                    <p
+                                      className="text-muted mb-2"
+                                      style={{ fontSize: "12px" }}
+                                    >
+                                      {t("messages.aiSourceHelpText")}
+                                    </p>
+                                    <div className="d-flex flex-wrap gap-2 mb-3">
+                                      <Button
+                                        variant={
                                           aiSourceType === "Text"
-                                            ? "#F4F6FF"
-                                            : "#fff",
-                                      }}
-                                    >
-                                      📄 Text
-                                    </Button>
-                                    <Button
-                                      variant={
-                                        aiSourceType === "Document"
-                                          ? "light"
-                                          : "outline-secondary"
-                                      }
-                                      className={
-                                        aiSourceType === "Document"
-                                          ? "border-primary text-primary fw-semibold"
-                                          : ""
-                                      }
-                                      onClick={() =>
-                                        setAiSourceType("Document")
-                                      }
-                                      style={{
-                                        fontSize: "13px",
-                                        background:
+                                            ? "light"
+                                            : "outline-secondary"
+                                        }
+                                        className={
+                                          aiSourceType === "Text"
+                                            ? "border-primary text-primary fw-semibold"
+                                            : ""
+                                        }
+                                        onClick={() => setAiSourceType("Text")}
+                                        style={{
+                                          fontSize: "13px",
+                                          background:
+                                            aiSourceType === "Text"
+                                              ? "#F4F6FF"
+                                              : "#fff",
+                                        }}
+                                      >
+                                        📄 {t("messages.aiSourceText")}
+                                      </Button>
+                                      <Button
+                                        variant={
                                           aiSourceType === "Document"
-                                            ? "#F4F6FF"
-                                            : "#fff",
-                                      }}
-                                    >
-                                      📄 Document
-                                    </Button>
-                                    <Button
-                                      variant={
-                                        aiSourceType === "YouTube"
-                                          ? "light"
-                                          : "outline-secondary"
-                                      }
-                                      className={
-                                        aiSourceType === "YouTube"
-                                          ? "border-primary text-primary fw-semibold"
-                                          : ""
-                                      }
-                                      onClick={() => setAiSourceType("YouTube")}
-                                      style={{
-                                        fontSize: "13px",
-                                        background:
+                                            ? "light"
+                                            : "outline-secondary"
+                                        }
+                                        className={
+                                          aiSourceType === "Document"
+                                            ? "border-primary text-primary fw-semibold"
+                                            : ""
+                                        }
+                                        onClick={() =>
+                                          setAiSourceType("Document")
+                                        }
+                                        style={{
+                                          fontSize: "13px",
+                                          background:
+                                            aiSourceType === "Document"
+                                              ? "#F4F6FF"
+                                              : "#fff",
+                                        }}
+                                      >
+                                        📄 {t("messages.aiSourceDocument")}
+                                      </Button>
+                                      <Button
+                                        variant={
                                           aiSourceType === "YouTube"
-                                            ? "#F4F6FF"
-                                            : "#fff",
-                                      }}
-                                    >
-                                      📺 YouTube
-                                    </Button>
-                                  </div>
+                                            ? "light"
+                                            : "outline-secondary"
+                                        }
+                                        className={
+                                          aiSourceType === "YouTube"
+                                            ? "border-primary text-primary fw-semibold"
+                                            : ""
+                                        }
+                                        onClick={() => setAiSourceType("YouTube")}
+                                        style={{
+                                          fontSize: "13px",
+                                          background:
+                                            aiSourceType === "YouTube"
+                                              ? "#F4F6FF"
+                                              : "#fff",
+                                        }}
+                                      >
+                                        📺 {t("messages.aiSourceYouTube")}
+                                      </Button>
+                                      <Button
+                                        variant={
+                                          aiSourceType === "Moment"
+                                            ? "light"
+                                            : "outline-secondary"
+                                        }
+                                        className={
+                                          aiSourceType === "Moment"
+                                            ? "border-primary text-primary fw-semibold"
+                                            : ""
+                                        }
+                                        onClick={() => {
+                                          setAiSourceType("Moment");
+                                          if (moments.length === 0) {
+                                            fetchMoments();
+                                          }
+                                        }}
+                                        style={{
+                                          fontSize: "13px",
+                                          background:
+                                            aiSourceType === "Moment"
+                                              ? "#F4F6FF"
+                                              : "#fff",
+                                        }}
+                                      >
+                                        ⚡ {t("messages.aiSourceNotes")}
+                                      </Button>
+                                      <Button
+                                        variant={
+                                          aiSourceType === "Mission"
+                                            ? "light"
+                                            : "outline-secondary"
+                                        }
+                                        className={
+                                          aiSourceType === "Mission"
+                                            ? "border-primary text-primary fw-semibold"
+                                            : ""
+                                        }
+                                        onClick={() => {
+                                          setAiSourceType("Mission");
+                                          if (missions.length === 0) {
+                                            fetchMissions();
+                                          }
+                                        }}
+                                        style={{
+                                          fontSize: "13px",
+                                          background:
+                                            aiSourceType === "Mission"
+                                              ? "#F4F6FF"
+                                              : "#fff",
+                                        }}
+                                      >
+                                        🎯 {t("messages.aiSourceMission")}
+                                      </Button>
+                                      <Button
+                                        variant={
+                                          aiSourceType === "Discussion"
+                                            ? "light"
+                                            : "outline-secondary"
+                                        }
+                                        className={
+                                          aiSourceType === "Discussion"
+                                            ? "border-primary text-primary fw-semibold"
+                                            : ""
+                                        }
+                                        onClick={() => {
+                                          setAiSourceType("Discussion");
+                                          if (moments.length === 0) {
+                                            fetchMoments();
+                                          }
+                                        }}
+                                        style={{
+                                          fontSize: "13px",
+                                          background:
+                                            aiSourceType === "Discussion"
+                                              ? "#F4F6FF"
+                                              : "#fff",
+                                        }}
+                                      >
+                                        💬 {t("messages.aiSourceDiscussion")}
+                                      </Button>
+                                    </div>
 
                                   {aiSourceType === "Text" && (
                                     <textarea
@@ -4292,7 +4573,7 @@ const getStep = async () => {
                                       onChange={(e) =>
                                         setAiSourceText(e.target.value)
                                       }
-                                      placeholder="Enter your source text here..."
+                                      placeholder={t("messages.aiSourceTextPlaceholder")}
                                     />
                                   )}
 
@@ -4345,6 +4626,50 @@ const getStep = async () => {
                                       />
                                     </div>
                                   )}
+
+                                  {aiSourceType === "Moment" && (
+                                    <div className="mt-2">
+                                      <label className="form-label fw-semibold mb-1" style={{ fontSize: "13px", color: "#344054" }}>{t("messages.aiSourceSelectMoment")}</label>
+                                      <Select isLoading={isMomentsLoading} options={moments} value={moments.find(m => m.value === selectedMoment) || null} onChange={(opt) => setSelectedMoment(opt ? opt.value : "")} placeholder={t("messages.aiSourceSearchMoment")} isClearable isSearchable
+                                          formatOptionLabel={(opt) => { const s = (opt.status || "").toLowerCase(); const bc = s === "done" || s === "completed" ? "#12b76a" : s === "active" || s === "in_progress" ? "#2e90fa" : s === "draft" ? "#98a2b3" : "#667085"; const bb = s === "done" || s === "completed" ? "#ecfdf3" : s === "active" || s === "in_progress" ? "#eff8ff" : "#f2f4f7"; return (<div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", width: "100%" }}><span style={{ fontSize: "13px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, textAlign: "left" }}>{opt.label}</span>{opt.status && (<span style={{ fontSize: "10px", fontWeight: 600, padding: "2px 7px", borderRadius: "10px", color: bc, backgroundColor: bb, textTransform: "uppercase", flexShrink: 0 }}>{opt.status === "active" ? t('badge.future') : opt.status === "in_progress" ? t("badge.inprogress") : opt.status === "todo" ? t("badge.todo") : opt.status === "to_finish" ? t("badge.finish") : opt.status === "abort" ? t("badge.cancel") : opt.status === "draft" ? t("badge.draft") : opt?.status === "closed" ? t("badge.completed") : null }</span>)}</div>); }}                                        styles={{
+                                          control: (b) => ({ ...b, minHeight: "38px", borderColor: "#D0D5DD", borderRadius: "6px", boxShadow: "none", textAlign: "left" }),
+                                          option: (b, s) => ({ ...b, fontSize: "13px", backgroundColor: s.isSelected ? "#F4F6FF" : s.isFocused ? "#f9fafb" : "#fff", color: "#344054", textAlign: "left" }),
+                                          singleValue: (b) => ({ ...b, fontSize: "13px", color: "#344054", textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }),
+                                          placeholder: (b) => ({ ...b, fontSize: "13px", color: "#98A2B3", textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" })
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+
+                                  {aiSourceType === "Mission" && (
+                                    <div className="mt-2">
+                                      <label className="form-label fw-semibold mb-1" style={{ fontSize: "13px", color: "#344054" }}>{t("messages.aiSourceSelectMission")}</label>
+                                      <Select isLoading={isMissionsLoading} options={missions} value={missions.find(m => m.value === selectedMission) || null} onChange={(opt) => setSelectedMission(opt ? opt.value : "")} placeholder={t("messages.aiSourceSearchMission")} isClearable isSearchable
+                                        formatOptionLabel={(opt) => { const s = (opt.status || "").toLowerCase(); const bc = s === "done" || s === "completed" ? "#12b76a" : s === "active" || s === "in_progress" ? "#2e90fa" : s === "todo" ? "#f79009" : "#667085"; const bb = s === "done" || s === "completed" ? "#ecfdf3" : s === "active" || s === "in_progress" ? "#eff8ff" : s === "todo" ? "#fffaeb" : "#f2f4f7"; return (<div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", width: "100%" }}><span style={{ fontSize: "13px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, textAlign: "left" }}>{opt.label}</span>{opt.status && (<span style={{ fontSize: "10px", fontWeight: 600, padding: "2px 7px", borderRadius: "10px", color: bc, backgroundColor: bb, textTransform: "uppercase", flexShrink: 0 }}>{opt.status === "active" ? t('mission-badge.upcoming') : opt.status === "in_progress" ? t("mission-badge.inProgress") : t("mission-badge.completed")}</span>)}</div>); }}
+                                        styles={{
+                                          control: (b) => ({ ...b, minHeight: "38px", borderColor: "#D0D5DD", borderRadius: "6px", boxShadow: "none", textAlign: "left" }),
+                                          option: (b, s) => ({ ...b, fontSize: "13px", backgroundColor: s.isSelected ? "#F4F6FF" : s.isFocused ? "#f9fafb" : "#fff", color: "#344054", textAlign: "left" }),
+                                          singleValue: (b) => ({ ...b, fontSize: "13px", color: "#344054", textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }),
+                                          placeholder: (b) => ({ ...b, fontSize: "13px", color: "#98A2B3", textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" })
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+
+                                  {aiSourceType === "Discussion" && (
+                                    <div className="mt-2">
+                                      <label className="form-label fw-semibold mb-1" style={{ fontSize: "13px", color: "#344054" }}>{t("messages.aiSourceSelectDiscussion")}</label>
+                                      <Select isLoading={isMomentsLoading} options={moments} value={moments.find(m => m.value === selectedMoment) || null} onChange={(opt) => setSelectedMoment(opt ? opt.value : "")} placeholder={t("messages.aiSourceSearchDiscussion")} isClearable isSearchable
+                                      formatOptionLabel={(opt) => { const s = (opt.status || "").toLowerCase(); const bc = s === "done" || s === "completed" ? "#12b76a" : s === "active" || s === "in_progress" ? "#2e90fa" : s === "draft" ? "#98a2b3" : "#667085"; const bb = s === "done" || s === "completed" ? "#ecfdf3" : s === "active" || s === "in_progress" ? "#eff8ff" : "#f2f4f7"; return (<div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", width: "100%" }}><span style={{ fontSize: "13px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, textAlign: "left" }}>{opt.label}</span>{opt.status && (<span style={{ fontSize: "10px", fontWeight: 600, padding: "2px 7px", borderRadius: "10px", color: bc, backgroundColor: bb, textTransform: "uppercase", flexShrink: 0 }}>{opt.status === "active" ? t('badge.future') : opt.status === "in_progress" ? t("badge.inprogress") : opt.status === "todo" ? t("badge.todo") : opt.status === "to_finish" ? t("badge.finish") : opt.status === "abort" ? t("badge.cancel") : opt.status === "draft" ? t("badge.draft") : opt?.status === "closed" ? t("badge.completed") : null }</span>)}</div>); }}
+                                        styles={{
+                                          control: (b) => ({ ...b, minHeight: "38px", borderColor: "#D0D5DD", borderRadius: "6px", boxShadow: "none", textAlign: "left" }),
+                                          option: (b, s) => ({ ...b, fontSize: "13px", backgroundColor: s.isSelected ? "#F4F6FF" : s.isFocused ? "#f9fafb" : "#fff", color: "#344054", textAlign: "left" }),
+                                          singleValue: (b) => ({ ...b, fontSize: "13px", color: "#344054", textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }),
+                                          placeholder: (b) => ({ ...b, fontSize: "13px", color: "#98A2B3", textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" })
+                                        }}
+                                      />
+                                    </div>
+                                  )}
                                 </div>
 
                                 {/* Role Section */}
@@ -4356,13 +4681,13 @@ const getStep = async () => {
                                       color: "#344054",
                                     }}
                                   >
-                                    <span className="me-2">👤</span> Rôle
+                                    <span className="me-2">👤</span> {t("messages.aiRoleLabel")}
                                   </label>
                                   <p
                                     className="text-muted mb-2"
                                     style={{ fontSize: "12px" }}
                                   >
-                                    Define the AI persona for this instruction
+                                    {t("messages.aiRoleHelpText")}
                                   </p>
                                   <input
                                     type="text"
@@ -4373,7 +4698,7 @@ const getStep = async () => {
                                     }}
                                     value={aiRole}
                                     onChange={(e) => setAiRole(e.target.value)}
-                                    placeholder="e.g. Expert marketing strategist, Senior developer, UX designer..."
+                                    placeholder={t("messages.aiRolePlaceholder")}
                                   />
                                 </div>
 
@@ -4387,13 +4712,13 @@ const getStep = async () => {
                                         color: "#344054",
                                       }}
                                     >
-                                      <span className="me-2">⚡</span> Action
+                                      <span className="me-2">⚡</span> {t("messages.aiActionLabel")}
                                     </label>
                                     <p
                                       className="text-muted mb-2"
                                       style={{ fontSize: "12px" }}
                                     >
-                                      What should the AI do?
+                                      {t("messages.aiActionHelpText")}
                                     </p>
                                     <textarea
                                       className="form-control"
@@ -4406,7 +4731,7 @@ const getStep = async () => {
                                       onChange={(e) =>
                                         setAiAction(e.target.value)
                                       }
-                                      placeholder="Describe the action to perform..."
+                                      placeholder={t("messages.aiActionPlaceholder")}
                                     />
                                   </div>
 
@@ -4419,14 +4744,13 @@ const getStep = async () => {
                                         color: "#344054",
                                       }}
                                     >
-                                      <span className="me-2">🎯</span> Objectif
-                                      / Résultat
+                                      <span className="me-2">🎯</span> {t("messages.aiObjectiveLabel")}
                                     </label>
                                     <p
                                       className="text-muted mb-2"
                                       style={{ fontSize: "12px" }}
                                     >
-                                      What outcome do you expect?
+                                      {t("messages.aiObjectiveHelpText")}
                                     </p>
                                     <textarea
                                       className="form-control"
@@ -4439,7 +4763,7 @@ const getStep = async () => {
                                       onChange={(e) =>
                                         setAiObjective(e.target.value)
                                       }
-                                      placeholder="Describe the desired result..."
+                                      placeholder={t("messages.aiObjectivePlaceholder")}
                                     />
                                   </div>
                                 </div>
@@ -4453,14 +4777,13 @@ const getStep = async () => {
                                       color: "#344054",
                                     }}
                                   >
-                                    <span className="me-2">🛡️</span> Règles
+                                    <span className="me-2">🛡️</span> {t("messages.aiRulesLabel")}
                                   </label>
                                   <p
                                     className="text-muted mb-2"
                                     style={{ fontSize: "12px" }}
                                   >
-                                    Restrictions, limits or constraints to
-                                    respect
+                                    {t("messages.aiRulesHelpText")}
                                   </p>
                                   <textarea
                                     className="form-control"
@@ -4471,12 +4794,12 @@ const getStep = async () => {
                                     }}
                                     value={aiRules}
                                     onChange={(e) => setAiRules(e.target.value)}
-                                    placeholder="e.g. Keep it concise. No technical jargon. Always cite sources. Max 500 words..."
+                                    placeholder={t("messages.aiRulesPlaceholder")}
                                   />
                                 </div>
 
                                 {/* Output Format Section */}
-                                {meeting?.type !== "AI Social Media Newsletter" && (
+                                {(meeting?.type !== "AI Social Media Newsletter" && meeting?.type !== "AI Instruction") && (
                                   <div>
                                   <label
                                     className="fw-semibold d-flex align-items-center mb-2"
@@ -4485,14 +4808,13 @@ const getStep = async () => {
                                       color: "#344054",
                                     }}
                                   >
-                                    <span className="me-2">📥</span> Sortie
+                                    <span className="me-2">📥</span> {t("messages.aiOutputLabel")}
                                   </label>
                                   <p
                                     className="text-muted mb-2"
                                     style={{ fontSize: "12px" }}
                                   >
-                                    Select the output format for this
-                                    instruction
+                                    {t("messages.aiOutputHelpText")}
                                   </p>
                                   <div className="d-flex flex-wrap gap-3">
                                     <Button
@@ -4514,13 +4836,13 @@ const getStep = async () => {
                                             : "#fff",
                                       }}
                                     >
-                                      <div className="mb-1">📊</div>
-                                      <div>PowerPoint</div>
+                                      <div className="mb-1"><PiMicrosoftPowerpointLogo className="fs-3" /></div>
+                                      <div>{t("messages.aiOutputPowerPoint")}</div>
                                       <div
                                         className="text-muted fw-normal"
                                         style={{ fontSize: "11px" }}
                                       >
-                                        Slides deck
+                                        {t("messages.aiOutputPowerPointDesc")}
                                       </div>
                                     </Button>
                                     <Button
@@ -4541,12 +4863,12 @@ const getStep = async () => {
                                       }}
                                     >
                                       <div className="mb-1">📄</div>
-                                      <div>PDF</div>
+                                      <div>{t("messages.aiOutputPDF")}</div>
                                       <div
                                         className="text-muted fw-normal"
                                         style={{ fontSize: "11px" }}
                                       >
-                                        Formatted document
+                                        {t("messages.aiOutputPDFDesc")}
                                       </div>
                                     </Button>
                                     <Button
@@ -4567,12 +4889,12 @@ const getStep = async () => {
                                       }}
                                     >
                                       <div className="mb-1">📝</div>
-                                      <div>Text</div>
+                                      <div>{t("messages.aiOutputText")}</div>
                                       <div
                                         className="text-muted fw-normal"
                                         style={{ fontSize: "11px" }}
                                       >
-                                        Plain content
+                                        {t("messages.aiOutputTextDesc")}
                                       </div>
                                     </Button>
                                   </div>
@@ -4612,7 +4934,7 @@ const getStep = async () => {
                             )}
                           </div>
                         </div>
-                        <div
+                        {meeting?.type !== "AI Instruction" && <div
                           className="col-md-5 p-4"
                           style={{ backgroundColor: "#F2F4FB" }}
                         >
@@ -4819,7 +5141,7 @@ const getStep = async () => {
                               className="center-spinner"
                             ></Spinner>
                           )}
-                        </div>
+                        </div>}
                       </>
                     ) : modalType === "Editeur" ||
                       modalType === "Question" ||

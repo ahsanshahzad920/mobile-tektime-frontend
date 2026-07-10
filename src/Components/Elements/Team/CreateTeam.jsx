@@ -11,7 +11,7 @@ import { useTranslation } from "react-i18next";
 import { Button, Spinner } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 
-const CreateTeam = ({ setActiveTab,setShowCreateTeam,getTeams }) => {
+const CreateTeam = ({ setActiveTab, setShowCreateTeam, getTeams, preselectedEnterprise }) => {
   const roleID = getUserRoleID();
 
   const initialTeamData = {
@@ -105,15 +105,23 @@ const CreateTeam = ({ setActiveTab,setShowCreateTeam,getTeams }) => {
   }, []);
   useEffect(() => {
     const getEnterpriseData = async () => {
-      const enterprise = JSON.parse(CookieService.get("enterprise"));
-      setEnterprise(enterprise);
-      setTeam({
-        ...team,
-        enterprise_id: enterprise?.id,
-      });
+      if (preselectedEnterprise) {
+        setEnterprise(preselectedEnterprise);
+        setTeam(prev => ({
+          ...prev,
+          enterprise_id: preselectedEnterprise?.id,
+        }));
+      } else {
+        const enterprise = CookieService.get("enterprise") ? JSON.parse(CookieService.get("enterprise")) : null;
+        setEnterprise(enterprise);
+        setTeam(prev => ({
+          ...prev,
+          enterprise_id: enterprise?.id,
+        }));
+      }
     };
     getEnterpriseData();
-  }, []);
+  }, [preselectedEnterprise]);
 
   const [isLoading, setIsLoading] = useState(false);
   const createTeam = async () => {
@@ -182,7 +190,7 @@ const CreateTeam = ({ setActiveTab,setShowCreateTeam,getTeams }) => {
       <div className="container-fluid">
         <div className="card pt-5 pb-5">
           <div className="row justify-content-center">
-            <div className="col-md-3">
+            <div className="col-12 col-md-4 mb-4">
               <div className="image-uploader mt-4">
                 <div
                   className={`image-preview ${isHovered ? "hovered" : ""}`}
@@ -211,7 +219,7 @@ const CreateTeam = ({ setActiveTab,setShowCreateTeam,getTeams }) => {
                 />
               </div>
             </div>
-            <div className="col-md-3">
+            <div className="col-12 col-md-6 mb-4">
               <div className="mb-3">
                 <label className="form-label">
                   <h6>{t("Team.name")}</h6>
@@ -268,6 +276,7 @@ const CreateTeam = ({ setActiveTab,setShowCreateTeam,getTeams }) => {
                 </label>
                 <br />
                 <textarea
+                  className="form-control"
                   rows="10"
                   name="description"
                   value={team.description}

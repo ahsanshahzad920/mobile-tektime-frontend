@@ -183,7 +183,7 @@ const NewEnterprises = ({ eventKey, setActiveTab }) => {
       <div className="container-fluid">
         <div className="card pt-5 pb-5">
           <div className="row justify-content-center">
-            <div className="col-md-3">
+            <div className="col-12 col-md-3 mb-4">
               <div className="image-uploader mt-4">
                 <div
                   className={`image-preview ${isHovered ? "hovered" : ""}`}
@@ -212,7 +212,7 @@ const NewEnterprises = ({ eventKey, setActiveTab }) => {
                 />
               </div>
             </div>
-            <div className="col-md-3">
+            <div className="col-12 col-md-4 mb-4">
               <div className="mb-3">
                 <label className="form-label">
                   <h6>{t("Entreprise.name")}</h6>
@@ -322,7 +322,7 @@ const NewEnterprises = ({ eventKey, setActiveTab }) => {
                 </select>
               </div>
             </div>
-            <div className="col-md-3">
+            <div className="col-12 col-md-4 mb-4">
               <label className="form-label">
                 <h6>Description</h6>
               </label>
@@ -330,6 +330,7 @@ const NewEnterprises = ({ eventKey, setActiveTab }) => {
 
               <br />
               <textarea
+                className="form-control"
                 rows="10"
                 value={enterpriseData.description}
                 onChange={handleInputChange}

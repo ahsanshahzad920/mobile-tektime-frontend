@@ -492,6 +492,15 @@ const QuickMomentForm = ({
           setMomentName(meetingData.title);
           setIsManualTitle(true);
         }
+
+        if (meetingData.is_confirmed === true && meetingData.solution_id) {
+          setFormState((prev) => ({
+            ...prev,
+            solution_id: meetingData.solution_id,
+            solution_name: meetingData.solution_name,
+            solution_tab: "use a template",
+          }));
+        }
       }
 
       if (
@@ -2524,6 +2533,8 @@ const QuickMomentForm = ({
       status: "active",
       team_ids: (formState.teams || []).map((t) => t.id).filter((id) => id),
       ...(meeting?.id ? { _method: "put", update_editor: false } : {}),
+      ...(meetingData?.is_confirmed === true && meetingData?.solution_id ? { solution_id: meetingData.solution_id } : {}),
+      ...(meetingData?.is_confirmed === true && meetingData?.solution_name ? { solution_name: meetingData.solution_name } : {}),
     };
 
     try {
@@ -2988,6 +2999,8 @@ const QuickMomentForm = ({
             destination_type_id: destination?.destination_type_id || null,
           }
         : {}),
+      ...(meetingData?.is_confirmed === true && meetingData?.solution_id ? { solution_id: meetingData.solution_id } : {}),
+      ...(meetingData?.is_confirmed === true && meetingData?.solution_name ? { solution_name: meetingData.solution_name } : {}),
     };
 
     try {
@@ -6330,6 +6343,7 @@ const QuickMomentForm = ({
                           formState?.type !== "Calendly" &&
                           selectedSolution?.is_step_exists !== false &&
                           formState?.type !== "AI Social Media Newsletter" &&
+                          formState?.type !== "AI Instruction" &&
                           !meetingData?.created_from_whatsapp &&
                           !isEmailConversation(meeting) && (
                             <button
@@ -6408,6 +6422,7 @@ const QuickMomentForm = ({
                           formState?.type !== "Calendly" &&
                           selectedSolution?.is_step_exists !== false &&
                           formState?.type !== "AI Social Media Newsletter" &&
+                          formState?.type !== "AI Instruction" &&
                           !meetingData?.created_from_whatsapp &&
                           !isEmailConversation(meeting) && (
                             <button

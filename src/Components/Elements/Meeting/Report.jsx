@@ -3376,34 +3376,7 @@ const Report = () => {
                             ))}
                           </ul>
                         </nav>
-                        <div className="form-actions d-flex justify-content-center mt-4">
-                          <Button
-                            className="next-btn"
-                            style={{
-                              alignItems: "center",
-                              backgroundColor: "#4361ee",
-                              border: "none",
-                              borderRadius: "8px",
-                              display: "flex",
-
-                              flexDirection: "column",
-                              fontWeight: "500",
-                              padding: ".75rem 1.5rem",
-                              transition: "all .2s ease",
-                            }}
-                            onClick={() =>
-                              navigate(
-                                `/gate/moment?contract_id=${process.env.REACT_APP_CONTRACT_ID}`,
-                              )
-                            }
-                          >
-                            <span>Essayer l'aventure TekTIME</span>
-
-                            {/* <span className="btn-subtext">
-                Personnalisez votre expérience en 2 minutes
-              </span> */}
-                          </Button>
-                        </div>
+                       
 
                         <div className="main-content-9 mt-4 container">
                           <section
@@ -5116,34 +5089,7 @@ const Report = () => {
                           </nav>
                         )}
 
-                        <div className="form-actions d-flex justify-content-center mt-4">
-                          <Button
-                            className="next-btn"
-                            style={{
-                              alignItems: "center",
-                              backgroundColor: "#4361ee",
-                              border: "none",
-                              borderRadius: "8px",
-                              display: "flex",
-
-                              flexDirection: "column",
-                              fontWeight: "500",
-                              padding: ".75rem 1.5rem",
-                              transition: "all .2s ease",
-                            }}
-                            onClick={() =>
-                              navigate(
-                                `/gate/moment?contract_id=${process.env.REACT_APP_CONTRACT_ID}`,
-                              )
-                            }
-                          >
-                            <span>Essayer l'aventure TekTIME</span>
-
-                            {/* <span className="btn-subtext">
-                Personnalisez votre expérience en 2 minutes
-              </span> */}
-                          </Button>
-                        </div>
+                       
                         <div className="main-content-9 mt-4 container">
                           <section
                             id="detail"
@@ -6823,7 +6769,7 @@ const Report = () => {
                         // },
                         {
                           id: "roadmap",
-                          label: t("roadmap"),
+                          label: t("planning"),
                           icon: <FaChartBar />,
                         },
                         {
@@ -6908,7 +6854,7 @@ const Report = () => {
                       className=" detail-section animate__animated animate__fadeIn"
                     >
                       <div className="casting-section-1">
-                        <h2 className="participant-heading">Roadmap</h2>
+                        <h2 className="participant-heading">{t("planning")}</h2>
                       </div>
                       <Card className="roadmap-container shadow mt-5">
                         <div>

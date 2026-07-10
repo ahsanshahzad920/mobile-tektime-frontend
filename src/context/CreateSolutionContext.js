@@ -360,6 +360,9 @@ export const SolutionFormProvider = ({ children }) => {
       repetition_end_date: formState.repetition_end_date,
       selected_days: formState.selected_days,
       description: formState.description,
+      problem_to_resolve: formState.problem_to_resolve,
+      solution_to_bring: formState.solution_to_bring,
+      how_it_fixes: formState.how_it_fixes,
       solution_steps: inputGroups,
       alarm: formState.alarm,
       feedback: formState.feedback,
@@ -424,6 +427,7 @@ export const SolutionFormProvider = ({ children }) => {
       room_details: formState.room_details,
       phone: formState.phone,
       agenda: formState.agenda,
+      logo: formState.logo,
     };
 
     try {
@@ -499,7 +503,10 @@ export const SolutionFormProvider = ({ children }) => {
       whatsapp_in,
       presentation,
       show_participants,
-      show_discussion
+      show_discussion,
+      problem_to_resolve,
+      solution_to_bring,
+      how_it_fixes,
     } = formState;
 
     const formFields = [title, description];
@@ -592,6 +599,9 @@ export const SolutionFormProvider = ({ children }) => {
       max_participants_register,
       price,
       casting_type,
+      problem_to_resolve,
+      solution_to_bring,
+      how_it_fixes,
     };
 
     if (isDuplicate) {
@@ -681,7 +691,10 @@ export const SolutionFormProvider = ({ children }) => {
       whatsapp_in,
       presentation,
       show_participants,
-      show_discussion
+      show_discussion,
+      problem_to_resolve,
+      solution_to_bring,
+      how_it_fixes,
     } = formState;
 
     const formFields = [type, title, description];
@@ -767,6 +780,9 @@ export const SolutionFormProvider = ({ children }) => {
       max_participants_register,
       price,
       casting_type,
+      problem_to_resolve,
+      solution_to_bring,
+      how_it_fixes,
     };
 
 

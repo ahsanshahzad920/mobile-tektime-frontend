@@ -1,4 +1,5 @@
 import CookieService from "../../../Utils/CookieService";
+import Select from "react-select";
 import React, { createContext, useContext, useState } from "react";
 import { useParams } from "react-router-dom";
 import moment from "moment";
@@ -19,6 +20,7 @@ import { useSteps } from "../../../../context/Step";
 import { useSolutionFormContext } from "../../../../context/CreateSolutionContext";
 import { getUserRoleID } from "../../../Utils/getSessionstorageItems";
 import { RiFileExcel2Line, RiFolderVideoLine } from "react-icons/ri";
+import { PiMicrosoftPowerpointLogo } from "react-icons/pi";
 import * as XLSX from "xlsx";
 import Spreadsheet from "react-spreadsheet";
 import { read, utils } from "xlsx";
@@ -217,6 +219,13 @@ const StepChart = ({
       icon: <FaLinkedin className="fs-5" style={{ color: "#0a66c2" }} />,
     },
   ];
+  const aiInstructionOptions = [
+    { value: "Editeur", label: t("stepModal.editor") || "Editor", icon: <DocumentIcon /> },
+    { value: "Photo", label: t("stepModal.photo") || "Photo", icon: <CameraIcon /> },
+    { value: "File", label: t("stepModal.pdf") || "PDF", icon: <FileFolderIcon /> },
+    { value: "PowerPoint", label: t("stepModal.powerpoint") || "Power point", icon: <PiMicrosoftPowerpointLogo className="fs-5" /> },
+    { value: "Excel", label: t("stepModal.excel") || "Excel", icon: <RiFileExcel2Line className="fs-5" /> },
+  ];
   const taskOption = [
     { value: "Subtask", label: t("stepModal.subtask"), icon: <DocumentIcon /> },
   ];
@@ -247,7 +256,7 @@ const StepChart = ({
     setFileName("");
     setExcelData(null);
     setLink(null);
-    if (inputData?.type === "AI Social Media Newsletter") {
+    if (inputData?.type === "AI Social Media Newsletter" || inputData?.type === "AI Instruction") {
       if (option.value === "File") {
         setAiOutputFormat("PDF");
       } else if (option.value === "PowerPoint") {
@@ -300,6 +309,64 @@ const StepChart = ({
   const [aiSourceText, setAiSourceText] = useState("");
   const [aiSourceFile, setAiSourceFile] = useState(null);
   console.log("aiSourceFile", aiSourceFile);
+  const [missions, setMissions] = useState([]);
+  const [isMissionsLoading, setIsMissionsLoading] = useState(false);
+  const [selectedMission, setSelectedMission] = useState("");
+  const [moments, setMoments] = useState([]);
+  const [isMomentsLoading, setIsMomentsLoading] = useState(false);
+  const [selectedMoment, setSelectedMoment] = useState("");
+
+  const fetchMissions = async () => {
+    setIsMissionsLoading(true);
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/user/get-destination-by-user`,
+        {
+          headers: {
+            Authorization: `Bearer ${CookieService.get("token")}`,
+          },
+        }
+      );
+      if (response.data && Array.isArray(response.data.data)) {
+        const missionOptions = response.data.data.map((m) => ({
+          value: m.id,
+          label: m.name || `Mission #${m.id}`,
+          status: m?.status,
+        }));
+        setMissions(missionOptions);
+      }
+    } catch (error) {
+      console.error("Error fetching missions:", error);
+    } finally {
+      setIsMissionsLoading(false);
+    }
+  };
+
+  const fetchMoments = async () => {
+    setIsMomentsLoading(true);
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/user/get-meetings-by-user`,
+        {
+          headers: {
+            Authorization: `Bearer ${CookieService.get("token")}`,
+          },
+        }
+      );
+      if (response.data && Array.isArray(response.data.data)) {
+        const momentOptions = response.data.data.map((m) => ({
+          value: m.id,
+          label: m.title || `Meeting #${m.id}`,
+          status: m?.status,
+        }));
+        setMoments(momentOptions);
+      }
+    } catch (error) {
+      console.error("Error fetching moments:", error);
+    } finally {
+      setIsMomentsLoading(false);
+    }
+  };
   const [aiRole, setAiRole] = useState("");
   const [generateAiMedia, setGenerateAiMedia] = useState(false);
   const [aiAction, setAiAction] = useState("");
@@ -399,7 +466,7 @@ const StepChart = ({
   // }, [inputData?.type, show]);
 
   useEffect(() => {
-    if (inputData?.type === "AI Social Media Newsletter") {
+    if (inputData?.type === "AI Social Media Newsletter" || inputData?.type === "AI Instruction") {
       setModalType("Editeur");
     } else if (
       formState?.location === "LinkedIn" ||
@@ -463,7 +530,7 @@ const StepChart = ({
       return;
     }
     const files =
-      modalType === "Publication" || modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter"
+      modalType === "Publication" || modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter" || inputData?.type === "AI Instruction"
         ? acceptedFiles
         : [acceptedFiles[0]];
     const file = files[0];
@@ -512,7 +579,7 @@ const StepChart = ({
         "video/mpeg",
         "video/quicktime",
       ];
-    } else if (modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter") {
+    } else if (modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter" || inputData?.type === "AI Instruction") {
       allowedFileTypes = [
         "image/jpeg",
         "image/png",
@@ -679,7 +746,8 @@ const StepChart = ({
                     ? "seconds"
                     : inputData?.type === "Special" ||
                         inputData?.type === "Social Media Newsletter" ||
-                        inputData?.type === "AI Social Media Newsletter"
+                        inputData?.type === "AI Social Media Newsletter" ||
+                        inputData?.type === "AI Instruction"
                       ? timeUnit
                       : "minutes",
             time: selectedCount || 0,
@@ -693,7 +761,7 @@ const StepChart = ({
                     : modalType,
             file: file,
             editor_content:
-              modalType === "Publication" || modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter"
+              modalType === "Publication" || modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter" || inputData?.type === "AI Instruction"
                 ? modifiedFileText || null
                 : null,
             solution_id: meetingId,
@@ -710,7 +778,7 @@ const StepChart = ({
           formData.append("time", filePayload.time);
           formData.append("editor_type", filePayload.editor_type);
           formData.append("time_unit", filePayload.time_unit);
-          if (modalType === "Publication" || modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter") {
+          if (modalType === "Publication" || modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter" || inputData?.type === "AI Instruction") {
             files.forEach((f) => {
               formData.append(`file[]`, f);
             });
@@ -776,7 +844,8 @@ const StepChart = ({
                     ? "seconds"
                     : inputData?.type === "Special" ||
                         inputData?.type === "Social Media Newsletter" ||
-                        inputData?.type === "AI Social Media Newsletter"
+                        inputData?.type === "AI Social Media Newsletter" ||
+                        inputData?.type === "AI Instruction"
                       ? timeUnit
                       : "minutes",
             time: selectedCount || 0,
@@ -790,7 +859,9 @@ const StepChart = ({
                     : modalType,
             file: file,
             editor_content:
-              modalType === "Publication" ? modifiedFileText || null : null,
+              modalType === "Publication" || modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter" || inputData?.type === "AI Instruction"
+                ? modifiedFileText || null
+                : null,
             solution_id: meetingId,
             status: "active",
             url: null,
@@ -804,7 +875,7 @@ const StepChart = ({
           formData.append("time", filePayload.time);
           formData.append("editor_type", filePayload.editor_type);
           formData.append("time_unit", filePayload.time_unit);
-          if (modalType === "Publication" || modalType === "AI Instruction") {
+          if (modalType === "Publication" || modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter" || inputData?.type === "AI Instruction") {
             files.forEach((f) => {
               formData.append(`file[]`, f);
             });
@@ -854,7 +925,7 @@ const StepChart = ({
 
   const handleMediaDrop = async (acceptedFiles) => {
     const files =
-      modalType === "Publication" || modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter"
+      modalType === "Publication" || modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter" || inputData?.type === "AI Instruction"
         ? acceptedFiles
         : [acceptedFiles[0]];
     const file = files[0];
@@ -988,7 +1059,8 @@ const StepChart = ({
                         ? "seconds"
                         : inputData?.type === "Special" ||
                             inputData?.type === "Social Media Newsletter" ||
-                            inputData?.type === "AI Social Media Newsletter"
+                            inputData?.type === "AI Social Media Newsletter" ||
+                        inputData?.type === "AI Instruction"
                           ? timeUnit
                           : "minutes",
                 time: count2,
@@ -1002,7 +1074,7 @@ const StepChart = ({
                         : modalType,
                 file: file,
                 editor_content:
-                  modalType === "Publication" || modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter"
+                  modalType === "Publication" || modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter" || inputData?.type === "AI Instruction"
                     ? modifiedFileText || null
                     : null,
                 solution_id: meetingId,
@@ -1029,7 +1101,8 @@ const StepChart = ({
               if (
                 modalType === "Publication" ||
                 modalType === "AI Instruction" ||
-                inputData?.type === "AI Social Media Newsletter"
+                inputData?.type === "AI Social Media Newsletter" ||
+                inputData?.type === "AI Instruction"
               ) {
                 files.forEach((f) => {
                   formData.append(`file[]`, f);
@@ -1102,9 +1175,10 @@ const StepChart = ({
                         ? "seconds"
                         : inputData?.type === "Special" ||
                             inputData?.type === "Social Media Newsletter" ||
-                            inputData?.type === "AI Social Media Newsletter"
-                          ? timeUnit
-                          : "minutes",
+                            inputData?.type === "AI Social Media Newsletter" ||
+                            inputData?.type === "AI Instruction"
+                              ? timeUnit
+                              : "minutes",
                 time: count2,
                 editor_type:
                   modalType === "File"
@@ -1116,7 +1190,7 @@ const StepChart = ({
                         : modalType,
                 file: file,
                 editor_content:
-                  modalType === "Publication" || modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter"
+                  modalType === "Publication" || modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter" || inputData?.type === "AI Instruction"
                     ? modifiedFileText || null
                     : null,
                 solution_id: meetingId,
@@ -1139,7 +1213,8 @@ const StepChart = ({
               if (
                 modalType === "Publication" ||
                 modalType === "AI Instruction" ||
-                inputData?.type === "AI Social Media Newsletter"
+                inputData?.type === "AI Social Media Newsletter" ||
+                inputData?.type === "AI Instruction"
               ) {
                 files.forEach((f) => {
                   formData.append(`file[]`, f);
@@ -1216,7 +1291,7 @@ const StepChart = ({
                 ? { "audio/*": [] }
                 : modalType === "Publication"
                   ? { "image/*": [], "video/*": [] }
-                  : (modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter")
+                  : (modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter" || inputData?.type === "AI Instruction")
                     ? {
                         "image/*": [],
                         "video/*": [],
@@ -1544,7 +1619,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
       return;
     }
 
-    if (modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter") {
+    if (modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter" || inputData?.type === "AI Instruction") {
       if (!aiRole?.trim()) {
         toast.error(t("messages.aiRoleRequired"));
         setIsValidate(false);
@@ -1552,6 +1627,21 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
       }
       if (!aiAction?.trim()) {
         toast.error(t("messages.aiActionRequired"));
+        setIsValidate(false);
+        return;
+      }
+      if (aiSourceType === "Mission" && !selectedMission) {
+        toast.error(t("messages.aiMissionRequired") || "Please select a mission source");
+        setIsValidate(false);
+        return;
+      }
+      if (aiSourceType === "Moment" && !selectedMoment) {
+        toast.error(t("messages.aiMomentRequired") || "Please select a moment source");
+        setIsValidate(false);
+        return;
+      }
+      if (aiSourceType === "Discussion" && !selectedMoment) {
+        toast.error(t("messages.aiDiscussionRequired") || "Please select a discussion source");
         setIsValidate(false);
         return;
       }
@@ -1633,7 +1723,8 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                 ? "seconds"
                 : inputData?.type === "Special" ||
                     inputData?.type === "Social Media Newsletter" ||
-                    inputData?.type === "AI Social Media Newsletter"
+                    inputData?.type === "AI Social Media Newsletter" ||
+                    inputData?.type === "AI Instruction"
                   ? timeUnit
                   : "minutes",
         time: selectedCount,
@@ -1649,14 +1740,24 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
           modalType === "Email" ||
           modalType === "Publication" ||
           modalType === "AI Instruction" ||
-          inputData?.type === "AI Social Media Newsletter"
+          inputData?.type === "AI Social Media Newsletter" ||
+          inputData?.type === "AI Instruction"
             ? optimizedEditorContent || ""
             : null,
         prompt_ai:
-          (modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter")
+          (modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter" || inputData?.type === "AI Instruction")
             ? {
                 aiSourceType,
-                aiSourceText,
+                aiSourceText:
+                  aiSourceType === "Mission" || aiSourceType === "Moment" || aiSourceType === "Discussion"
+                    ? null
+                    : aiSourceText,
+                sourceId:
+                  aiSourceType === "Mission"
+                    ? selectedMission
+                    : aiSourceType === "Moment" || aiSourceType === "Discussion"
+                      ? selectedMoment
+                      : null,
                 aiSourceFile,
                 aiRole,
                 aiAction,
@@ -1704,7 +1805,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
           },
         };
 
-        if (modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter") {
+        if (modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter" || inputData?.type === "AI Instruction") {
           submitData = new FormData();
           Object.keys(payload).forEach((key) => {
             if (key === "prompt_ai" && payload[key] !== null) {
@@ -1744,6 +1845,8 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
         setLink(null);
         setAiSourceText("");
         setAiSourceFile(null);
+        setSelectedMission("");
+        setSelectedMoment("");
         setAiRole("");
         setGenerateAiMedia(false);
         setAiAction("");
@@ -1758,7 +1861,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
         if (!createAnother) {
           closeModal();
         } else {
-          if (inputData?.type === "AI Social Media Newsletter") {
+          if (inputData?.type === "AI Social Media Newsletter" || inputData?.type === "AI Instruction") {
             setModalType("Editeur");
           } else if (
             inputData?.type === "Social Media Newsletter"
@@ -1840,7 +1943,8 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                   ? "seconds"
                   : inputData?.type === "Special" ||
                       inputData?.type === "Social Media Newsletter" ||
-                      inputData?.type === "AI Social Media Newsletter"
+                      inputData?.type === "AI Social Media Newsletter" ||
+                      inputData?.type === "AI Instruction"
                     ? timeUnit
                     : "minutes",
 
@@ -1858,14 +1962,24 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
             modalType === "Email" ||
             modalType === "Publication" ||
             modalType === "AI Instruction" ||
-            inputData?.type === "AI Social Media Newsletter"
+            inputData?.type === "AI Social Media Newsletter" ||
+            inputData?.type === "AI Instruction"
               ? optimizedEditorContent || ""
               : null,
           prompt_ai:
-            (modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter")
+            (modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter" || inputData?.type === "AI Instruction")
               ? {
                   aiSourceType,
-                  aiSourceText,
+                  aiSourceText:
+                    aiSourceType === "Mission" || aiSourceType === "Moment" || aiSourceType === "Discussion"
+                      ? null
+                      : aiSourceText,
+                  sourceId:
+                    aiSourceType === "Mission"
+                      ? selectedMission
+                      : aiSourceType === "Moment" || aiSourceType === "Discussion"
+                        ? selectedMoment
+                        : null,
                   aiSourceFile,
                   aiRole,
                   aiAction,
@@ -1908,7 +2022,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
           },
         };
 
-        if (modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter") {
+        if (modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter" || inputData?.type === "AI Instruction") {
           submitData = new FormData();
           Object.keys(payload).forEach((key) => {
             if (key === "prompt_ai" && payload[key] !== null) {
@@ -1950,6 +2064,8 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
         setLink(null);
         setAiSourceText("");
         setAiSourceFile(null);
+        setSelectedMission("");
+        setSelectedMoment("");
         setAiRole("");
         setGenerateAiMedia(false);
         setAiAction("");
@@ -2099,7 +2215,16 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
           (modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter")
             ? {
                 aiSourceType,
-                aiSourceText,
+                aiSourceText:
+                  aiSourceType === "Mission" || aiSourceType === "Moment" || aiSourceType === "Discussion"
+                    ? null
+                    : aiSourceText,
+                sourceId:
+                  aiSourceType === "Mission"
+                    ? selectedMission
+                    : aiSourceType === "Moment" || aiSourceType === "Discussion"
+                      ? selectedMoment
+                      : null,
                 aiRole,
                 aiAction,
                 aiObjective,
@@ -2208,14 +2333,24 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
             modalType === "Email" ||
             modalType === "Publication" ||
             modalType === "AI Instruction" ||
-            inputData?.type === "AI Social Media Newsletter"
+            inputData?.type === "AI Social Media Newsletter" ||
+            inputData?.type === "AI Instruction"
               ? optimizedEditorContent || ""
               : null,
           prompt_ai:
-            (modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter")
+            (modalType === "AI Instruction" || inputData?.type === "AI Social Media Newsletter" || inputData?.type === "AI Instruction")
               ? {
                   aiSourceType,
-                  aiSourceText,
+                  aiSourceText:
+                    aiSourceType === "Mission" || aiSourceType === "Moment" || aiSourceType === "Discussion"
+                      ? null
+                      : aiSourceText,
+                  sourceId:
+                    aiSourceType === "Mission"
+                      ? selectedMission
+                      : aiSourceType === "Moment" || aiSourceType === "Discussion"
+                        ? selectedMoment
+                        : null,
                   aiRole,
                   aiAction,
                   aiObjective,
@@ -2286,7 +2421,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
     if (!createAnother) {
       closeModal();
     } else {
-      if (inputData?.type === "AI Social Media Newsletter") {
+      if (inputData?.type === "AI Social Media Newsletter" || inputData?.type === "AI Instruction") {
         setModalType("Editeur");
       } else if (inputData?.type === "Newsletter") {
         setModalType("Email");
@@ -2384,9 +2519,20 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                 typeof parsed === "object" &&
                 parsed.aiAction !== undefined
               ) {
-                setAiSourceType(parsed.aiSourceType || "Text");
+                const srcType = parsed.aiSourceType || "Text";
+                setAiSourceType(srcType);
                 setAiSourceText(parsed.aiSourceText || "");
                 setAiSourceFile(parsed.aiSourceFile || null);
+                if (srcType === "Mission") {
+                  setSelectedMission(stepData?.source_id || parsed.sourceId || "");
+                  fetchMissions();
+                } else if (srcType === "Moment" || srcType === "Discussion") {
+                  setSelectedMoment(stepData?.source_id || parsed.sourceId || "");
+                  fetchMoments();
+                } else {
+                  setSelectedMission("");
+                  setSelectedMoment("");
+                }
                 setAiRole(parsed.aiRole || "");
                 setAiAction(parsed.aiAction || "");
                 setAiObjective(parsed.aiObjective || "");
@@ -2426,6 +2572,8 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
             setAiSourceType("Text");
             setAiSourceText("");
             setAiSourceFile(null);
+            setSelectedMission("");
+            setSelectedMoment("");
             setAiRole("");
             setGenerateAiMedia(stepData.generate_ai_media !== undefined ? !!stepData.generate_ai_media : false);
             setAiAction("");
@@ -2823,7 +2971,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                     <div
                       className="col-12 col-sm-6 col-lg-2 editor-header"
                       style={{
-                        borderRight: isMobileView ? "none" : "1px solid #E4E7EC",
+                        borderRight: isMobileView ? "none" : (inputData?.type === "AI Instruction" || modalType === "AI Instruction") ? "none" : "1px solid #E4E7EC",
                         borderBottom: "none",
                         padding: isMobileView ? "6px 16px" : "12px 16px",
                         display: isMobileView ? "block" : "flex",
@@ -2926,9 +3074,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                                 ) : inputData?.type === "Special" ||
                                   inputData?.type === "Social Media Newsletter" ||
                                   inputData?.type === "AI Social Media Newsletter" ||
-                                  formState?.location === "LinkedIn" ||
-                                  meeting1?.location === "LinkedIn" ||
-                                  inputData?.location === "LinkedIn" ? (
+                                  inputData?.type === "AI Instruction" ? (
                                   <select
                                     className="form-select form-select-sm"
                                     value={timeUnit}
@@ -2961,78 +3107,80 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                     </div>
 
                     {/* Creator Column */}
-                    <div
-                      className="col-12 col-sm-6 col-lg-2 editor-header"
-                      style={{
-                        borderRight: isMobileView ? "none" : "1px solid #E4E7EC",
-                        borderBottom: "none",
-                        padding: isMobileView ? "6px 16px" : "12px 16px",
-                        display: isMobileView ? "block" : "flex",
-                        alignItems: isMobileView ? "stretch" : "center",
-                        justifyContent: "flex-start",
-                      }}
-                    >
-                      <div className="p-0 timecard stepinfo" style={{ marginLeft: 0 }}>
-                        {!window.location.href.includes("/meetingDetail") && (
-                          <div className="p-0 timecard" style={{ marginBottom: "4px" }}>
-                            <p className="mb-1" style={{ fontSize: "10px", color: "#667085", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                              {t("meeting.newMeeting.Step creator")}
-                            </p>
-                            <div className="d-flex justify-content-start align-items-center">
-                              {inputData?.type === "Newsletter" ? (
-                                <div className="d-flex align-items-center gap-2">
-                                  <img
-                                    src={
-                                      creator?.image?.startsWith("users/")
-                                        ? Assets_URL + "/" + creator?.image
-                                        : creator?.image
-                                    }
-                                    alt={creator?.full_name}
-                                    style={{
-                                      borderRadius: "50%",
-                                      height: "24px",
-                                      width: "24px",
-                                      objectFit: "cover",
-                                      objectPosition: "top",
-                                      border: "1.5px solid #EAECF0",
-                                    }}
-                                  />
-                                  <span style={{ fontSize: "12px", color: "#344054", fontWeight: "500", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: isMobileView ? "none" : "80px" }}>
-                                    {creator?.full_name}
-                                  </span>
-                                </div>
-                              ) : (
-                                <div className="d-flex align-items-center gap-2">
-                                  <img
-                                    src={
-                                      id
-                                        ? stepCreatorImg?.startsWith("users/")
-                                          ? Assets_URL + "/" + stepCreatorImg
-                                          : stepCreatorImg
-                                        : creator?.image?.startsWith("users/")
+                    {!(inputData?.type === "AI Instruction" || modalType === "AI Instruction") && (
+                      <div
+                        className="col-12 col-sm-6 col-lg-2 editor-header"
+                        style={{
+                          borderRight: isMobileView ? "none" : "1px solid #E4E7EC",
+                          borderBottom: "none",
+                          padding: isMobileView ? "6px 16px" : "12px 16px",
+                          display: isMobileView ? "block" : "flex",
+                          alignItems: isMobileView ? "stretch" : "center",
+                          justifyContent: "flex-start",
+                        }}
+                      >
+                        <div className="p-0 timecard stepinfo" style={{ marginLeft: 0 }}>
+                          {!window.location.href.includes("/meetingDetail") && (
+                            <div className="p-0 timecard" style={{ marginBottom: "4px" }}>
+                              <p className="mb-1" style={{ fontSize: "10px", color: "#667085", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                                {t("meeting.newMeeting.Step creator")}
+                              </p>
+                              <div className="d-flex justify-content-start align-items-center">
+                                {inputData?.type === "Newsletter" ? (
+                                  <div className="d-flex align-items-center gap-2">
+                                    <img
+                                      src={
+                                        creator?.image?.startsWith("users/")
                                           ? Assets_URL + "/" + creator?.image
                                           : creator?.image
-                                    }
-                                    alt={id ? stepCreator : creator?.full_name}
-                                    style={{
-                                      borderRadius: "50%",
-                                      height: "24px",
-                                      width: "24px",
-                                      objectFit: "cover",
-                                      objectPosition: "top",
-                                      border: "1.5px solid #EAECF0",
-                                    }}
-                                  />
-                                  <span style={{ fontSize: "12px", color: "#344054", fontWeight: "500", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: isMobileView ? "none" : "80px" }}>
-                                    {id ? stepCreator : creator?.full_name}
-                                  </span>
-                                </div>
-                              )}
+                                      }
+                                      alt={creator?.full_name}
+                                      style={{
+                                        borderRadius: "50%",
+                                        height: "24px",
+                                        width: "24px",
+                                        objectFit: "cover",
+                                        objectPosition: "top",
+                                        border: "1.5px solid #EAECF0",
+                                      }}
+                                    />
+                                    <span style={{ fontSize: "12px", color: "#344054", fontWeight: "500", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: isMobileView ? "none" : "80px" }}>
+                                      {creator?.full_name}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <div className="d-flex align-items-center gap-2">
+                                    <img
+                                      src={
+                                        id
+                                          ? stepCreatorImg?.startsWith("users/")
+                                            ? Assets_URL + "/" + stepCreatorImg
+                                            : stepCreatorImg
+                                          : creator?.image?.startsWith("users/")
+                                            ? Assets_URL + "/" + creator?.image
+                                            : creator?.image
+                                      }
+                                      alt={id ? stepCreator : creator?.full_name}
+                                      style={{
+                                        borderRadius: "50%",
+                                        height: "24px",
+                                        width: "24px",
+                                        objectFit: "cover",
+                                        objectPosition: "top",
+                                        border: "1.5px solid #EAECF0",
+                                      }}
+                                    />
+                                    <span style={{ fontSize: "12px", color: "#344054", fontWeight: "500", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: isMobileView ? "none" : "80px" }}>
+                                      {id ? stepCreator : creator?.full_name}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     {/* Step Format Column */}
                     <div
@@ -3160,9 +3308,9 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                                           </li>
                                         ))}
                                       </>
-                                    ) : modalType === "AI Instruction" ? (
+                                    ) : inputData?.type === "AI Instruction" ? (
                                       <>
-                                        {aiSocialMediaOption.map((option) => (
+                                        {aiInstructionOptions.map((option) => (
                                           <li
                                             key={option.value}
                                             className="dropdown-item"
@@ -3326,13 +3474,14 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                 <div>
                   <div className="row">
                     {inputData?.type === "AI Social Media Newsletter" ||
+                    inputData?.type === "AI Instruction" ||
                     modalType === "Publication" ||
                     modalType === "AI Instruction" ? (
                       <>
                         <div
                           className="col-md-12"
                           style={
-                            (inputData?.type === "AI Social Media Newsletter" || modalType === "AI Instruction")
+                            (inputData?.type === "AI Social Media Newsletter" || inputData?.type === "AI Instruction" || modalType === "AI Instruction")
                               ? {
                                   overflowX: "hidden",
                                   paddingBottom: isMobileView ? "20px" : "120px",
@@ -3341,7 +3490,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                           }
                         >
                           <div>
-                            {(inputData?.type === "AI Social Media Newsletter" || modalType === "AI Instruction") ? (
+                            {(inputData?.type === "AI Social Media Newsletter" || inputData?.type === "AI Instruction" || modalType === "AI Instruction") ? (
                               <div
                                 className="p-2 p-sm-3"
                                 style={{
@@ -3363,15 +3512,15 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                                       className="me-2"
                                       style={{ width: "16px", height: "16px" }}
                                     />{" "}
-                                    Source
+                                    {t("messages.aiSourceLabel")}
                                   </label>
                                   <p
                                     className="text-muted mb-2"
                                     style={{ fontSize: "12px" }}
                                   >
-                                    Choose the input source for this instruction
+                                    {t("messages.aiSourceHelpText")}
                                   </p>
-                                  <div className="d-flex flex-column flex-sm-row gap-2 mb-3">
+                                  <div className="d-flex flex-wrap gap-2 mb-3">
                                     <Button
                                       variant={
                                         aiSourceType === "Text"
@@ -3392,7 +3541,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                                             : "#fff",
                                       }}
                                     >
-                                      📄 Text
+                                      📄 {t("messages.aiSourceText")}
                                     </Button>
                                     <Button
                                       variant={
@@ -3416,7 +3565,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                                             : "#fff",
                                       }}
                                     >
-                                      📄 Document
+                                      📄 {t("messages.aiSourceDocument")}
                                     </Button>
                                     <Button
                                       variant={
@@ -3438,8 +3587,89 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                                             : "#fff",
                                       }}
                                     >
-                                      📺 YouTube
+                                      📺 {t("messages.aiSourceYouTube")}
                                     </Button>
+                                    {(inputData?.type === "AI Instruction" || modalType === "AI Instruction") && (
+                                      <>
+                                        <Button
+                                          variant={
+                                            aiSourceType === "Moment"
+                                              ? "light"
+                                              : "outline-secondary"
+                                          }
+                                          className={
+                                            aiSourceType === "Moment"
+                                              ? "border-primary text-primary fw-semibold"
+                                              : ""
+                                          }
+                                          onClick={() => {
+                                            setAiSourceType("Moment");
+                                            if (moments.length === 0) {
+                                              fetchMoments();
+                                            }
+                                          }}
+                                          style={{
+                                            fontSize: "13px",
+                                            background:
+                                              aiSourceType === "Moment"
+                                                ? "#F4F6FF"
+                                                : "#fff",
+                                          }}
+                                        >
+                                          ⚡ {t("messages.aiSourceNotes")}
+                                        </Button>
+                                        <Button
+                                          variant={
+                                            aiSourceType === "Mission"
+                                              ? "light"
+                                              : "outline-secondary"
+                                          }
+                                          className={
+                                            aiSourceType === "Mission"
+                                              ? "border-primary text-primary fw-semibold"
+                                              : ""
+                                          }
+                                          onClick={() => {
+                                            setAiSourceType("Mission");
+                                            fetchMissions();
+                                          }}
+                                          style={{
+                                            fontSize: "13px",
+                                            background:
+                                              aiSourceType === "Mission"
+                                                ? "#F4F6FF"
+                                                : "#fff",
+                                          }}
+                                        >
+                                          🎯 {t("messages.aiSourceMission")}
+                                        </Button>
+                                        <Button
+                                          variant={
+                                            aiSourceType === "Discussion"
+                                              ? "light"
+                                              : "outline-secondary"
+                                          }
+                                          className={
+                                            aiSourceType === "Discussion"
+                                              ? "border-primary text-primary fw-semibold"
+                                              : ""
+                                          }
+                                          onClick={() => {
+                                            setAiSourceType("Discussion");
+                                            fetchMoments();
+                                          }}
+                                          style={{
+                                            fontSize: "13px",
+                                            background:
+                                              aiSourceType === "Discussion"
+                                                ? "#F4F6FF"
+                                                : "#fff",
+                                          }}
+                                        >
+                                          💬 {t("messages.aiSourceDiscussion")}
+                                        </Button>
+                                      </>
+                                    )}
                                   </div>
 
                                   {aiSourceType === "Text" && (
@@ -3454,7 +3684,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                                       onChange={(e) =>
                                         setAiSourceText(e.target.value)
                                       }
-                                      placeholder="Enter your source text here..."
+                                      placeholder={t("messages.aiSourceTextPlaceholder")}
                                     />
                                   )}
 
@@ -3507,6 +3737,120 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                                       />
                                     </div>
                                   )}
+
+                                  {aiSourceType === "Moment" && (
+                                    <div className="mt-2">
+                                      <label className="form-label fw-semibold mb-1" style={{ fontSize: "13px", color: "#344054" }}>
+                                        {t("messages.aiSourceSelectMoment")}
+                                      </label>
+                                      <Select
+                                        isLoading={isMomentsLoading}
+                                        options={moments}
+                                        value={moments.find(m => m.value === selectedMoment) || null}
+                                        onChange={(opt) => setSelectedMoment(opt ? opt.value : "")}
+                                        placeholder={t("messages.aiSourceSearchMoment")}
+                                        isClearable
+                                        isSearchable
+                                        formatOptionLabel={(opt) => {
+                                          const s = (opt.status || "").toLowerCase();
+                                          const badgeColor = s === "done" || s === "completed" ? "#12b76a" : s === "active" || s === "in_progress" || s === "ongoing" ? "#2e90fa" : s === "draft" ? "#98a2b3" : "#667085";
+                                          const badgeBg = s === "done" || s === "completed" ? "#ecfdf3" : s === "active" || s === "in_progress" || s === "ongoing" ? "#eff8ff" : s === "draft" ? "#f2f4f7" : "#f2f4f7";
+                                          return (
+                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", width: "100%" }}>
+                                              <span style={{ fontSize: "13px", color: "#344054", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, textAlign: "left" }}>{opt.label}</span>
+                                              {opt.status && (
+                                                <span style={{ fontSize: "10px", fontWeight: 600, padding: "2px 7px", borderRadius: "10px", color: badgeColor, backgroundColor: badgeBg, whiteSpace: "nowrap", textTransform: "uppercase", letterSpacing: "0.3px", flexShrink: 0 }}>
+                                                  {opt.status === "active" ? t('badge.future') : opt.status === "in_progress" ? t("badge.inprogress") : opt.status === "todo" ? t("badge.todo") : opt.status === "to_finish" ? t("badge.finish") : opt.status === "abort" ? t("badge.cancel") : opt.status === "draft" ? t("badge.draft") : opt?.status === "closed" ? t("badge.completed") : null }
+                                                </span>
+                                              )}
+                                            </div>
+                                          );
+                                        }}
+                                        styles={{
+                                          control: (base) => ({ ...base, fontSize: "13px", minHeight: "38px", borderColor: "#D0D5DD", borderRadius: "6px", boxShadow: "none", textAlign: "left", "&:hover": { borderColor: "#0026B1" } }),
+                                          option: (base, state) => ({ ...base, fontSize: "13px", backgroundColor: state.isSelected ? "#F4F6FF" : state.isFocused ? "#f9fafb" : "#fff", color: "#344054", textAlign: "left" }),
+                                          singleValue: (base) => ({ ...base, fontSize: "13px", color: "#344054", textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }),
+                                          placeholder: (base) => ({ ...base, fontSize: "13px", color: "#98A2B3", textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }),
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+
+                                  {aiSourceType === "Mission" && (
+                                    <div className="mt-2">
+                                      <label className="form-label fw-semibold mb-1" style={{ fontSize: "13px", color: "#344054" }}>
+                                        {t("messages.aiSourceSelectMission")}
+                                      </label>
+                                      <Select
+                                        isLoading={isMissionsLoading}
+                                        options={missions}
+                                        value={missions.find(m => m.value === selectedMission) || null}
+                                        onChange={(opt) => setSelectedMission(opt ? opt.value : "")}
+                                        placeholder={t("messages.aiSourceSearchMission")}
+                                        isClearable
+                                        isSearchable
+                                        formatOptionLabel={(opt) => {
+                                          const s = (opt.status || "").toLowerCase();
+                                          const badgeColor = s === "done" || s === "completed" ? "#12b76a" : s === "active" || s === "in_progress" || s === "ongoing" ? "#2e90fa" : s === "todo" ? "#f79009" : "#667085";
+                                          const badgeBg = s === "done" || s === "completed" ? "#ecfdf3" : s === "active" || s === "in_progress" || s === "ongoing" ? "#eff8ff" : s === "todo" ? "#fffaeb" : "#f2f4f7";
+                                          return (
+                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", width: "100%" }}>
+                                              <span style={{ fontSize: "13px", color: "#344054", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, textAlign: "left" }}>{opt.label}</span>
+                                              {opt.status && (
+                                                <span style={{ fontSize: "10px", fontWeight: 600, padding: "2px 7px", borderRadius: "10px", color: badgeColor, backgroundColor: badgeBg, whiteSpace: "nowrap", textTransform: "uppercase", letterSpacing: "0.3px", flexShrink: 0 }}>
+                                                  {opt.status === "active" ? t('mission-badge.upcoming') : opt.status === "in_progress" ? t("mission-badge.inProgress") : t("mission-badge.completed")}
+                                                </span>
+                                              )}
+                                            </div>
+                                          );
+                                        }}
+                                        styles={{
+                                          control: (base) => ({ ...base, fontSize: "13px", minHeight: "38px", borderColor: "#D0D5DD", borderRadius: "6px", boxShadow: "none", textAlign: "left", "&:hover": { borderColor: "#0026B1" } }),
+                                          option: (base, state) => ({ ...base, fontSize: "13px", backgroundColor: state.isSelected ? "#F4F6FF" : state.isFocused ? "#f9fafb" : "#fff", color: "#344054", textAlign: "left" }),
+                                          singleValue: (base) => ({ ...base, fontSize: "13px", color: "#344054", textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }),
+                                          placeholder: (base) => ({ ...base, fontSize: "13px", color: "#98A2B3", textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }),
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+
+                                  {aiSourceType === "Discussion" && (
+                                    <div className="mt-2">
+                                      <label className="form-label fw-semibold mb-1" style={{ fontSize: "13px", color: "#344054" }}>
+                                        {t("messages.aiSourceSelectDiscussion")}
+                                      </label>
+                                      <Select
+                                        isLoading={isMomentsLoading}
+                                        options={moments}
+                                        value={moments.find(m => m.value === selectedMoment) || null}
+                                        onChange={(opt) => setSelectedMoment(opt ? opt.value : "")}
+                                        placeholder={t("messages.aiSourceSearchDiscussion")}
+                                        isClearable
+                                        isSearchable
+                                        formatOptionLabel={(opt) => {
+                                          const s = (opt.status || "").toLowerCase();
+                                          const badgeColor = s === "done" || s === "completed" ? "#12b76a" : s === "active" || s === "in_progress" || s === "ongoing" ? "#2e90fa" : s === "draft" ? "#98a2b3" : "#667085";
+                                          const badgeBg = s === "done" || s === "completed" ? "#ecfdf3" : s === "active" || s === "in_progress" || s === "ongoing" ? "#eff8ff" : s === "draft" ? "#f2f4f7" : "#f2f4f7";
+                                          return (
+                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", width: "100%" }}>
+                                              <span style={{ fontSize: "13px", color: "#344054", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, textAlign: "left" }}>{opt.label}</span>
+                                              {opt.status && (
+                                                <span style={{ fontSize: "10px", fontWeight: 600, padding: "2px 7px", borderRadius: "10px", color: badgeColor, backgroundColor: badgeBg, whiteSpace: "nowrap", textTransform: "uppercase", letterSpacing: "0.3px", flexShrink: 0 }}>
+                                                 {opt.status === "active" ? t('badge.future') : opt.status === "in_progress" ? t("badge.inprogress") : opt.status === "todo" ? t("badge.todo") : opt.status === "to_finish" ? t("badge.finish") : opt.status === "abort" ? t("badge.cancel") : opt.status === "draft" ? t("badge.draft") : opt?.status === "closed" ? t("badge.completed") : null }
+                                                </span>
+                                              )}
+                                            </div>
+                                          );
+                                        }}
+                                        styles={{
+                                          control: (base) => ({ ...base, fontSize: "13px", minHeight: "38px", borderColor: "#D0D5DD", borderRadius: "6px", boxShadow: "none", textAlign: "left", "&:hover": { borderColor: "#0026B1" } }),
+                                          option: (base, state) => ({ ...base, fontSize: "13px", backgroundColor: state.isSelected ? "#F4F6FF" : state.isFocused ? "#f9fafb" : "#fff", color: "#344054", textAlign: "left" }),
+                                          singleValue: (base) => ({ ...base, fontSize: "13px", color: "#344054", textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }),
+                                          placeholder: (base) => ({ ...base, fontSize: "13px", color: "#98A2B3", textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }),
+                                        }}
+                                      />
+                                    </div>
+                                  )}
                                 </div>
 
                                 {/* Role Section */}
@@ -3518,13 +3862,13 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                                       color: "#344054",
                                     }}
                                   >
-                                    <span className="me-2">👤</span> Rôle
+                                    <span className="me-2">👤</span> {t("messages.aiRoleLabel")}
                                   </label>
                                   <p
                                     className="text-muted mb-2"
                                     style={{ fontSize: "12px" }}
                                   >
-                                    Define the AI persona for this instruction
+                                    {t("messages.aiRoleHelpText")}
                                   </p>
                                   <input
                                     type="text"
@@ -3535,12 +3879,12 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                                     }}
                                     value={aiRole}
                                     onChange={(e) => setAiRole(e.target.value)}
-                                    placeholder="e.g. Expert marketing strategist, Senior developer, UX designer..."
+                                    placeholder={t("messages.aiRolePlaceholder")}
                                   />
                                 </div>
 
                                 {/* AI Image Generation Toggle */}
-                                <div className="mb-4 d-flex align-items-center justify-content-between p-3 rounded" style={{ border: "1px solid #EAECF0", background: "#F9FAFB" }}>
+                               {inputData?.type !== "AI Instruction" && <div className="mb-4 d-flex align-items-center justify-content-between p-3 rounded" style={{ border: "1px solid #EAECF0", background: "#F9FAFB" }}>
                                   <div>
                                     <label
                                       className="fw-semibold d-flex align-items-center mb-1"
@@ -3569,7 +3913,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                                       style={{ cursor: "pointer", width: "2.5em", height: "1.25em" }}
                                     />
                                   </div>
-                                </div>
+                                </div>}
 
                                 <div className="row mb-4">
                                   {/* Action Section */}
@@ -3581,13 +3925,13 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                                         color: "#344054",
                                       }}
                                     >
-                                      <span className="me-2">⚡</span> Action
+                                      <span className="me-2">⚡</span> {t("messages.aiActionLabel")}
                                     </label>
                                     <p
                                       className="text-muted mb-2"
                                       style={{ fontSize: "12px" }}
                                     >
-                                      What should the AI do?
+                                      {t("messages.aiActionHelpText")}
                                     </p>
                                     <textarea
                                       className="form-control"
@@ -3600,7 +3944,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                                       onChange={(e) =>
                                         setAiAction(e.target.value)
                                       }
-                                      placeholder="Describe the action to perform..."
+                                      placeholder={t("messages.aiActionPlaceholder")}
                                     />
                                   </div>
 
@@ -3613,14 +3957,13 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                                         color: "#344054",
                                       }}
                                     >
-                                      <span className="me-2">🎯</span> Objectif
-                                      / Résultat
+                                      <span className="me-2">🎯</span> {t("messages.aiObjectiveLabel")}
                                     </label>
                                     <p
                                       className="text-muted mb-2"
                                       style={{ fontSize: "12px" }}
                                     >
-                                      What outcome do you expect?
+                                      {t("messages.aiObjectiveHelpText")}
                                     </p>
                                     <textarea
                                       className="form-control"
@@ -3633,7 +3976,7 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                                       onChange={(e) =>
                                         setAiObjective(e.target.value)
                                       }
-                                      placeholder="Describe the desired result..."
+                                      placeholder={t("messages.aiObjectivePlaceholder")}
                                     />
                                   </div>
                                 </div>
@@ -3647,14 +3990,13 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                                       color: "#344054",
                                     }}
                                   >
-                                    <span className="me-2">🛡️</span> Règles
+                                    <span className="me-2">🛡️</span> {t("messages.aiRulesLabel")}
                                   </label>
                                   <p
                                     className="text-muted mb-2"
                                     style={{ fontSize: "12px" }}
                                   >
-                                    Restrictions, limits or constraints to
-                                    respect
+                                    {t("messages.aiRulesHelpText")}
                                   </p>
                                   <textarea
                                     className="form-control"
@@ -3665,12 +4007,12 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                                     }}
                                     value={aiRules}
                                     onChange={(e) => setAiRules(e.target.value)}
-                                    placeholder="e.g. Keep it concise. No technical jargon. Always cite sources. Max 500 words..."
+                                    placeholder={t("messages.aiRulesPlaceholder")}
                                   />
                                 </div>
 
                                 {/* Output Format Section */}
-                                {inputData?.type !== "AI Social Media Newsletter" && (
+                                {(inputData?.type !== "AI Social Media Newsletter" && inputData?.type !== "AI Instruction") && (
                                   <div>
                                   <label
                                     className="fw-semibold d-flex align-items-center mb-2"
@@ -3679,14 +4021,13 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                                       color: "#344054",
                                     }}
                                   >
-                                    <span className="me-2">📥</span> Sortie
+                                    <span className="me-2">📥</span> {t("messages.aiOutputLabel")}
                                   </label>
                                   <p
                                     className="text-muted mb-2"
                                     style={{ fontSize: "12px" }}
                                   >
-                                    Select the output format for this
-                                    instruction
+                                    {t("messages.aiOutputHelpText")}
                                   </p>
                                   <div className="d-flex flex-wrap gap-3">
                                     <Button
@@ -3708,13 +4049,13 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                                             : "#fff",
                                       }}
                                     >
-                                      <div className="mb-1">📊</div>
-                                      <div>PowerPoint</div>
+                                      <div className="mb-1"><PiMicrosoftPowerpointLogo className="fs-3" /></div>
+                                      <div>{t("messages.aiOutputPowerPoint")}</div>
                                       <div
                                         className="text-muted fw-normal"
                                         style={{ fontSize: "11px" }}
                                       >
-                                        Slides deck
+                                        {t("messages.aiOutputPowerPointDesc")}
                                       </div>
                                     </Button>
                                     <Button
@@ -3735,12 +4076,12 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                                       }}
                                     >
                                       <div className="mb-1">📄</div>
-                                      <div>PDF</div>
+                                      <div>{t("messages.aiOutputPDF")}</div>
                                       <div
                                         className="text-muted fw-normal"
                                         style={{ fontSize: "11px" }}
                                       >
-                                        Formatted document
+                                        {t("messages.aiOutputPDFDesc")}
                                       </div>
                                     </Button>
                                     <Button
@@ -3761,12 +4102,12 @@ Ces jours peuvent être posés par le salarié, ou dans certains cas, imposés p
                                       }}
                                     >
                                       <div className="mb-1">📝</div>
-                                      <div>Text</div>
+                                      <div>{t("messages.aiOutputText")}</div>
                                       <div
                                         className="text-muted fw-normal"
                                         style={{ fontSize: "11px" }}
                                       >
-                                        Plain content
+                                        {t("messages.aiOutputTextDesc")}
                                       </div>
                                     </Button>
                                   </div>

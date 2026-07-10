@@ -14,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 import { API_BASE_URL, Assets_URL } from "../../../../Apicongfig";
 import MessageTypeWritterReport from "../../../Discussion/MessageTypeWritterReport";
 import { deleteMessage, getMeetingMessages } from "../../../Discussion/api";
+import AssistantMessage from "../../../AssistantMessage";
 
 const cleanHtml = (htmlString) => {
   if (!htmlString) return "";
@@ -320,7 +321,11 @@ function MeetingDiscussion({ meetingId, messages, selectedMoment, onMessagesUpda
                 </div>
               </div>
               <div className="text-break text-secondary" style={{ fontSize: '0.9rem' }}>
-                <div dangerouslySetInnerHTML={{ __html: message.message }} />
+                {message?.sender === "system" || message?.sender === "assistant" || message?.type === "system" || message?.type === "assistant" || message?.sender_type === "system" || message?.sender_type === "assistant" || message?.message_type === "system" || message?.message_type === "assistant" || message?.message_type === "notification" || message?.message_type === "system-notification" ? (
+                  <AssistantMessage htmlContent={message.message} />
+                ) : (
+                  <div dangerouslySetInnerHTML={{ __html: message.message }} />
+                )}
                 {message.attachments?.length > 0 && (
                   <div className="attachments-container mt-2">
                     {message.attachments.map((att, idx) => <div key={idx}>{renderAttachment(att)}</div>)}
@@ -362,7 +367,11 @@ function MeetingDiscussion({ meetingId, messages, selectedMoment, onMessagesUpda
                 </div>
 
                 <div className={`message-bubble my-message-bubble ${isEditing ? "editing" : ""}`}>
-                  <div dangerouslySetInnerHTML={{ __html: message.message }} />
+                  {message?.sender === "system" || message?.sender === "assistant" || message?.type === "system" || message?.type === "assistant" || message?.sender_type === "system" || message?.sender_type === "assistant" || message?.message_type === "system" || message?.message_type === "assistant" || message?.message_type === "notification" || message?.message_type === "system-notification" ? (
+                    <AssistantMessage htmlContent={message.message} />
+                  ) : (
+                    <div dangerouslySetInnerHTML={{ __html: message.message }} />
+                  )}
                   {message.attachments?.length > 0 && (
                     <div className="attachments-container mt-2">
                       {message.attachments.map((att, idx) => <div key={idx}>{renderAttachment(att)}</div>)}
@@ -405,7 +414,11 @@ function MeetingDiscussion({ meetingId, messages, selectedMoment, onMessagesUpda
 
                 <div className={`message-bubble other-message-bubble text-start ${isEditing ? "editing" : ""}`}
                   style={{ backgroundColor: userColor }}>
-                  <div dangerouslySetInnerHTML={{ __html: message.message }} />
+                  {message?.sender === "system" || message?.sender === "assistant" || message?.type === "system" || message?.type === "assistant" || message?.sender_type === "system" || message?.sender_type === "assistant" || message?.message_type === "system" || message?.message_type === "assistant" || message?.message_type === "notification" || message?.message_type === "system-notification" ? (
+                    <AssistantMessage htmlContent={message.message} />
+                  ) : (
+                    <div dangerouslySetInnerHTML={{ __html: message.message }} />
+                  )}
                   {message.attachments?.length > 0 && (
                     <div className="attachments-container mt-2">
                       {message.attachments.map((att, idx) => <div key={idx}>{renderAttachment(att)}</div>)}

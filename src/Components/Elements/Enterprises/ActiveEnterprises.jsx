@@ -132,7 +132,24 @@ const ActiveEnterprises = ({ setActiveTab }) => {
     fetchAllEnterprises();
   }, []);
 
-  const sortedEnterprises = enterprises.sort((a, b) => (a.id < b.id ? 1 : -1)); // sorting enterprises by id in order of creation (newest to oldest)
+  const filteredEnterprises = enterprises.filter((item) => {
+    if (!searchTerm) return true;
+    const searchLower = searchTerm.toLowerCase();
+    const name = item?.name?.toLowerCase() || "";
+    const creatorName = `${item?.created_by?.name || ""} ${item?.created_by?.last_name || ""}`.toLowerCase();
+    const contractName = item?.contract?.name?.toLowerCase() || "";
+    const activityArea = item?.activity_area?.toLowerCase() || "";
+    const country = item?.country?.toLowerCase() || "";
+    return (
+      name.includes(searchLower) ||
+      creatorName.includes(searchLower) ||
+      contractName.includes(searchLower) ||
+      activityArea.includes(searchLower) ||
+      country.includes(searchLower)
+    );
+  });
+
+  const sortedEnterprises = [...filteredEnterprises].sort((a, b) => (a.id < b.id ? 1 : -1)); // sorting enterprises by id in order of creation (newest to oldest)
   // const handlelinkEnterprises = (id) => {
   //   navigate(`/EntreprisesToTeam/${id}`);
   // };
@@ -480,9 +497,9 @@ const ActiveEnterprises = ({ setActiveTab }) => {
                         );
 
                         return (
-                          <div className="col-md-3" key={item.id}>
+                          <div className="col-12 col-sm-6 col-md-4 col-lg-3 mb-4" key={item.id}>
                             <Card
-                              className="participant-card position-relative"
+                              className="participant-card position-relative w-100"
                               style={{
                                 cursor: "pointer",
                                 marginTop: "4rem",
@@ -616,8 +633,8 @@ const ActiveEnterprises = ({ setActiveTab }) => {
                                       );
                                     }}
                                   >
-                                    <FaEdit className="me-1" />{" "}
-                                    {t("Entreprise.modify")}
+                                    <FaEdit className="me-0 me-md-1" />{" "}
+                                    <span className="d-none d-md-inline">{t("Entreprise.modify")}</span>
                                   </Button>
                                   <Button
                                     variant="outline-danger"
@@ -627,8 +644,8 @@ const ActiveEnterprises = ({ setActiveTab }) => {
                                       handleArhciveClick(item.id);
                                     }}
                                   >
-                                    <FaTrash className="me-1" />{" "}
-                                    {t("Entreprise.close")}
+                                    <FaTrash className="me-0 me-md-1" />{" "}
+                                    <span className="d-none d-md-inline">{t("Entreprise.close")}</span>
                                   </Button>
                                 </div>
 

@@ -537,13 +537,13 @@ const Login = () => {
 
     try {
       const response = await axios.post(api, payload);
+
       // Check for pending payment status in successful response
       if (response?.data?.status === "pending_payment" && response?.data?.payment_url) {
         navigate(response.data.payment_url);
         return;
       }
 
-      
       if (response) {
         const {
           id,
@@ -562,7 +562,7 @@ const Login = () => {
         const accessToken = response.data?.user?.access_token;
         const refreshToken = response.data?.user?.refresh_token;
         const tokenExpirationTime = response.data?.user?.token_expiration_time;
-       const userData = {
+        const userData = {
           id,
           name,
           last_name,
@@ -577,19 +577,26 @@ const Login = () => {
           teams
         };
         
+        sessionStorage.removeItem("subscription_expired");
+        localStorage.removeItem("subscription_expired");
+        sessionStorage.removeItem("payment_url");
+        localStorage.removeItem("payment_url");
         sessionStorage.setItem("user_id", id);
-        CookieService.set("user", userData); // CookieService now handles size limits and stringification
+        sessionStorage.setItem("user", JSON.stringify(userData));
         sessionStorage.setItem("email", email);
         sessionStorage.setItem("name", name);
+        CookieService.set("last_name", last_name);
+        sessionStorage.setItem("last_name", last_name);
         CookieService.set("token", response.data.token);
         CookieService.set("user_id", id);
+        CookieService.set("user", userData);
         CookieService.set("email", email);
         CookieService.set("name", name);
          CookieService.set("type", response.data.user.role.name);
         CookieService.set("role", response.data.user.role);
-        CookieService.set("last_name", last_name);
-        sessionStorage.setItem("last_name", last_name);
-
+        if (fcmToken) {
+          CookieService.set("fcm_token", fcmToken);
+        }
 
         // Handle access_token
         if (accessToken && accessToken !== "null") {
@@ -652,6 +659,11 @@ const Login = () => {
         toast.error("La connexion a échoué");
       }
     } catch (error) {
+      // Check for pending payment status in error response
+      if (error?.response?.data?.status === "pending_payment" && error?.response?.data?.payment_url) {
+        navigate(error.response.data.payment_url);
+        return;
+      }
       const msg = error?.response?.data?.message;
 
       // English → French mapping
@@ -743,11 +755,6 @@ const Login = () => {
     const email = "portal@tektime.fr";
     window.open(`mailto:${email}`);
   };
-  // useEffect(() => {
-  //   if (window.location.href === "https://www.tektime.io/login") {
-  //     window.location.replace("https://tektime.io/");
-  //   }
-  // }, []);
   return (
     <>
       <div className="login">

@@ -46,6 +46,7 @@ import moment from "moment";
 import DiscussionParticipant from "./DiscussionParticipant";
 import MessageTypeWritter from "./MessageTypeWritter";
 import Moments from "./Moments";
+import AssistantMessage from "../AssistantMessage";
 import {
   getMeetingMessages,
   deleteMessage,
@@ -511,6 +512,7 @@ const DiscussionChat = ({
           {missionsData && !isFullScreen && !isMobile ? (
             <Moments
               meetingsData={missionsData}
+              isMissionList={true}
               onMomentSelect={(m) =>
                 onMissionSelect && onMissionSelect(m.id.toString())
               }
@@ -919,8 +921,13 @@ const DiscussionChat = ({
                         wordBreak: "break-word",
                         overflowWrap: "break-word",
                       }}
-                      dangerouslySetInnerHTML={{ __html: msg.message }}
-                    />
+                    >
+                      {msg.sender === "system" || msg.sender === "assistant" || msg.type === "system" || msg.type === "assistant" || msg.sender_type === "system" || msg.sender_type === "assistant" || msg.message_type === "system" || msg.message_type === "assistant" || msg.message_type === "notification" || msg.message_type === "system-notification" ? (
+                        <AssistantMessage htmlContent={msg.message} />
+                      ) : (
+                        <div dangerouslySetInnerHTML={{ __html: msg.message }} />
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -1101,17 +1108,30 @@ const DiscussionChat = ({
                             overflowWrap: "break-word",
                           }}
                         >
-                          <div
-                            dangerouslySetInnerHTML={{ __html: msg.message }}
-                            className="text-dark"
-                            style={{
-                              // FIX 3: rendered HTML (tables, images) — allow internal scroll if needed
-                              overflowX: "auto",
-                              maxWidth: "100%",
-                              wordBreak: "break-word",
-                              overflowWrap: "break-word",
-                            }}
-                          />
+                          {msg.sender === "system" || msg.sender === "assistant" || msg.type === "system" || msg.type === "assistant" || msg.sender_type === "system" || msg.sender_type === "assistant" || msg.message_type === "system" || msg.message_type === "assistant" || msg.message_type === "notification" || msg.message_type === "system-notification" ? (
+                            <AssistantMessage
+                              htmlContent={msg.message}
+                              className="text-dark"
+                              style={{
+                                overflowX: "auto",
+                                maxWidth: "100%",
+                                wordBreak: "break-word",
+                                overflowWrap: "break-word",
+                              }}
+                            />
+                          ) : (
+                            <div
+                              dangerouslySetInnerHTML={{ __html: msg.message }}
+                              className="text-dark"
+                              style={{
+                                // FIX 3: rendered HTML (tables, images) — allow internal scroll if needed
+                                overflowX: "auto",
+                                maxWidth: "100%",
+                                wordBreak: "break-word",
+                                overflowWrap: "break-word",
+                              }}
+                            />
+                          )}
                           <div
                             className="text-end"
                             style={{ marginTop: "-4px", opacity: 0.6 }}

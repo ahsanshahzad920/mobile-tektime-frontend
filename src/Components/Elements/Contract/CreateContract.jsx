@@ -144,6 +144,7 @@ function CreateContract({ setActiveTab }) {
     casting_need: false,
     check_stripe: false,
     check_whatsapp: false,
+    trial_days: 0,
     description: "",
     mission_types: [],
     roles: [],
@@ -167,6 +168,7 @@ function CreateContract({ setActiveTab }) {
     casting_need: false,
     check_stripe: false,
     check_whatsapp: false,
+    trial_days: 0,
     description: "",
     mission_types: [],
     roles: [],
@@ -245,6 +247,7 @@ function CreateContract({ setActiveTab }) {
         `${API_BASE_URL}/contracts`,
         {
           ...contractData,
+          trial_days: contractData.trial_days === "" ? 0 : parseInt(contractData.trial_days, 10),
           check_stripe: contractData.check_stripe ? 1 : 0,
           check_whatsapp: contractData.check_whatsapp ? 1 : 0,
         },
@@ -577,6 +580,27 @@ function CreateContract({ setActiveTab }) {
                   placeholder={t("newContract.numberOfLicenses")}
                   name="no_of_licenses"
                   value={contractData.no_of_licenses}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div className="mb-4">
+                <label className="form-label">Durée de test (en jours)</label>
+                <input
+                  type="number"
+                  min={0}
+                  onFocus={(e) =>
+                    e.target.addEventListener(
+                      "wheel",
+                      function (e) {
+                        e.preventDefault();
+                      },
+                      { passive: false }
+                    )
+                  }
+                  className="form-control"
+                  placeholder="Nombre de jours d'essai gratuit (ex: 7)"
+                  name="trial_days"
+                  value={contractData.trial_days}
                   onChange={handleInputChange}
                 />
               </div>

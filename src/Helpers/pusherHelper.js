@@ -160,3 +160,61 @@ export const unsubscribeFromMeeting = (meetId) => {
     delete boundHandlers[channelName];
   }
 };
+
+/**
+ * Subscribe to the public user channel: user.{userId}
+ * Listens for backend-emitted events:
+ *   - "trial.expired"
+ *
+ * @param {string|number} userId
+ * @param {function} onEvent - called with { type, data } for every event
+ * @returns {object} the Pusher channel
+ */
+export const subscribeToUser = (userId, onEvent) => {
+  if (!userId) return null;
+  const channelName = `user.${userId}`;
+  const pusher = getPusherClient();
+
+  // Subscribe if not already subscribed
+  if (!subscriptions[channelName]) {
+    console.log(`[Pusher] Subscribing to channel: ${channelName}`);
+    subscriptions[channelName] = pusher.subscribe(channelName);
+  }
+
+  const channel = subscriptions[channelName];
+
+  // Always rebind so we use the latest onEvent callback
+  if (boundHandlers[channelName]) {
+    if (boundHandlers[channelName].trialExpired) {
+      channel.unbind("trial.expired", boundHandlers[channelName].trialExpired);
+    }
+  }
+
+  const trialExpired = (data) => {
+    console.log("[Pusher] trial.expired received:", data);
+    onEvent({ type: "trial.expired", data });
+  };
+
+  channel.bind("trial.expired", trialExpired);
+
+  boundHandlers[channelName] = { ...boundHandlers[channelName], trialExpired };
+
+  return channel;
+};
+
+/**
+ * Unsubscribe and clean up the user channel
+ */
+export const unsubscribeFromUser = (userId) => {
+  if (!userId) return;
+  const channelName = `user.${userId}`;
+  const pusher = getPusherClient();
+
+  if (subscriptions[channelName]) {
+    console.log(`[Pusher] Unsubscribing from channel: ${channelName}`);
+    pusher.unsubscribe(channelName);
+    delete subscriptions[channelName];
+    delete boundHandlers[channelName];
+  }
+};
+

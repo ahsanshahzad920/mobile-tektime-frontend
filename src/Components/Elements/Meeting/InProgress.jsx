@@ -439,6 +439,7 @@ const InProgress = ({
   //   }
   // }, [isIPhoneDevice, isModalOpen]); // Trigger when modal opens to ensure play() on user gesture
   const [showConfirmationPopup, setShowConfirmationPopup] = useState(false);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [showErrorModal, setShowErrorModal] = useState(false);
 
@@ -1150,36 +1151,56 @@ const InProgress = ({
         window.open(meetingData.meet_link, "_blank");
       }
     } else {
-      // Only show popup on non-mobile
-      if (!isMobileDevice()) {
+      // Only show popup on non-mobile and if user hasn't checked 'Ne plus afficher'
+      if (!isMobileDevice() && !meetingData?.user?.hide_automatic_notes_popup) {
         setShowConfirmationPopup(true);
       } else {
-        // On mobile: skip popup and go straight to recording
+        // On mobile or if preferred: skip popup and go straight to recording
         await initiateRecording();
       }
     }
   };
 
   // 1. Check if we should initiate recording
-  useEffect(() => {
+ useEffect(() => {
     if (
       meetingData?.prise_de_notes === "Automatic" &&
       meetingData?.status === "in_progress" &&
       meetingData?.location === null &&
       meetingData?.audio_shared === false
     ) {
-      if (!isMobileDevice()) {
-        // Show popup only on desktop/tablet
+      if (!isMobileDevice() && !meetingData?.user?.hide_automatic_notes_popup) {
+        // Show popup only on desktop/tablet and if not hidden
         setShowConfirmationPopup(true);
       } else {
-        // Auto-start recording on mobile without popup
+        // Auto-start recording on mobile without popup or if hidden
         initiateRecording();
       }
     }
   }, []); // Don't forget dependencies!
 
   const [recordingStart, setRecordingStart] = useState(false);
-  const initiateRecording = async () => {
+const initiateRecording = async () => {
+
+  if (dontShowAgain) {
+    try {
+      const token = CookieService.get("token")
+      await axios.put(
+        `${API_BASE_URL}/user/update-popup-setting`,
+        { hide_automatic_notes_popup: true },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+        }
+      );
+      console.log("Popup setting updated successfully on backend");
+    } catch (popupApiError) {
+      // toast.error()
+      console.warn("Failed to update popup settings on server:", popupApiError);
+    }
+  }
     setShowConfirmationPopup(false); // Close confirmation popup
     setLoading(true);
     setRecordingStart(false);
@@ -11607,27 +11628,39 @@ Please categorize the relevant details into their corresponding sections.`;
             </div>
           </Modal.Body>
           <Modal.Footer>
-            {/* <Button variant="secondary" onClick={onClose}>
-                 Cancel
-               </Button> */}
-            <button
-              className="btn"
-              style={{
-                backgroundColor: "#0026b1",
-                color: "#fff",
-                border: "none",
-                padding: "9px 26px",
-                fontSize: "16px",
-                cursor: "pointer",
-                borderRadius: "5px",
-                transition: "background-color 0.3s",
-                display: "flex",
-                alignItems: "center",
-              }}
-              onClick={initiateRecording}
-            >
-              {t("meeting.formState.Save and Continue")}
-            </button>
+          <div className="d-flex justify-content-between align-items-center w-100">
+              <div className="form-check m-0">
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  id="dontShowAgainCheck"
+                  checked={dontShowAgain}
+                  onChange={(e) => setDontShowAgain(e.target.checked)}
+                  style={{ cursor: "pointer" }}
+                />
+                <label className="form-check-label ms-2" htmlFor="dontShowAgainCheck" style={{ cursor: "pointer", userSelect: "none" }}>
+                  Ne plus afficher
+                </label>
+              </div>
+              <button
+                className="btn"
+                style={{
+                  backgroundColor: "#0026b1",
+                  color: "#fff",
+                  border: "none",
+                  padding: "9px 26px",
+                  fontSize: "16px",
+                  cursor: "pointer",
+                  borderRadius: "5px",
+                  transition: "background-color 0.3s",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+                onClick={initiateRecording}
+              >
+                {t("meeting.formState.Save and Continue")}
+              </button>
+            </div>
           </Modal.Footer>
         </Modal>
       )}

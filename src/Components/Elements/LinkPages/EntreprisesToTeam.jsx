@@ -1,206 +1,229 @@
 import CookieService from '../../Utils/CookieService';
 import React, { useEffect, useState } from "react";
-import moment from "moment";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { CiEdit } from "react-icons/ci";
-import { MdContentCopy } from "react-icons/md";
-import { IoEyeOutline } from "react-icons/io5";
-import { BiDotsVerticalRounded } from "react-icons/bi";
-import { RiDeleteRow } from "react-icons/ri";
-import { HiUserCircle } from "react-icons/hi2";
-import { API_BASE_URL, Assets_URL } from "../../Apicongfig";
+import { useNavigate, useParams } from "react-router-dom";
+import { API_BASE_URL } from "../../Apicongfig";
 import axios from "axios";
-import { Spinner, Table } from "react-bootstrap";
-import { FaUserCircle } from "react-icons/fa";
+import { Spinner, Modal, Button } from "react-bootstrap";
+import { useTranslation } from "react-i18next";
 import { useHeaderTitle } from "../../../context/HeaderTitleContext";
-import NoContent from "../Meeting/NoContent";
+import EnterpriseDashboardTabs from "./EnterpriseDashboardTabs";
+import CreateTeam from "../Team/CreateTeam";
 
 function EntreprisesToTeam() {
-  const { title, pushHeaderTitle, popHeaderTitle, resetHeaderTitle } =
-    useHeaderTitle();
+  const [t] = useTranslation("global");
+  const { pushHeaderTitle, popHeaderTitle } = useHeaderTitle();
   const { id } = useParams();
-
   const navigate = useNavigate();
-  const location = useLocation();
-  let { setActiveTab } = location.state || {};
 
-  const handleLinkUser = (id) => {
-    navigate(`/EntreprisesToUsers/${id}`);
+  const [enterpriseTeams, setEnterpriseTeams] = useState(null);
+  const [activeTeams, setActiveTeams] = useState([]);
+  const [closedTeams, setClosedTeams] = useState([]);
+  const [members, setMembers] = useState([]);
+
+  const [loading, setLoading] = useState(true);
+  const [teamLoading, setTeamLoading] = useState(false);
+  const [closedLoading, setClosedLoading] = useState(false);
+  const [memberLoading, setMemberLoading] = useState(false);
+
+  const [showCreateTeam, setShowCreateTeam] = useState(false);
+  const [showLicenseLimitModal, setShowLicenseLimitModal] = useState(false);
+
+  const getEnterprisesTeams = async () => {
+    const token = CookieService.get("token");
+    try {
+      setLoading(true);
+      const response = await axios.get(`${API_BASE_URL}/get-enterprise-with-client/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.status === 200) {
+        setEnterpriseTeams(response?.data?.data);
+      }
+    } catch (error) {
+      console.error("Error fetching enterprise client info:", error);
+    } finally {
+      setLoading(false);
+    }
   };
-  const handleUpdateTeam = (id) => {
-    navigate(`/ModifierTeam/${id}`);
+
+  const getTeams = async () => {
+    const token = CookieService.get("token");
+    try {
+      setTeamLoading(true);
+      const response = await axios.get(`${API_BASE_URL}/teams`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.status === 200) {
+        const filtered = response?.data?.data?.filter(
+          (team) => parseInt(team?.enterprise?.id) === parseInt(id)
+        ) || [];
+        setActiveTeams(filtered);
+      }
+    } catch (error) {
+      console.error("Error fetching active teams:", error);
+    } finally {
+      setTeamLoading(false);
+    }
   };
-  const handleUsers = () => {
-    navigate("/Users");
+
+  const getClosedTeams = async () => {
+    const token = CookieService.get("token");
+    try {
+      setClosedLoading(true);
+      const response = await axios.get(`${API_BASE_URL}/closed/teams`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.status === 200) {
+        const filtered = response?.data?.data?.filter(
+          (team) => parseInt(team?.enterprise?.id) === parseInt(id)
+        ) || [];
+        setClosedTeams(filtered);
+      }
+    } catch (error) {
+      console.error("Error fetching closed teams:", error);
+    } finally {
+      setClosedLoading(false);
+    }
   };
+
+  const getMembers = async () => {
+    const token = CookieService.get("token");
+    try {
+      setMemberLoading(true);
+      const response = await axios.get(
+        `${API_BASE_URL}/enterprise-users/${id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      if (response.status === 200) {
+        setMembers(response?.data?.data?.users || []);
+      }
+    } catch (error) {
+      console.error("Error fetching members:", error);
+    } finally {
+      setMemberLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    getEnterprisesTeams();
+    getTeams();
+    getClosedTeams();
+    getMembers();
+  }, [id]);
+
+  useEffect(() => {
+    if (enterpriseTeams?.name) {
+      pushHeaderTitle({
+        titleText: enterpriseTeams.name,
+        link: `/EntreprisesToTeam/${id}`,
+      });
+    }
+    return () => {
+      popHeaderTitle();
+    };
+  }, [enterpriseTeams, id]);
+
+  const handleUserClick = () => {
+    if (enterpriseTeams?.used_license >= enterpriseTeams?.contract?.no_of_licenses) {
+      setShowLicenseLimitModal(true);
+      return;
+    }
+    setShowCreateTeam(false);
+    navigate(`/user/create`, {
+      state: { preselectedEnterprise: enterpriseTeams }
+    });
+  };
+
   const goBack = () => {
-    popHeaderTitle();
     window.history.back();
   };
 
-  const [enterpriseTeams, setEnterpriseTeams] = useState([]);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    const getEnterprisesTeams = async () => {
-      const token = CookieService.get("token");
-      try {
-        const response = await axios.get(`${API_BASE_URL}/enterprises/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (response.status === 200) {
-          // console.log("data", response);
-          setEnterpriseTeams(response?.data?.data);
-        }
-        setLoading(false);
-      } catch (error) {
-        // console.log("error message", error);
-        setLoading(false);
-      }
-    };
-    getEnterprisesTeams();
-  }, []);
+  if (showCreateTeam) {
+    return (
+      <div className="tektimetabs">
+        <CreateTeam
+          eventKey="Nouvelle équipe"
+          setActiveTab={() => {}}
+          setShowCreateTeam={setShowCreateTeam}
+          getTeams={getTeams}
+          preselectedEnterprise={enterpriseTeams}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="scheduled">
-      <div className="container-fluid ">
+      <div className="container-fluid">
         <div className="row justify-content-center">
           <div className="col-md-12 py-2">
             {!loading ? (
-              // team?.map((item, index) => (
               <>
-                {enterpriseTeams?.teams?.length > 0 ? (
-                  enterpriseTeams?.teams?.map((user, index) => (
-                    <div className="card mb-4">
-                      <div className="card-body">
-                        <div className="cardbody">
-                          <h5>{enterpriseTeams?.name}</h5>
-                          <Table responsive>
-                            <thead>
-                              <tr key={index}>
-                                <th className="table-head">logo</th>
-                                <th className="table-head">Nom</th>
-                                <th className="table-head">
-                                  Début de la création
-                                </th>
-                                <th className="table-head">Effectif </th>
-                                <th className="table-head">Action</th>
-                              </tr>
-                            </thead>
-                            <tbody style={{ padding: "10px 10px" }}>
-                              <tr>
-                                <td className="table-data">
-                                  <img
-                                    className="logo"
-                                    width={50}
-                                    height={50}
-                                    src={user?.logo?.startsWith("http") ? user?.logo : `${Assets_URL}/${user?.logo}`}
-                                    alt="logo"
-                                    />
-                                </td>
-                                <td className="table-data">{user?.name}</td>
-                                <td className="table-data">
-                                  {(user?.created_at).substring(0, 10)}
-                                </td>
-                                <td className="table-data">
-                                  {user?.users?.filter(user => user.status !== 'closed').length}
-                                </td>
-                                <td className="table-data d-flex align-items-center">
-                                  <IoEyeOutline
-                                    size={"22px"}
-                                    style={{ cursor: "pointer" }}
-                                    onClick={() => {
-                                      pushHeaderTitle({
-                                        titleText: user?.name,
-                                        link: `/EntreprisesToUsers/${user?.id}`,
-                                      });
-                                      handleLinkUser(user?.id);
-                                    }}
-                                  />
-                                  {/* <div
-                                    className="dropdown dropstart"
-                                    style={{
-                                      position: "absolute",
-                                    }}
-                                  >
-                                    <button
-                                      className="btn btn-secondary"
-                                      type="button"
-                                      data-bs-toggle="dropdown"
-                                      aria-expanded="false"
-                                      style={{
-                                        backgroundColor: "transparent",
-                                        border: "none",
-                                        padding: "0px",
-                                      }}
-                                    >
-                                      <BiDotsVerticalRounded
-                                        color="black"
-                                        size={"25px"}
-                                      />
-                                    </button>
-                                    <ul
-                                      className="dropdown-menu"
-                                      style={{ top: "3rem !important" }}
-                                    >
-                                      <li>
-                                        <a
-                                          className="dropdown-item"
-                                          style={{ cursor: "pointer" }}
-                                          onClick={() =>
-                                            handleUpdateTeam(user?.id)
-                                          }
-                                        >
-                                          <CiEdit size={"20px"} /> &nbsp;
-                                          Modifier
-                                        </a>
-                                      </li>
-                                      <li
-                                      // onClick={() =>
-                                      //   handleChangeStatus(user?.id)
-                                      // }
-                                      >
-                                        <a
-                                          className="dropdown-item"
-                                          style={{ cursor: "pointer" }}
-                                        >
-                                          <RiDeleteRow size={"20px"} /> &nbsp;
-                                          Désactiver
-                                        </a>
-                                      </li>
-                                    </ul>
-                                  </div> */}
-                                </td>
-                              </tr>
-                            </tbody>
-                          </Table>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <>
-                    <NoContent title={`Team of ${enterpriseTeams?.name}`} />
-                  </>
-                )}
+                <EnterpriseDashboardTabs
+                  enterprise={enterpriseTeams}
+                  activeTeams={activeTeams}
+                  closedTeams={closedTeams}
+                  teamLoading={teamLoading}
+                  closedLoading={closedLoading}
+                  getTeams={getTeams}
+                  getClosedTeams={getClosedTeams}
+                  members={members}
+                  memberLoading={memberLoading}
+                  getMembers={getMembers}
+                  getEnterpriseClient={getEnterprisesTeams}
+                  onCreateTeam={() => setShowCreateTeam(true)}
+                  onAddUser={handleUserClick}
+                />
+                
                 <div className="d-flex justify-content-center mt-5">
-                  <button className="btn btn-primary" onClick={goBack}>
-                    Revenir à la page précédente
+                  <button className="btn btn-primary shadow-sm px-4 py-2" onClick={goBack}>
+                    {t("back") || "Revenir à la page précédente"}
                   </button>
                 </div>
               </>
             ) : (
-              // ))
-              <>
+              <div className="d-flex justify-content-center align-items-center" style={{ minHeight: "300px" }}>
                 <Spinner
                   animation="border"
                   role="status"
                   className="center-spinner"
-                ></Spinner>
-              </>
+                />
+              </div>
             )}
           </div>
         </div>
       </div>
+
+      {showLicenseLimitModal && (
+        <Modal
+          show={showLicenseLimitModal}
+          onHide={() => setShowLicenseLimitModal(false)}
+          centered
+        >
+          <Modal.Header closeButton>
+            <Modal.Title>{t("License Limit Reached") || "License Limit Reached"}</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <p>
+              {t("You have reached the maximum number of licenses allowed by your contract.") || 
+               "You have reached the maximum number of licenses allowed by your contract."}
+            </p>
+            <p>
+              {t("Please contact your administrator to upgrade your plan.") || 
+               "Please contact your administrator to upgrade your plan."}
+            </p>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button
+              variant="primary"
+              onClick={() => setShowLicenseLimitModal(false)}
+            >
+              {t("close") || "Fermer"}
+            </Button>
+          </Modal.Footer>
+        </Modal>
+      )}
     </div>
   );
 }

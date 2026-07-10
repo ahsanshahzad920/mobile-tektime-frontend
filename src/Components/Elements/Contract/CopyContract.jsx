@@ -144,6 +144,7 @@ const CopyContract = () => {
     casting_need: false,
     check_stripe: false,
     check_whatsapp: false,
+    trial_days: 0,
     mission_types: [],
     roles: [],
   };
@@ -165,6 +166,7 @@ const CopyContract = () => {
     casting_need: false,
     check_stripe: false,
     check_whatsapp: false,
+    trial_days: 0,
     mission_types: [],
     roles: [],
   });
@@ -240,6 +242,7 @@ const CopyContract = () => {
               }
               return [];
             })(),
+            trial_days: data?.data?.trial_days || 0,
           });
         }
       } catch (error) {
@@ -289,6 +292,7 @@ const CopyContract = () => {
         name: `${updatedName}_copie_${count}`,
         check_stripe: contractData.check_stripe ? 1 : 0,
         check_whatsapp: contractData.check_whatsapp ? 1 : 0,
+        trial_days: contractData.trial_days === "" ? 0 : parseInt(contractData.trial_days, 10),
         mission_types: contractData.mission_types,
         roles: contractData.roles,
       };
@@ -631,6 +635,27 @@ const CopyContract = () => {
                       placeholder={t("newContract.numberOfLicenses")}
                       name="no_of_licenses"
                       value={contractData.no_of_licenses}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="form-label">Durée de test (en jours)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      onFocus={(e) =>
+                        e.target.addEventListener(
+                          "wheel",
+                          function (e) {
+                            e.preventDefault();
+                          },
+                          { passive: false }
+                        )
+                      }
+                      className="form-control"
+                      placeholder="Nombre de jours d'essai gratuit (ex: 7)"
+                      name="trial_days"
+                      value={contractData.trial_days}
                       onChange={handleInputChange}
                     />
                   </div>

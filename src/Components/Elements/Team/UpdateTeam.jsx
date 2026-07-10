@@ -198,7 +198,7 @@ const UpdateTeam = () => {
           <div className="container-fluid">
             <div className="card pt-5 pb-5">
               <div className="row justify-content-center">
-                <div className="col-lg-3 col-md-4">
+                <div className="col-12 col-md-4 mb-4">
                   <div className="image-uploader mt-4">
                     <div
                       className={`image-preview update-image-bg ${isHovered ? "hovered" : ""}`}
@@ -230,7 +230,7 @@ const UpdateTeam = () => {
                     />
                   </div>
                 </div>
-                <div className="col-lg-3 col-md-4">
+                <div className="col-12 col-md-6 mb-4">
                   <div className="mb-3">
                     <label className="form-label">
                       <h6>{t("Team.name")}</h6>
@@ -276,7 +276,7 @@ const UpdateTeam = () => {
                       <h6>Description</h6>
                     </label>
                     <br />
-                    <textarea
+                    <textarea className="form-control"
                       rows="10"
                       name="description"
                       value={

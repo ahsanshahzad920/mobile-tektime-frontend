@@ -78,6 +78,67 @@ const TeamCard = ({
 
   const user = JSON.parse(CookieService.get("user"));
   const userEnterprise = user?.enterprise?.name;
+
+  const renderAvatar = (imageUrl, name, size = "80px") => {
+    const hasImage = imageUrl && imageUrl !== "null" && imageUrl !== "undefined" && imageUrl !== "";
+    if (hasImage) {
+      const src = imageUrl.startsWith("http") ? imageUrl : `${Assets_URL}/${imageUrl}`;
+      return (
+        <Card.Img
+          className="user-img rounded-circle animate__animated animate__fadeIn"
+          src={src}
+          style={{ width: size, height: size, objectFit: "cover" }}
+        />
+      );
+    }
+    
+    const getInitials = (str) => {
+      if (!str) return "?";
+      const cleanStr = str.replace(/[^\w\s]/gi, '').trim();
+      const parts = cleanStr.split(/\s+/);
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[1][0]).toUpperCase();
+      }
+      return str.substring(0, 2).toUpperCase();
+    };
+
+    const initials = getInitials(name);
+    
+    let hash = 0;
+    const nameStr = name || "";
+    for (let i = 0; i < nameStr.length; i++) {
+      hash = nameStr.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const colors = [
+      { bg: "#E3F2FD", text: "#0D47A1" }, // Blue
+      { bg: "#E8F5E9", text: "#1B5E20" }, // Green
+      { bg: "#F3E5F5", text: "#4A148C" }, // Purple
+      { bg: "#FFF3E0", text: "#E65100" }, // Orange
+      { bg: "#E0F2F1", text: "#004D40" }, // Teal
+      { bg: "#FCE4EC", text: "#880E4F" }, // Pink
+      { bg: "#FFFDE7", text: "#F57F17" }, // Yellow
+    ];
+    const index = Math.abs(hash) % colors.length;
+    const colorScheme = colors[index];
+
+    return (
+      <div
+        className="user-img-initials rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm animate__animated animate__fadeIn"
+        style={{
+          width: size,
+          height: size,
+          backgroundColor: colorScheme.bg,
+          color: colorScheme.text,
+          fontSize: "1.5rem",
+          letterSpacing: "0.5px",
+          fontFamily: "'Inter', sans-serif",
+          border: "2px solid #ffffff",
+        }}
+      >
+        {initials}
+      </div>
+    );
+  };
   const getBorderColor = (item) => {
     if (isClientView) return "transparent";
     switch (isTeamMemberView ? item?.pivot?.status : item.status) {
@@ -529,87 +590,21 @@ const TeamCard = ({
                         <div className="participant-card-position">
                           <div className="profile-logo position-relative">
                             {isMemberView || isTeamMemberView ? (
-                              <>
-                                {item?.image?.startsWith("http") ? (
-                                  <Card.Img
-                                    className="user-img"
-                                    src={item?.image}
-                                    style={{ width: "80px", height: "80px" }}
-                                  />
-                                ) : (
-                                  <Card.Img
-                                    className="user-img"
-                                    src={Assets_URL + "/" + item?.image}
-                                    style={{ width: "80px", height: "80px" }}
-                                  />
-                                )}
-                              </>
+                              renderAvatar(
+                                item?.image,
+                                item?.full_name || `${item?.first_name || ""} ${item?.last_name || ""}`.trim() || item?.email
+                              )
                             ) : isClientView ? (
-                              <>
-                                {item?.client_logo?.startsWith("http") ? (
-                                  <Card.Img
-                                    className="user-img"
-                                    src={item?.client_logo}
-                                    style={{ width: "80px", height: "80px" }}
-                                  />
-                                ) : (
-                                  <Card.Img
-                                    className="user-img"
-                                    src={Assets_URL + "/" + item?.client_logo}
-                                    style={{ width: "80px", height: "80px" }}
-                                  />
-                                )}
-                              </>
+                              renderAvatar(item?.client_logo, item?.name)
                             ) : isContactView ? (
-                              <>
-                                {item?.image?.startsWith("http") ? (
-                                  <Card.Img
-                                    className="user-img"
-                                    src={item?.image}
-                                    style={{ width: "80px", height: "80px" }}
-                                  />
-                                ) : (
-                                  <Card.Img
-                                    className="user-img"
-                                    src={Assets_URL + "/" + item?.image}
-                                    style={{ width: "80px", height: "80px" }}
-                                  />
-                                )}
-                              </>
+                              renderAvatar(
+                                item?.image,
+                                `${item?.first_name || ""} ${item?.last_name || ""}`.trim() || item?.email
+                              )
                             ) : isCastingView ? (
-                              <>
-                                {item?.participant_image?.startsWith("http") ? (
-                                  <Card.Img
-                                    className="user-img"
-                                    src={item?.participant_image}
-                                    style={{ width: "80px", height: "80px" }}
-                                  />
-                                ) : (
-                                  <Card.Img
-                                    className="user-img"
-                                    src={
-                                      Assets_URL + "/" + item?.participant_image
-                                    }
-                                    style={{ width: "80px", height: "80px" }}
-                                  />
-                                )}
-                              </>
+                              renderAvatar(item?.participant_image, item?.full_name)
                             ) : (
-                              <>
-                                {item?.logo?.startsWith("http") ? (
-                                  <Card.Img
-                                    className="user-img"
-                                    src={item?.logo}
-                                    style={{ width: "80px", height: "80px" }}
-                                  />
-                                ) : (
-                                  <Card.Img
-                                    className="user-img"
-                                    src={Assets_URL + "/" + item?.logo}
-                                    style={{ width: "80px", height: "80px" }}
-                                  />
-                                )}
-                              </>
+                              renderAvatar(item?.logo, item?.name)
                             )}
                           </div>
                         </div>

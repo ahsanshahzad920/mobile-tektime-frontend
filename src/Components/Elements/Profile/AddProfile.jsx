@@ -1398,6 +1398,30 @@ const AddProfile = ({ user, teams, refreshUserData, isLoading, setView }) => {
     }
     event.target.value = "";
   };
+  const [enterpriseLogoPreview, setEnterpriseLogoPreview] = useState(user?.enterprise?.logo || "");
+  const [enterpriseLogoFile, setEnterpriseLogoFile] = useState(null);
+  const enterpriseLogoInputRef = useRef(null);
+
+  const handleChangeEnterpriseLogoClick = (e) => {
+    e.stopPropagation();
+    enterpriseLogoInputRef.current.click();
+  };
+
+  const handleEnterpriseLogoUpload = (event) => {
+    const file = event.target.files[0];
+    if (file && file.type.startsWith("image/")) {
+      setEnterpriseLogoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEnterpriseLogoPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      alert("Please upload a valid image file.");
+    }
+    event.target.value = "";
+  };
+
 
   const [profileBanner, setProfileBanner] = useState(user?.profile_banner || null)
   const bannerInputRef = useRef(null);
@@ -1504,6 +1528,7 @@ const AddProfile = ({ user, teams, refreshUserData, isLoading, setView }) => {
       setProfile(user?.image);
       setProfileBanner(user?.profile_banner);
       setcroppedImage(user?.profile_banner ? user?.profile_banner : null);
+      setEnterpriseLogoPreview(user?.enterprise?.logo || "");
       setFormData({
         name: user?.name || "",
         last_name: user?.last_name || "",
@@ -1602,6 +1627,10 @@ const AddProfile = ({ user, teams, refreshUserData, isLoading, setView }) => {
     try {
       setLoading(true);
       const formDataInstance = new FormData();
+
+      if (enterpriseLogoFile) {
+        formDataInstance.append("enterprise_logo", enterpriseLogoFile);
+      }
 
       // Handle profile image
       if (profile.startsWith("data:image/")) {
@@ -1818,6 +1847,10 @@ const AddProfile = ({ user, teams, refreshUserData, isLoading, setView }) => {
     try {
       setLoadingQuit(true);
       const formDataInstance = new FormData();
+
+      if (enterpriseLogoFile) {
+        formDataInstance.append("enterprise_logo", enterpriseLogoFile);
+      }
 
       // Handle profile image
       if (profile.startsWith("data:image/")) {
@@ -2299,6 +2332,66 @@ const AddProfile = ({ user, teams, refreshUserData, isLoading, setView }) => {
                                 />
                               </Form.Group>
                             </Col>
+                            {user?.enterprise && (
+                              <Col md={12}>
+                                <Form.Group className="mb-3">
+                                  <Form.Label>{t("profile.enterpriseLogo")}</Form.Label>
+                                  <div className="d-flex align-items-center gap-3">
+                                    <div 
+                                      style={{
+                                        width: "60px",
+                                        height: "60px",
+                                        border: "1px solid #dee2e6",
+                                        borderRadius: "4px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        overflow: "hidden",
+                                        backgroundColor: "#f8f9fa",
+                                        cursor: "pointer"
+                                      }}
+                                      onClick={handleChangeEnterpriseLogoClick}
+                                    >
+                                      {enterpriseLogoPreview ? (
+                                        <img
+                                          src={
+                                            enterpriseLogoPreview?.startsWith("http") 
+                                              ? enterpriseLogoPreview 
+                                              : enterpriseLogoPreview?.startsWith("data:") 
+                                                ? enterpriseLogoPreview 
+                                                : Assets_URL + "/" + enterpriseLogoPreview
+                                          }
+                                          alt="Enterprise Logo"
+                                          style={{
+                                            maxWidth: "100%",
+                                            maxHeight: "100%",
+                                            objectFit: "contain"
+                                          }}
+                                        />
+                                      ) : (
+                                        <span style={{ fontSize: "10px", color: "#6c757d" }}>No Logo</span>
+                                      )}
+                                    </div>
+                                    <div>
+                                      <input
+                                        type="file"
+                                        ref={enterpriseLogoInputRef}
+                                        style={{ display: "none" }}
+                                        accept="image/*"
+                                        onChange={handleEnterpriseLogoUpload}
+                                      />
+                                      <Button
+                                        variant="outline-secondary"
+                                        size="sm"
+                                        onClick={handleChangeEnterpriseLogoClick}
+                                      >
+                                        {t("profile.buttons.changeEnterpriseLogo")}
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </Form.Group>
+                              </Col>
+                            )}
                           </Row>
                           <Row>
                             <Col md={6}>

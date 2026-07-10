@@ -20,8 +20,13 @@ import {
   FaGlobe,
   FaChartBar,
   FaChartLine,
-  FaBell
+  FaBell,
+  FaSun,
+  FaMoon,
+  FaSyncAlt
 } from "react-icons/fa";
+
+
 import { API_BASE_URL, Assets_URL } from "../../Apicongfig";
 import { useTranslation } from "react-i18next";
 import moment from "moment-timezone";
@@ -32,7 +37,7 @@ import { toast } from "react-toastify";
 import ModifyEnterpriseModal from "./ModifyEnterpriseModal";
 import { formatDate, formatTime } from "../Meeting/GetMeeting/Helpers/functionHelper";
 
-const Dashboard = () => {
+const Dashboard = ({ enterpriseId: propEnterpriseId }) => {
   const { t } = useTranslation("global");
   const navigate = useNavigate();
   // State for filters and data
@@ -52,8 +57,8 @@ const Dashboard = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchRef = useRef(null);
 
-  const user = JSON.parse(CookieService.get("user"));
-  const enterpriseId = user?.enterprise?.id;
+  const user = CookieService.get("user") ? JSON.parse(CookieService.get("user")) : null;
+  const enterpriseId = propEnterpriseId || user?.enterprise?.id;
 
   // Utility function to convert seconds to hours (removes .0 for whole numbers)
  // Utility function to convert seconds to appropriate time format
@@ -357,19 +362,19 @@ const handleSuggestionSelect = (suggestion) => {
           </div>
         )}
         <Row>
-          <Col xl={3} lg={6} className="mb-3">
+          <Col xl={3} lg={6} md={6} xs={12} className="mb-3">
             <Card className="summary-card border-0 shadow-sm h-100" style={{cursor:'pointer'}} onClick={()=>navigate('/action')}>
-              <Card.Body className="p-4">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <Card.Title className="mb-0 text-info">{t("dashboard.summaryCards.todo")}</Card.Title>
+              <Card.Body className="p-3 p-lg-4">
+                <div className="d-flex justify-content-between align-items-center mb-2 mb-lg-3">
+                  <Card.Title className="mb-0 text-info small fw-bold text-uppercase" style={{letterSpacing: '0.5px'}}>{t("dashboard.summaryCards.todo")}</Card.Title>
                 </div>
-                <div className="d-flex align-items-end">
-                  <h2 className="fw-bold me-2">{data?.todo?.count || 0}</h2>
-                  <p className="text-muted mb-1">{t("dashboard.summaryCards.tasks")}</p>
+                <div className="d-flex align-items-baseline">
+                  <h2 className="fw-bold me-2 mb-0">{data?.todo?.count || 0}</h2>
+                  <p className="text-muted mb-0 small">{t("dashboard.summaryCards.tasks")}</p>
                 </div>
-                <div className="d-flex align-items-center mt-2">
-                  <FaCalendarAlt className="text-muted me-2" />
-                  <span className="text-muted">
+                <div className="d-flex align-items-center mt-3 pt-2 border-top">
+                  <FaCalendarAlt className="text-muted me-2 small" />
+                  <span className="text-muted small">
                     {secondsToHours(data?.todo?.planned_time)} {t("dashboard.summaryCards.planned")}
                   </span>
                 </div>
@@ -377,26 +382,26 @@ const handleSuggestionSelect = (suggestion) => {
             </Card>
           </Col>
 
-          <Col xl={3} lg={6} className="mb-3">
+          <Col xl={3} lg={6} md={6} xs={12} className="mb-3">
             <Card className="summary-card border-0 shadow-sm h-100" style={{cursor:'pointer'}} onClick={()=>navigate('/action')}>
-              <Card.Body className="p-4">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <Card.Title className="mb-0 text-warning">{t("dashboard.summaryCards.inProgress")}</Card.Title>
+              <Card.Body className="p-3 p-lg-4">
+                <div className="d-flex justify-content-between align-items-center mb-2 mb-lg-3">
+                  <Card.Title className="mb-0 text-warning small fw-bold text-uppercase" style={{letterSpacing: '0.5px'}}>{t("dashboard.summaryCards.inProgress")}</Card.Title>
                 </div>
-                <div className="d-flex align-items-end">
-                  <h2 className="fw-bold me-2">{data?.in_progress?.count || 0}</h2>
-                  <p className="text-muted mb-1">{t("dashboard.summaryCards.tasks")}</p>
+                <div className="d-flex align-items-baseline">
+                  <h2 className="fw-bold me-2 mb-0">{data?.in_progress?.count || 0}</h2>
+                  <p className="text-muted mb-0 small">{t("dashboard.summaryCards.tasks")}</p>
                 </div>
-                <div className="mt-2">
+                <div className="mt-3 pt-2 border-top">
                   <div className="d-flex align-items-center mb-1">
-                    <FaChartLine className="text-muted me-2" />
-                    <span className="text-muted">
+                    <FaChartLine className="text-muted me-2 small" />
+                    <span className="text-muted small">
                       {secondsToHours(data?.in_progress?.completed_time)} {t("dashboard.summaryCards.completedTime")}
                     </span>
                   </div>
                   <div className="d-flex align-items-center">
-                    <FaCalendarAlt className="text-muted me-2" />
-                    <span className="text-muted">
+                    <FaCalendarAlt className="text-muted me-2 small" />
+                    <span className="text-muted small">
                       {secondsToHours(data?.in_progress?.remaining_time)} {t("dashboard.summaryCards.remaining")}
                     </span>
                   </div>
@@ -405,19 +410,19 @@ const handleSuggestionSelect = (suggestion) => {
             </Card>
           </Col>
 
-          <Col xl={3} lg={6} className="mb-3">
+          <Col xl={3} lg={6} md={6} xs={12} className="mb-3">
             <Card className="summary-card border-0 shadow-sm h-100" style={{cursor:'pointer'}} onClick={()=>navigate('/action')}>
-              <Card.Body className="p-4">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <Card.Title className="mb-0 text-danger">{t("dashboard.summaryCards.late")}</Card.Title>
+              <Card.Body className="p-3 p-lg-4">
+                <div className="d-flex justify-content-between align-items-center mb-2 mb-lg-3">
+                  <Card.Title className="mb-0 text-danger small fw-bold text-uppercase" style={{letterSpacing: '0.5px'}}>{t("dashboard.summaryCards.late")}</Card.Title>
                 </div>
-                <div className="d-flex align-items-end">
-                  <h2 className="fw-bold me-2">{data?.late?.count || 0}</h2>
-                  <p className="text-muted mb-1">{t("dashboard.summaryCards.tasks")}</p>
+                <div className="d-flex align-items-baseline">
+                  <h2 className="fw-bold me-2 mb-0">{data?.late?.count || 0}</h2>
+                  <p className="text-muted mb-0 small">{t("dashboard.summaryCards.tasks")}</p>
                 </div>
-                <div className="d-flex align-items-center mt-2">
-                  <FaCalendarAlt className="text-muted me-2" />
-                  <span className="text-muted">
+                <div className="d-flex align-items-center mt-3 pt-2 border-top">
+                  <FaCalendarAlt className="text-muted me-2 small" />
+                  <span className="text-muted small">
                     {secondsToHours(data?.late?.delay_time)} {t("dashboard.summaryCards.remaining")}
                   </span>
                 </div>
@@ -425,19 +430,19 @@ const handleSuggestionSelect = (suggestion) => {
             </Card>
           </Col>
 
-          <Col xl={3} lg={6} className="mb-3">
+          <Col xl={3} lg={6} md={6} xs={12} className="mb-3">
             <Card className="summary-card border-0 shadow-sm h-100" style={{cursor:'pointer'}} onClick={()=>navigate('/action')}>
-              <Card.Body className="p-4">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <Card.Title className="mb-0 text-success">{t("dashboard.summaryCards.completed")}</Card.Title>
+              <Card.Body className="p-3 p-lg-4">
+                <div className="d-flex justify-content-between align-items-center mb-2 mb-lg-3">
+                  <Card.Title className="mb-0 text-success small fw-bold text-uppercase" style={{letterSpacing: '0.5px'}}>{t("dashboard.summaryCards.completed")}</Card.Title>
                 </div>
-                <div className="d-flex align-items-end">
-                  <h2 className="fw-bold me-2">{data?.completed?.count || 0}</h2>
-                  <p className="text-muted mb-1">{t("dashboard.summaryCards.tasks")}</p>
+                <div className="d-flex align-items-baseline">
+                  <h2 className="fw-bold me-2 mb-0">{data?.completed?.count || 0}</h2>
+                  <p className="text-muted mb-0 small">{t("dashboard.summaryCards.tasks")}</p>
                 </div>
-                <div className="d-flex align-items-center mt-2">
-                  <FaCalendarAlt className="text-muted me-2" />
-                  <span className="text-muted">
+                <div className="d-flex align-items-center mt-3 pt-2 border-top">
+                  <FaCalendarAlt className="text-muted me-2 small" />
+                  <span className="text-muted small">
                     {secondsToHours(data?.completed?.spend_time)} {t("dashboard.summaryCards.timeSpent")}
                   </span>
                 </div>
@@ -448,6 +453,7 @@ const handleSuggestionSelect = (suggestion) => {
       </div>
     );
   };
+
 
   if (loading) {
     return (
@@ -462,143 +468,97 @@ const handleSuggestionSelect = (suggestion) => {
   return (
     <div className={darkMode ? 'dark-mode' : ''}>
       {/* Filter Bar */}
-      <div className="dashboard-filters mb-4 p-3 bg-light rounded shadow-sm">
-        <div className="d-flex flex-wrap align-items-center gap-3">
-          {/* Period filter */}
-          <Dropdown>
-            <Dropdown.Toggle variant="outline-primary" id="period-dropdown">
-              <FaCalendarAlt className="me-2" />
-              {getPeriodDisplayText()}
-            </Dropdown.Toggle>
-            <Dropdown.Menu>
-              <Dropdown.Item onClick={() => handlePeriodChange('today')}>
-                {t("dashboard.filters.period.today")}
-              </Dropdown.Item>
-              <Dropdown.Item onClick={() => handlePeriodChange('week')}>
-                {t("dashboard.filters.period.thisWeek")}
-              </Dropdown.Item>
-              <Dropdown.Item onClick={() => handlePeriodChange('next-week')}>
-                {t("dashboard.filters.period.nextWeek")}
-              </Dropdown.Item>
-              <Dropdown.Item onClick={() => handlePeriodChange('month')}>
-                {t("dashboard.filters.period.month")}
-              </Dropdown.Item>
-              <Dropdown.Item onClick={() => handlePeriodChange('quarter')}>
-                {t("dashboard.filters.period.quarter")}
-              </Dropdown.Item>
-            </Dropdown.Menu>
-          </Dropdown>
-
-          {/* View filter */}
-          <Dropdown>
-            <Dropdown.Toggle variant="outline-secondary" id="view-dropdown">
-              {getViewIcon()}
-              {getViewDisplayText()}
-            </Dropdown.Toggle>
-            <Dropdown.Menu>
-              <Dropdown.Item onClick={() => {
-                resetFilters();
-              }}>
-                <FaGlobe className="me-2" /> {t("dashboard.filters.view.global")}
-              </Dropdown.Item>
-              <Dropdown.Item onClick={() => setView('team')}>
-                <FaUsers className="me-2" /> {t("dashboard.filters.view.byTeam")}
-              </Dropdown.Item>
-              <Dropdown.Item onClick={() => setView('user')}>
-                <FaUser className="me-2" /> {t("dashboard.filters.view.byUser")}
-              </Dropdown.Item>
-            </Dropdown.Menu>
-          </Dropdown>
-
-          {/* Search */}
-<div ref={searchRef} className="search-box position-relative" style={{ minWidth: '250px' }}>
-  <Form.Control
-    type="text"
-    placeholder={t("dashboard.filters.searchPlaceholder")}
-    value={searchTerm}
-    onChange={(e) => setSearchTerm(e.target.value)}
-  onFocus={() => searchTerm.length >= 1 && setShowSuggestions(true)} // Changed from 2 to 1
-    onKeyPress={handleSearchSubmit}
-    className="ps-5"
-  />
-  <FaSearch className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" />
-  
-  {/* Search suggestions dropdown - ADD THIS BACK */}
-  {showSuggestions && (
-    <div className="position-absolute top-100 start-0 end-0 bg-white border mt-1 rounded shadow-lg z-3 overflow-auto"
-        style={{
-// border: "1px solid #ccc",
-maxHeight: "300px",
-overflowY: "auto",
-// padding: 0,
-// margin: 0,
-listStyle: "none",
-}}>
-      {searchSuggestions.length > 0 ? (
-        <>
-          {searchSuggestions.map((suggestion, index) => (
-            <div
-              key={index}
-              className="p-2 border-bottom cursor-pointer hover-bg"
-          
-              style={{ cursor: 'pointer' }}
-              onMouseDown={(e) => e.preventDefault()} // Prevent blur before click
-              onClick={() => handleSuggestionSelect(suggestion)}
-            >
-              <div className="d-flex align-items-center">
-                {suggestion.type === 'moment' && <img
-                                        src="/Assets/sidebar_meeting_active.svg"
-                                        alt="moment"
-                                      />}
-                {suggestion.type === 'mission' && <img
-                                                                              src="/Assets/sidebar_active_destination.svg"
-                                                                              alt="mission"
-                                                                            />}
-                {suggestion.type === 'team' && <img
-                                                                              src="/Assets/sidebar_team_active.svg"
-                                                                              alt="team"
-                                                                            />}
-                
+      <div className="dashboard-filters mb-4 p-2 p-md-3 bg-white rounded shadow-sm border">
+        <Row className="g-2 g-md-3 align-items-center">
+          {/* Period and View filter - 50/50 on mobile */}
+          <Col xs={6} md="auto">
+            <Dropdown className="w-100">
+              <Dropdown.Toggle variant="outline-primary" id="period-dropdown" className="w-100 text-start d-flex align-items-center justify-content-between px-2 px-md-3 py-2">
                 <div className="text-truncate">
-                  <div className="fw-medium text-truncate">{suggestion?.title}</div>
-                
+                  <FaCalendarAlt className="me-1 me-md-2" />
+                  <span className="small d-md-inline">{getPeriodDisplayText()}</span>
                 </div>
-              </div>
+              </Dropdown.Toggle>
+              <Dropdown.Menu className="shadow-lg border-0 mt-2">
+                <Dropdown.Item onClick={() => handlePeriodChange('today')}>{t("dashboard.filters.period.today")}</Dropdown.Item>
+                <Dropdown.Item onClick={() => handlePeriodChange('week')}>{t("dashboard.filters.period.thisWeek")}</Dropdown.Item>
+                <Dropdown.Item onClick={() => handlePeriodChange('next-week')}>{t("dashboard.filters.period.nextWeek")}</Dropdown.Item>
+                <Dropdown.Item onClick={() => handlePeriodChange('month')}>{t("dashboard.filters.period.month")}</Dropdown.Item>
+                <Dropdown.Item onClick={() => handlePeriodChange('quarter')}>{t("dashboard.filters.period.quarter")}</Dropdown.Item>
+              </Dropdown.Menu>
+            </Dropdown>
+          </Col>
+
+          <Col xs={6} md="auto">
+            <Dropdown className="w-100">
+              <Dropdown.Toggle variant="outline-primary" id="view-dropdown" className="w-100 text-start d-flex align-items-center justify-content-between px-2 px-md-3 py-2">
+                <div className="text-truncate">
+                  {React.cloneElement(getViewIcon(), { className: 'me-1 me-md-2' })}
+                  <span className="small d-md-inline">{getViewDisplayText()}</span>
+                </div>
+              </Dropdown.Toggle>
+              <Dropdown.Menu className="shadow-lg border-0 mt-2">
+                <Dropdown.Item onClick={resetFilters}><FaGlobe className="me-2" /> {t("dashboard.filters.view.global")}</Dropdown.Item>
+                <Dropdown.Item onClick={() => setView('team')}><FaUsers className="me-2" /> {t("dashboard.filters.view.byTeam")}</Dropdown.Item>
+                <Dropdown.Item onClick={() => setView('user')}><FaUser className="me-2" /> {t("dashboard.filters.view.byUser")}</Dropdown.Item>
+              </Dropdown.Menu>
+            </Dropdown>
+          </Col>
+
+          {/* Search Box - 100% on mobile */}
+          <Col xs={12} md className="flex-grow-1">
+            <div ref={searchRef} className="search-box position-relative">
+              <Form.Control
+                type="text"
+                placeholder={t("dashboard.filters.searchPlaceholder")}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onFocus={() => searchTerm.length >= 1 && setShowSuggestions(true)}
+                onKeyPress={handleSearchSubmit}
+                className="ps-5 py-2"
+                style={{ borderRadius: '10px' }}
+              />
+              <FaSearch className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" />
+              
+              {showSuggestions && (
+                <div className="position-absolute top-100 start-0 end-0 bg-white border mt-1 rounded shadow-lg z-3 overflow-auto"
+                   style={{ maxHeight: "300px", overflowY: "auto", listStyle: "none" }}>
+                  {searchSuggestions.length > 0 ? (
+                    searchSuggestions.map((suggestion, index) => (
+                      <div key={index} className="p-2 border-bottom cursor-pointer hover-bg"
+                        style={{ cursor: 'pointer' }}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => handleSuggestionSelect(suggestion)}>
+                        <div className="d-flex align-items-center">
+                          {suggestion.type === 'moment' && <img src="/Assets/sidebar_meeting_active.svg" alt="moment" width={20} />}
+                          {suggestion.type === 'mission' && <img src="/Assets/sidebar_active_destination.svg" alt="mission" width={20} />}
+                          {suggestion.type === 'team' && <img src="/Assets/sidebar_team_active.svg" alt="team" width={20} />}
+                          <div className="ms-2 text-truncate fw-medium">{suggestion?.title}</div>
+                        </div>
+                      </div>
+                    ))
+                  ) : searchTerm.length >= 1 ? (
+                    <div className="p-2 text-muted small">No results found</div>
+                  ) : null}
+                </div>
+              )}
             </div>
-          ))}
-        </>
-      ) : searchTerm.length >= 1 ? (
-        <div className="p-2 text-muted">No results found</div>
-      ) : null}
-    </div>
-  )}
-</div>
+          </Col>
 
-          {/* Export buttons */}
-{/*           <Dropdown>
-            <Dropdown.Toggle variant="outline-success" id="export-dropdown">
-              {t("dashboard.filters.export")}
-            </Dropdown.Toggle>
-            <Dropdown.Menu>
-              <Dropdown.Item>
-                <FaFilePdf className="me-2 text-danger" /> {t("dashboard.filters.exportOptions.pdf")}
-              </Dropdown.Item>
-              <Dropdown.Item>
-                <FaFileCsv className="me-2 text-success" /> {t("dashboard.filters.exportOptions.csv")}
-              </Dropdown.Item>
-            </Dropdown.Menu>
-          </Dropdown> */}
-
-          {/* Dark mode toggle */}
-          <Button variant="outline-secondary" onClick={toggleDarkMode}>
-            {darkMode ? t("dashboard.filters.lightMode") : t("dashboard.filters.darkMode")}
-          </Button>
-
-          {/* Reset all button */}
-          <Button variant="outline-danger" size="sm" onClick={resetFilters}>
-            {t("dashboard.filterBy.resetAll")}
-          </Button>
-        </div>
+          {/* Buttons - 100% combined on mobile */}
+          <Col xs={12} md="auto">
+            <div className="d-flex gap-2">
+              {/* <Button variant="outline-dark" className="flex-grow-1 d-flex align-items-center justify-content-center py-2 px-3 fw-medium" onClick={toggleDarkMode}>
+                {darkMode ? <FaSun className="me-2" /> : <FaMoon className="me-2" />}
+                <span className="small">{darkMode ? t("dashboard.filters.lightMode") : t("dashboard.filters.darkMode")}</span>
+              </Button> */}
+              <Button variant="outline-danger" className="d-flex align-items-center justify-content-center py-2 px-3 fw-medium" onClick={resetFilters}>
+                <FaSyncAlt className="me-md-2" />
+                <span className="small d-none d-md-inline">{t("dashboard.filterBy.resetAll")}</span>
+              </Button>
+            </div>
+          </Col>
+        </Row>
       </div>
 
       {/* Team and Collaborator Filters */}
@@ -642,15 +602,9 @@ listStyle: "none",
                           className="p-2 d-flex align-items-center"
                           style={{ 
                             cursor: 'pointer',
-                            // backgroundColor: selectedCollaborator?.user_id == member.user_id ? "primary" : 'light',
-                            // color: selectedCollaborator?.user_id == member.user_id ? 'white' : 'dark'
                           }}
                           onClick={() => handleCollaboratorSelect(member)}
                         >
-                          {/* <div 
-                            className="rounded-circle me-2" 
-                            style={{ width: '20px', height: '20px', backgroundColor: member?.color }}
-                          ></div> */}
                           {member.user_name + ' ' + member.user_last_name}
                         </Badge>
                       ))}
@@ -713,41 +667,71 @@ listStyle: "none",
 
 
 
-    {/* {view === "global" && <>
+    {view === "global" && <>
     
       <Row className="mb-4">
         <Col>
           <Card className="border-0 shadow-sm">
-            <Card.Header className="bg-light">
-              <h5 className="mb-0">{t("dashboard.periodView.title")}</h5>
+            <Card.Header className="bg-light d-flex justify-content-between align-items-center py-3">
+              <h5 className="mb-0 fw-bold">{t("dashboard.periodView.title")}</h5>
             </Card.Header>
             <Card.Body className="p-0">
-              <Table responsive hover className="mb-0">
-                <thead>
-                  <tr>
-                    <th>{t("dashboard.periodView.period")}</th>
-                    <th>{t("dashboard.periodView.todo")}</th>
-                    <th>{t("dashboard.periodView.inProgress")}</th>
-                    <th>{t("dashboard.periodView.late")}</th>
-                    <th>{t("dashboard.periodView.done")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {periodData.map((data, index) => (
-                    <tr key={index}>
-                      <td><strong>{data.period}</strong></td>
-                      <td>{data.todo}</td>
-                      <td>{data.progress}</td>
-                      <td>{data.late}</td>
-                      <td>{data.done}</td>
+              <div className="d-none d-md-block">
+                <Table responsive hover className="mb-0 period-table">
+                  <thead>
+                    <tr>
+                      <th className="ps-4">{t("dashboard.periodView.period")}</th>
+                      <th>{t("dashboard.periodView.todo")}</th>
+                      <th>{t("dashboard.periodView.inProgress")}</th>
+                      <th>{t("dashboard.periodView.late")}</th>
+                      <th className="pe-4">{t("dashboard.periodView.done")}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </Table>
+                  </thead>
+                  <tbody>
+                    {periodData.map((data, index) => (
+                      <tr key={index}>
+                        <td className="ps-4"><strong>{data.period}</strong></td>
+                        <td>{data.todo}</td>
+                        <td>{data.progress}</td>
+                        <td>{data.late}</td>
+                        <td className="pe-4">{data.done}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </div>
+              <div className="d-md-none p-3">
+                {periodData.map((data, index) => (
+                  <div key={index} className="period-mobile-card mb-3 p-3 border rounded-3 bg-white">
+                    <div className="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                      <h6 className="mb-0 fw-bold text-primary">{data.period}</h6>
+                    </div>
+                    <div className="row g-2">
+                      <div className="col-6">
+                        <small className="text-muted d-block">{t("dashboard.periodView.todo")}</small>
+                        <span className="fw-medium">{data.todo}</span>
+                      </div>
+                      <div className="col-6">
+                        <small className="text-muted d-block">{t("dashboard.periodView.done")}</small>
+                        <span className="fw-medium text-success">{data.done}</span>
+                      </div>
+                      <div className="col-12 mt-2 pt-2 border-top">
+                        <small className="text-muted d-block">{t("dashboard.periodView.inProgress")}</small>
+                        <span className="fw-medium text-warning">{data.progress}</span>
+                      </div>
+                      <div className="col-12">
+                        <small className="text-muted d-block">{t("dashboard.periodView.late")}</small>
+                        <span className="fw-medium text-danger">{data.late}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </Card.Body>
           </Card>
         </Col>
       </Row>
+
 
       <Row>
         <Col lg={4} className="mb-4">
@@ -805,38 +789,18 @@ listStyle: "none",
             <Col md={6} className="mb-4">
               <Card className="border-0 shadow-sm">
                 <Card.Header className="bg-light">
-                  <h5 className="mb-0">{t("dashboard.visualizations.workload")}</h5>
+                  <h5 className="mb-0">{t("dashboard.visualizations.completionRate")}</h5>
                 </Card.Header>
                 <Card.Body>
-                  <div className="d-flex justify-content-between mb-2">
-                    <span>Lundi</span>
-                    <span>12h</span>
+                  <div className="text-center mb-4">
+                    <div 
+                      className="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-circle"
+                      style={{ width: '120px', height: '120px', backgroundColor: 'rgba(40, 100, 214, 0.1)' }}
+                    >
+                      <h2 className="mb-0 text-primary">72%</h2>
+                    </div>
+                    <p className="text-muted">{t("dashboard.visualizations.completionRate")}</p>
                   </div>
-                  <ProgressBar className="mb-3">
-                    <ProgressBar variant="info" now={30} key={1} />
-                    <ProgressBar variant="warning" now={40} key={2} />
-                    <ProgressBar variant="danger" now={30} key={3} />
-                  </ProgressBar>
-
-                  <div className="d-flex justify-content-between mb-2">
-                    <span>Mardi</span>
-                    <span>10h</span>
-                  </div>
-                  <ProgressBar className="mb-3">
-                    <ProgressBar variant="info" now={20} key={1} />
-                    <ProgressBar variant="warning" now={50} key={2} />
-                    <ProgressBar variant="danger" now={30} key={3} />
-                  </ProgressBar>
-
-                  <div className="d-flex justify-content-between mb-2">
-                    <span>Mercredi</span>
-                    <span>14h</span>
-                  </div>
-                  <ProgressBar className="mb-3">
-                    <ProgressBar variant="info" now={40} key={1} />
-                    <ProgressBar variant="warning" now={30} key={2} />
-                    <ProgressBar variant="danger" now={30} key={3} />
-                  </ProgressBar>
                 </Card.Body>
               </Card>
             </Col>
@@ -865,7 +829,7 @@ listStyle: "none",
           </Row>
         </Col>
       </Row>
-      </>} */}
+      </>}
 
 
      {/* Show message if no data */}
@@ -881,46 +845,76 @@ listStyle: "none",
       {/* Custom CSS */}
       <style>{`
         .dashboard-filters {
-          background-color: #f8f9fa;
-          border: 1px solid #e9ecef;
+          background-color: #ffffff;
+          border: 1px solid #edf2f7;
+          border-radius: 12px;
         }
         
         .summary-card {
           border-radius: 16px;
-          transition: transform 0.2s ease;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          border: 1px solid transparent !important;
         }
         
         .summary-card:hover {
           transform: translateY(-5px);
+          box-shadow: 0 12px 20px -10px rgba(0, 0, 0, 0.1) !important;
+          border-color: rgba(40, 100, 214, 0.1) !important;
         }
         
-        .search-box {
-          position: relative;
+        .search-box .form-control {
+          border-radius: 10px;
+          border: 1px solid #e2e8f0;
+          padding-top: 0.6rem;
+          padding-bottom: 0.6rem;
+          transition: all 0.2s;
         }
         
-        .table th {
+        .search-box .form-control:focus {
+          box-shadow: 0 0 0 3px rgba(40, 100, 214, 0.1);
+          border-color: #2864d6;
+        }
+        
+        .period-table th {
           border-top: none;
-          font-weight: 600;
-          color: #8590a3;
-          background-color: rgba(0, 0, 0, 0.02);
+          font-weight: 700;
+          color: #4a5568;
+          text-transform: uppercase;
+          font-size: 0.75rem;
+          letter-spacing: 0.05em;
+          background-color: #f7fafc;
+          padding-top: 1rem;
+          padding-bottom: 1rem;
         }
         
-        .table-hover tbody tr:hover {
-          background-color: rgba(40, 100, 214, 0.05);
+        .period-table td {
+          padding-top: 1rem;
+          padding-bottom: 1rem;
+          vertical-align: middle;
         }
         
+        .period-mobile-card {
+           box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+           transition: transform 0.2s;
+        }
+        
+        .period-mobile-card:active {
+           transform: scale(0.98);
+        }
+
         .dark-mode .dashboard-filters {
-          background-color: #2c3e50;
-          border-color: #34495e;
+          background-color: #1a202c;
+          border-color: #2d3748;
         }
         
         .dark-mode .card {
-          background-color: #2c3e50;
+          background-color: #1a202c;
           color: #f8f9fa;
+          border-color: #2d3748 !important;
         }
         
         .dark-mode .card-header {
-          background-color: #34495e !important;
+          background-color: #2d3748 !important;
           color: #f8f9fa;
         }
         
@@ -929,16 +923,37 @@ listStyle: "none",
         }
         
         .dark-mode .table th {
-          color: #bdc3c7;
-          background-color: #34495e;
+          color: #a0aec0;
+          background-color: #2d3748;
         }
         
-        .dark-mode .table-hover tbody tr:hover {
-          background-color: rgba(52, 152, 219, 0.1);
+        .dark-mode .period-mobile-card {
+          background-color: #2d3748 !important;
+          border-color: #4a5568 !important;
         }
         
-        .dark-mode .text-muted {
-          color: #95a5a6 !important;
+        .dark-mode .hover-bg:hover {
+          background-color: #2d3748;
+        }
+
+        @media (max-width: 576px) {
+          .summary-card h2 {
+            font-size: 1.2rem;
+          }
+          .dashboard-filters {
+            margin-bottom: 1.5rem;
+            padding: 0.75rem !important;
+          }
+           .dashboard-filters .small {
+            font-size: 0.75rem !important;
+          }
+          .dashboard-filters .dropdown-toggle,
+          .dashboard-filters .btn {
+            padding: 0.4rem !important;
+          }
+          .search-box {
+            width: 100%;
+          }
         }
       `}</style>
     </div>
@@ -959,17 +974,18 @@ const EnterpriseCard = ({ enterprise, loading,getEnterpriseClient }) => {
   const handleHide = () => setShow(false)
     const renderActionButtons = (item) => {
         return (
-          <div className="d-flex justify-content-center gap-2 mt-3">
+          <div className="d-flex justify-content-center gap-2">
            <Button
                 variant="outline-primary"
                 size="sm"
+                className="w-100 px-3 py-2 rounded-pill fw-medium"
                 onClick={(e) => {
                   e.stopPropagation();
                     // navigate(`/ModifierEnterprises/${item?.id}`,{state:{from:"tab5"}});
                     setShow(true)
                 }}
               >
-                <FaEdit className="me-1" /> {t("Modify")}
+                <FaEdit className="me-2" /> {t("Modify")}
               </Button>
           </div>
         );
@@ -978,7 +994,7 @@ const EnterpriseCard = ({ enterprise, loading,getEnterpriseClient }) => {
 
   return (
     <div className="complete-invite">
-      <div className="row participant">
+      <div className="row g-4 participant">
         {loading ? (
           <Spinner
             animation="border"
@@ -987,180 +1003,85 @@ const EnterpriseCard = ({ enterprise, loading,getEnterpriseClient }) => {
           ></Spinner>
         ) : (
           <>
-            <div className="col-md-3">
+            <div className="col-12 col-md-4 col-xl-3">
               <Card
-                className="participant-card position-relative"
+                className="participant-card border-0 shadow-sm"
+
                 style={{
                   cursor: "pointer",
-                  marginTop: "4rem",
-                  borderRadius: "26px",
-                  position: "relative",
-                  //   border:
-                  //     isClientView || isContactView
-                  //       ? `none`
-                  //       : `2px solid ${getBorderColor(item)}`,
+                  borderRadius: "20px",
+                  overflow: "hidden"
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.border = "1px solid #0026b1";
-                  e.currentTarget.style.background = "white";
+                  e.currentTarget.style.border = "1px solid #2864d6";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.border = "1px solid transparent";
-                  e.currentTarget.style.background = "white";
+                  e.currentTarget.style.border = "none";
                 }}
                 onClick={(e) => {
                         CookieService.set("activeTab", "tab5");
                     navigate(`/client/${enterprise?.client?.id}`,{state:{from: "Casting"}});
                 }}
               >
-                <Card.Body
-                  style={{
-                    padding: "20px 0px 20px 0",
-                  }}
-                >
-                  <div className="d-flex justify-content-center">
-                    <div className="participant-card-position">
-                      <div className="profile-logo position-relative">
-                        <>
-                          {enterprise?.client?.client_logo?.startsWith("http") ? (
-                            <Card.Img
-                              className="user-img"
-                              src={enterprise?.client?.client_logo}
-                              style={{ width: "80px", height: "80px" }}
-                            />
-                          ) : (
-                            <Card.Img
-                              className="user-img"
-                              src={Assets_URL + "/" + enterprise?.client?.client_logo}
-                              style={{ width: "80px", height: "80px" }}
-                            />
-                          )}
-                        </>
-                      </div>
+                <Card.Body className="p-4 d-flex flex-column align-items-center text-center">
+                  <div className="mb-4">
+                    <div className="profile-logo mx-auto shadow-sm rounded-circle p-1 bg-white" style={{ width: "100px", height: "100px" }}>
+                      {enterprise?.client?.client_logo?.startsWith("http") ? (
+                        <Card.Img
+                          className="rounded-circle w-100 h-100"
+                          src={enterprise?.client?.client_logo}
+                          style={{ objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <Card.Img
+                          className="rounded-circle w-100 h-100"
+                          src={Assets_URL + "/" + enterprise?.client?.client_logo}
+                          style={{ objectFit: 'cover' }}
+                        />
+                      )}
                     </div>
                   </div>
 
-                  <Card.Title className="text-center mt-4 card-heading">
+                  <Card.Title className="h4 fw-bold mb-3">
                     {enterprise?.client?.name}
                   </Card.Title>
 
-                  {/* Creation Date */}
-                  {/* <div className="text-center mb-2">
-                    <small className="text-muted d-flex align-items-center justify-content-center">
-                      <FaCalendarAlt className="me-1" />
-                      {moment(enterprise?.created_at)
-                        .tz(moment.tz.guess())
-                        .format("DD/MM/YYYY [at] HH[h]mm")}
-                    </small>
-                  </div> */}
+                  <div className="w-100 mb-4 divider" style={{ height: '1px', background: '#edf2f7' }}></div>
 
-                  {/* Creator Information */}
-                  {/* <div className="d-flex align-items-center justify-content-center mb-2">
-                    <span
-                      style={{
-                        fontFamily: "Inter",
-                        fontSize: "12px",
-                        fontWeight: 400,
-                        lineHeight: "14.52px",
-                        textAlign: "left",
-                        color: "#8590a3",
-                        marginRight: "5px",
-                      }}
-                    >
-                      {t("Creator")}:
-                    </span>
-                    <>
-                      {enterprise?.created_by?.image ? (
-                        <img
-                          src={
-                            enterprise?.created_by.image.startsWith("http")
-                              ? enterprise?.created_by.image
-                              : `${Assets_URL}/${enterprise?.created_by.image}`
-                          }
-                          alt={enterprise?.created_by.full_name}
-                          className="rounded-circle me-2"
-                          style={{
-                            width: "24px",
-                            height: "24px",
-                            objectFit: "cover",
-                            objectPosition: "top",
-                          }}
-                        />
-                      ) : (
-                        <div
-                          className="rounded-circle me-2 d-flex align-items-center justify-content-center"
-                          style={{
-                            width: "24px",
-                            height: "24px",
-                            backgroundColor: "#f0f0f0",
-                            color: "#666",
-                          }}
-                        >
-                          <FaUser size={12} />
-                        </div>
-                      )}
+                  <div className="w-100 px-2">
+                    <div className="d-flex align-items-center justify-content-center mb-3 text-muted">
+                      <FaTag className="me-2 text-primary opacity-75" />
+                      <span className="small fw-medium">{enterprise?.activity_area || t("No Activity Area")}</span>
+                    </div>
+                    
+                    {enterprise?.country && (
+                    <div className="d-flex align-items-center justify-content-center mb-3 text-muted">
+                      <FaBuilding className="me-2 text-primary opacity-75" />
+                      <span className="small">{enterprise?.country}</span>
+                    </div>
+                    )}
 
-                      <small className="text-muted">
-                        {enterprise?.created_by?.full_name || "Unknown"}
-                      </small>
-                    </>
-                  </div> */}
-
-                  <div className="text-center mb-2">
-                    <small className="text-muted d-flex align-items-center justify-content-center">
-                      <FaTag className="me-1" />
-
-                      {enterprise?.activity_area}
-                    </small>
+                    <div className="d-flex align-items-center justify-content-center mb-4 text-muted">
+                      <FaUsers className="me-2 text-primary opacity-75" />
+                      <span className="small">
+                        {enterprise?.users?.length || 0}{" "}
+                        {enterprise?.users?.length > 1
+                          ? t("team.members")
+                          : t("team.member")}
+                      </span>
+                    </div>
                   </div>
-                  {/* Enterprise Information */}
-                {enterprise?.country &&  <div className="text-center mb-2">
-                    <small className="text-muted d-flex align-items-center justify-content-center">
-                      <FaBuilding className="me-1" />
 
-                      {enterprise?.country}
-                    </small>
+                  <div className="w-100 mt-3">
+                    {renderActionButtons(enterprise)}
                   </div>
-}
-                  {/* User Count */}
-                        <div className="text-center mb-3">
-                          <small className="text-muted d-flex align-items-center justify-content-center">
-                            <FaUsers className="me-1" />
-                            {enterprise?.users?.length || 0}{" "}
-                            {enterprise?.users?.length > 1
-                              ? t("team.members")
-                              : t("team.member")}
-                          </small>
-                        </div>
 
-                  {/* Render action buttons */}
-                  {renderActionButtons(enterprise)}
-
-                  {/* {!isClientView && item.status && (
-                        <div
-                          style={{
-                            position: "absolute",
-                            bottom: "-14px",
-                            left: "50%",
-                            transform: "translateX(-50%)",
-                            backgroundColor: getBorderColor(item),
-                            color: "white",
-                            padding: "2px 8px",
-                            borderRadius: "12px",
-                            fontSize: "12px",
-                            fontWeight: "500",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {getStatusText(item)}
-                        </div>
-                      )} */}
                 </Card.Body>
               </Card>
             </div>
               {/* Dashboard component with filters at the beginning */}
-            <div className="col-md-9">
-              <Dashboard />
+            <div className="col-12 col-md-8 col-xl-9">
+              <Dashboard enterpriseId={enterprise?.id || id} />
             </div>
           </>
         )}

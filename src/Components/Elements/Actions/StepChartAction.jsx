@@ -1,4 +1,5 @@
 import CookieService from "../../Utils/CookieService";
+import Select from "react-select";
 import React, { useState } from "react";
 import moment from "moment";
 import { toast } from "react-toastify";
@@ -14,6 +15,7 @@ import { useDropzone } from "react-dropzone";
 import { useFormContext } from "../../../context/CreateMeetingContext";
 import { getUserRoleID } from "../../Utils/getSessionstorageItems";
 import { RiFileExcel2Line, RiFolderVideoLine } from "react-icons/ri";
+import { PiMicrosoftPowerpointLogo } from "react-icons/pi";
 import * as XLSX from "xlsx";
 import Spreadsheet from "react-spreadsheet";
 import { read, utils } from "xlsx";
@@ -204,6 +206,33 @@ const StepChartAction = ({
       icon: <FaLinkedin className="fs-5" style={{ color: "#0a66c2" }} />,
     },
   ];
+  const aiInstructionOptions = [
+    {
+      value: "Editeur",
+      label: t("stepModal.editor") || "Editor",
+      icon: <DocumentIcon />,
+    },
+    {
+      value: "Photo",
+      label: t("stepModal.photo") || "Photo",
+      icon: <CameraIcon />,
+    },
+    {
+      value: "File",
+      label: t("stepModal.pdf") || "PDF",
+      icon: <FileFolderIcon />,
+    },
+    {
+      value: "PowerPoint",
+      label: t("stepModal.powerpoint") || "Power point",
+      icon: <PiMicrosoftPowerpointLogo className="fs-5" />,
+    },
+    {
+      value: "Excel",
+      label: t("stepModal.excel") || "Excel",
+      icon: <RiFileExcel2Line className="fs-5" />,
+    },
+  ];
   const taskOption = [
     { value: "Subtask", label: t("stepModal.subtask"), icon: <DocumentIcon /> },
   ];
@@ -267,7 +296,7 @@ const StepChartAction = ({
     setFileName("");
     setExcelData(null);
     setLink(null);
-    if (meeting?.type === "AI Social Media Newsletter") {
+    if (meeting?.type === "AI Social Media Newsletter" || meeting?.type === "AI Instruction") {
       if (option.value === "File") {
         setAiOutputFormat("PDF");
       } else if (option.value === "PowerPoint") {
@@ -384,6 +413,65 @@ const StepChartAction = ({
   const [aiSourceType, setAiSourceType] = useState("Text");
   const [aiSourceText, setAiSourceText] = useState("");
   const [aiSourceFile, setAiSourceFile] = useState(null);
+  const [missions, setMissions] = useState([]);
+  const [isMissionsLoading, setIsMissionsLoading] = useState(false);
+  const [selectedMission, setSelectedMission] = useState("");
+  const [moments, setMoments] = useState([]);
+  const [isMomentsLoading, setIsMomentsLoading] = useState(false);
+  const [selectedMoment, setSelectedMoment] = useState("");
+
+  const fetchMissions = async () => {
+    setIsMissionsLoading(true);
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/user/get-destination-by-user`,
+        {
+          headers: {
+            Authorization: `Bearer ${CookieService.get("token")}`,
+          },
+        },
+      );
+      if (response.data && Array.isArray(response.data.data)) {
+        const formatted = response.data.data.map((m) => ({
+          value: m.id,
+          label: m.name || `Mission #${m.id}`,
+          status: m?.status,
+        }));
+        setMissions(formatted);
+      }
+    } catch (error) {
+      console.error("Error fetching missions:", error);
+    } finally {
+      setIsMissionsLoading(false);
+    }
+  };
+
+  const fetchMoments = async () => {
+    setIsMomentsLoading(true);
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/user/get-meetings-by-user`,
+        {
+          headers: {
+            Authorization: `Bearer ${CookieService.get("token")}`,
+          },
+        },
+      );
+      if (response.data && Array.isArray(response.data.data)) {
+        const formatted = response.data.data.map((m) => ({
+          value: m.id,
+          label: m.title || `Meeting #${m.id}`,
+          status: m?.status,
+        }));
+        setMoments(formatted);
+      }
+    } catch (error) {
+      console.error("Error fetching moments:", error);
+    } finally {
+      setIsMomentsLoading(false);
+    }
+  };
+
   const [aiRole, setAiRole] = useState("");
   const [aiAction, setAiAction] = useState("");
   const [aiObjective, setAiObjective] = useState("");
@@ -540,7 +628,8 @@ const StepChartAction = ({
       setModalType(
         meeting?.type === "AI Social Media Newsletter"
           ? "AI Instruction"
-          : meeting?.type === "Social Media Newsletter" 
+          : meeting?.type === "Social Media Newsletter" ||
+              meeting?.location === "LinkedIn"
             ? "Publication"
             : meeting?.type === "Law"
               ? "Question"
@@ -579,7 +668,7 @@ const StepChartAction = ({
     }
     const files =
       modalType === "Publication" ||
-      modalType === "AI Instruction" ||
+      meeting?.type === "AI Instruction" ||
       meeting?.type === "AI Social Media Newsletter"
         ? acceptedFiles
         : [acceptedFiles[0]];
@@ -651,7 +740,7 @@ const StepChartAction = ({
         "video/quicktime",
       ];
     } else if (
-      modalType === "AI Instruction" ||
+      meeting?.type === "AI Instruction" ||
       meeting?.type === "AI Social Media Newsletter"
     ) {
       allowedFileTypes = [
@@ -744,7 +833,7 @@ const StepChartAction = ({
             file: file,
             editor_content:
               modalType === "Publication" ||
-              modalType === "AI Instruction" ||
+              meeting?.type === "AI Instruction" ||
               meeting?.type === "AI Social Media Newsletter"
                 ? modifiedFileText || null
                 : null,
@@ -776,7 +865,7 @@ const StepChartAction = ({
           formData.append("time_unit", filePayload.time_unit);
           if (
             modalType === "Publication" ||
-            modalType === "AI Instruction" ||
+            meeting?.type === "AI Instruction" ||
             meeting?.type === "AI Social Media Newsletter"
           ) {
             files.forEach((f, index) => {
@@ -848,7 +937,7 @@ const StepChartAction = ({
             file: file,
             editor_content:
               modalType === "Publication" ||
-              modalType === "AI Instruction" ||
+              meeting?.type === "AI Instruction" ||
               meeting?.type === "AI Social Media Newsletter"
                 ? modifiedFileText || null
                 : null,
@@ -879,7 +968,7 @@ const StepChartAction = ({
           formData.append("time_unit", filePayload.time_unit);
           if (
             modalType === "Publication" ||
-            modalType === "AI Instruction" ||
+            meeting?.type === "AI Instruction" ||
             meeting?.type === "AI Social Media Newsletter"
           ) {
             files.forEach((f, index) => {
@@ -1226,7 +1315,7 @@ const StepChartAction = ({
         : modalType === "Photo"
           ? { "image/*": [] } // Accept all image types
           : modalType === "Publication" ||
-              modalType === "AI Instruction" ||
+              meeting?.type === "AI Instruction" ||
               meeting?.type === "AI Social Media Newsletter"
             ? { "image/*": [], "video/*": [] } // Accept image and video
             : modalType === "File"
@@ -1528,7 +1617,7 @@ const StepChartAction = ({
   };
   const validateStep = async () => {
     if (
-      modalType === "AI Instruction" ||
+      meeting?.type === "AI Instruction" ||
       meeting?.type === "AI Social Media Newsletter"
     ) {
       if (!aiRole?.trim()) {
@@ -1538,6 +1627,21 @@ const StepChartAction = ({
       }
       if (!aiAction?.trim()) {
         toast.error(t("messages.aiActionRequired"));
+        setIsValidate(false);
+        return;
+      }
+      if (aiSourceType === "Mission" && !selectedMission) {
+        toast.error(t("messages.aiMissionRequired") || "Please select a mission source");
+        setIsValidate(false);
+        return;
+      }
+      if (aiSourceType === "Moment" && !selectedMoment) {
+        toast.error(t("messages.aiMomentRequired") || "Please select a moment source");
+        setIsValidate(false);
+        return;
+      }
+      if (aiSourceType === "Discussion" && !selectedMoment) {
+        toast.error(t("messages.aiDiscussionRequired") || "Please select a discussion source");
         setIsValidate(false);
         return;
       }
@@ -1669,7 +1773,7 @@ const StepChartAction = ({
           modalType === "Story" ||
           modalType === "Email" ||
           modalType === "Publication" ||
-          modalType === "AI Instruction" ||
+          meeting?.type === "AI Instruction" ||
           meeting?.type === "AI Social Media Newsletter"
             ? optimizedEditorContent || ""
             : [
@@ -1685,11 +1789,22 @@ const StepChartAction = ({
               ? staticContents[modalType] // Include the static content
               : null,
         prompt_ai:
-          modalType === "AI Instruction" ||
+          meeting?.type === "AI Instruction" ||
           meeting?.type === "AI Social Media Newsletter"
             ? {
                 aiSourceType,
-                aiSourceText,
+                aiSourceText:
+                  aiSourceType === "Mission" ||
+                  aiSourceType === "Moment" ||
+                  aiSourceType === "Discussion"
+                    ? null
+                    : aiSourceText,
+                sourceId:
+                  aiSourceType === "Mission"
+                    ? selectedMission
+                    : aiSourceType === "Moment" || aiSourceType === "Discussion"
+                      ? selectedMoment
+                      : null,
                 aiSourceFile: aiSourceType === "Document" ? aiSourceFile : null,
                 aiRole,
                 aiAction,
@@ -1727,7 +1842,6 @@ const StepChartAction = ({
         step_time: stepTimeFormatted,
         start_date: startDateFormatted,
         re_assign_step: fromReassign ? true : false,
-
       };
 
       // const payload = {
@@ -1781,7 +1895,7 @@ const StepChartAction = ({
         };
 
         if (
-          modalType === "AI Instruction" ||
+          meeting?.type === "AI Instruction" ||
           meeting?.type === "AI Social Media Newsletter"
         ) {
           const formData = new FormData();
@@ -2141,7 +2255,7 @@ const StepChartAction = ({
         modalType === "Question" ||
         modalType === "Email" ||
         modalType === "Publication" ||
-        modalType === "AI Instruction" ||
+        meeting?.type === "AI Instruction" ||
         meeting?.type === "AI Social Media Newsletter"
           ? optimizedEditorContent || ""
           : [
@@ -2157,11 +2271,22 @@ const StepChartAction = ({
             ? staticContents[modalType] // Include the static content
             : null,
       prompt_ai:
-        modalType === "AI Instruction" ||
+        meeting?.type === "AI Instruction" ||
         meeting?.type === "AI Social Media Newsletter"
           ? {
               aiSourceType,
-              aiSourceText,
+              aiSourceText:
+                aiSourceType === "Mission" ||
+                aiSourceType === "Moment" ||
+                aiSourceType === "Discussion"
+                  ? null
+                  : aiSourceText,
+              sourceId:
+                aiSourceType === "Mission"
+                  ? selectedMission
+                  : aiSourceType === "Moment" || aiSourceType === "Discussion"
+                    ? selectedMoment
+                    : null,
               aiSourceFile: aiSourceType === "Document" ? aiSourceFile : null,
               aiRole,
               aiAction,
@@ -2207,7 +2332,7 @@ const StepChartAction = ({
       };
 
       if (
-        modalType === "AI Instruction" ||
+        meeting?.type === "AI Instruction" ||
         meeting?.type === "AI Social Media Newsletter"
       ) {
         const formData = new FormData();
@@ -2673,8 +2798,21 @@ const StepChartAction = ({
                   : stepData.prompt_ai;
               if (parsed) {
                 setInstructionPrompt(parsed.instructionPrompt || "");
-                setAiSourceType(parsed.aiSourceType || "Text");
-                setAiSourceText(parsed.aiSourceText || "");
+                const srcType = parsed.aiSourceType || "Text";
+                setAiSourceType(srcType);
+                if (srcType === "Mission") {
+                  setSelectedMission(stepData?.source_id || parsed.sourceId || "");
+                  setAiSourceText("");
+                  fetchMissions();
+                } else if (srcType === "Moment" || srcType === "Discussion") {
+                  setSelectedMoment(stepData?.source_id || parsed.sourceId || "");
+                  setAiSourceText("");
+                  fetchMoments();
+                } else {
+                  setAiSourceText(parsed.aiSourceText || "");
+                  setSelectedMission("");
+                  setSelectedMoment("");
+                }
                 setAiSourceFile(parsed.aiSourceFile || null);
                 setAiRole(parsed.aiRole || "");
                 setAiAction(parsed.aiAction || "");
@@ -3708,9 +3846,9 @@ const StepChartAction = ({
                                         </li>
                                       ))}
                                   </>
-                                ) : modalType === "AI Instruction" ? (
+                                ) : meeting?.type === "AI Instruction" ? (
                                   <>
-                                    {aiSocialMediaOption.map((option) => (
+                                    {aiInstructionOptions.map((option) => (
                                       <li
                                         key={option.value}
                                         className="dropdown-item"
@@ -3857,13 +3995,12 @@ const StepChartAction = ({
                   <div className="row">
                     {meeting?.type === "AI Social Media Newsletter" ||
                     modalType === "Publication" ||
-                    modalType === "AI Instruction" ? (
+                    meeting?.type === "AI Instruction" ? (
                       <>
                         <div
-                          className="col-md-7"
+                          className={`${meeting?.type === "AI Instruction" ?  "col-12 col-lg-12" : "col-12 col-lg-7"}`}
                           style={
-                            meeting?.type === "AI Social Media Newsletter" ||
-                            modalType === "AI Instruction"
+                            meeting?.type === "AI Social Media Newsletter" 
                               ? {
                                   maxHeight: "calc(90vh - 40px)",
                                   overflowY: "auto",
@@ -3875,7 +4012,7 @@ const StepChartAction = ({
                         >
                           <div>
                             {meeting?.type === "AI Social Media Newsletter" ||
-                            modalType === "AI Instruction" ? (
+                            meeting?.type === "AI Instruction" ? (
                               <div
                                 className="p-3"
                                 style={{
@@ -3897,15 +4034,15 @@ const StepChartAction = ({
                                       className="me-2"
                                       style={{ width: "16px", height: "16px" }}
                                     />{" "}
-                                    Source
+                                    {t("messages.aiSourceLabel")}
                                   </label>
                                   <p
                                     className="text-muted mb-2"
                                     style={{ fontSize: "12px" }}
                                   >
-                                    Choose the input source for this instruction
+                                    {t("messages.aiSourceHelpText")}
                                   </p>
-                                  <div className="d-flex gap-2 mb-3">
+                                  <div className="d-flex flex-wrap gap-2 mb-3">
                                     <Button
                                       type="button"
                                       variant={
@@ -3927,7 +4064,7 @@ const StepChartAction = ({
                                             : "#fff",
                                       }}
                                     >
-                                      📄 Text
+                                      📄 {t("messages.aiSourceText")}
                                     </Button>
                                     <Button
                                       type="button"
@@ -3952,7 +4089,7 @@ const StepChartAction = ({
                                             : "#fff",
                                       }}
                                     >
-                                      📄 Document
+                                      📄 {t("messages.aiSourceDocument")}
                                     </Button>
                                     <Button
                                       type="button"
@@ -3975,7 +4112,85 @@ const StepChartAction = ({
                                             : "#fff",
                                       }}
                                     >
-                                      📺 YouTube
+                                      📺 {t("messages.aiSourceYouTube")}
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant={
+                                        aiSourceType === "Moment"
+                                          ? "light"
+                                          : "outline-secondary"
+                                      }
+                                      className={
+                                        aiSourceType === "Moment"
+                                          ? "border-primary text-primary fw-semibold"
+                                          : ""
+                                      }
+                                      onClick={() => {
+                                        setAiSourceType("Moment");
+                                        fetchMoments();
+                                      }}
+                                      style={{
+                                        fontSize: "13px",
+                                        background:
+                                          aiSourceType === "Moment"
+                                            ? "#F4F6FF"
+                                            : "#fff",
+                                      }}
+                                    >
+                                      ⚡ {t("messages.aiSourceNotes")}
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant={
+                                        aiSourceType === "Mission"
+                                          ? "light"
+                                          : "outline-secondary"
+                                      }
+                                      className={
+                                        aiSourceType === "Mission"
+                                          ? "border-primary text-primary fw-semibold"
+                                          : ""
+                                      }
+                                      onClick={() => {
+                                        setAiSourceType("Mission");
+                                        fetchMissions();
+                                      }}
+                                      style={{
+                                        fontSize: "13px",
+                                        background:
+                                          aiSourceType === "Mission"
+                                            ? "#F4F6FF"
+                                            : "#fff",
+                                      }}
+                                    >
+                                      🎯 {t("messages.aiSourceMission")}
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant={
+                                        aiSourceType === "Discussion"
+                                          ? "light"
+                                          : "outline-secondary"
+                                      }
+                                      className={
+                                        aiSourceType === "Discussion"
+                                          ? "border-primary text-primary fw-semibold"
+                                          : ""
+                                      }
+                                      onClick={() => {
+                                        setAiSourceType("Discussion");
+                                        fetchMoments();
+                                      }}
+                                      style={{
+                                        fontSize: "13px",
+                                        background:
+                                          aiSourceType === "Discussion"
+                                            ? "#F4F6FF"
+                                            : "#fff",
+                                      }}
+                                    >
+                                      💬 {t("messages.aiSourceDiscussion")}
                                     </Button>
                                   </div>
 
@@ -3991,7 +4206,7 @@ const StepChartAction = ({
                                       onChange={(e) =>
                                         setAiSourceText(e.target.value)
                                       }
-                                      placeholder="Enter your source text here..."
+                                      placeholder={t("messages.aiSourceTextPlaceholder")}
                                     />
                                   )}
 
@@ -4047,6 +4262,225 @@ const StepChartAction = ({
                                       />
                                     </div>
                                   )}
+
+                                  {aiSourceType === "Moment" && (
+                                    <div className="mt-2">
+                                      <label
+                                        className="form-label fw-semibold mb-1"
+                                        style={{
+                                          fontSize: "13px",
+                                          color: "#344054",
+                                        }}
+                                      >
+                                        {t("messages.aiSourceSelectMoment")}
+                                      </label>
+                                      <Select
+                                        isLoading={isMomentsLoading}
+                                        options={moments}
+                                        value={
+                                          moments.find(
+                                            (m) => m.value === selectedMoment,
+                                          ) || null
+                                        }
+                                        onChange={(opt) =>
+                                          setSelectedMoment(
+                                            opt ? opt.value : "",
+                                          )
+                                        }
+                                        placeholder={t("messages.aiSourceSearchMoment")}
+                                        isClearable
+                                        isSearchable
+                                        formatOptionLabel={(opt) => { const s = (opt.status || "").toLowerCase(); const bc = s === "done" || s === "completed" ? "#12b76a" : s === "active" || s === "in_progress" ? "#2e90fa" : s === "draft" ? "#98a2b3" : "#667085"; const bb = s === "done" || s === "completed" ? "#ecfdf3" : s === "active" || s === "in_progress" ? "#eff8ff" : "#f2f4f7"; return (<div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", width: "100%" }}><span style={{ fontSize: "13px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, textAlign: "left" }}>{opt.label}</span>{opt.status && (<span style={{ fontSize: "10px", fontWeight: 600, padding: "2px 7px", borderRadius: "10px", color: bc, backgroundColor: bb, textTransform: "uppercase", flexShrink: 0 }}>{opt.status === "active" ? t('badge.future') : opt.status === "in_progress" ? t("badge.inprogress") : opt.status === "todo" ? t("badge.todo") : opt.status === "to_finish" ? t("badge.finish") : opt.status === "abort" ? t("badge.cancel") : opt.status === "draft" ? t("badge.draft") : opt?.status === "closed" ? t("badge.completed") : null }</span>)}</div>); }}
+                                        styles={{
+                                          control: (b) => ({
+                                            ...b,
+                                            minHeight: "38px",
+                                            borderColor: "#D0D5DD",
+                                            borderRadius: "6px",
+                                            boxShadow: "none",
+                                            textAlign: "left",
+                                          }),
+                                          option: (b, s) => ({
+                                            ...b,
+                                            fontSize: "13px",
+                                            backgroundColor: s.isSelected
+                                              ? "#F4F6FF"
+                                              : s.isFocused
+                                                ? "#f9fafb"
+                                                : "#fff",
+                                            color: "#344054",
+                                            textAlign: "left",
+                                          }),
+                                          singleValue: (b) => ({
+                                            ...b,
+                                            fontSize: "13px",
+                                            color: "#344054",
+                                            textAlign: "left",
+                                            whiteSpace: "nowrap",
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                            maxWidth: "100%",
+                                          }),
+                                          placeholder: (b) => ({
+                                            ...b,
+                                            fontSize: "13px",
+                                            color: "#98A2B3",
+                                            textAlign: "left",
+                                            whiteSpace: "nowrap",
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                            maxWidth: "100%",
+                                          }),
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+
+                                  {aiSourceType === "Mission" && (
+                                    <div className="mt-2">
+                                      <label
+                                        className="form-label fw-semibold mb-1"
+                                        style={{
+                                          fontSize: "13px",
+                                          color: "#344054",
+                                        }}
+                                      >
+                                        {t("messages.aiSourceSelectMission")}
+                                      </label>
+                                      <Select
+                                        isLoading={isMissionsLoading}
+                                        options={missions}
+                                        value={
+                                          missions.find(
+                                            (m) => m.value === selectedMission,
+                                          ) || null
+                                        }
+                                        onChange={(opt) =>
+                                          setSelectedMission(
+                                            opt ? opt.value : "",
+                                          )
+                                        }
+                                        placeholder={t("messages.aiSourceSearchMission")}
+                                        isClearable
+                                        isSearchable
+                                        formatOptionLabel={(opt) => { const s = (opt.status || "").toLowerCase(); const bc = s === "done" || s === "completed" ? "#12b76a" : s === "active" || s === "in_progress" ? "#2e90fa" : s === "todo" ? "#f79009" : "#667085"; const bb = s === "done" || s === "completed" ? "#ecfdf3" : s === "active" || s === "in_progress" ? "#eff8ff" : s === "todo" ? "#fffaeb" : "#f2f4f7"; return (<div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", width: "100%" }}><span style={{ fontSize: "13px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, textAlign: "left" }}>{opt.label}</span>{opt.status && (<span style={{ fontSize: "10px", fontWeight: 600, padding: "2px 7px", borderRadius: "10px", color: bc, backgroundColor: bb, textTransform: "uppercase", flexShrink: 0 }}>{opt.status === "active" ? t('mission-badge.upcoming') : opt.status === "in_progress" ? t("mission-badge.inProgress") : t("mission-badge.completed")}</span>)}</div>); }}
+                                        styles={{
+                                          control: (b) => ({
+                                            ...b,
+                                            minHeight: "38px",
+                                            borderColor: "#D0D5DD",
+                                            borderRadius: "6px",
+                                            boxShadow: "none",
+                                            textAlign: "left",
+                                          }),
+                                          option: (b, s) => ({
+                                            ...b,
+                                            fontSize: "13px",
+                                            backgroundColor: s.isSelected
+                                              ? "#F4F6FF"
+                                              : s.isFocused
+                                                ? "#f9fafb"
+                                                : "#fff",
+                                            color: "#344054",
+                                            textAlign: "left",
+                                          }),
+                                          singleValue: (b) => ({
+                                            ...b,
+                                            fontSize: "13px",
+                                            color: "#344054",
+                                            textAlign: "left",
+                                            whiteSpace: "nowrap",
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                            maxWidth: "100%",
+                                          }),
+                                          placeholder: (b) => ({
+                                            ...b,
+                                            fontSize: "13px",
+                                            color: "#98A2B3",
+                                            textAlign: "left",
+                                            whiteSpace: "nowrap",
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                            maxWidth: "100%",
+                                          }),
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+
+                                  {aiSourceType === "Discussion" && (
+                                    <div className="mt-2">
+                                      <label
+                                        className="form-label fw-semibold mb-1"
+                                        style={{
+                                          fontSize: "13px",
+                                          color: "#344054",
+                                        }}
+                                      >
+                                        {t("messages.aiSourceSelectDiscussion")}
+                                      </label>
+                                      <Select
+                                        isLoading={isMomentsLoading}
+                                        options={moments}
+                                        value={
+                                          moments.find(
+                                            (m) => m.value === selectedMoment,
+                                          ) || null
+                                        }
+                                        onChange={(opt) =>
+                                          setSelectedMoment(
+                                            opt ? opt.value : "",
+                                          )
+                                        }
+                                        placeholder={t("messages.aiSourceSearchDiscussion")}
+                                        isClearable
+                                        isSearchable
+                                       formatOptionLabel={(opt) => { const s = (opt.status || "").toLowerCase(); const bc = s === "done" || s === "completed" ? "#12b76a" : s === "active" || s === "in_progress" ? "#2e90fa" : s === "draft" ? "#98a2b3" : "#667085"; const bb = s === "done" || s === "completed" ? "#ecfdf3" : s === "active" || s === "in_progress" ? "#eff8ff" : "#f2f4f7"; return (<div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", width: "100%" }}><span style={{ fontSize: "13px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, textAlign: "left" }}>{opt.label}</span>{opt.status && (<span style={{ fontSize: "10px", fontWeight: 600, padding: "2px 7px", borderRadius: "10px", color: bc, backgroundColor: bb, textTransform: "uppercase", flexShrink: 0 }}>{opt.status === "active" ? t('badge.future') : opt.status === "in_progress" ? t("badge.inprogress") : opt.status === "todo" ? t("badge.todo") : opt.status === "to_finish" ? t("badge.finish") : opt.status === "abort" ? t("badge.cancel") : opt.status === "draft" ? t("badge.draft") : opt?.status === "closed" ? t("badge.completed") : null }</span>)}</div>); }}
+                                        styles={{
+                                          control: (b) => ({
+                                            ...b,
+                                            minHeight: "38px",
+                                            borderColor: "#D0D5DD",
+                                            borderRadius: "6px",
+                                            boxShadow: "none",
+                                            textAlign: "left",
+                                          }),
+                                          option: (b, s) => ({
+                                            ...b,
+                                            fontSize: "13px",
+                                            backgroundColor: s.isSelected
+                                              ? "#F4F6FF"
+                                              : s.isFocused
+                                                ? "#f9fafb"
+                                                : "#fff",
+                                            color: "#344054",
+                                            textAlign: "left",
+                                          }),
+                                          singleValue: (b) => ({
+                                            ...b,
+                                            fontSize: "13px",
+                                            color: "#344054",
+                                            textAlign: "left",
+                                            whiteSpace: "nowrap",
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                            maxWidth: "100%",
+                                          }),
+                                          placeholder: (b) => ({
+                                            ...b,
+                                            fontSize: "13px",
+                                            color: "#98A2B3",
+                                            textAlign: "left",
+                                            whiteSpace: "nowrap",
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                            maxWidth: "100%",
+                                          }),
+                                        }}
+                                      />
+                                    </div>
+                                  )}
                                 </div>
 
                                 {/* Role Section */}
@@ -4058,13 +4492,13 @@ const StepChartAction = ({
                                       color: "#344054",
                                     }}
                                   >
-                                    <span className="me-2">👤</span> Rôle
+                                    <span className="me-2">👤</span> {t("messages.aiRoleLabel")}
                                   </label>
                                   <p
                                     className="text-muted mb-2"
                                     style={{ fontSize: "12px" }}
                                   >
-                                    Define the AI persona for this instruction
+                                    {t("messages.aiRoleHelpText")}
                                   </p>
                                   <input
                                     type="text"
@@ -4075,7 +4509,7 @@ const StepChartAction = ({
                                     }}
                                     value={aiRole}
                                     onChange={(e) => setAiRole(e.target.value)}
-                                    placeholder="e.g. Expert marketing strategist, Senior developer, UX designer..."
+                                    placeholder={t("messages.aiRolePlaceholder")}
                                   />
                                 </div>
 
@@ -4089,13 +4523,13 @@ const StepChartAction = ({
                                         color: "#344054",
                                       }}
                                     >
-                                      <span className="me-2">⚡</span> Action
+                                      <span className="me-2">⚡</span> {t("messages.aiActionLabel")}
                                     </label>
                                     <p
                                       className="text-muted mb-2"
                                       style={{ fontSize: "12px" }}
                                     >
-                                      What should the AI do?
+                                      {t("messages.aiActionHelpText")}
                                     </p>
                                     <textarea
                                       className="form-control"
@@ -4108,7 +4542,7 @@ const StepChartAction = ({
                                       onChange={(e) =>
                                         setAiAction(e.target.value)
                                       }
-                                      placeholder="Describe the action to perform..."
+                                      placeholder={t("messages.aiActionPlaceholder")}
                                     />
                                   </div>
 
@@ -4121,14 +4555,13 @@ const StepChartAction = ({
                                         color: "#344054",
                                       }}
                                     >
-                                      <span className="me-2">🎯</span> Objectif
-                                      / Résultat
+                                      <span className="me-2">🎯</span> {t("messages.aiObjectiveLabel")}
                                     </label>
                                     <p
                                       className="text-muted mb-2"
                                       style={{ fontSize: "12px" }}
                                     >
-                                      What outcome do you expect?
+                                      {t("messages.aiObjectiveHelpText")}
                                     </p>
                                     <textarea
                                       className="form-control"
@@ -4141,7 +4574,7 @@ const StepChartAction = ({
                                       onChange={(e) =>
                                         setAiObjective(e.target.value)
                                       }
-                                      placeholder="Describe the desired result..."
+                                      placeholder={t("messages.aiObjectivePlaceholder")}
                                     />
                                   </div>
                                 </div>
@@ -4155,14 +4588,13 @@ const StepChartAction = ({
                                       color: "#344054",
                                     }}
                                   >
-                                    <span className="me-2">🛡️</span> Règles
+                                    <span className="me-2">🛡️</span> {t("messages.aiRulesLabel")}
                                   </label>
                                   <p
                                     className="text-muted mb-2"
                                     style={{ fontSize: "12px" }}
                                   >
-                                    Restrictions, limits or constraints to
-                                    respect
+                                    {t("messages.aiRulesHelpText")}
                                   </p>
                                   <textarea
                                     className="form-control"
@@ -4173,119 +4605,123 @@ const StepChartAction = ({
                                     }}
                                     value={aiRules}
                                     onChange={(e) => setAiRules(e.target.value)}
-                                    placeholder="e.g. Keep it concise. No technical jargon. Always cite sources. Max 500 words..."
+                                    placeholder={t("messages.aiRulesPlaceholder")}
                                   />
                                 </div>
 
                                 {/* Output Format Section */}
                                 {meeting?.type !==
-                                  "AI Social Media Newsletter" && (
-                                  <div>
-                                    <label
-                                      className="fw-semibold d-flex align-items-center mb-2"
-                                      style={{
-                                        fontSize: "14px",
-                                        color: "#344054",
-                                      }}
-                                    >
-                                      <span className="me-2">📥</span> Sortie
-                                    </label>
-                                    <p
-                                      className="text-muted mb-2"
-                                      style={{ fontSize: "12px" }}
-                                    >
-                                      Select the output format for this
-                                      instruction
-                                    </p>
-                                    <div className="d-flex flex-wrap gap-3">
-                                      <Button
-                                        type="button"
-                                        variant={
-                                          aiOutputFormat === "PowerPoint"
-                                            ? "light"
-                                            : "outline-secondary"
-                                        }
-                                        className={`flex-fill ${aiOutputFormat === "PowerPoint" ? "border-primary text-primary fw-semibold" : ""}`}
-                                        onClick={() =>
-                                          setAiOutputFormat("PowerPoint")
-                                        }
+                                  "AI Social Media Newsletter" &&
+                                  meeting?.type !== "AI Instruction" && (
+                                    <div>
+                                      <label
+                                        className="fw-semibold d-flex align-items-center mb-2"
                                         style={{
-                                          fontSize: "13px",
-                                          padding: "12px",
-                                          background:
+                                          fontSize: "14px",
+                                          color: "#344054",
+                                        }}
+                                      >
+                                        <span className="me-2">📥</span> {t("messages.aiOutputLabel")}
+                                      </label>
+                                      <p
+                                        className="text-muted mb-2"
+                                        style={{ fontSize: "12px" }}
+                                      >
+                                        {t("messages.aiOutputHelpText")}
+                                      </p>
+                                      <div className="d-flex flex-wrap gap-3">
+                                        <Button
+                                          type="button"
+                                          variant={
                                             aiOutputFormat === "PowerPoint"
-                                              ? "#F4F6FF"
-                                              : "#fff",
-                                        }}
-                                      >
-                                        <div className="mb-1">📊</div>
-                                        <div>PowerPoint</div>
-                                        <div
-                                          className="text-muted fw-normal"
-                                          style={{ fontSize: "11px" }}
+                                              ? "light"
+                                              : "outline-secondary"
+                                          }
+                                          className={`flex-fill ${aiOutputFormat === "PowerPoint" ? "border-primary text-primary fw-semibold" : ""}`}
+                                          onClick={() =>
+                                            setAiOutputFormat("PowerPoint")
+                                          }
+                                          style={{
+                                            fontSize: "13px",
+                                            padding: "12px",
+                                            background:
+                                              aiOutputFormat === "PowerPoint"
+                                                ? "#F4F6FF"
+                                                : "#fff",
+                                          }}
                                         >
-                                          Slides deck
-                                        </div>
-                                      </Button>
-                                      <Button
-                                        type="button"
-                                        variant={
-                                          aiOutputFormat === "PDF"
-                                            ? "light"
-                                            : "outline-secondary"
-                                        }
-                                        className={`flex-fill ${aiOutputFormat === "PDF" ? "border-primary text-primary fw-semibold" : ""}`}
-                                        onClick={() => setAiOutputFormat("PDF")}
-                                        style={{
-                                          fontSize: "13px",
-                                          padding: "12px",
-                                          background:
+                                          <div className="mb-1">
+                                            <PiMicrosoftPowerpointLogo className="fs-3" />
+                                          </div>
+                                          <div>{t("messages.aiOutputPowerPoint")}</div>
+                                          <div
+                                            className="text-muted fw-normal"
+                                            style={{ fontSize: "11px" }}
+                                          >
+                                            {t("messages.aiOutputPowerPointDesc")}
+                                          </div>
+                                        </Button>
+                                        <Button
+                                          type="button"
+                                          variant={
                                             aiOutputFormat === "PDF"
-                                              ? "#F4F6FF"
-                                              : "#fff",
-                                        }}
-                                      >
-                                        <div className="mb-1">📄</div>
-                                        <div>PDF</div>
-                                        <div
-                                          className="text-muted fw-normal"
-                                          style={{ fontSize: "11px" }}
+                                              ? "light"
+                                              : "outline-secondary"
+                                          }
+                                          className={`flex-fill ${aiOutputFormat === "PDF" ? "border-primary text-primary fw-semibold" : ""}`}
+                                          onClick={() =>
+                                            setAiOutputFormat("PDF")
+                                          }
+                                          style={{
+                                            fontSize: "13px",
+                                            padding: "12px",
+                                            background:
+                                              aiOutputFormat === "PDF"
+                                                ? "#F4F6FF"
+                                                : "#fff",
+                                          }}
                                         >
-                                          Formatted document
-                                        </div>
-                                      </Button>
-                                      <Button
-                                        type="button"
-                                        variant={
-                                          aiOutputFormat === "Text"
-                                            ? "light"
-                                            : "outline-secondary"
-                                        }
-                                        className={`flex-fill ${aiOutputFormat === "Text" ? "border-primary text-primary fw-semibold" : ""}`}
-                                        onClick={() =>
-                                          setAiOutputFormat("Text")
-                                        }
-                                        style={{
-                                          fontSize: "13px",
-                                          padding: "12px",
-                                          background:
+                                          <div className="mb-1">📄</div>
+                                          <div>{t("messages.aiOutputPDF")}</div>
+                                          <div
+                                            className="text-muted fw-normal"
+                                            style={{ fontSize: "11px" }}
+                                          >
+                                            {t("messages.aiOutputPDFDesc")}
+                                          </div>
+                                        </Button>
+                                        <Button
+                                          type="button"
+                                          variant={
                                             aiOutputFormat === "Text"
-                                              ? "#F4F6FF"
-                                              : "#fff",
-                                        }}
-                                      >
-                                        <div className="mb-1">📝</div>
-                                        <div>Text</div>
-                                        <div
-                                          className="text-muted fw-normal"
-                                          style={{ fontSize: "11px" }}
+                                              ? "light"
+                                              : "outline-secondary"
+                                          }
+                                          className={`flex-fill ${aiOutputFormat === "Text" ? "border-primary text-primary fw-semibold" : ""}`}
+                                          onClick={() =>
+                                            setAiOutputFormat("Text")
+                                          }
+                                          style={{
+                                            fontSize: "13px",
+                                            padding: "12px",
+                                            background:
+                                              aiOutputFormat === "Text"
+                                                ? "#F4F6FF"
+                                                : "#fff",
+                                          }}
                                         >
-                                          Plain content
-                                        </div>
-                                      </Button>
+                                          <div className="mb-1">📝</div>
+                                          <div>{t("messages.aiOutputText")}</div>
+                                          <div
+                                            className="text-muted fw-normal"
+                                            style={{ fontSize: "11px" }}
+                                          >
+                                            {t("messages.aiOutputTextDesc")}
+                                          </div>
+                                        </Button>
+                                      </div>
                                     </div>
-                                  </div>
-                                )}
+                                  )}
                               </div>
                             ) : (
                               <Editor
@@ -4419,7 +4855,7 @@ const StepChartAction = ({
                             )}
                           </div>
                         </div>
-                        <div
+                        {meeting?.type !== "AI Instruction" && <div
                           className="col-md-5 p-4"
                           style={{ backgroundColor: "#F2F4FB" }}
                         >
@@ -4674,7 +5110,7 @@ const StepChartAction = ({
                               className="center-spinner"
                             ></Spinner>
                           )}
-                        </div>
+                        </div>}
                       </>
                     ) : modalType === "Editeur" ||
                       modalType === "Subtask" ||

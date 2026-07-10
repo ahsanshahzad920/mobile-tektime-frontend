@@ -1508,6 +1508,11 @@ export const getOptions = (t, roleId) => {
       label: t("meeting.newMeeting.options.activityTypes.conversation") || "Conversation",
       svg: <FaComments size={36} color="#DAE6ED" />,
     },
+    {
+      title: "AI Instruction",
+      label: t("meeting.newMeeting.options.activityTypes.aiInstruction") || "AI Instruction",
+      svg: <FaComments size={36} color="#DAE6ED" />,
+    },
     // {
     //   title: "Law",
     //   label: t("meeting.newMeeting.options.activityTypes.law"),

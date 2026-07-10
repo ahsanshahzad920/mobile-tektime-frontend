@@ -6,6 +6,14 @@ const PrivateRoute = ({ children }) => {
   const token = CookieService.get('token');
   const location = useLocation();
 
+  const isSubscriptionExpired =
+    localStorage.getItem('subscription_expired') === 'true' ||
+    sessionStorage.getItem('subscription_expired') === 'true';
+
+  if (token && isSubscriptionExpired) {
+    return <Navigate to="/subscription-expired" replace />;
+  }
+
   return token ? children : <Navigate to={`/${location?.search}`} state={{ from: location }} replace />;
 };
 

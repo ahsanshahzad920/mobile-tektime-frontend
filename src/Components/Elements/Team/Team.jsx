@@ -28,55 +28,27 @@ const Team = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.status === 200) {
-        // If user is admin, no need to filter teams.
-        if (getUserRoleID() === 1) {
-          setActiveTeams(response.data?.data);
-          setLoading(true);
-        } else if (getUserRoleID() === 2) {
+        if (response.data?.enterprise) {
           CookieService.set(
             "enterprise",
             JSON.stringify(response.data?.enterprise)
           );
+        }
 
-          //Filter Teams based on user id: show only teams created by logged in user.
-          const filterredTeams = response?.data?.data?.filter(
-            (team) =>
-              team?.created_by?.id==
-              CookieService.get("user_id")
-          );
-          console.log('filterredTeams',filterredTeams)
-          setActiveTeams(filterredTeams);
-          setLoading(true);
-        } else if (getUserRoleID() == 3) {
-          CookieService.set(
-            "enterprise",
-            JSON.stringify(response.data.enterprise)
-          );
-          //Filter Teams based on user id: show only teams created by logged in user.
-          const filterredTeams = response.data?.data?.filter((team) => {
-            return (
-              team?.enterprise?.id ==
-              JSON.parse(CookieService.get("enterprise"))?.id
-            );
-          });
-          setActiveTeams(filterredTeams);
-          setLoading(true);
-        } else {
-          CookieService.set(
-            "enterprise",
-            JSON.stringify(response.data?.enterprise)
-          );
-          //Filter Teams based on user id: show only teams created by logged in user.
-          const filterredTeams = response.data.data.filter((team) => {
-            return team.created_by?.id == CookieService.get("user_id");
-          });
-          setActiveTeams(filterredTeams);
-          setLoading(true);
-        } //
+        const loggedInUser = CookieService.get("user") ? JSON.parse(CookieService.get("user")) : null;
+        const cookieEnterprise = CookieService.get("enterprise") ? JSON.parse(CookieService.get("enterprise")) : null;
+        const userEnterpriseId = loggedInUser?.enterprise?.id || cookieEnterprise?.id || response.data?.enterprise?.id;
+
+        const filterredTeams = response.data?.data?.filter((team) => {
+          return team?.enterprise?.id == userEnterpriseId;
+        }) || [];
+
+        console.log('filterredTeams', filterredTeams);
+        setActiveTeams(filterredTeams);
+        setLoading(true);
       }
     } catch (error) {
       toast.error(t(error.response?.data?.errors[0] || error.message));
-      // console.log("error message", error);
     } finally {
       setLoading(false);
     }
@@ -96,22 +68,19 @@ const Team = () => {
       if (response.status) {
         setClosedLoading(true);
 
-        // If user is admin, no need to filter teams.
-        if (getUserRoleID() == 1) {
-          setClosedTeams(response.data.data);
-          setClosedLoading(true);
-        } else {
-          const filterredTeams = response.data.data.filter((team) => {
-            return team?.created_by?.id == CookieService.get("user_id");
-          });
-          setClosedTeams(filterredTeams);
-          setClosedLoading(true);
-        } //
-        // setTeams(response.data.data);
+        const loggedInUser = CookieService.get("user") ? JSON.parse(CookieService.get("user")) : null;
+        const cookieEnterprise = CookieService.get("enterprise") ? JSON.parse(CookieService.get("enterprise")) : null;
+        const userEnterpriseId = loggedInUser?.enterprise?.id || cookieEnterprise?.id || response.data?.enterprise?.id;
+
+        const filterredTeams = response.data?.data?.filter((team) => {
+          return team?.enterprise?.id == userEnterpriseId;
+        }) || [];
+
+        setClosedTeams(filterredTeams);
+        setClosedLoading(true);
       }
     } catch (error) {
       toast.error(t(error.response?.data?.errors[0] || error.message));
-      // console.log("error message", error);
     } finally {
       setClosedLoading(false);
     }

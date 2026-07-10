@@ -1,6 +1,16 @@
-import CookieService from '../../Utils/CookieService';
+import CookieService from "../../Utils/CookieService";
 import React, { useEffect, useState } from "react";
-import { Button, Col, Dropdown, Modal, Nav, OverlayTrigger, Row, Tab, Tooltip } from "react-bootstrap";
+import {
+  Button,
+  Col,
+  Dropdown,
+  Modal,
+  Nav,
+  OverlayTrigger,
+  Row,
+  Tab,
+  Tooltip,
+} from "react-bootstrap";
 import { useTranslation } from "react-i18next";
 import TeamCard from "../Team/TeamCard";
 import { FaArrowRight, FaPlus } from "react-icons/fa";
@@ -21,23 +31,31 @@ const MembersTab = ({ team, refresh }) => {
   useEffect(() => {
     if (team?.users?.length || team?.contacts?.length) {
       const isActive = (status) => status === "active";
-      const isInactive = (status) => status === "closed" || status === "pending";
+      const isInactive = (status) =>
+        status === "closed" || status === "pending";
 
       const activeMembers = [
-        ...(team.users?.filter((item) => isActive(item.pivot?.status)).map(item => ({ ...item, type: 'member' })) || []),
-        ...(team.contacts?.filter((item) => isActive(item.pivot?.status)).map(item => ({ ...item, type: 'contact' })) || []),
+        ...(team.users
+          ?.filter((item) => isActive(item.pivot?.status))
+          .map((item) => ({ ...item, type: "member" })) || []),
+        ...(team.contacts
+          ?.filter((item) => isActive(item.pivot?.status))
+          .map((item) => ({ ...item, type: "contact" })) || []),
       ];
 
       const inactiveMembers = [
-        ...(team.users?.filter((item) => isInactive(item.pivot?.status)).map(item => ({ ...item, type: 'member' })) || []),
-        ...(team.contacts?.filter((item) => isInactive(item.pivot?.status)).map(item => ({ ...item, type: 'contact' })) || []),
+        ...(team.users
+          ?.filter((item) => isInactive(item.pivot?.status))
+          .map((item) => ({ ...item, type: "member" })) || []),
+        ...(team.contacts
+          ?.filter((item) => isInactive(item.pivot?.status))
+          .map((item) => ({ ...item, type: "contact" })) || []),
       ];
 
       setActiveMembers(activeMembers);
       setInActiveMembers(inactiveMembers);
     }
   }, [team]);
-
 
   // Common button style
   const buttonStyle = {
@@ -64,7 +82,7 @@ const MembersTab = ({ team, refresh }) => {
   const [showExistingTeamModal, setShowExistingTeamModal] = useState(false);
   const [selectedTeams, setSelectedTeams] = useState([]);
   const [editingContact, setEditingContact] = useState(null);
-  const [showContactModal, setShowContactModal] = useState(false)
+  const [showContactModal, setShowContactModal] = useState(false);
 
   const [formData, setFormData] = useState({
     email: "",
@@ -97,15 +115,13 @@ const MembersTab = ({ team, refresh }) => {
     }
   };
 
-
-
   const handleEmailChange = (e) => {
     const value = e.target.value;
     setFormData({ ...formData, email: value });
 
     if (value.length > 1) {
       const filtered = emailSuggestions.filter((contact) =>
-        contact.email?.toLowerCase().includes(value.toLowerCase())
+        contact.email?.toLowerCase().includes(value.toLowerCase()),
       );
       setFilteredSuggestions(filtered);
       setShowSuggestions(filtered.length > 0);
@@ -123,7 +139,7 @@ const MembersTab = ({ team, refresh }) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
       setActiveSuggestionIndex((prev) =>
-        prev < filteredSuggestions.length - 1 ? prev + 1 : prev
+        prev < filteredSuggestions.length - 1 ? prev + 1 : prev,
       );
     }
     // Arrow up
@@ -160,11 +176,14 @@ const MembersTab = ({ team, refresh }) => {
 
   const fetchClients = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/get-same-enterprise-users/${CookieService.get(
-        "user_id"
-      )}`, {
-        headers: { Authorization: `Bearer ${CookieService.get("token")}` },
-      });
+      const response = await axios.get(
+        `${API_BASE_URL}/get-same-enterprise-users/${CookieService.get(
+          "user_id",
+        )}`,
+        {
+          headers: { Authorization: `Bearer ${CookieService.get("token")}` },
+        },
+      );
 
       if (response?.data?.data) {
         const clientsData = response.data.data;
@@ -205,7 +224,6 @@ const MembersTab = ({ team, refresh }) => {
     }
   };
 
-
   const handleSave = async () => {
     const user = JSON.parse(CookieService.get("user"));
 
@@ -238,7 +256,7 @@ const MembersTab = ({ team, refresh }) => {
             headers: {
               Authorization: `Bearer ${CookieService.get("token")}`,
             },
-          }
+          },
         );
       } else {
         response = await axios.post(`${API_BASE_URL}/contacts`, payload, {
@@ -253,9 +271,9 @@ const MembersTab = ({ team, refresh }) => {
         toast.success(
           editingContact
             ? t("Contact updated successfully!")
-            : t("Contact created successfully!")
+            : t("Contact created successfully!"),
         );
-        refresh()
+        refresh();
         setShowContactModal(false);
       }
     } catch (error) {
@@ -282,7 +300,6 @@ const MembersTab = ({ team, refresh }) => {
       setShowContactModal(false);
     }
   };
-
 
   useEffect(() => {
     if (showContactModal && editingContact) {
@@ -335,7 +352,19 @@ const MembersTab = ({ team, refresh }) => {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.status === 200) {
-        setTeams(response?.data?.data);
+        // setTeams(response?.data?.data);
+
+        // Enterprise User: show teams in their enterprise
+        CookieService.set(
+          "enterprise",
+          JSON.stringify(response.data?.enterprise),
+        );
+
+        const enterpriseId = JSON.parse(CookieService.get("enterprise"))?.id;
+        const filteredTeams = (response.data?.data || []).filter(
+          (team) => team?.enterprise?.id === enterpriseId,
+        );
+        setTeams(filteredTeams);
       }
     } catch (error) {
       toast.error(t(error.response?.data?.errors[0] || error?.message));
@@ -344,7 +373,7 @@ const MembersTab = ({ team, refresh }) => {
   };
 
   const options1 = teams?.filter(
-    (team) => parseInt(team?.enterprise_id) === parseInt(enterprise?.id)
+    (team) => parseInt(team?.enterprise_id) === parseInt(enterprise?.id),
   );
   const teamOptions = options1?.map((team) => ({
     value: team.id,
@@ -374,7 +403,7 @@ const MembersTab = ({ team, refresh }) => {
           headers: {
             Authorization: `Bearer ${CookieService.get("token")}`,
           },
-        }
+        },
       );
       if (response?.status) {
         refresh();
@@ -398,7 +427,7 @@ const MembersTab = ({ team, refresh }) => {
           `${API_BASE_URL}/get-enterprise-user-with-contact?enterprise_id=${enterprise?.id}`,
           {
             headers: { Authorization: `Bearer ${token}` },
-          }
+          },
         );
         if (response.status === 200) {
           const data = response?.data?.data;
@@ -406,21 +435,20 @@ const MembersTab = ({ team, refresh }) => {
           const members = data.filter((item) => item.created_by === undefined);
           const contacts = data.filter((item) => item.created_by !== undefined);
 
-
           setExistingMembers(
             members.map((member) => ({
               value: member.id,
               label: member.name + " " + member.last_name,
-              type: 'member'
-            }))
+              type: "member",
+            })),
           );
 
           setExistingContacts(
             contacts.map((contact) => ({
               value: contact.id,
               label: contact.email,
-              type: 'contact'
-            }))
+              type: "contact",
+            })),
           );
         }
       } catch (error) {
@@ -442,7 +470,7 @@ const MembersTab = ({ team, refresh }) => {
     {
       label: "Contacts",
       options: existingContacts,
-    }
+    },
   ];
 
   const [showExistingMemberModal, setShowExistingMemberModal] = useState(false);
@@ -453,11 +481,11 @@ const MembersTab = ({ team, refresh }) => {
       const payload = {
         team_id: parseInt(team?.id),
         user_ids: selectedMembers
-          .filter(m => m.type === 'member')
-          .map(m => m.value),
+          .filter((m) => m.type === "member")
+          .map((m) => m.value),
         contact_ids: selectedMembers
-          .filter(m => m.type === 'contact')
-          .map(m => m.value)
+          .filter((m) => m.type === "contact")
+          .map((m) => m.value),
       };
       const response = await axios.post(
         `${API_BASE_URL}/add-existing-users-to-team`,
@@ -466,7 +494,7 @@ const MembersTab = ({ team, refresh }) => {
           headers: {
             Authorization: `Bearer ${CookieService.get("token")}`,
           },
-        }
+        },
       );
       if (response?.status) {
         refresh();
@@ -671,7 +699,6 @@ const MembersTab = ({ team, refresh }) => {
           </Modal.Header>
           <Modal.Body className="">
             <div className="mb-3">
-
               <Select
                 className="react-select"
                 id="memberSelect"
@@ -813,8 +840,8 @@ const MembersTab = ({ team, refresh }) => {
                   placement="top"
                   overlay={
                     <Tooltip id="client-tooltip">
-                      💡 Commencez à taper pour rechercher un client existant
-                      ou en créer un nouveau automatiquement.
+                      💡 Commencez à taper pour rechercher un client existant ou
+                      en créer un nouveau automatiquement.
                     </Tooltip>
                   }
                 >
@@ -845,9 +872,7 @@ const MembersTab = ({ team, refresh }) => {
                       isClearable
                       placeholder={t("client_placeholder")}
                       formatOptionLabel={(option, { context }) => (
-                        <div
-                          style={{ display: "flex", alignItems: "center" }}
-                        >
+                        <div style={{ display: "flex", alignItems: "center" }}>
                           {/* Show client logo if available */}
                           {option.data?.client_logo && (
                             <img

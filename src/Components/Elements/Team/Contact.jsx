@@ -580,39 +580,16 @@ const Contact = ({
           const roleId = getUserRoleID();
           let filteredTeams = [];
 
-          if (roleId === 1) {
-            // Admin → show all teams
-            filteredTeams = response.data?.data;
-          } else if (roleId === 2) {
-            // Role 2 → show teams created by logged-in user
+          // Role 3 → show teams belonging to user's enterprise
             CookieService.set(
               "enterprise",
-              JSON.stringify(response.data?.enterprise),
-            );
-            filteredTeams = response.data?.data?.filter(
-              (team) => team?.created_by?.id == CookieService.get("user_id"),
-            );
-          } else if (roleId === 3) {
-            // Role 3 → show teams belonging to user's enterprise
-            CookieService.set(
-              "enterprise",
-              JSON.stringify(response.data?.enterprise),
+          JSON.stringify(response.data?.enterprise),
             );
             filteredTeams = response.data?.data?.filter(
               (team) =>
                 team?.enterprise?.id ==
                 JSON.parse(CookieService.get("enterprise"))?.id,
             );
-          } else {
-            // Default → teams created by this user
-            CookieService.set(
-              "enterprise",
-              JSON.stringify(response.data?.enterprise),
-            );
-            filteredTeams = response.data?.data?.filter(
-              (team) => team?.created_by?.id == CookieService.get("user_id"),
-            );
-          }
 
           // ✅ Convert teams to Select options
           const formattedOptions = filteredTeams.map((team) => ({

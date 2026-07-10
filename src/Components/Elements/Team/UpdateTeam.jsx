@@ -34,7 +34,14 @@ const UpdateTeam = () => {
 
   const [loading, setLoading] = useState(false);
   useEffect(() => {
-    setEnterprise(JSON.parse(CookieService.get("enterprise")));
+    try {
+      const stored = CookieService.get("enterprise");
+      if (stored) {
+        setEnterprise(JSON.parse(stored));
+      }
+    } catch (e) {
+      console.error("Error reading stored enterprise:", e);
+    }
     const getDataFromId = async () => {
       try {
         setLoading(true);
@@ -42,16 +49,19 @@ const UpdateTeam = () => {
         const response = await axios.get(`${API_BASE_URL}/teams/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+        const teamData = response?.data?.team;
         setTeam({
-          name: response?.data?.team?.name,
-          enterprise_id:response?.data?.team?.enterprise_id,
-          description: response?.data?.team?.description,
-          logo: response?.data?.team?.logo || null,
+          name: teamData?.name,
+          enterprise_id: teamData?.enterprise_id,
+          description: teamData?.description,
+          logo: teamData?.logo || null,
         });
-        setImagePreview(response?.data?.team?.logo?.startsWith('http') ? response?.data?.team?.logo :`${Assets_URL}/${response?.data?.team?.logo}`);
+        if (teamData?.enterprise) {
+          setEnterprise(teamData.enterprise);
+        }
+        setImagePreview(teamData?.logo?.startsWith('http') ? teamData?.logo : `${Assets_URL}/${teamData?.logo}`);
       } catch (error) {
         toast.error(t(error.response?.data?.errors[0] || error.message));
-        // console.error("Error fetching Team data:", error);
         toast.error(t("messages.dataFetchError"));
       } finally {
         setLoading(false);
@@ -78,22 +88,55 @@ const UpdateTeam = () => {
             Authorization: `Bearer ${token}`,
           },
         });
-        const enterprisesCreatedByCurrentAdmin = response.data.data.filter(
-          (enterprise) => {
-            return enterprise.created_by.id === getLoggedInUser()?.id;
+        
+        const enterprisesData = response.data?.data || [];
+        const role = Number(roleID);
+
+        if (role === 1) {
+          // Master Admin: show all active/available enterprises
+          setAllEnterprises(enterprisesData);
+        } else {
+          // Enterprise Admin or other roles: show their own enterprise
+          let userEnterprise = null;
+          try {
+            const stored = CookieService.get("enterprise");
+            if (stored) userEnterprise = JSON.parse(stored);
+          } catch (e) {
+            console.error("Error parsing enterprise cookie:", e);
           }
-        );
-        if (roleID === 1) {
-          setAllEnterprises(response.data.data);
-        } else if (roleID === 2) {
-          setAllEnterprises(enterprisesCreatedByCurrentAdmin);
+          
+          const userEnterpriseId = userEnterprise?.id || getLoggedInUser()?.enterprise_id;
+          
+          // Filter from response or fall back to user's cookie enterprise
+          const filtered = enterprisesData.filter(
+            (ent) => ent.id === userEnterpriseId || ent.created_by?.id === getLoggedInUser()?.id
+          );
+          
+          if (filtered.length > 0) {
+            setAllEnterprises(filtered);
+          } else if (userEnterprise) {
+            setAllEnterprises([userEnterprise]);
+          } else {
+            setAllEnterprises(enterprisesData);
+          }
         }
       } catch (err) {
-        // console.log(err.message);
+        console.error("Error fetching enterprises:", err);
+        // Fallback: populate with the user's enterprise from cookie
+        let userEnterprise = null;
+        try {
+          const stored = CookieService.get("enterprise");
+          if (stored) userEnterprise = JSON.parse(stored);
+        } catch (e) {
+          console.error("Error parsing enterprise cookie in catch:", e);
+        }
+        if (userEnterprise) {
+          setAllEnterprises([userEnterprise]);
+        }
       }
     };
     getEnterprisesData();
-  }, []);
+  }, [roleID]);
   const [isHovered, setIsHovered] = useState(false);
   const fileInputRef = useRef(null);
   const [imagePreview, setImagePreview] = useState("");
@@ -252,13 +295,13 @@ const UpdateTeam = () => {
                       className="select"
                       name="enterprise_id"
                       value={team.enterprise_id}
-                      disabled={getUserRoleID() === 3 ? true : false}
+                      disabled={Number(getUserRoleID()) === 3}
                       onChange={handleInputChange}
                     >
                       <option value="" disabled>
                         {t("Team.Company")}
                       </option>
-                      {getUserRoleID() !== 3 ? (
+                      {Number(getUserRoleID()) !== 3 ? (
                         allEnterprises?.map((enterprise) => (
                           <option key={enterprise.id} value={enterprise.id}>
                             {enterprise.name}

@@ -667,7 +667,7 @@ const handleSuggestionSelect = (suggestion) => {
 
 
 
-    {view === "global" && <>
+    {/* {view === "global" && <>
     
       <Row className="mb-4">
         <Col>
@@ -829,7 +829,7 @@ const handleSuggestionSelect = (suggestion) => {
           </Row>
         </Col>
       </Row>
-      </>}
+      </>} */}
 
 
      {/* Show message if no data */}

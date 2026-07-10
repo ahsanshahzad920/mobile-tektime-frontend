@@ -290,22 +290,7 @@ const AddDestination = ({
         const userRoleId = getUserRoleID();
         let filteredTeams = [];
 
-        if (userRoleId === 1) {
-          // Admin: show all teams
-          filteredTeams = res.data?.data || [];
-        } else if (userRoleId === 2) {
-          // Enterprise Admin: show only teams created by self
-          CookieService.set(
-            "enterprise",
-            JSON.stringify(res.data?.enterprise)
-          );
-
-
-          filteredTeams = (res.data?.data || []).filter(
-            (team) => team?.created_by?.id === CookieService.get("user_id")
-          );
-        } else if (userRoleId === 3) {
-          // Enterprise User: show teams in their enterprise
+         // Enterprise User: show teams in their enterprise
           CookieService.set(
             "enterprise",
             JSON.stringify(res.data?.enterprise)
@@ -317,17 +302,6 @@ const AddDestination = ({
           filteredTeams = (res.data?.data || []).filter(
             (team) => team?.enterprise?.id === enterpriseId
           );
-        } else {
-          // Fallback (e.g. client or unknown): show only own created teams
-          CookieService.set(
-            "enterprise",
-            JSON.stringify(res.data?.enterprise)
-          );
-
-          filteredTeams = (res.data?.data || []).filter(
-            (team) => team?.created_by?.id === CookieService.get("user_id")
-          );
-        }
 
         // Convert to react-select format
         const options = filteredTeams.map((team) => ({
@@ -344,6 +318,7 @@ const AddDestination = ({
 
     fetchTeams();
   }, [show]);
+
   // ──────────────────────────────────────────────────────────────────────────────
   // 1. Helper: return plain values (no JSON.stringify)
   // Returns plain values – array stays an array

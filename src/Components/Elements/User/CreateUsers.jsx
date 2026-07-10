@@ -191,7 +191,21 @@ const CreateUsers = ({ setActiveTab, }) => {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.status === 200) {
-        setTeams(response?.data?.data);
+        // setTeams(response?.data?.data);
+          // Enterprise User: show teams in their enterprise
+          CookieService.set(
+            "enterprise",
+            JSON.stringify(response.data?.enterprise)
+          );
+
+          const enterpriseId = JSON.parse(
+            CookieService.get("enterprise")
+          )?.id;
+          setTeams(response.data?.data || []).filter(
+            (team) => team?.enterprise?.id === enterpriseId
+          );
+
+
       }
     } catch (error) {
       toast.error(t(error.response?.data?.errors[0] || error.message));

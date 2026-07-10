@@ -711,7 +711,7 @@ function App() {
               </PrivateRoute>
             }
           />
-          {/* <Route
+          <Route
             path="/contact/:id"
             exact
             element={
@@ -719,7 +719,7 @@ function App() {
                 <ContactDetail onLogout={signout} />
               </PrivateRoute>
             }
-          /> */}
+          />
           <Route
             path="/casting/contact/:destination_id/:id"
             exact

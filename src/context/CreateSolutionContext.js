@@ -81,6 +81,8 @@ export const SolutionFormProvider = ({ children }) => {
 
   const [teamAdded, setTeamAdded] = useState(false);
 
+  const [activeTab, setActiveTab] = useState("tab1");
+
   const [formState, setFormState] = useState({
     title: "",
     description: "",
@@ -101,6 +103,7 @@ export const SolutionFormProvider = ({ children }) => {
     open_ai_decide: false,
     note_taker: false,
     automatic_strategy: false,
+    automatic_translation: false,
     automatic_instruction: false,
     whatsapp_in: false,
     presentation: false,
@@ -147,6 +150,7 @@ export const SolutionFormProvider = ({ children }) => {
     // navigate("/solution");
     setIsUpdated(false);
     setIsDuplicate(false);
+    setActiveTab("tab1");
     setFormState({
       title: "",
       description: "",
@@ -169,6 +173,7 @@ export const SolutionFormProvider = ({ children }) => {
 
       note_taker: false,
       automatic_strategy: false,
+      automatic_translation: false,
       automatic_instruction: false,
       whatsapp_in: false,
       presentation: false,
@@ -305,8 +310,100 @@ export const SolutionFormProvider = ({ children }) => {
     }
   };
 
+  const getTabPayload = (tab, state, newformstate) => {
+    switch (tab) {
+      case "tab1":
+        return {
+          title: state.title,
+          logo: state.logo,
+          problem_to_resolve: state.problem_to_resolve,
+          solution_to_bring: state.solution_to_bring,
+          how_it_fixes: state.how_it_fixes,
+        };
+      case "tab2":
+        return {
+          type: state.type,
+        };
+      case "tab4":
+        return {
+          location: state.location,
+          address: state.address,
+          room_details: state.room_details,
+          phone: state.phone,
+          agenda: state.agenda,
+        };
+      case "tab5":
+        return {
+          casting_type: state.casting_type,
+          max_participants_register: state.max_participants_register,
+          price: state.price,
+          participants: newformstate?.participants || state.participants || [],
+        };
+      case "tab6":
+        return {
+          solution_steps: newformstate?.steps || inputGroups,
+        };
+      case "tab7":
+        return {
+          alarm: state.alarm,
+          feedback: state.feedback,
+          remainder: state.remainder,
+          notification: state.notification,
+          autostart: state.autostart,
+          playback: state.playback,
+          prise_de_notes: state.prise_de_notes,
+          open_ai_decide: state.open_ai_decide,
+          share_by: state.share_by,
+          note_taker: state.note_taker,
+          automatic_strategy: state.automatic_strategy,
+          automatic_translation: state.automatic_translation,
+          automatic_instruction: state.automatic_instruction,
+          whatsapp_in: state.whatsapp_in,
+          presentation: state.presentation,
+          show_participants: state.show_participants,
+          show_discussion: state.show_discussion,
+        };
+      case "tab8":
+        return {
+          solution_privacy: state.solution_privacy,
+          solution_privacy_teams:
+            state.solution_privacy === "team" &&
+            state.solution_privacy_teams?.length &&
+            typeof state.solution_privacy_teams[0] === "object"
+              ? state.solution_privacy_teams.map((team) => team.id)
+              : state.solution_privacy_teams || [],
+          solution_privacy_enterprises:
+            state.solution_privacy === "enterprise" &&
+            state.solution_privacy_enterprises?.length &&
+            typeof state.solution_privacy_enterprises[0] === "object"
+              ? state.solution_privacy_enterprises.map((ent) => ent.id)
+              : state.solution_privacy_enterprises || [],
+          solution_privacy_missions:
+            state.solution_privacy === "missions"
+              ? state.solution_privacy_missions || []
+              : [],
+          solution_privacy_roles:
+            state.solution_privacy === "roles"
+              ? state.solution_privacy_roles || []
+              : [],
+          solution_privacy_gates:
+            state.solution_privacy === "gates"
+              ? state.solution_privacy_gates || []
+              : [],
+          solution_privacy_subscriptions:
+            state.solution_privacy === "subscriptions"
+              ? state.solution_privacy_subscriptions || []
+              : [],
+          solution_password:
+            state.solution_privacy === "password" ? state.solution_password : null,
+        };
+      default:
+        return {};
+    }
+  };
+
   const handleInputBlur = useCallback(
-    async (newformstate) => {
+    async (newformstate, options) => {
       setLoading(true);
       const formFields = [formState.title, formState.description];
       const hasText = formFields?.some((field) => {
@@ -319,22 +416,22 @@ export const SolutionFormProvider = ({ children }) => {
       if (hasText) {
         if (isDuplicate || isUpdated) {
           // If isDuplicate is true, call updateDraft immediately
-          const updateResponse = await updateSolution(newformstate);
+          const updateResponse = await updateSolution(newformstate, options);
           return updateResponse;
         } else if (checkId === null) {
-          const draftResponse = await handleDraft(newformstate); // Save as draft if no id exists
+          const draftResponse = await handleDraft(newformstate, options); // Save as draft if no id exists
           return draftResponse;
         } else {
-          const updateResponse = await updateDraft(newformstate); // Update draft if an ID exists
+          const updateResponse = await updateDraft(newformstate, options); // Update draft if an ID exists
           return updateResponse;
         }
       }
       setLoading(false); // Hide loader
     },
-    [formState, checkId, isDuplicate, isUpdated]
+    [formState, checkId, isDuplicate, isUpdated, activeTab]
   );
 
-  const handleDraft = async (newformstate) => {
+  const handleDraft = async (newformstate, options) => {
     const slides = [];
     let prevCount = 0;
     for (let i = 0; i < inputGroups.length; i++) {
@@ -349,86 +446,95 @@ export const SolutionFormProvider = ({ children }) => {
       prevCount = counts[1];
     }
 
-    const inputData = {
-      type: formState.type,
-      title: formState.title,
-      date: formState.date,
-      start_time: formState.start_time,
-      repetition: formState.repetition,
-      repetition_number: formState.repetition_number,
-      repetition_frequency: formState.repetition_frequency,
-      repetition_end_date: formState.repetition_end_date,
-      selected_days: formState.selected_days,
-      description: formState.description,
-      problem_to_resolve: formState.problem_to_resolve,
-      solution_to_bring: formState.solution_to_bring,
-      how_it_fixes: formState.how_it_fixes,
-      solution_steps: inputGroups,
-      alarm: formState.alarm,
-      feedback: formState.feedback,
-      remainder: formState.remainder,
-      notification: formState.notification,
+    let inputData = {};
+    if (!options?.saveAll && activeTab) {
+      inputData = {
+        ...getTabPayload(activeTab, formState, newformstate),
+        status: "draft",
+      };
+    } else {
+      inputData = {
+        type: formState.type,
+        title: formState.title,
+        date: formState.date,
+        start_time: formState.start_time,
+        repetition: formState.repetition,
+        repetition_number: formState.repetition_number,
+        repetition_frequency: formState.repetition_frequency,
+        repetition_end_date: formState.repetition_end_date,
+        selected_days: formState.selected_days,
+        description: formState.description,
+        problem_to_resolve: formState.problem_to_resolve,
+        solution_to_bring: formState.solution_to_bring,
+        how_it_fixes: formState.how_it_fixes,
+        solution_steps: inputGroups,
+        alarm: formState.alarm,
+        feedback: formState.feedback,
+        remainder: formState.remainder,
+        notification: formState.notification,
 
-      share_by: formState?.share_by,
-      autostart: formState.autostart,
-      total_time: formState.time,
-      prise_de_notes: formState.prise_de_notes,
-      open_ai_decide: formState.open_ai_decide,
-      note_taker: formState.note_taker,
-      playback: formState?.playback,
-      automatic_strategy: formState.automatic_strategy,
-      automatic_instruction: formState.automatic_instruction,
-      whatsapp_in: formState.whatsapp_in,
-      presentation: formState.presentation,
-      show_participants: formState.show_participants,
-      show_discussion: formState.show_discussion,
-      // teams: formState.teams,
-      solution_id: formState.solutionId,
-      status: "draft",
-      solution_privacy: formState.solution_privacy,
-      solution_password:
-        formState.solution_privacy === "password" ? formState.password : null,
-      solution_privacy_teams: [],
-      solution_privacy_enterprises:
-        formState.solution_privacy === "enterprise" &&
-          formState.solution_privacy_enterprises?.length &&
-          typeof formState.solution_privacy_enterprises[0] === "object"
-          ? formState.solution_privacy_enterprises.map((ent) => ent.id)
-          : formState.solution_privacy_enterprises || [],
-      solution_privacy_missions:
-        formState.solution_privacy === "missions"
-          ? formState.solution_privacy_missions || []
-          : [],
-      solution_privacy_roles:
-        formState.solution_privacy === "roles"
-          ? formState.solution_privacy_roles || []
-          : [],
-      solution_privacy_gates:
-        formState.solution_privacy === "gates"
-          ? formState.solution_privacy_gates || []
-          : [],
-      solution_privacy_subscriptions:
-        formState.solution_privacy === "subscriptions"
-          ? formState.solution_privacy_subscriptions || []
-          : [],
-      participants: newformstate?.participants || formState.participants || [],
-      date: formState.date,
-      start_time: formState.start_time,
-      repetition: formState.repetition,
-      repetition_number: formState.repetition_number,
-      repetition_frequency: formState.repetition_frequency,
-      repetition_end_date: formState.repetition_end_date,
-      selected_days: formState.selected_days,
-      max_participants_register: formState.max_participants_register,
-      price: formState.price,
-      casting_type: formState.casting_type,
-      location: formState.location,
-      address: formState.address,
-      room_details: formState.room_details,
-      phone: formState.phone,
-      agenda: formState.agenda,
-      logo: formState.logo,
-    };
+        share_by: formState?.share_by,
+        autostart: formState.autostart,
+        total_time: formState.time,
+        prise_de_notes: formState.prise_de_notes,
+        open_ai_decide: formState.open_ai_decide,
+        note_taker: formState.note_taker,
+        playback: formState?.playback,
+        automatic_strategy: formState.automatic_strategy,
+        automatic_translation: formState.automatic_translation,
+        automatic_instruction: formState.automatic_instruction,
+        whatsapp_in: formState.whatsapp_in,
+        presentation: formState.presentation,
+        show_participants: formState.show_participants,
+        show_discussion: formState.show_discussion,
+        // teams: formState.teams,
+        solution_id: formState.solutionId,
+        status: "draft",
+        solution_privacy: formState.solution_privacy,
+        solution_password:
+          formState.solution_privacy === "password" ? formState.password : null,
+        solution_privacy_teams: [],
+        solution_privacy_enterprises:
+          formState.solution_privacy === "enterprise" &&
+            formState.solution_privacy_enterprises?.length &&
+            typeof formState.solution_privacy_enterprises[0] === "object"
+            ? formState.solution_privacy_enterprises.map((ent) => ent.id)
+            : formState.solution_privacy_enterprises || [],
+        solution_privacy_missions:
+          formState.solution_privacy === "missions"
+            ? formState.solution_privacy_missions || []
+            : [],
+        solution_privacy_roles:
+          formState.solution_privacy === "roles"
+            ? formState.solution_privacy_roles || []
+            : [],
+        solution_privacy_gates:
+          formState.solution_privacy === "gates"
+            ? formState.solution_privacy_gates || []
+            : [],
+        solution_privacy_subscriptions:
+          formState.solution_privacy === "subscriptions"
+            ? formState.solution_privacy_subscriptions || []
+            : [],
+        participants: newformstate?.participants || formState.participants || [],
+        date: formState.date,
+        start_time: formState.start_time,
+        repetition: formState.repetition,
+        repetition_number: formState.repetition_number,
+        repetition_frequency: formState.repetition_frequency,
+        repetition_end_date: formState.repetition_end_date,
+        selected_days: formState.selected_days,
+        max_participants_register: formState.max_participants_register,
+        price: formState.price,
+        casting_type: formState.casting_type,
+        location: formState.location,
+        address: formState.address,
+        room_details: formState.room_details,
+        phone: formState.phone,
+        agenda: formState.agenda,
+        logo: formState.logo,
+      };
+    }
 
     try {
       const response = await axios.post(
@@ -456,7 +562,7 @@ export const SolutionFormProvider = ({ children }) => {
       // toast.error(t("messages.draftSaveError"));
     }
   };
-  const updateDraft = async (newformstate) => {
+  const updateDraft = async (newformstate, options) => {
     const {
       type,
       title,
@@ -499,6 +605,7 @@ export const SolutionFormProvider = ({ children }) => {
       price,
       casting_type,
       automatic_strategy,
+      automatic_translation,
       automatic_instruction,
       whatsapp_in,
       presentation,
@@ -509,100 +616,116 @@ export const SolutionFormProvider = ({ children }) => {
       how_it_fixes,
     } = formState;
 
-    const formFields = [title, description];
+    const formFields = [title];
     const hasText = formFields?.some((field) => field?.trim() !== "");
     if (!hasText) {
       toast.error("Veuillez d'abord remplir les champs ci-dessus");
       return;
     }
 
-    const inputData = {
-      ...solutionData,
-      type,
-      title,
-      description,
-      logo,
-      location,
-      address,
-      room_details,
-      phone,
-      phone,
-      agenda,
-      participants,
-      alarm,
-      feedback,
-      remainder,
-      notification,
-      autostart,
-      playback,
-      prise_de_notes,
-      open_ai_decide,
-      automatic_strategy,
-      automatic_instruction,
-      whatsapp_in,
-      presentation,
-      show_participants,
-      show_discussion,
-      share_by,
-      note_taker,
-      total_time: time,
-      teams: teams?.map((team) => team.id) || [],
-      solution_steps: inputGroups,
-      status:
-        isDuplicate || isUpdated
-          ? "active"
-          : addParticipant || changePrivacy
-            ? formState?.status || newformstate?.status
-            : "draft",
-      solution_privacy,
-      solution_privacy_teams:
-        solution_privacy === "team" &&
-          solution_privacy_teams?.length &&
-          typeof solution_privacy_teams[0] === "object"
-          ? solution_privacy_teams.map((team) => team.id)
-          : solution_privacy_teams || [], // Send as-is if IDs are already present
-      solution_privacy_enterprises:
-        solution_privacy === "enterprise" &&
-          solution_privacy_enterprises?.length &&
-          typeof solution_privacy_enterprises[0] === "object"
-          ? solution_privacy_enterprises.map((ent) => ent.id)
-          : solution_privacy_enterprises || [],
-      solution_privacy_missions:
-        solution_privacy === "missions"
-          ? solution_privacy_missions || []
-          : [],
-      solution_privacy_roles:
-        solution_privacy === "roles"
-          ? solution_privacy_roles || []
-          : [],
-      solution_privacy_gates:
-        solution_privacy === "gates"
-          ? solution_privacy_gates || []
-          : [],
-      solution_privacy_subscriptions:
-        solution_privacy === "subscriptions"
-          ? solution_privacy_subscriptions || []
-          : [],
-      solution_password:
-        solution_privacy === "password" ? solution_password : null,
-      _method: "put",
-      solution_id: checkId,
-      add_team: teams?.length > 0 ? true : false,
-      participants: newformstate?.participants || formState.participants || [],
-      date,
-      start_time,
-      repetition,
-      repetition_number,
-      repetition_frequency,
-      repetition_end_date,
-      selected_days,
-      max_participants_register,
-      price,
-      casting_type,
-      problem_to_resolve,
-      solution_to_bring,
-      how_it_fixes,
-    };
+    let inputData = {};
+    if (!options?.saveAll && activeTab) {
+      inputData = {
+        ...getTabPayload(activeTab, formState, newformstate),
+        _method: "put",
+        solution_id: checkId,
+        status:
+          isDuplicate || isUpdated
+            ? "active"
+            : addParticipant || changePrivacy
+              ? formState?.status || newformstate?.status
+              : "draft",
+      };
+    } else {
+      inputData = {
+        ...solutionData,
+        type,
+        title,
+        description,
+        logo,
+        location,
+        address,
+        room_details,
+        phone,
+        phone,
+        agenda,
+        participants,
+        alarm,
+        feedback,
+        remainder,
+        notification,
+        autostart,
+        playback,
+        prise_de_notes,
+        open_ai_decide,
+        automatic_strategy,
+        automatic_translation,
+        automatic_instruction,
+        whatsapp_in,
+        presentation,
+        show_participants,
+        show_discussion,
+        share_by,
+        note_taker,
+        total_time: time,
+        teams: teams?.map((team) => team.id) || [],
+        solution_steps: inputGroups,
+        status:
+          isDuplicate || isUpdated
+            ? "active"
+            : addParticipant || changePrivacy
+              ? formState?.status || newformstate?.status
+              : "draft",
+        solution_privacy,
+        solution_privacy_teams:
+          solution_privacy === "team" &&
+            solution_privacy_teams?.length &&
+            typeof solution_privacy_teams[0] === "object"
+            ? solution_privacy_teams.map((team) => team.id)
+            : solution_privacy_teams || [], // Send as-is if IDs are already present
+        solution_privacy_enterprises:
+          solution_privacy === "enterprise" &&
+            solution_privacy_enterprises?.length &&
+            typeof solution_privacy_enterprises[0] === "object"
+            ? solution_privacy_enterprises.map((ent) => ent.id)
+            : solution_privacy_enterprises || [],
+        solution_privacy_missions:
+          solution_privacy === "missions"
+            ? solution_privacy_missions || []
+            : [],
+        solution_privacy_roles:
+          solution_privacy === "roles"
+            ? solution_privacy_roles || []
+            : [],
+        solution_privacy_gates:
+          solution_privacy === "gates"
+            ? solution_privacy_gates || []
+            : [],
+        solution_privacy_subscriptions:
+          solution_privacy === "subscriptions"
+            ? solution_privacy_subscriptions || []
+            : [],
+        solution_password:
+          solution_privacy === "password" ? solution_password : null,
+        _method: "put",
+        solution_id: checkId,
+        add_team: teams?.length > 0 ? true : false,
+        participants: newformstate?.participants || formState.participants || [],
+        date,
+        start_time,
+        repetition,
+        repetition_number,
+        repetition_frequency,
+        repetition_end_date,
+        selected_days,
+        max_participants_register,
+        price,
+        casting_type,
+        problem_to_resolve,
+        solution_to_bring,
+        how_it_fixes,
+      };
+    }
 
     if (isDuplicate) {
       inputData.duplicate = true;
@@ -644,7 +767,7 @@ export const SolutionFormProvider = ({ children }) => {
       setLoading(false); // Hide loader after the API call is complete
     }
   };
-  const updateSolution = async (newformstate) => {
+  const updateSolution = async (newformstate, options) => {
     const {
       type,
       title,
@@ -687,6 +810,7 @@ export const SolutionFormProvider = ({ children }) => {
       price,
       casting_type,
       automatic_strategy,
+      automatic_translation,
       automatic_instruction,
       whatsapp_in,
       presentation,
@@ -697,93 +821,104 @@ export const SolutionFormProvider = ({ children }) => {
       how_it_fixes,
     } = formState;
 
-    const formFields = [type, title, description];
+    const formFields = [title];
     const hasText = formFields?.some((field) => field?.trim() !== "");
     if (!hasText) {
       toast.error("Veuillez d'abord remplir les champs ci-dessus");
       return;
     }
 
-    const inputData = {
-      ...solutionData,
-      type,
-      title,
-      description,
-      logo,
-      location,
-      address,
-      room_details,
-      phone,
-      phone,
-      agenda,
-      participants,
-      alarm,
-      feedback,
-      remainder,
-      notification,
-      autostart,
-      playback,
-      prise_de_notes,
-      open_ai_decide,
-      automatic_strategy,
-      automatic_instruction,
-      presentation,
-      whatsapp_in,
-      show_participants,
-      show_discussion,
-      share_by,
-      note_taker,
-      total_time: time,
-      teams: teams?.map((team) => team.id) || [],
-      solution_steps: newformstate?.steps || inputGroups,
-      status: isDuplicate || isUpdated ? "active" : "draft",
-      solution_privacy,
-      solution_privacy_teams:
-        solution_privacy === "team" &&
-          solution_privacy_teams?.length &&
-          typeof solution_privacy_teams[0] === "object"
-          ? solution_privacy_teams.map((team) => team.id)
-          : solution_privacy_teams || [], // Send as-is if IDs are already present
-      solution_privacy_enterprises:
-        solution_privacy === "enterprise" &&
-          solution_privacy_enterprises?.length &&
-          typeof solution_privacy_enterprises[0] === "object"
-          ? solution_privacy_enterprises.map((ent) => ent.id)
-          : solution_privacy_enterprises || [],
-      solution_privacy_missions:
-        solution_privacy === "missions"
-          ? solution_privacy_missions || []
-          : [],
-      solution_privacy_roles:
-        solution_privacy === "roles"
-          ? solution_privacy_roles || []
-          : [],
-      solution_privacy_gates:
-        solution_privacy === "gates"
-          ? solution_privacy_gates || []
-          : [],
-      solution_privacy_subscriptions:
-        solution_privacy === "subscriptions"
-          ? solution_privacy_subscriptions || []
-          : [],
-      solution_password:
-        solution_privacy === "password" ? solution_password : null,
-      _method: "put",
-      solution_id: checkId,
-      add_team: teams?.length > 0 ? true : false,
-      participants: newformstate?.participants || formState.participants || [],
-      date,
-      start_time,
-      repetition,
-      repetition_end_date,
-      selected_days,
-      max_participants_register,
-      price,
-      casting_type,
-      problem_to_resolve,
-      solution_to_bring,
-      how_it_fixes,
-    };
+    let inputData = {};
+    if (!options?.saveAll && activeTab) {
+      inputData = {
+        ...getTabPayload(activeTab, formState, newformstate),
+        _method: "put",
+        solution_id: checkId,
+        status: isDuplicate || isUpdated ? "active" : "draft",
+      };
+    } else {
+      inputData = {
+        ...solutionData,
+        type,
+        title,
+        description,
+        logo,
+        location,
+        address,
+        room_details,
+        phone,
+        phone,
+        agenda,
+        participants,
+        alarm,
+        feedback,
+        remainder,
+        notification,
+        autostart,
+        playback,
+        prise_de_notes,
+        open_ai_decide,
+        automatic_strategy,
+        automatic_translation,
+        automatic_instruction,
+        presentation,
+        whatsapp_in,
+        show_participants,
+        show_discussion,
+        share_by,
+        note_taker,
+        total_time: time,
+        teams: teams?.map((team) => team.id) || [],
+        solution_steps: newformstate?.steps || inputGroups,
+        status: isDuplicate || isUpdated ? "active" : "draft",
+        solution_privacy,
+        solution_privacy_teams:
+          solution_privacy === "team" &&
+            solution_privacy_teams?.length &&
+            typeof solution_privacy_teams[0] === "object"
+            ? solution_privacy_teams.map((team) => team.id)
+            : solution_privacy_teams || [], // Send as-is if IDs are already present
+        solution_privacy_enterprises:
+          solution_privacy === "enterprise" &&
+            solution_privacy_enterprises?.length &&
+            typeof solution_privacy_enterprises[0] === "object"
+            ? solution_privacy_enterprises.map((ent) => ent.id)
+            : solution_privacy_enterprises || [],
+        solution_privacy_missions:
+          solution_privacy === "missions"
+            ? solution_privacy_missions || []
+            : [],
+        solution_privacy_roles:
+          solution_privacy === "roles"
+            ? solution_privacy_roles || []
+            : [],
+        solution_privacy_gates:
+          solution_privacy === "gates"
+            ? solution_privacy_gates || []
+            : [],
+        solution_privacy_subscriptions:
+          solution_privacy === "subscriptions"
+            ? solution_privacy_subscriptions || []
+            : [],
+        solution_password:
+          solution_privacy === "password" ? solution_password : null,
+        _method: "put",
+        solution_id: checkId,
+        add_team: teams?.length > 0 ? true : false,
+        participants: newformstate?.participants || formState.participants || [],
+        date,
+        start_time,
+        repetition,
+        repetition_end_date,
+        selected_days,
+        max_participants_register,
+        price,
+        casting_type,
+        problem_to_resolve,
+        solution_to_bring,
+        how_it_fixes,
+      };
+    }
 
 
     if (isUpdated) {
@@ -856,11 +991,12 @@ export const SolutionFormProvider = ({ children }) => {
             prise_de_notes: "Manual",
             open_ai_decide: false,
 
-            automatic_strategy: false,
-            automatic_instruction: false,
-            whatsapp_in: false,
-            presentation: false,
-            note_taker: false,
+             automatic_strategy: false,
+             automatic_translation: false,
+             automatic_instruction: false,
+             whatsapp_in: false,
+             presentation: false,
+             note_taker: false,
             id: null,
             teams: [],
             solution_privacy: "private",
@@ -910,6 +1046,7 @@ export const SolutionFormProvider = ({ children }) => {
 
         share_by: null,
         automatic_strategy: false,
+        automatic_translation: false,
         automatic_instruction: false,
         whatsapp_in: false,
         presentation: false,
@@ -999,75 +1136,85 @@ export const SolutionFormProvider = ({ children }) => {
         show_discussion,
       } = formState;
 
-      const formFields = [type, title, description];
+      const formFields = [title];
       const hasText = formFields?.some((field) => field?.trim() !== "");
       if (!hasText) {
         toast.error("Veuillez d'abord remplir les champs ci-dessus");
         return;
       }
 
-      const inputData = {
-        ...solution,
-        type,
-        title,
-        description,
-        logo,
-        location,
-        address,
-        room_details,
-        phone,
-        agenda,
-        priority,
-        alarm,
-        feedback,
-        remainder,
-        notification,
-        autostart,
-        playback,
-        prise_de_notes,
-        open_ai_decide,
-        share_by,
-        note_taker,
-        total_time: time,
-        teams: teams?.map((team) => team.id) || [],
-        solution_steps: inputGroups,
-        status: "draft",
-        solution_privacy,
-        solution_privacy_teams:
-          solution_privacy === "team" &&
-            solution_privacy_teams?.length &&
-            typeof solution_privacy_teams[0] === "object"
-            ? solution_privacy_teams.map((team) => team.id)
-            : solution_privacy_teams || [], // Send as-is if IDs are already present
-        solution_privacy_enterprises:
-          solution_privacy === "enterprise" &&
-            solution_privacy_enterprises?.length &&
-            typeof solution_privacy_enterprises[0] === "object"
-            ? solution_privacy_enterprises.map((ent) => ent.id)
-            : solution_privacy_enterprises || [],
-        solution_privacy_missions:
-          solution_privacy === "missions"
-            ? solution_privacy_missions || []
-            : [],
-        solution_privacy_roles:
-          solution_privacy === "roles"
-            ? solution_privacy_roles || []
-            : [],
-        solution_privacy_gates:
-          solution_privacy === "gates"
-            ? solution_privacy_gates || []
-            : [],
-        solution_privacy_subscriptions:
-          solution_privacy === "subscriptions"
-            ? solution_privacy_subscriptions || []
-            : [],
-        solution_password:
-          solution_privacy === "password" ? solution_password : null,
-        _method: "put",
-        solution_id: checkId,
-        show_participants,
-        show_discussion,
-      };
+      let inputData = {};
+      if (activeTab) {
+        inputData = {
+          ...getTabPayload(activeTab, formState, newformstate),
+          _method: "put",
+          solution_id: checkId,
+          status: "draft",
+        };
+      } else {
+        inputData = {
+          ...solution,
+          type,
+          title,
+          description,
+          logo,
+          location,
+          address,
+          room_details,
+          phone,
+          agenda,
+          priority,
+          alarm,
+          feedback,
+          remainder,
+          notification,
+          autostart,
+          playback,
+          prise_de_notes,
+          open_ai_decide,
+          share_by,
+          note_taker,
+          total_time: time,
+          teams: teams?.map((team) => team.id) || [],
+          solution_steps: inputGroups,
+          status: "draft",
+          solution_privacy,
+          solution_privacy_teams:
+            solution_privacy === "team" &&
+              solution_privacy_teams?.length &&
+              typeof solution_privacy_teams[0] === "object"
+              ? solution_privacy_teams.map((team) => team.id)
+              : solution_privacy_teams || [], // Send as-is if IDs are already present
+          solution_privacy_enterprises:
+            solution_privacy === "enterprise" &&
+              solution_privacy_enterprises?.length &&
+              typeof solution_privacy_enterprises[0] === "object"
+              ? solution_privacy_enterprises.map((ent) => ent.id)
+              : solution_privacy_enterprises || [],
+          solution_privacy_missions:
+            solution_privacy === "missions"
+              ? solution_privacy_missions || []
+              : [],
+          solution_privacy_roles:
+            solution_privacy === "roles"
+              ? solution_privacy_roles || []
+              : [],
+          solution_privacy_gates:
+            solution_privacy === "gates"
+              ? solution_privacy_gates || []
+              : [],
+          solution_privacy_subscriptions:
+            solution_privacy === "subscriptions"
+              ? solution_privacy_subscriptions || []
+              : [],
+          solution_password:
+            solution_privacy === "password" ? solution_password : null,
+          _method: "put",
+          solution_id: checkId,
+          show_participants,
+          show_discussion,
+        };
+      }
       //
       try {
         const response = await axios.post(
@@ -1107,11 +1254,12 @@ export const SolutionFormProvider = ({ children }) => {
 
             note_taker: false,
             share_by: null,
-            automatic_strategy: false,
-            automatic_instruction: false,
-            whatsapp_in:false,
-            presentation:false,
-            id: null,
+             automatic_strategy: false,
+             automatic_translation: false,
+             automatic_instruction: false,
+             whatsapp_in:false,
+             presentation:false,
+             id: null,
             teams: [],
             solution_privacy: "private",
             solution_privacy_teams: [],
@@ -1276,6 +1424,7 @@ export const SolutionFormProvider = ({ children }) => {
 
             share_by: null,
             automatic_strategy: false,
+            automatic_translation: false,
             automatic_instruction: false,
             presentation:false,
             whatsapp_in:false,
@@ -1327,6 +1476,12 @@ export const SolutionFormProvider = ({ children }) => {
       type,
       title,
       description,
+      logo,
+      location,
+      address,
+      room_details,
+      phone,
+      agenda,
       alarm,
       feedback,
       remainder,
@@ -1348,6 +1503,24 @@ export const SolutionFormProvider = ({ children }) => {
       solution_password,
       show_participants,
       show_discussion,
+      date,
+      start_time,
+      repetition,
+      repetition_number,
+      repetition_frequency,
+      repetition_end_date,
+      selected_days,
+      max_participants_register,
+      price,
+      casting_type,
+      automatic_strategy,
+      automatic_translation,
+      automatic_instruction,
+      whatsapp_in,
+      presentation,
+      problem_to_resolve,
+      solution_to_bring,
+      how_it_fixes,
     } = formState;
 
     // if (
@@ -1363,61 +1536,94 @@ export const SolutionFormProvider = ({ children }) => {
     setLoading(true);
     setIsCompleted(true);
 
-    const inputData = {
-      ...solution,
-      type,
-      title,
-      description,
-      alarm,
-      feedback,
-      remainder,
-      notification,
-      autostart,
-      prise_de_notes,
-      open_ai_decide,
-      playback,
-      share_by,
-      note_taker,
-      solution_steps: solutionSteps,
-      teams: teams?.map((team) => team.id) || [],
-      // teams:  teams,
-      solution_privacy,
-      // moment_privacy_teams:
-      // moment_privacy === "team" ? moment_privacy_teams : [],
-      solution_privacy_teams:
-        solution_privacy === "team" &&
-          solution_privacy_teams?.length &&
-          typeof solution_privacy_teams[0] === "object"
-          ? solution_privacy_teams.map((team) => team.id)
-          : solution_privacy_teams || [], // Send as-is if IDs are already present
-      solution_privacy_enterprises:
-        solution_privacy === "enterprise" &&
-          solution_privacy_enterprises?.length
-          ? solution_privacy_enterprises.map((ent) => (typeof ent === "object" ? ent.id : ent))
-          : [],
-      solution_privacy_missions:
-        solution_privacy === "missions"
-          ? solution_privacy_missions || []
-          : [],
-      solution_privacy_roles:
-        solution_privacy === "roles"
-          ? solution_privacy_roles || []
-          : [],
-      solution_privacy_gates:
-        solution_privacy === "gates"
-          ? solution_privacy_gates || []
-          : [],
-      solution_privacy_subscriptions:
-        solution_privacy === "subscriptions"
-          ? solution_privacy_subscriptions || []
-          : [],
-      solution_password:
-        solution_privacy === "password" ? solution_password : null,
-      status: "active",
-      show_participants,
-      show_discussion,
-      _method: "put",
-    };
+    let inputData = {};
+    if (activeTab) {
+      inputData = {
+        ...getTabPayload(activeTab, formState),
+        _method: "put",
+        status: "active",
+      };
+    } else {
+      inputData = {
+        ...solution,
+        type,
+        title,
+        description,
+        logo,
+        location,
+        address,
+        room_details,
+        phone,
+        agenda,
+        alarm,
+        feedback,
+        remainder,
+        notification,
+        autostart,
+        prise_de_notes,
+        open_ai_decide,
+        playback,
+        share_by,
+        note_taker,
+        solution_steps: solutionSteps,
+        teams: teams?.map((team) => team.id) || [],
+        // teams:  teams,
+        solution_privacy,
+        // moment_privacy_teams:
+        // moment_privacy === "team" ? moment_privacy_teams : [],
+        solution_privacy_teams:
+          solution_privacy === "team" &&
+            solution_privacy_teams?.length &&
+            typeof solution_privacy_teams[0] === "object"
+            ? solution_privacy_teams.map((team) => team.id)
+            : solution_privacy_teams || [], // Send as-is if IDs are already present
+        solution_privacy_enterprises:
+          solution_privacy === "enterprise" &&
+            solution_privacy_enterprises?.length
+            ? solution_privacy_enterprises.map((ent) => (typeof ent === "object" ? ent.id : ent))
+            : [],
+        solution_privacy_missions:
+          solution_privacy === "missions"
+            ? solution_privacy_missions || []
+            : [],
+        solution_privacy_roles:
+          solution_privacy === "roles"
+            ? solution_privacy_roles || []
+            : [],
+        solution_privacy_gates:
+          solution_privacy === "gates"
+            ? solution_privacy_gates || []
+            : [],
+        solution_privacy_subscriptions:
+          solution_privacy === "subscriptions"
+            ? solution_privacy_subscriptions || []
+            : [],
+        solution_password:
+          solution_privacy === "password" ? solution_password : null,
+        status: "active",
+        show_participants,
+        show_discussion,
+        date,
+        start_time,
+        repetition,
+        repetition_number,
+        repetition_frequency,
+        repetition_end_date,
+        selected_days,
+        max_participants_register,
+        price,
+        casting_type,
+        automatic_strategy,
+        automatic_translation,
+        automatic_instruction,
+        whatsapp_in,
+        presentation,
+        problem_to_resolve,
+        solution_to_bring,
+        how_it_fixes,
+        _method: "put",
+      };
+    }
 
     try {
       const response = await axios.post(
@@ -1485,6 +1691,7 @@ export const SolutionFormProvider = ({ children }) => {
           autostart: false,
           share_by: null,
           automatic_strategy: false,
+          automatic_translation: false,
           prise_de_notes: "Manual",
           open_ai_decide: false,
 
@@ -1527,6 +1734,8 @@ export const SolutionFormProvider = ({ children }) => {
         formState,
         setFormState,
         handleInputBlur,
+        activeTab,
+        setActiveTab,
         checkId,
         setCheckId,
         loading,

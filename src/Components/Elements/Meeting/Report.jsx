@@ -286,8 +286,14 @@ const Report = () => {
         // Meeting starts in less than 1 day - show day view
         setDefaultAgendaView("day");
       } else if (totalDurationDays < 7) {
-        // Meeting starts in less than 1 week - show week view
-        setDefaultAgendaView("week");
+        // If it spans across different calendar weeks, show month view
+        const startWeek = moment(meetingStartDate).startOf("week");
+        const endWeek = moment(meetingEndDate).startOf("week");
+        if (startWeek.isBefore(endWeek)) {
+          setDefaultAgendaView("month");
+        } else {
+          setDefaultAgendaView("week");
+        }
       } else if (totalDurationDays < 30) {
         // Meeting starts in less than 1 month - show month view
         setDefaultAgendaView("month");
@@ -1953,7 +1959,6 @@ const Report = () => {
     setView(newView);
   };
 
-  console.log("destinationDate", destinationDate);
   const rawDeadline = new Date(
     Date.parse(destinationDate?.destination_end_date_time),
   );
@@ -3895,7 +3900,8 @@ const Report = () => {
                                 meetingData?.autostart === "automatic" ||
                                 meetingData?.playback === true ||
                                 meetingData?.notification === true ||
-                                meetingData?.automatic_strategy === true) && (
+                                meetingData?.automatic_strategy === true ||
+                                meetingData?.automatic_translation === true) && (
                                 <div className="row mt-3">
                                   <div className="col-md-12 d-flex align-items-center gap-3 flex-wrap">
                                     {meetingData?.prise_de_notes ===
@@ -4124,6 +4130,34 @@ const Report = () => {
                                           >
                                             {t(
                                               "meeting.formState.Automatic Strategy",
+                                            )}
+                                          </span>
+                                        </div>
+                                      </>
+                                    )}
+
+                                    {meetingData?.automatic_translation ===
+                                      true && (
+                                      <>
+                                        <div>
+                                          <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="25"
+                                            height="24"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                          >
+                                            <path
+                                              d="M12.87 15.07L10.33 12.56L10.36 12.53C12.1 10.59 13.34 8.36 14.07 6H17V4H10V2H8V4H1V6H12.17C11.5 7.92 10.44 9.75 9 11.35C8.07 10.32 7.3 9.19 6.69 8H4.69C5.42 9.63 6.42 11.17 7.67 12.56L2.58 17.58L4 19L9 14L12.11 17.11L12.87 15.07ZM18.5 10H16.5L12 22H14L15.12 19H19.87L21 22H23L18.5 10ZM15.88 17L17.5 12.67L19.12 17H15.88Z"
+                                              fill="#3D57B5"
+                                            />
+                                          </svg>
+                                          <span
+                                            className="solutioncards"
+                                            style={{ color: "#3D57B5" }}
+                                          >
+                                            {t(
+                                              "meeting.formState.Automatic Translation",
                                             )}
                                           </span>
                                         </div>
@@ -5718,7 +5752,8 @@ const Report = () => {
                                 meetingData?.autostart === "automatic" ||
                                 meetingData?.playback === true ||
                                 meetingData?.notification === true ||
-                                meetingData?.automatic_strategy === true) && (
+                                meetingData?.automatic_strategy === true ||
+                                meetingData?.automatic_translation === true) && (
                                 <div className="row mt-3">
                                   <div className="col-md-12 d-flex align-items-center gap-3 flex-wrap">
                                     {meetingData?.prise_de_notes ===
@@ -5947,6 +5982,34 @@ const Report = () => {
                                           >
                                             {t(
                                               "meeting.formState.Automatic Strategy",
+                                            )}
+                                          </span>
+                                        </div>
+                                      </>
+                                    )}
+
+                                    {meetingData?.automatic_translation ===
+                                      true && (
+                                      <>
+                                        <div>
+                                          <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="25"
+                                            height="24"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                          >
+                                            <path
+                                              d="M12.87 15.07L10.33 12.56L10.36 12.53C12.1 10.59 13.34 8.36 14.07 6H17V4H10V2H8V4H1V6H12.17C11.5 7.92 10.44 9.75 9 11.35C8.07 10.32 7.3 9.19 6.69 8H4.69C5.42 9.63 6.42 11.17 7.67 12.56L2.58 17.58L4 19L9 14L12.11 17.11L12.87 15.07ZM18.5 10H16.5L12 22H14L15.12 19H19.87L21 22H23L18.5 10ZM15.88 17L17.5 12.67L19.12 17H15.88Z"
+                                              fill="#3D57B5"
+                                            />
+                                          </svg>
+                                          <span
+                                            className="solutioncards"
+                                            style={{ color: "#3D57B5" }}
+                                          >
+                                            {t(
+                                              "meeting.formState.Automatic Translation",
                                             )}
                                           </span>
                                         </div>
@@ -7672,7 +7735,11 @@ const Report = () => {
                 </button>
               </div>
             ) : null}
-            {!window.location.href.includes("destination") && (
+            {window.location.href.includes("destination") ? (
+              <button className="btn-no" onClick={() => navigate(-1)}>
+                {t("buttons.goBack")}
+              </button>
+            ) : (
               <button className="btn-no" onClick={handleClose}>
                 {t("confirmationModal.close")}
               </button>

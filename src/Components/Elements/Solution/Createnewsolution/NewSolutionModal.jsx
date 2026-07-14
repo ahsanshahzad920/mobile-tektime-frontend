@@ -17,7 +17,6 @@ import { useSteps } from "../../../../context/Step";
 
 const NewSolutionModal = ({ meeting }) => {
   const [t] = useTranslation("global");
-  const [activeTab, setActiveTab] = useState("tab1"); // Local state for tabs
   const [showConfirmation, setShowConfirmation] = useState(false); // State for confirmation modal
   const {
     formState,
@@ -36,6 +35,8 @@ const NewSolutionModal = ({ meeting }) => {
     setCheckId,
     setMeeting,
     setIsUpdated,
+    activeTab,
+    setActiveTab,
   } = useSolutionFormContext();
   const { solutionSteps } = useSteps();
 

@@ -229,7 +229,111 @@
   "contractTabs": {
     "new": "Nouvel Abonnement ",
     "active": "Abonnements en cours",
-    "close": "Abonnements clôturés"
+    "close": "Abonnements clôturés",
+    "solutionTypes": "Type de solution",
+    "stepTypes": "Type de step"
+  },
+  "solutionTypes": {
+    "title": "Types de solution",
+    "newBtn": "Nouveau type de solution",
+    "createBtn": "Créer le type de solution",
+    "editTitle": "Modifier le type de solution",
+    "newTitle": "Nouveau type de solution",
+    "nameLabel": "Nom du type de solution",
+    "namePlaceholder": "ex: Evénement Google Agenda, Newsletter",
+    "logoLabel": "Logo du type de solution",
+    "uploadLogo": "Cliquez pour charger un logo personnalisé",
+    "uploadSub": "PNG, JPG, SVG – max 2 Mo",
+    "removeLogo": "Supprimer le logo",
+    "descLabel": "Description (optionnelle)",
+    "descPlaceholder": "Décrivez à quoi sert ce type de solution...",
+    "linkedLabel": "Type d'étape lié",
+    "selectStepType": "Choisissez un type d'étape...",
+    "privacyLabel": "Confidentialité du type de solution",
+    "deleteTitle": "Supprimer le type de solution",
+    "deleteConfirm": "Êtes-vous sûr de vouloir supprimer",
+    "noDescription": "Aucune description",
+    "noItems": "Aucun type de solution pour le moment",
+    "noItemsDesc": "Créez un nouveau type de solution avec logo, étape liée et restrictions de confidentialité.",
+    "cardView": "Vue Cartes",
+    "listView": "Vue Liste",
+    "linkedStep": "Type d'étape lié",
+    "privacy": {
+      "guide": "Guide uniquement",
+      "admin": "Admin uniquement",
+      "super_admin": "Super Admin uniquement",
+      "master_admin": "Master Admin uniquement"
+    },
+    "stepType": {
+      "Editeur": "Editeur",
+      "Photo": "Photo",
+      "Url": "Youtube Url",
+      "Video": "Vidéo",
+      "Excel": "Excel",
+      "File": "PDF / Fichier"
+    },
+    "toasts": {
+      "nameReq": "Le nom du type de solution est requis.",
+      "logoReq": "Le logo du type de solution est requis.",
+      "stepTypeReq": "Le type d'étape est requis.",
+      "privacyReq": "Le niveau de confidentialité est requis.",
+      "created": "Type de solution créé !",
+      "updated": "Type de solution mis à jour !",
+      "deleted": "Type de solution supprimé.",
+      "deleteFailed": "Échec de la suppression du type de solution."
+    }
+  },
+  "stepTypes": {
+    "title": "Types de step",
+    "newBtn": "Nouveau type de step",
+    "createBtn": "Créer le type de step",
+    "editTitle": "Modifier le type de step",
+    "newTitle": "Nouveau type de step",
+    "nameLabel": "Nom du type de step",
+    "namePlaceholder": "ex: Editeur de texte, Présentation Vidéo",
+    "logoLabel": "Logo du type de step",
+    "uploadLogo": "Cliquez pour charger un logo personnalisé",
+    "uploadSub": "PNG, JPG, SVG – max 2 Mo",
+    "removeLogo": "Supprimer le logo",
+    "descLabel": "Description (optionnelle)",
+    "descPlaceholder": "Décrivez le rôle ou les règles de ce type de step...",
+    "contentTypeLabel": "Type de contenu du step",
+    "logoListMode": "Grille de logos",
+    "dropdownMode": "Liste déroulante",
+    "selectContentType": "Choisissez un type de contenu...",
+    "delayLabel": "Délais autorisés (Unités de temps)",
+    "allowedDelays": "Délais autorisés",
+    "deleteTitle": "Supprimer le type de step",
+    "deleteConfirm": "Êtes-vous sûr de vouloir supprimer",
+    "noDescription": "Aucune description",
+    "noItems": "Aucun type de step pour le moment",
+    "noItemsDesc": "Créez un nouveau type de step pour spécifier le nom, le format du contenu et les délais autorisés.",
+    "cardView": "Vue Cartes",
+    "listView": "Vue Liste",
+    "contentType": {
+      "Editor": "Editeur",
+      "Photos": "Photos",
+      "Videos": "Vidéos",
+      "Excel": "Excel",
+      "Youtube Url": "Youtube Url",
+      "File": "PDF / Fichier"
+    },
+    "delayUnits": {
+      "seconds": "secondes",
+      "minutes": "minutes",
+      "days": "jours",
+      "months": "mois",
+      "years": "années"
+    },
+    "toasts": {
+      "nameReq": "Le nom du type de step est requis.",
+      "contentTypeReq": "Le type de contenu est requis.",
+      "delayReq": "L'unité de temps du délai est requise.",
+      "created": "Type de step créé !",
+      "updated": "Type de step mis à jour !",
+      "deleted": "Type de step supprimé.",
+      "deleteFailed": "Échec de la suppression du type de step."
+    }
   },
   "newContract": {
     "name": "Nom",
@@ -511,6 +615,7 @@
     "formState": {
       "notification": "Notification",
       "Automatic Strategy": "Stratégie automatique",
+      "Automatic Translation": "Traduction automatique",
       "Automatic Instruction": "Instruction automatique",
       "Add": "Ajouter",
       "moment_form_teams": "Équipes",
@@ -634,6 +739,7 @@
       "Lecture playback": "Lecture continue",
       "Hide Participants": "Masquer les participants",
       "Hide Discussion": "Masquer la discussion",
+      "Show QR Code": "Afficher le code QR",
       "Gestion des messages": "Gestion des messages",
       "Autostart": "Démarrage automatique",
       "Beep alarm": "Alarme sonore",
@@ -949,6 +1055,7 @@
     },
     "formState": {
       "Automatic Strategy": "Stratégie automatique",
+      "Automatic Translation": "Traduction automatique",
       "invalidEmailFormat": "Format d'email invalide",
       "postError": "Veuillez entrer le poste",
       "emailError": "Veuillez entrer l'email",
@@ -1204,6 +1311,7 @@
     "job": "Poste",
     "language": "Langue",
     "taxAvg": "Taux journalier moyen ",
+    "taxAvgRegister": "A combien estimez-vous une journée de votre travail ?",
     "Select a language": "Sélectionnez une langue",
     "Generate creation link": "Renvoyer le mail d'inscription",
     "Verify user account": "Vérifier le compte utilisateur",
@@ -1322,6 +1430,7 @@
     "browseFile": "Parcourir le fichier",
     "name": "Nom",
     "fname": "Prenom",
+    "language": "Langue",
     "company": "Entreprise",
     "job": "Poste",
     "nickname": "Pseudo",
@@ -2019,7 +2128,8 @@
     "Processing Notes": "Traitement des notes",
     "Processing Audio": "Traitement audio",
     "Fetching Transcription": "Récupération de la transcription",
-    "Show Timestamps": "Afficher les horodatages"
+    "Show Timestamps": "Afficher les horodatages",
+    "Processing Transcript": "Traduction de la retranscription en cours..."
   },
   "login_to_view_meeting": "Veuillez vous connecter pour accéder à cette page.",
   "private_meeting_msg": "Cette réunion est définie en privé, merci de contacter ",
@@ -2750,6 +2860,11 @@
         "unavailable": "Actuellement indisponible.",
         "most_popular": "Le plus populaire",
         "subscribe": "Tester gratuitement pendant 8 jours",
+        "days_free_trial": "{{count}} jours d'essai gratuit",
+        "day_free_trial": "{{count}} jour d'essai gratuit",
+        "subscribe_trial": "Tester gratuitement pendant {{count}} jours",
+        "subscribe_trial_1": "Tester gratuitement pendant {{count}} jour",
+        "subscribe_now": "S'abonner",
         "contact_sales": "Contacter les ventes",
         "per_month": "par mois",
         "per_year": "par an",
@@ -3730,6 +3845,11 @@
     "annual_billing": "Facturation annuelle",
     "most_popular": "PLUS POPULAIRE",
     "subscribe": "S'abonner",
+    "days_free_trial": "{{count}} jours d'essai gratuit",
+    "day_free_trial": "{{count}} jour d'essai gratuit",
+    "subscribe_trial": "Tester gratuitement pendant {{count}} jours",
+    "subscribe_trial_1": "Tester gratuitement pendant {{count}} jour",
+    "subscribe_now": "S'abonner",
     "contact_sales": "Contacter l'équipe commerciale",
     "loading": "Chargement des forfaits...",
     "unavailable": "Les forfaits ne sont pas disponibles pour le moment.",
@@ -4212,6 +4332,11 @@
     "Restart":"Reprendre",
     "Remaining Places":"Places restantes",
   "destination_home_participants":"Participants",
+  "subscription": {
+    "expired": {
+      "assistant_message": "Bonjour ! Votre période d'essai gratuite est terminée. Pour continuer à profiter de toutes les fonctionnalités de TekTIME, veuillez configurer votre moyen de paiement en cliquant sur le bouton Stripe ci-dessous."
+    }
+  },
   "Monday": "Lundi",
   "Tuesday": "Mardi",
   "Wednesday": "Mercredi",
@@ -4222,4 +4347,8 @@
   "yes": "Oui",
   "no": "Non",
   "planning":"Planning"
+
 }
+
+
+

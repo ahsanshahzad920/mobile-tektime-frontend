@@ -12,8 +12,20 @@ const StripePaymentCompleted = () => {
   const sessionId = searchParams.get("session_id");
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("processing"); // processing, success, error
+  const [meeting, setMeeting] = useState(null);
   const [t] = useTranslation("global");
   const navigate = useNavigate();
+
+  // Après un paiement réussi, renvoyer le client vers la page publique de
+  // l'événement (au lieu de navigate(-1) qui le ramenait sur Stripe). La page
+  // événement recharge ses données -> places restantes à jour + inscrit visible.
+  const goToEvent = () => {
+    if (meeting?.unique_id && meeting?.id) {
+      window.location.href = `/destination/${meeting.unique_id}/${meeting.id}`;
+    } else {
+      navigate(-1);
+    }
+  };
 
   useEffect(() => {
     const verifySession = async () => {
@@ -42,6 +54,7 @@ const StripePaymentCompleted = () => {
         );
 
         if (response.data?.success || response.status === 200) {
+          if (response.data?.meeting) setMeeting(response.data.meeting);
           setStatus("success");
         } else {
           setStatus("error");
@@ -56,6 +69,17 @@ const StripePaymentCompleted = () => {
 
     verifySession();
   }, [sessionId]);
+
+  // Redirection automatique vers la page de l'événement ~2,5 s après le succès
+  // (laisse le temps de voir la confirmation de paiement).
+  useEffect(() => {
+    if (status === "success" && meeting?.unique_id && meeting?.id) {
+      const timer = setTimeout(() => {
+        window.location.href = `/destination/${meeting.unique_id}/${meeting.id}`;
+      }, 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [status, meeting]);
 
   return (
     <div 
@@ -99,13 +123,13 @@ const StripePaymentCompleted = () => {
                 {t("stripe_payment.success_text")}
               </p>
               <div className="mt-5">
-                <Button 
-                  onClick={() => navigate(-1)}
-                  style={{ 
-                    backgroundColor: "#635BFF", 
-                    border: "none", 
-                    borderRadius: "12px", 
-                    padding: "12px 40px", 
+                <Button
+                  onClick={goToEvent}
+                  style={{
+                    backgroundColor: "#635BFF",
+                    border: "none",
+                    borderRadius: "12px",
+                    padding: "12px 40px",
                     fontWeight: "600",
                     fontSize: "1.05rem",
                     boxShadow: "0 4px 14px rgba(99, 91, 255, 0.4)"

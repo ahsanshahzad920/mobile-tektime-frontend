@@ -665,9 +665,32 @@ const TeamCard = ({
                           <small className="text-muted d-flex align-items-center justify-content-center">
                             {t("Subscriptions End of date")}: &nbsp;
                             <FaCalendar className="me-1" />
-                            {moment(enterprise?.contract?.end_date).format(
-                              "DD/MM/YYYY"
-                            )}
+                            {(() => {
+                              const subscriptions = enterprise?.client?.active_subscription || enterprise?.created_by?.active_subscription;
+                              const latestSub = subscriptions && subscriptions.length > 0 
+                                ? subscriptions[subscriptions.length - 1] 
+                                : null;
+                                
+                              if (latestSub && latestSub.ends_at && latestSub.ends_at !== latestSub.starts_at) {
+                                return new Date(latestSub.ends_at).toLocaleDateString("fr-FR");
+                              }
+                              
+                              const startDate = latestSub?.starts_at || enterprise?.created_at;
+                              if (!startDate) return "-";
+                              
+                              const date = new Date(startDate);
+                              const months = {
+                                "Annuelle (12 mois)": 12,
+                                "Mensuelle (1 mois)": 1,
+                                "Trimestrielle (3 mois)": 3,
+                                "Semestrielle  (6 mois)": 6,
+                              }[enterprise?.contract?.payment_type];
+                              
+                              if (!months) return new Date(startDate).toLocaleDateString("fr-FR");
+                              
+                              date.setMonth(date.getMonth() + months);
+                              return date.toLocaleDateString("fr-FR");
+                            })()}
                           </small>
                         </div>
                       )}

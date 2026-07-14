@@ -313,7 +313,7 @@ const ReactCalendar = ({
       if (minDate && maxDate) {
         const startLimit = moment(minDate).startOf("day");
         const endLimit = moment(maxDate).endOf("day");
-        if (newView === Views.AGENDA) {
+        if (newView === Views.AGENDA || newView === Views.MONTH) {
           targetDate = startLimit.toDate();
         } else {
           if (moment(today).isBefore(startLimit)) {
@@ -341,6 +341,13 @@ const ReactCalendar = ({
     if (minDate && maxDate) {
       const startLimit = moment(minDate).startOf("day");
       const endLimit = moment(maxDate).endOf("day");
+
+      // For Agenda and Month views, always start from the start of the mission (minDate)
+      if (currentView === Views.AGENDA || currentView === Views.MONTH) {
+        setCurrentStartDate(startLimit.toDate());
+        return;
+      }
+
       const current = moment(currentStartDate);
 
       if (current.isBefore(startLimit) || current.isAfter(endLimit)) {
@@ -493,10 +500,14 @@ const ReactCalendar = ({
       if (minDate && maxDate) {
         const startLimit = moment(minDate).startOf("day");
         const endLimit = moment(maxDate).endOf("day");
-        if (moment(currentDate).isBefore(startLimit)) {
+        if (currentView === Views.AGENDA) {
           targetDate = startLimit.toDate();
-        } else if (moment(currentDate).isAfter(endLimit)) {
-          targetDate = endLimit.toDate();
+        } else {
+          if (moment(currentDate).isBefore(startLimit)) {
+            targetDate = startLimit.toDate();
+          } else if (moment(currentDate).isAfter(endLimit)) {
+            targetDate = endLimit.toDate();
+          }
         }
       }
 
@@ -513,6 +524,10 @@ const ReactCalendar = ({
       setMax(endOfWeek);
       setMyEventsList([]);
       setOverlappingSlots(new Set());
+    }
+
+    if (currentView === Views.AGENDA && minDate) {
+      setCurrentStartDate(moment(minDate).startOf("day").toDate());
     }
   }, [meetings, currentView, defaultView, minDate, maxDate]);
 
@@ -756,6 +771,32 @@ const ReactCalendar = ({
 
   const handleViewChange = (view) => {
     setCurrentView(view);
+    if (view === Views.AGENDA || view === Views.MONTH) {
+      if (minDate) {
+        setCurrentStartDate(moment(minDate).startOf("day").toDate());
+      }
+    } else {
+      const today = new Date();
+      let targetDate = today;
+      if (minDate && maxDate) {
+        const startLimit = moment(minDate).startOf("day");
+        const endLimit = moment(maxDate).endOf("day");
+        if (moment(today).isBefore(startLimit)) {
+          targetDate = startLimit.toDate();
+        } else if (moment(today).isAfter(endLimit)) {
+          targetDate = endLimit.toDate();
+        }
+      }
+      if (view === Views.WEEK) {
+        setCurrentStartDate(moment(targetDate).startOf("week").toDate());
+      } else if (view === Views.MONTH) {
+        setCurrentStartDate(moment(targetDate).startOf("month").toDate());
+      } else if (view === Views.DAY) {
+        setCurrentStartDate(moment(targetDate).startOf("day").toDate());
+      } else {
+        setCurrentStartDate(targetDate);
+      }
+    }
   };
 
   // Custom navigation restrictor

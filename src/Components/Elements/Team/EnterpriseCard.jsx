@@ -23,7 +23,8 @@ import {
   FaBell,
   FaSun,
   FaMoon,
-  FaSyncAlt
+  FaSyncAlt,
+  FaCalendar
 } from "react-icons/fa";
 
 
@@ -1070,6 +1071,75 @@ const EnterpriseCard = ({ enterprise, loading,getEnterpriseClient }) => {
                           : t("team.member")}
                       </span>
                     </div>
+
+                    {/* Start Date */}
+                    <div className="d-flex align-items-center justify-content-center mb-3 text-muted">
+                      <FaCalendarAlt className="me-2 text-primary opacity-75" />
+                      <span className="small">
+                        {(() => {
+                          const subscriptions = enterprise?.client?.active_subscription || enterprise?.created_by?.active_subscription;
+                          const latestSub = subscriptions && subscriptions.length > 0 
+                            ? subscriptions[subscriptions.length - 1] 
+                            : null;
+                          
+                          if (latestSub && latestSub.starts_at) {
+                            return new Date(latestSub.starts_at).toLocaleDateString("fr-FR");
+                          }
+                          return enterprise?.created_at ? new Date(enterprise.created_at).toLocaleDateString("fr-FR") : "-";
+                        })()}
+                      </span>
+                    </div>
+
+                    {/* End Date */}
+                    <div className="d-flex align-items-center justify-content-center mb-4 text-muted">
+                      <FaCalendar className="me-2 text-primary opacity-75" />
+                      <span className="small">
+                        {(() => {
+                          const subscriptions = enterprise?.client?.active_subscription || enterprise?.created_by?.active_subscription;
+                          const latestSub = subscriptions && subscriptions.length > 0 
+                            ? subscriptions[subscriptions.length - 1] 
+                            : null;
+                            
+                          if (latestSub && latestSub.ends_at && latestSub.ends_at !== latestSub.starts_at) {
+                            return new Date(latestSub.ends_at).toLocaleDateString("fr-FR");
+                          }
+                          
+                          const startDate = latestSub?.starts_at || enterprise?.created_at;
+                          if (!startDate) return "-";
+                          
+                          const date = new Date(startDate);
+                          const months = {
+                            "Annuelle (12 mois)": 12,
+                            "Mensuelle (1 mois)": 1,
+                            "Trimestrielle (3 mois)": 3,
+                            "Semestrielle  (6 mois)": 6,
+                          }[enterprise?.contract?.payment_type];
+                          
+                          if (!months) return new Date(startDate).toLocaleDateString("fr-FR");
+                          
+                          date.setMonth(date.getMonth() + months);
+                          return date.toLocaleDateString("fr-FR");
+                        })()}
+                      </span>
+                    </div>
+
+                    {/* Trial Date */}
+                    {(() => {
+                      const subscriptions = enterprise?.client?.active_subscription || enterprise?.created_by?.active_subscription;
+                      const actualTrial = subscriptions?.slice().reverse().find(s => s.status === 'trialing' || (s.status === 'expired' && s.stripe_subscription_id === null));
+                      
+                      if (actualTrial && actualTrial.ends_at) {
+                          return (
+                            <div className="d-flex align-items-center justify-content-center mb-3">
+                              <FaCalendarAlt className="me-2 text-danger opacity-75" />
+                              <span className="small text-danger fw-bold">
+                                Fin d'essai : {new Date(actualTrial.ends_at).toLocaleDateString("fr-FR")}
+                              </span>
+                            </div>
+                          );
+                      }
+                      return null;
+                    })()}
                   </div>
 
                   <div className="w-100 mt-3">

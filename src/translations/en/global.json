@@ -273,7 +273,111 @@
   "contractTabs": {
     "new": "New Subscription",
     "active": "Current subscriptions",
-    "close": "Subscriptions closed"
+    "close": "Subscriptions closed",
+    "solutionTypes": "Solution type",
+    "stepTypes": "Step types"
+  },
+  "solutionTypes": {
+    "title": "Solution types",
+    "newBtn": "New Solution Type",
+    "createBtn": "Create Solution Type",
+    "editTitle": "Edit Solution Type",
+    "newTitle": "New Solution Type",
+    "nameLabel": "Solution Type Name",
+    "namePlaceholder": "e.g. Google Agenda Event, Newsletter",
+    "logoLabel": "Solution Type Logo",
+    "uploadLogo": "Click to upload custom logo",
+    "uploadSub": "PNG, JPG, SVG – max 2 MB",
+    "removeLogo": "Remove logo",
+    "descLabel": "Description (optional)",
+    "descPlaceholder": "Describe what this solution type is used for...",
+    "linkedLabel": "Step Type Linked",
+    "selectStepType": "Choose a step type...",
+    "privacyLabel": "Solution Type Privacy",
+    "deleteTitle": "Delete Solution Type",
+    "deleteConfirm": "Are you sure you want to delete",
+    "noDescription": "No description",
+    "noItems": "No Solution Types Yet",
+    "noItemsDesc": "Create a new solution type with logo, linked step, and privacy constraints.",
+    "cardView": "Card View",
+    "listView": "List View",
+    "linkedStep": "Linked Step Type",
+    "privacy": {
+      "guide": "Guide only",
+      "admin": "Admin only",
+      "super_admin": "Super Admin only",
+      "master_admin": "Master Admin only"
+    },
+    "stepType": {
+      "Editeur": "Editor",
+      "Photo": "Photo",
+      "Url": "Youtube Url",
+      "Video": "Video",
+      "Excel": "Excel",
+      "File": "PDF / File"
+    },
+    "toasts": {
+      "nameReq": "Solution type name is required.",
+      "logoReq": "Solution type logo is required.",
+      "stepTypeReq": "Step type is required.",
+      "privacyReq": "Privacy level is required.",
+      "created": "Solution type created!",
+      "updated": "Solution type updated!",
+      "deleted": "Solution type deleted.",
+      "deleteFailed": "Failed to delete solution type."
+    }
+  },
+  "stepTypes": {
+    "title": "Step types",
+    "newBtn": "New Step Type",
+    "createBtn": "Create Step Type",
+    "editTitle": "Edit Step Type",
+    "newTitle": "New Step Type",
+    "nameLabel": "Step Type Name",
+    "namePlaceholder": "e.g. Rich Text Editor, Video Presentation",
+    "logoLabel": "Step Type Logo",
+    "uploadLogo": "Click to upload custom logo",
+    "uploadSub": "PNG, JPG, SVG – max 2 MB",
+    "removeLogo": "Remove logo",
+    "descLabel": "Description (optional)",
+    "descPlaceholder": "Describe the purpose or rules of this step type...",
+    "contentTypeLabel": "Step Content Type",
+    "logoListMode": "Logo Grid",
+    "dropdownMode": "Dropdown",
+    "selectContentType": "Choose a content type...",
+    "delayLabel": "Allowed Delays (Time Units)",
+    "allowedDelays": "Allowed Delays",
+    "deleteTitle": "Delete Step Type",
+    "deleteConfirm": "Are you sure you want to delete",
+    "noDescription": "No description",
+    "noItems": "No Step Types Yet",
+    "noItemsDesc": "Create a new step type to specify name, content type format, and allowed delay increments.",
+    "cardView": "Card View",
+    "listView": "List View",
+    "contentType": {
+      "Editor": "Editor",
+      "Photos": "Photos",
+      "Videos": "Videos",
+      "Excel": "Excel",
+      "Youtube Url": "Youtube Url",
+      "File": "PDF / File"
+    },
+    "delayUnits": {
+      "seconds": "seconds",
+      "minutes": "minutes",
+      "days": "days",
+      "months": "months",
+      "years": "years"
+    },
+    "toasts": {
+      "nameReq": "Step type name is required.",
+      "contentTypeReq": "Content type is required.",
+      "delayReq": "Delay time unit is required.",
+      "created": "Step type created!",
+      "updated": "Step type updated!",
+      "deleted": "Step type deleted.",
+      "deleteFailed": "Failed to delete step type."
+    }
   },
   "newContract": {
     "name": "Name",
@@ -553,6 +657,7 @@
     },
     "formState": {
       "Automatic Strategy": "Automatic Strategy",
+      "Automatic Translation": "Automatic Translation",
       "Automatic Instruction": "Automatic Instruction",
       "notification": "Notification",
       "Add": "Add",
@@ -676,6 +781,7 @@
       "Lecture playback": "Lecture playback",
       "Hide Participants": "Hide Participants",
       "Hide Discussion": "Hide Discussion",
+      "Show QR Code": "Show QR Code",
       "Gestion des messages": "Message Management",
       "Autostart": "Autostart",
       "Beep alarm": "Beep alarm",
@@ -991,6 +1097,7 @@
     },
     "formState": {
       "Automatic Strategy": "Automatic Strategy",
+      "Automatic Translation": "Automatic Translation",
       "invalidEmailFormat": "Invalid email format",
       "destination": "Please select a mission",
       "postError": "Please enter the post",
@@ -1246,6 +1353,7 @@
     "job": "Job",
     "language": "Language",
     "taxAvg": "Average daily rate",
+    "taxAvgRegister": "How much do you estimate a day of your work ?",
     "Select a language": "Select a language",
     "Generate creation link": "Resend the registration email",
     "Verify user account": "Verify user account",
@@ -1364,6 +1472,7 @@
     "browseFile": "Browse File",
     "name": "Last name",
     "fname": "First name",
+    "language": "Language",
     "company": "Enterprise",
     "job": "Job",
     "nickname": "Pseudo",
@@ -2060,7 +2169,8 @@
     "Processing Notes": "Processing Notes",
     "Processing Audio": "Processing Audio",
     "Fetching Transcription": "Fetching Transcription",
-    "Show Timestamps": "Show Timestamps"
+    "Show Timestamps": "Show Timestamps",
+    "Processing Transcript": "Translating transcript..."
   },
   "login_to_view_meeting": "Please log in to view meeting.",
   "private_meeting_msg": "This meeting is set to private, thanks to contact ",
@@ -2789,6 +2899,11 @@
     "unavailable": "Currently unavailable.",
     "most_popular": "Most Popular",
     "subscribe": "Try it free for 8 days",
+    "days_free_trial": "{{count}} days free trial",
+    "day_free_trial": "{{count}} day free trial",
+    "subscribe_trial": "Try it free for {{count}} days",
+    "subscribe_trial_1": "Try it free for {{count}} day",
+    "subscribe_now": "Subscribe",
     "contact_sales": "Contact Sales",
     "per_month": "per month",
     "per_year": "per year",
@@ -3776,6 +3891,11 @@
     "annual_billing": "Annual billing",
     "most_popular": "MOST POPULAR",
     "subscribe": "Subscribe",
+    "days_free_trial": "{{count}} days free trial",
+    "day_free_trial": "{{count}} day free trial",
+    "subscribe_trial": "Try it free for {{count}} days",
+    "subscribe_trial_1": "Try it free for {{count}} day",
+    "subscribe_now": "Subscribe",
     "contact_sales": "Contact Sales",
     "loading": "Loading plans...",
     "unavailable": "Pricing plans are currently unavailable.",
@@ -4238,6 +4358,11 @@
     "message_line2": "When it's ready you will automatically go in the meeting"
   },
   "destination_home_participants":"Participants",
+  "subscription": {
+    "expired": {
+      "assistant_message": "Hello! Your free trial period has ended. To continue using all features of TekTIME, please set up your payment method using the secure Stripe button below."
+    }
+  },
   "Monday": "Monday",
   "Tuesday": "Tuesday",
   "Wednesday": "Wednesday",

@@ -76,6 +76,7 @@ const Tabs = ({ quick }) => {
     callDestination,
     setFormState,
   } = useFormContext();
+  const { user: loggedInUser } = useHeaderTitle();
   const [showMomentForm, setShowMomentForm] = useState(false);
 const navigate = useNavigate();
   const [t, i18n] = useTranslation("global");
@@ -626,8 +627,14 @@ const navigate = useNavigate();
         // Meeting starts in less than 1 day - show day view
         setDefaultAgendaView("day");
       } else if (totalDurationDays < 7) {
-        // Meeting starts in less than 1 week - show week view
-        setDefaultAgendaView("week");
+        // If it spans across different calendar weeks, show month view
+        const startWeek = moment(meetingStartDate).startOf("week");
+        const endWeek = moment(meetingEndDate).startOf("week");
+        if (startWeek.isBefore(endWeek)) {
+          setDefaultAgendaView("month");
+        } else {
+          setDefaultAgendaView("week");
+        }
       } else if (totalDurationDays < 30) {
         // Meeting starts in less than 1 month - show month view
         setDefaultAgendaView("month");
@@ -2151,7 +2158,7 @@ const navigate = useNavigate();
                     meetingId={meetings?.length > 0 ? meetings[0].id : null}
                     meetingsData={meetings}
                     isOutlook={false}
-                    userData={userData}
+                    userData={loggedInUser}
                     onMeetingsUpdate={(updatedMeetings) => {
                       setMeetings((prev) =>
                         prev.map((m) => {

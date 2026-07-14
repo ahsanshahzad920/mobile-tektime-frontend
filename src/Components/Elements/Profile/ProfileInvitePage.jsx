@@ -888,7 +888,7 @@ const ProfileInvitePage = () => {
                             </div>
                           </div>
                           {/* New button feedback */}
-                          <div className="d-flex justify-content-center mt-4">
+                          {/* <div className="d-flex justify-content-center mt-4">
                             <button
                               className="show-save-profile d-block"
                               onClick={handleShow}
@@ -896,7 +896,7 @@ const ProfileInvitePage = () => {
                               <FaCloudDownloadAlt size={18} /> &nbsp;{" "}
                               {t("Add to my contact")}
                             </button>
-                          </div>
+                          </div> */}
                           <Card.Title className="text-center mt-4 card-heading">
                             {user?.name} {user?.last_name}
                           </Card.Title>

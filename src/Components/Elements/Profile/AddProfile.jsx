@@ -64,6 +64,77 @@ import { IoImages } from "react-icons/io5";
 import ImageEditorModal from "../Invities/ImageEditorModal";
 import { CiSettings } from "react-icons/ci";
 
+const languagesWithISO = [
+  { name: "English", code: "en", flag: "🇬🇧" },
+  { name: "Spanish", code: "es", flag: "🇪🇸" },
+  { name: "French", code: "fr", flag: "🇫🇷" },
+  { name: "German", code: "de", flag: "🇩🇪" },
+  { name: "Chinese", code: "zh", flag: "🇨🇳" },
+  { name: "Japanese", code: "ja", flag: "🇯🇵" },
+  { name: "Korean", code: "ko", flag: "🇰🇷" },
+  { name: "Hindi", code: "hi", flag: "🇮🇳" },
+  { name: "Arabic", code: "ar", flag: "🇸🇦" },
+  { name: "Portuguese", code: "pt", flag: "🇵🇹" },
+  { name: "Russian", code: "ru", flag: "🇷🇺" },
+  { name: "Italian", code: "it", flag: "🇮🇹" },
+  { name: "Dutch", code: "nl", flag: "🇳🇱" },
+  { name: "Swedish", code: "sv", flag: "🇸🇪" },
+  { name: "Norwegian", code: "no", flag: "🇳🇴" },
+  { name: "Turkish", code: "tr", flag: "🇹🇷" },
+  { name: "Bengali", code: "bn", flag: "🇧🇩" },
+  { name: "Urdu", code: "ur", flag: "🇵🇰" },
+  { name: "Vietnamese", code: "vi", flag: "🇻🇳" },
+  { name: "Polish", code: "pl", flag: "🇵🇱" },
+  { name: "Romanian", code: "ro", flag: "🇷🇴" },
+  { name: "Greek", code: "el", flag: "🇬🇷" },
+  { name: "Hungarian", code: "hu", flag: "🇭🇺" },
+  { name: "Czech", code: "cs", flag: "🇨🇿" },
+  { name: "Thai", code: "th", flag: "🇹🇭" },
+  { name: "Filipino", code: "fil", flag: "🇵🇭" },
+  { name: "Indonesian", code: "id", flag: "🇮🇩" },
+  { name: "Malay", code: "ms", flag: "🇲🇾" },
+  { name: "Finnish", code: "fi", flag: "🇫🇮" },
+  { name: "Hebrew", code: "he", flag: "🇮🇱" },
+  { name: "Danish", code: "da", flag: "🇩🇰" },
+  { name: "Icelandic", code: "is", flag: "🇮🇸" },
+  { name: "Serbian", code: "sr", flag: "🇷🇸" },
+  { name: "Croatian", code: "hr", flag: "🇭🇷" },
+  { name: "Slovak", code: "sk", flag: "🇸🇰" },
+  { name: "Bulgarian", code: "bg", flag: "🇧🇬" },
+  { name: "Ukrainian", code: "uk", flag: "🇺🇦" },
+  { name: "Persian", code: "fa", flag: "🇮🇷" },
+  { name: "Swahili", code: "sw", flag: "🇰🇪" },
+  { name: "Zulu", code: "zu", flag: "🇿🇦" },
+  { name: "Xhosa", code: "xh", flag: "🇿🇦" },
+  { name: "Amharic", code: "am", flag: "🇪🇹" },
+  { name: "Tamil", code: "ta", flag: "🇮🇳" },
+  { name: "Telugu", code: "te", flag: "🇮🇳" },
+  { name: "Marathi", code: "mr", flag: "🇮🇳" },
+  { name: "Punjabi", code: "pa", flag: "🇮🇳" },
+  { name: "Gujarati", code: "gu", flag: "🇮🇳" },
+  { name: "Kannada", code: "kn", flag: "🇮🇳" },
+  { name: "Malayalam", code: "ml", flag: "🇮🇳" },
+  { name: "Sinhala", code: "si", flag: "🇱🇰" },
+  { name: "Burmese", code: "my", flag: "🇲🇲" },
+  { name: "Khmer", code: "km", flag: "🇰🇭" },
+  { name: "Lao", code: "lo", flag: "🇱🇦" },
+  { name: "Mongolian", code: "mn", flag: "🇲🇳" },
+  { name: "Tajik", code: "tg", flag: "🇹🇯" },
+  { name: "Uzbek", code: "uz", flag: "🇺🇿" },
+  { name: "Kazakh", code: "kk", flag: "🇰🇿" },
+  { name: "Haitian Creole", code: "ht", flag: "🇭🇹" },
+  { name: "Albanian", code: "sq", flag: "🇦🇱" },
+  { name: "Bosnian", code: "bs", flag: "🇧🇦" },
+  { name: "Georgian", code: "ka", flag: "🇬🇪" },
+  { name: "Azerbaijani", code: "az", flag: "🇦🇿" },
+  { name: "Farsi", code: "fa", flag: "🇮🇷" },
+  { name: "Pashto", code: "ps", flag: "🇦🇫" },
+  { name: "Somali", code: "so", flag: "🇸🇴" },
+  { name: "Tigrinya", code: "ti", flag: "🇪🇷" },
+  { name: "Yoruba", code: "yo", flag: "🇳🇬" },
+  { name: "Igbo", code: "ig", flag: "🇳🇬" },
+];
+
 const AddProfile = ({ user, teams, refreshUserData, isLoading, setView }) => {
   const {
     formState,
@@ -1219,6 +1290,7 @@ const AddProfile = ({ user, teams, refreshUserData, isLoading, setView }) => {
       formDataInstance.append("post", formData.post || "");
       formDataInstance.append("role_id", user?.role_id || "");
       formDataInstance.append("timezone",  userTimeZone || "Europe/Paris");
+      formDataInstance.append("language", formData.language || "");
 
 
       // socialLinks.forEach((link, index) => {
@@ -1459,7 +1531,7 @@ const AddProfile = ({ user, teams, refreshUserData, isLoading, setView }) => {
   };
 
   const [activeKey, setActiveKey] = useState("personalInfo");
- const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState({
     name: "",
     last_name: "",
     nick_name: "",
@@ -1472,6 +1544,7 @@ const AddProfile = ({ user, teams, refreshUserData, isLoading, setView }) => {
     needs: [],
     profile: "",
     address: "",
+    language: "",
   });
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -1523,6 +1596,30 @@ const AddProfile = ({ user, teams, refreshUserData, isLoading, setView }) => {
     label: team.name,
   }));
 
+  const languageOptions = languagesWithISO.map((lang) => ({
+    value: lang.code,
+    label: lang.name,
+    flag: lang.flag,
+  }));
+
+  const selectedLanguageOption = languageOptions.find(
+    (option) => option.value === formData.language
+  ) || null;
+
+  const handleLanguageSelectChange = (selectedOption) => {
+    setFormData({
+      ...formData,
+      language: selectedOption ? selectedOption.value : "",
+    });
+  };
+
+  const formatOptionLabel = ({ label, flag }) => (
+    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+      <span style={{ fontSize: "18px" }}>{flag}</span>
+      <span>{label}</span>
+    </div>
+  );
+
   useEffect(() => {
     if (user || teams) {
       setProfile(user?.image);
@@ -1542,6 +1639,7 @@ const AddProfile = ({ user, teams, refreshUserData, isLoading, setView }) => {
         needs: user?.user_needs?.map((need) => need.need),
         job: user?.job,
         address: user?.address || "",
+        language: user?.language || "",
       });
       setTitle(user?.title);
       setSelectedTeams(
@@ -1600,6 +1698,7 @@ const AddProfile = ({ user, teams, refreshUserData, isLoading, setView }) => {
     visibility: visibility,
     title: title,
     address: formData.address,
+    language: formData.language,
   };
 
   if (visibility === "team") {
@@ -1674,6 +1773,7 @@ const AddProfile = ({ user, teams, refreshUserData, isLoading, setView }) => {
       formDataInstance.append("address", formData.address || "");
       formDataInstance.append("role_id", user?.role_id || "");
       formDataInstance.append("timezone",  userTimeZone || "Europe/Paris");
+      formDataInstance.append("language", formData.language || "");
 
       socialLinks.forEach((link, index) => {
         if (link.id) {
@@ -1889,6 +1989,7 @@ const AddProfile = ({ user, teams, refreshUserData, isLoading, setView }) => {
       formDataInstance.append("address", formData.address || "");
       formDataInstance.append("role_id", user?.role_id || "");
       formDataInstance.append("timezone",  userTimeZone || "Europe/Paris");
+      formDataInstance.append("language", formData.language || "");
 
       socialLinks?.forEach((link, index) => {
         if (link.id) {
@@ -2425,6 +2526,24 @@ const AddProfile = ({ user, teams, refreshUserData, isLoading, setView }) => {
                                   }
                                   value={selectedTeams}
                                   onChange={handleSelectInputChange}
+                                />
+                              </Form.Group>
+                            </Col>
+                          </Row>
+
+                          <Row>
+                            <Col md={6}>
+                              <Form.Group className="mb-3">
+                                <Form.Label>{t("profile.language")}</Form.Label>
+                                <Select
+                                  className="react-select"
+                                  id="languageSelect"
+                                  name="language"
+                                  options={languageOptions}
+                                  value={selectedLanguageOption}
+                                  onChange={handleLanguageSelectChange}
+                                  formatOptionLabel={formatOptionLabel}
+                                  placeholder={t("user.Select a language") || "Select a language..."}
                                 />
                               </Form.Group>
                             </Col>

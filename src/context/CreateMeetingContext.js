@@ -10,9 +10,9 @@ import { API_BASE_URL } from "../Components/Apicongfig";
 import { toast } from "react-toastify";
 import axios from "axios";
 import { useTranslation } from "react-i18next";
-import { useGoogleLogin } from "@react-oauth/google";
 import { useSteps } from "./Step";
 import { useMeetings } from "./MeetingsContext";
+import { useGoogleLogin } from "@react-oauth/google";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSolutionFormContext } from "./CreateSolutionContext";
 import { useHeaderTitle } from "./HeaderTitleContext";
@@ -176,11 +176,13 @@ export const FormProvider = ({ children }) => {
     destination_type_id: null,
     open_ai_decide: false,
     automatic_strategy: false,
+    automatic_translation: false,
     automatic_instruction: false,
     whatsapp_in: false,
     presentation: false,
     show_participants: false,
     show_discussion: false,
+    show_qr_code: false,
   });
 
   // Function to get the user's current time dynamically
@@ -279,11 +281,13 @@ export const FormProvider = ({ children }) => {
       solution_tab: "use a template",
       open_ai_decide: false,
       automatic_strategy: false,
+      automatic_translation: false,
       automatic_instruction: false,
       whatsapp_in: false,
       presentation: false,
       show_participants: false,
       show_discussion: false,
+      show_qr_code: false,
       destination_type: null,
       destination_type_id: null,
     });
@@ -580,11 +584,13 @@ export const FormProvider = ({ children }) => {
       price: Number(formState.price),
       max_participants_register: Number(formState.max_participants_register),
       automatic_strategy: formState.automatic_strategy || false,
+      automatic_translation: formState.automatic_translation || false,
       automatic_instruction: formState.automatic_instruction || false,
       whatsapp_in: formState.whatsapp_in || false,
       presentation: formState.presentation || false,
       show_participants: formState.show_participants || false,
       show_discussion: formState.show_discussion || false,
+      show_qr_code: formState.show_qr_code || false,
       destination_type: formState.destination_type || null,
       destination_type_id: formState.destination_type_id || null,
     };
@@ -663,11 +669,13 @@ export const FormProvider = ({ children }) => {
       destination_type_id,
       open_ai_decide,
       automatic_strategy,
+      automatic_translation,
       automatic_instruction,
       whatsapp_in,
       presentation,
       show_participants,
-      show_discussion
+      show_discussion,
+      show_qr_code
     } = formState;
     const repetitionFields = repetition
       ? {
@@ -767,12 +775,13 @@ export const FormProvider = ({ children }) => {
       destination_type_id: destination_type_id || null,
       open_ai_decide: open_ai_decide || false,
       automatic_strategy: automatic_strategy || false,
+      automatic_translation: automatic_translation || false,
       automatic_instruction: automatic_instruction || false,
       whatsapp_in: whatsapp_in || false,
       presentation: presentation || false,
       show_participants: show_participants || false,
-      show_discussion: show_discussion || false
-
+      show_discussion: show_discussion || false,
+      show_qr_code: show_qr_code || false,
     };
 
     if (isDuplicate) {
@@ -876,11 +885,13 @@ export const FormProvider = ({ children }) => {
       destination_type_id,
       open_ai_decide,
       automatic_strategy,
+      automatic_translation,
       automatic_instruction,
       whatsapp_in,
       presentation,
       show_participants,
-      show_discussion
+      show_discussion,
+      show_qr_code
     } = formState;
     const repetitionFields = repetition
       ? {
@@ -976,11 +987,13 @@ export const FormProvider = ({ children }) => {
       destination_type_id: destination_type_id || null,
       open_ai_decide: open_ai_decide || false,
       automatic_strategy: automatic_strategy || false,
+      automatic_translation: automatic_translation || false,
       automatic_instruction: automatic_instruction || false,
       whatsapp_in: whatsapp_in || false,
       presentation: presentation || false,
       show_participants: show_participants || false,
       show_discussion: show_discussion || false,
+      show_qr_code: show_qr_code || false,
     };
 
     if (isUpdated) {
@@ -1124,11 +1137,13 @@ export const FormProvider = ({ children }) => {
             price: null,
             max_participants_register: 0,
             automatic_strategy: false,
+            automatic_translation: false,
             automatic_instruction: false, 
             whatsapp_in: false, 
             presentation: false,
             show_participants: false,
             show_discussion: false,
+            show_qr_code: false,
             
             casting_tab: null,
             solution_id: null,
@@ -1214,12 +1229,13 @@ export const FormProvider = ({ children }) => {
         solution_id: null,
         solution_tab: "use a template",
         automatic_strategy: false,
+        automatic_translation: false,
         automatic_instruction:false,
         whatsapp_in:false,
         presentation: false,
         show_participants: false,
         show_discussion: false,
-
+        show_qr_code: false,
       });
       updateSteps([]);
       setMeeting(null);
@@ -1279,11 +1295,13 @@ export const FormProvider = ({ children }) => {
         casting_type,
         client_id,
         automatic_strategy,
+        automatic_translation,
         automatic_instruction,
         whatsapp_in,
         presentation,
         show_participants,
-        show_discussion
+        show_discussion,
+        show_qr_code
       } = formState;
 
       const repetitionFields = repetition
@@ -1375,11 +1393,13 @@ export const FormProvider = ({ children }) => {
         open_ai_decide,
         max_participants_register: Number(max_participants_register),
         automatic_strategy: automatic_strategy || false,
+        automatic_translation: automatic_translation || false,
         automatic_instruction: automatic_instruction || false,
         whatsapp_in: whatsapp_in || false,
         presentation: presentation || false,
         show_participants: show_participants || false,
         show_discussion: show_discussion || false,
+        show_qr_code: show_qr_code || false,
       };
       //
       try {
@@ -1444,8 +1464,10 @@ export const FormProvider = ({ children }) => {
             max_participants_register: 0,
 
             casting_type: "Invitation",
+            automatic_translation: false,
             show_participants: false,
             show_discussion: false,
+            show_qr_code: false,
           });
           setCheckId(null);
           updateSteps([]);
@@ -1518,11 +1540,13 @@ export const FormProvider = ({ children }) => {
 
           open_ai_decide: false,
           automatic_strategy: false,
+          automatic_translation: false,
           automatic_instruction:false,
           whatsapp_in:false,
           presentation: false,
           show_participants: false,
           show_discussion: false,
+          show_qr_code: false,
         })
         setCheckId(null);
         setMeeting(null);
@@ -1600,11 +1624,13 @@ export const FormProvider = ({ children }) => {
         max_participants_register: Number(formState.max_participants_register),
         casting_type: formState?.type === "Newsletter" ? "Subscription" : formState.casting_type,
         automatic_strategy: formState.automatic_strategy || false,
+        automatic_translation: formState.automatic_translation || false,
         automatic_instruction: formState.automatic_instruction || false,
         whatsapp_in: formState.whatsapp_in || false,
         presentation: formState.presentation || false,
         show_participants: formState.show_participants || false,
-        show_discussion: formState.show_discussion || false
+        show_discussion: formState.show_discussion || false,
+        show_qr_code: formState.show_qr_code || false,
       };
 
       try {
@@ -1662,6 +1688,7 @@ export const FormProvider = ({ children }) => {
 
             casting_tab: null,
             casting_type: "Invitation",
+            automatic_translation: false,
           });
           setCheckId(null);
           updateSteps([]);

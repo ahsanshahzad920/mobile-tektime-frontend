@@ -77,6 +77,7 @@ import SubscriberCard from "./components/SubscriberCard";
 import { useDestinations } from "../../../../context/DestinationsContext";
 import { Editor } from "@tinymce/tinymce-react";
 import MeetingDiscussion from "./components/MeetingDiscussion";
+import { useHeaderTitle } from "../../../../context/HeaderTitleContext";
 import { FcGoogle } from "react-icons/fc";
 import { SiMicrosoftoutlook, SiMicrosoftteams, SiGmail, SiIonos } from "react-icons/si";
 import GuidesCard from "./components/GuidesCard";
@@ -91,6 +92,7 @@ const Invite = () => {
   const { getUserMeetingCount } = useDestinations();
   //I have a state in useMeeting context that will check wheather i have to call an api or not... if the callApi is true then call then i pass a parameter in the getMeetingById which is in CounterContext if callApi state is true then pass the parameter otherwise i have a button in Invite component and in that button function i explicitly set the callAPi to false when i am starting a meeting first time in that case i don't pass that parameter in getMeetingById API....
   const { setStatus, setOffset, setCallApi, setFromTektime } = useMeetings();
+  const { user: loggedInUser } = useHeaderTitle();
   const getTimezoneSymbol = (timezone) => timezoneSymbols[timezone] || timezone;
   const {
     handleShow,
@@ -2905,6 +2907,31 @@ const Invite = () => {
                     </div>
                   </>
                 )}
+
+                {meeting?.automatic_translation && (
+                  <>
+                    <div>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="25"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                      >
+                        <path
+                          d="M12.87 15.07L10.33 12.56L10.36 12.53C12.1 10.59 13.34 8.36 14.07 6H17V4H10V2H8V4H1V6H12.17C11.5 7.92 10.44 9.75 9 11.35C8.07 10.32 7.3 9.19 6.69 8H4.69C5.42 9.63 6.42 11.17 7.67 12.56L2.58 17.58L4 19L9 14L12.11 17.11L12.87 15.07ZM18.5 10H16.5L12 22H14L15.12 19H19.87L21 22H23L18.5 10ZM15.88 17L17.5 12.67L19.12 17H15.88Z"
+                          fill="#3D57B5"
+                        />
+                      </svg>
+                      <span
+                        className="solutioncards"
+                        style={{ color: "#3D57B5" }}
+                      >
+                        {t("meeting.formState.Automatic Translation")}
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
               {/* </div> */}
 
@@ -4040,6 +4067,7 @@ const Invite = () => {
                           setMeetingMessages(newMeetings)
                         }
                         refreshMessages={refreshMessages}
+                        userData={loggedInUser}
                       />
                     </div>
                   </div>

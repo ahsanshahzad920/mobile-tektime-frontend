@@ -112,11 +112,13 @@ const Options = ({ setActiveTab }) => {
         playback: playbackValue,
         autostart: solution?.autostart || false,
         automatic_strategy: solution?.automatic_strategy || false,
+        automatic_translation: solution?.automatic_translation || false,
         automatic_instruction: solution?.automatic_instruction || false,
         whatsapp_in: solution?.whatsapp_in || false,
         presentation: solution?.presentation || false,
         show_participants: solution?.show_participants || false,
         show_discussion: solution?.show_discussion || false,
+        show_qr_code: solution?.show_qr_code || false,
       }));
 
       setautostartToggle(solution?.autostart);
@@ -227,6 +229,15 @@ const Options = ({ setActiveTab }) => {
     }));
   };
 
+  const toggleAutomaticTranslation = () => {
+    if (solution?.type === "Special" || solution?.type === "Law") return;
+
+    setFormState((prevFormState) => ({
+      ...prevFormState,
+      automatic_translation: !prevFormState.automatic_translation,
+    }));
+  };
+
   const toggleAutomaticInstruction = () => {
     if (solution?.type === "Special" || solution?.type === "Law") return;
 
@@ -269,6 +280,15 @@ const Options = ({ setActiveTab }) => {
     setFormState((prevFormState) => ({
       ...prevFormState,
       show_discussion: !prevFormState.show_discussion,
+    }));
+  };
+
+  const toggleShowQRCode = () => {
+    if (solution?.type === "Special" || solution?.type === "Law") return;
+
+    setFormState((prevFormState) => ({
+      ...prevFormState,
+      show_qr_code: !prevFormState.show_qr_code,
     }));
   };
 
@@ -2092,6 +2112,163 @@ const Options = ({ setActiveTab }) => {
                 style={{ cursor: "pointer" }}
               >
                 {formState.show_discussion ? (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="48"
+                    height="27"
+                    viewBox="0 0 48 27"
+                    fill="none"
+                  >
+                    <rect
+                      x="2"
+                      y="4"
+                      width="44"
+                      height="16"
+                      rx="8"
+                      fill="#6BD27B"
+                      fillOpacity="0.77"
+                    />
+                    <g filter="url(#filter0_d_1_1194)">
+                      <circle cx="35" cy="12" r="11" fill="white" />
+                      <circle cx="35" cy="12" r="10.5" stroke="#E0E6F1" />
+                    </g>
+                  </svg>
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="49"
+                    height="27"
+                    viewBox="0 0 49 27"
+                    fill="none"
+                  >
+                    <rect
+                      x="2"
+                      y="4"
+                      width="44"
+                      height="16"
+                      rx="8"
+                      fill="#ECECF9"
+                    />
+                    <g filter="url(#filter0_d_1_625)">
+                      <circle cx="13" cy="12" r="11" fill="white" />
+                      <circle cx="13" cy="12" r="10.5" stroke="#E0E6F1" />
+                    </g>
+                  </svg>
+                )}
+              </div>
+            </div>
+          </Col>
+        </Row>
+
+        <Row className="mb-4">
+          <Col xs={12} md={6}>
+            <div
+              className="d-flex justify-content-between align-items-center modal-tab-button"
+              onClick={toggleAutomaticTranslation}
+              style={{ padding: "15px" }}
+            >
+              <div>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="25"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                >
+                  <path
+                    d="M12.87 15.07L10.33 12.56L10.36 12.53C12.1 10.59 13.34 8.36 14.07 6H17V4H10V2H8V4H1V6H12.17C11.5 7.92 10.44 9.75 9 11.35C8.07 10.32 7.3 9.19 6.69 8H4.69C5.42 9.63 6.42 11.17 7.67 12.56L2.58 17.58L4 19L9 14L12.11 17.11L12.87 15.07ZM18.5 10H16.5L12 22H14L15.12 19H19.87L21 22H23L18.5 10ZM15.88 17L17.5 12.67L19.12 17H15.88Z"
+                    fill="#3D57B5"
+                  />
+                </svg>
+                <span className="solutioncards" style={{ color: "#3D57B5" }}>
+                  {t("meeting.formState.Automatic Translation")}
+                </span>
+              </div>
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleAutomaticTranslation();
+                }}
+                style={{ cursor: "pointer" }}
+              >
+                {formState.automatic_translation ? (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="48"
+                    height="27"
+                    viewBox="0 0 48 27"
+                    fill="none"
+                  >
+                    <rect
+                      x="2"
+                      y="4"
+                      width="44"
+                      height="16"
+                      rx="8"
+                      fill="#6BD27B"
+                      fillOpacity="0.77"
+                    />
+                    <g filter="url(#filter0_d_1_1194)">
+                      <circle cx="35" cy="12" r="11" fill="white" />
+                      <circle cx="35" cy="12" r="10.5" stroke="#E0E6F1" />
+                    </g>
+                  </svg>
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="49"
+                    height="27"
+                    viewBox="0 0 49 27"
+                    fill="none"
+                  >
+                    <rect
+                      x="2"
+                      y="4"
+                      width="44"
+                      height="16"
+                      rx="8"
+                      fill="#ECECF9"
+                    />
+                    <g filter="url(#filter0_d_1_625)">
+                      <circle cx="13" cy="12" r="11" fill="white" />
+                      <circle cx="13" cy="12" r="10.5" stroke="#E0E6F1" />
+                    </g>
+                  </svg>
+                )}
+              </div>
+            </div>
+          </Col>
+          <Col xs={12} md={6}>
+            <div
+              className="d-flex justify-content-between align-items-center modal-tab-button"
+              onClick={toggleShowQRCode}
+              style={{ padding: "15px" }}
+            >
+              <div>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="25"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                >
+                  <path
+                    d="M3 11h8V3H3v8zm2-6h4v4H5V5zM3 21h8v-8H3v8zm2-6h4v4H5v-4zm8-12v8h8V3h-8zm6 6h-4V5h4v4zm0 6h2v2h-2v-2zm-2 2h2v2h-2v-2zm-2-2h2v2h-2v-2zm2 4h2v2h-2v-2zm-2-2h2v2h-2v-2zm-2 2h2v2h-2v-2zm2 2h2v2h-2v-2zm-4-4h2v2h-2v-2z"
+                    fill="#3D57B5"
+                  />
+                </svg>
+                <span className="solutioncards" style={{ color: "#3D57B5" }}>
+                  {t("meeting.formState.Show QR Code")}
+                </span>
+              </div>
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleShowQRCode();
+                }}
+                style={{ cursor: "pointer" }}
+              >
+                {formState.show_qr_code ? (
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="48"

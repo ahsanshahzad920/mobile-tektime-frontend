@@ -33,6 +33,10 @@
   animation: aap-slidein 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+.aap-card--wide {
+  width: min(850px, 95vw);
+}
+
 @keyframes aap-slidein {
   from { transform: translateY(24px) scale(0.96); opacity: 0; }
   to   { transform: translateY(0)    scale(1);    opacity: 1; }

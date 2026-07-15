@@ -39,10 +39,11 @@ import { API_BASE_URL, Assets_URL } from "../../Apicongfig";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 import { MdKeyboardArrowDown, MdOutlineReviews, MdStars } from "react-icons/md";
+import QRCode from "react-qr-code";
 import ReportStepCard from "./ReportStepCard";
 import DecisionCard from "./DecisionCard";
 import moment from "moment";
-import { FaArrowRight, FaList } from "react-icons/fa";
+import { FaArrowRight, FaList, FaQrcode } from "react-icons/fa";
 import SignUp from "../AuthModal/SignUp";
 import ForgotPassword from "../AuthModal/ForgotPassword";
 import { useSidebarContext } from "../../../context/SidebarContext";
@@ -117,6 +118,75 @@ import { FcGoogle } from "react-icons/fc";
 import { BiDetail } from "react-icons/bi";
 import Moments from "../Invities/DestinationToMeeting/Moments";
 import FileDiaporamaViewer from "./Report/FileDiaporamaViewer";
+import { useHeaderTitle } from "../../../context/HeaderTitleContext";
+
+// ── Translation helpers ───────────────────────────────────────────────────────
+const translateText = async (text, targetLang) => {
+  if (!text || !text.trim()) return text;
+  try {
+    const response = await fetch(
+      `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`
+    );
+    if (!response.ok) throw new Error("Translation failed");
+    const data = await response.json();
+    if (data && data[0]) {
+      return data[0].map((x) => x[0]).join("");
+    }
+    return text;
+  } catch (error) {
+    console.error("Translation API error:", error);
+    return text;
+  }
+};
+
+const translateLargeText = async (text, targetLang) => {
+  if (!text || !text.trim()) return text;
+  const paragraphs = text.split("\n");
+  const translatedParagraphs = await Promise.all(
+    paragraphs.map(async (p) => {
+      if (!p.trim()) return p;
+      return await translateText(p, targetLang);
+    })
+  );
+  return translatedParagraphs.join("\n");
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Language name map for toggle label ───────────────────────────────────────────
+const LANG_NAMES = {
+  en: "English",    es: "Spanish",     fr: "Français",    de: "Deutsch",
+  zh: "中文",       ja: "日本語",       ko: "한국어",     hi: "Hindi",
+  ar: "عربي",       pt: "Português",   ru: "Русский",   it: "Italiano",
+  nl: "Nederlands", sv: "Svenska",     no: "Norsk",       tr: "Türkçe",
+  bn: "Bengali",    ur: "Urdu",        vi: "Tiếng Việt", pl: "Polski",
+  ro: "Română",    el: "Ελληνικά",    hu: "Magyar",      cs: "Čeština",
+  th: "Thai",       fil: "Filipino",   id: "Bahasa Indo.",ms: "Melayu",
+  fi: "Suomi",      he: "עברית",       da: "Dansk",       is: "Islenska",
+  sr: "Srpski",     hr: "Hrvatski",    sk: "Slovenčina",  bg: "Български",
+  uk: "Українська",fa: "فارسی",      sw: "Swahili",     zu: "Zulu",
+  xh: "Xhosa",     am: "አማርኛ",      ta: "Tamil",       te: "Telugu",
+  mr: "Marathi",   pa: "Punjabi",     gu: "Gujarati",    kn: "Kannada",
+  ml: "Malayalam", si: "සිංහල",      my: "Burmese",     km: "Khmer",
+  lo: "Lao",       mn: "Mongolian",   tg: "Tajik",       uz: "Uzbek",
+  kk: "Kazakh",    ht: "Haitian Cr.", sq: "Shqip",       bs: "Bosanski",
+  ka: "ქართული",  az: "Azərbaycan",  ps: "Pashto",      so: "Somali",
+  ti: "Tigrinya",  yo: "Yoruba",      ig: "Igbo",
+};
+const detectLanguage = async (text) => {
+  if (!text || !text.trim()) return null;
+  try {
+    const snippet = encodeURIComponent(text.slice(0, 120));
+    const res = await fetch(
+      `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${snippet}`
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data[2] || null; // detected language code e.g. "fr"
+  } catch {
+    return null;
+  }
+};
+// ─────────────────────────────────────────────────────────────────────────────
 
 const localizer = momentLocalizer(moment);
 ChartJS.register(
@@ -140,6 +210,7 @@ const Report = () => {
     destinationUniqueId,
     setDestinationUniqueId,
   } = useFormContext();
+  const { user: loggedInUser } = useHeaderTitle();
   const getTimezoneSymbol = (timezone) => timezoneSymbols[timezone] || timezone;
   const { setCallApi, setFromTektime, fromTektime } = useMeetings();
   const [showProgressBar1, setShowProgressBar1] = useState(false);
@@ -159,6 +230,7 @@ const Report = () => {
   const pageId = `${userid}/${meetId}`;
   const [pageViews, setPageViews] = useState(0);
   const [meetingData, setMeetingData] = useState();
+  const [showQRModal, setShowQRModal] = useState(false);
   const [meetingFile, setMeetingFile] = useState(null);
   const [isModalOpen1, setIsModalOpen1] = useState(false);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
@@ -1171,6 +1243,66 @@ const Report = () => {
   const [meetingSummary, setMeetingSummary] = useState(null);
   const [viewNote, setViewNote] = useState("note");
 
+  // ── Summary translation (mirrors CompletedInvite pattern) ─────────────────
+  const reportTargetLang = useMemo(() => {
+    try {
+      const userLan = loggedInUser?.language;
+      if (userLan) return userLan;
+    } catch {}
+    return i18n?.language || "fr";
+  }, [loggedInUser?.language, i18n?.language]);
+
+  const cleanReportTargetLang = reportTargetLang.split(/[-_]/)[0];
+
+  const [translatedSummary, setTranslatedSummary] = useState(null);
+  const [isTranslatingReport, setIsTranslatingReport] = useState(false);
+  const [showOriginalReport, setShowOriginalReport] = useState(false);
+  const [detectedSourceLang, setDetectedSourceLang] = useState(null);
+
+  useEffect(() => {
+    const autoTranslate =
+      meetingData?.automatic_translation === true ||
+      meetingData?.automatic_translation === 1 ||
+      meetingData?.automatic_translation === "1" ||
+      meetingData?.automatic_translation === "true";
+
+    if (autoTranslate && meetingSummary) {
+      const performTranslation = async () => {
+        setIsTranslatingReport(true);
+        try {
+          // detect source language in parallel with translation
+          const [translated, srcLang] = await Promise.all([
+            translateLargeText(meetingSummary, cleanReportTargetLang),
+            detectLanguage(meetingSummary),
+          ]);
+          setTranslatedSummary(translated);
+          if (srcLang) setDetectedSourceLang(srcLang);
+        } catch (err) {
+          console.error("Error translating report summary:", err);
+        } finally {
+          setIsTranslatingReport(false);
+        }
+      };
+      performTranslation();
+    } else {
+      setTranslatedSummary(null);
+      setShowOriginalReport(false);
+      setDetectedSourceLang(null);
+    }
+  }, [meetingSummary, meetingData?.automatic_translation, cleanReportTargetLang]);
+
+  const reportMarkdownContent = (() => {
+    const autoTranslate =
+      meetingData?.automatic_translation === true ||
+      meetingData?.automatic_translation === 1 ||
+      meetingData?.automatic_translation === "1" ||
+      meetingData?.automatic_translation === "true";
+    return (autoTranslate && translatedSummary && !showOriginalReport)
+      ? translatedSummary
+      : (meetingSummary || meetingData?.meeting_notes_summary || "");
+  })();
+  // ─────────────────────────────────────────────────────────────────────────
+
   const getMeetingReport = async () => {
     if (uniqueId) return false;
 
@@ -1880,7 +2012,7 @@ const Report = () => {
   };
 
   const handleLogin = () => {
-    navigate("/login", {
+    navigate("/", {
       state: {
         redirect_rules: false,
 
@@ -3500,6 +3632,7 @@ const Report = () => {
                                         }}
                                       />
                                     )}
+                                    
                                   </div>
                                   {dropdownVisible && (
                                     <div className="dropdown-content-filter">
@@ -3528,9 +3661,13 @@ const Report = () => {
                                     </div>
                                   )}
                                 </div>
+
                               </div>
 
-                              <div className="d-flex align-items-center gap-4 items mt-2 audio-items">
+                              
+                              <div className="d-flex flex-column flex-md-row justify-content-between gap-4 mt-2 w-100">
+                                <div className="flex-grow-1" style={{ minWidth: "280px" }}>
+<div className="d-flex align-items-center gap-4 items mt-2 audio-items">
                                 <div className="type">
                                   <svg
                                     width="20"
@@ -4426,51 +4563,118 @@ const Report = () => {
                                   </span>
                                 </div>
                               )}
-                            </div>
+                            
+                                </div>
+                                {meetingData?.show_qr_code && (
+                                  <div
+                                    className="d-flex flex-column align-items-center justify-content-center p-3 bg-white rounded shadow-sm ms-md-auto align-self-start mt-3 mt-md-0"
+                                    style={{
+                                      border: "1px solid #E0E6F1",
+                                      width: "150px",
+                                      minWidth: "150px",
+                                    }}
+                                  >
+                                    <QRCode
+                                      size={120}
+                                      style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                                      value={window.location.href}
+                                      viewBox={`0 0 256 256`}
+                                    />
+                                    <span
+                                      className="mt-2 text-center text-muted fw-semibold"
+                                      style={{ fontSize: "11px", letterSpacing: "0.5px" }}
+                                    >
+                                      {t("Show QR Code") || "QR Code"}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+</div>
                           </section>
 
                           {/* {meetingData?.meeting_notes_summary &&      */}
                           <section id="report" className="section">
-                            <h3 className="section-title-1 text-left">
-                              {viewNote === "note"
-                                ? `${t("Summary of")}: ${
-                                    meetingData?.type === "Google Agenda Event"
-                                      ? "Google Agenda Event"
-                                      : meetingData?.type ===
-                                          "Outlook Agenda Event"
-                                        ? "Outlook Agenda Event"
-                                        : t(`types.${meetingData?.type}`)
-                                  }`
-                                : viewNote === "prompt"
-                                  ? `${t("Prompt")}: ${
-                                      meetingData?.solution
-                                        ? meetingData?.solution?.title
-                                        : t(
-                                            `types.${meetingData?.prompts[0]?.meeting_type}`,
-                                          )
+                            <h3
+                              className="section-title-1 text-left"
+                              style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "10px" }}
+                            >
+                              <span>
+                                {viewNote === "note"
+                                  ? `${t("Summary of")}: ${
+                                      meetingData?.type === "Google Agenda Event"
+                                        ? "Google Agenda Event"
+                                        : meetingData?.type === "Outlook Agenda Event"
+                                          ? "Outlook Agenda Event"
+                                          : t(`types.${meetingData?.type}`)
                                     }`
-                                  : `${t("Transcript")}`}
+                                  : viewNote === "prompt"
+                                    ? `${t("Prompt")}: ${
+                                        meetingData?.solution
+                                          ? meetingData?.solution?.title
+                                          : t(`types.${meetingData?.prompts[0]?.meeting_type}`)
+                                      }`
+                                    : `${t("Transcript")}`}
+                              </span>
 
-                              <span
-                                style={{
-                                  cursor: "pointer",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: "10px",
-                                }}
-                              ></span>
+                              {/* ── Original / Translated inline badge ── */}
+                              {meetingData?.automatic_translation && translatedSummary && (
+                                <button
+                                  onClick={() => setShowOriginalReport((prev) => !prev)}
+                                  title={showOriginalReport ? "Switch to translated" : "Switch to original"}
+                                  style={{
+                                    fontSize: "0.72rem",
+                                    padding: "3px 10px",
+                                    borderRadius: "20px",
+                                    border: "1px solid #2c48ae",
+                                    background: showOriginalReport ? "#fff" : "#e8eeff",
+                                    color: "#2c48ae",
+                                    fontWeight: 600,
+                                    cursor: "pointer",
+                                    transition: "all 0.2s",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "4px",
+                                    verticalAlign: "middle",
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {showOriginalReport ? (
+                                    // Currently showing original → button offers to go back to translated
+                                    <>
+                                      <span>&#127760;</span>
+                                      {t("Translated") || "Traduit"}
+                                      <span style={{ opacity: 0.7, fontWeight: 400 }}>
+                                        &mdash;{LANG_NAMES[cleanReportTargetLang] || cleanReportTargetLang.toUpperCase()}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    // Currently showing translated → button offers to see original
+                                    <>
+                                      <span>&#128292;</span>
+                                      {t("Original") || "Original"}
+                                      {detectedSourceLang && (
+                                        <span style={{ opacity: 0.7, fontWeight: 400 }}>
+                                          &nbsp;({LANG_NAMES[detectedSourceLang] || detectedSourceLang.toUpperCase()})
+                                        </span>
+                                      )}
+                                    </>
+                                  )}
+                                </button>
+                              )}
                             </h3>
-                            {loading ? (
+                            {loading || isTranslatingReport ? (
                               <div
                                 style={{
                                   width: "100%",
                                   margin: "20px 0",
                                 }}
                               >
-                                <ProgressBar animated now={45} />
+                                <ProgressBar animated now={isTranslatingReport ? 70 : 45} />
                                 <h5 className="text-center">
                                   {" "}
-                                  {t("note_translation.Processing Audio")}
+                                  {isTranslatingReport
+                                    ? (t("Translating") || "Translating…")
+                                    : t("note_translation.Processing Audio")}
                                 </h5>
                               </div>
                             ) : (
@@ -4505,9 +4709,7 @@ const Report = () => {
                                       ),
                                   }}
                                 >
-                                  {cleanText(
-                                    meetingData?.meeting_notes_summary || "",
-                                  )}
+                                  {cleanText(reportMarkdownContent)}
                                 </ReactMarkdown>
                               </div>
                             )}
@@ -4828,6 +5030,7 @@ const Report = () => {
                                 onMessagesUpdate={(newMeetings) =>
                                   setMeetingMessages(newMeetings)
                                 }
+                                userData={loggedInUser}
                               />
                             </section>
                           )}
@@ -5234,6 +5437,7 @@ const Report = () => {
                                           )}
                                         </>
                                       )}
+                                      
                                     </div>
 
                                     {meetingData?.type !== "Calendly" &&
@@ -5331,9 +5535,13 @@ const Report = () => {
                                     </div>
                                   )}
                                 </div>
+
                               </div>
 
-                              <div className="d-flex align-items-center gap-4 items mt-2 audio-items">
+                              
+                              <div className="d-flex flex-column flex-md-row justify-content-between gap-4 mt-2 w-100">
+                                <div className="flex-grow-1" style={{ minWidth: "280px" }}>
+<div className="d-flex align-items-center gap-4 items mt-2 audio-items">
                                 <div className="type">
                                   <svg
                                     width="20"
@@ -6278,7 +6486,33 @@ const Report = () => {
                                   </span>
                                 </div>
                               )}
-                            </div>
+                            
+                                </div>
+                                {meetingData?.show_qr_code && (
+                                  <div
+                                    className="d-flex flex-column align-items-center justify-content-center p-3 bg-white rounded shadow-sm ms-md-auto align-self-start mt-3 mt-md-0"
+                                    style={{
+                                      border: "1px solid #E0E6F1",
+                                      width: "150px",
+                                      minWidth: "150px",
+                                    }}
+                                  >
+                                    <QRCode
+                                      size={120}
+                                      style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                                      value={window.location.href}
+                                      viewBox={`0 0 256 256`}
+                                    />
+                                    <span
+                                      className="mt-2 text-center text-muted fw-semibold"
+                                      style={{ fontSize: "11px", letterSpacing: "0.5px" }}
+                                    >
+                                      {t("Show QR Code") || "QR Code"}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+</div>
                           </section>
 
                           {meeting?.type === "Calendly" && (
@@ -6626,6 +6860,7 @@ const Report = () => {
                                 onMessagesUpdate={(newMeetings) =>
                                   setMeetingMessages(newMeetings)
                                 }
+                                userData={loggedInUser}
                               />
                             </section>
                           )}
@@ -7747,6 +7982,8 @@ const Report = () => {
           </div>
         </div>
       )}
+
+      
     </>
   );
 };

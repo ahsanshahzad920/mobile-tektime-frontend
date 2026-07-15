@@ -588,6 +588,7 @@ const Login = () => {
         CookieService.set("last_name", last_name);
         sessionStorage.setItem("last_name", last_name);
         CookieService.set("token", response.data.token);
+        CookieService.set("user_language", response?.data?.user?.language);
         CookieService.set("user_id", id);
         CookieService.set("user", userData);
         CookieService.set("email", email);

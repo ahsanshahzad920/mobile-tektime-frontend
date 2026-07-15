@@ -194,9 +194,11 @@ const ActionAssignmentPopup = ({ step: initialStep, onRefresh }) => {
   const meetingName = currentStep?.meeting?.title ?? "";
   const timeUnit = currentStep?.time_unit || "minutes";
 
+  const hasContent = hasEditorContent(currentStep?.editor_content);
+
   return (
     <div className="aap-overlay" role="dialog" aria-modal="true">
-      <div className="aap-card">
+      <div className={`aap-card ${hasContent ? "aap-card--wide" : ""}`}>
         {/* Header */}
         <div className="aap-header">
           <span className="aap-badge">

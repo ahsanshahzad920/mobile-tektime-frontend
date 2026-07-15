@@ -268,6 +268,73 @@ const TranscriptWithTimestamps = ({ transcriptData }) => {
     );
   }
 };
+const translateText = async (text, targetLang) => {
+  if (!text || !text.trim()) return text;
+  try {
+    const response = await fetch(
+      `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`
+    );
+    if (!response.ok) throw new Error("Translation failed");
+    const data = await response.json();
+    if (data && data[0]) {
+      return data[0].map((x) => x[0]).join("");
+    }
+    return text;
+  } catch (error) {
+    console.error("Translation API error:", error);
+    return text;
+  }
+};
+
+const translateLargeText = async (text, targetLang) => {
+  if (!text || !text.trim()) return text;
+  const paragraphs = text.split("\n");
+  const translatedParagraphs = await Promise.all(
+    paragraphs.map(async (p) => {
+      if (!p.trim()) return p;
+      return await translateText(p, targetLang);
+    })
+  );
+  return translatedParagraphs.join("\n");
+};
+
+// ── Language name map + detector ──────────────────────────────────────────────
+// Kept in sync with languagesWithISO in AddProfile.jsx
+const LANG_NAMES = {
+  en: "English",    es: "Spanish",     fr: "Français",    de: "Deutsch",
+  zh: "中文",       ja: "日本語",       ko: "한국어",     hi: "Hindi",
+  ar: "عربي",       pt: "Português",   ru: "Русский",   it: "Italiano",
+  nl: "Nederlands", sv: "Svenska",     no: "Norsk",       tr: "Türkçe",
+  bn: "Bengali",    ur: "Urdu",        vi: "Tiếng Việt", pl: "Polski",
+  ro: "Română",    el: "Ελληνικά",    hu: "Magyar",      cs: "Čeština",
+  th: "Thai",       fil: "Filipino",   id: "Bahasa Indo.",ms: "Melayu",
+  fi: "Suomi",      he: "עברית",       da: "Dansk",       is: "Islenska",
+  sr: "Srpski",     hr: "Hrvatski",    sk: "Slovenčina",  bg: "Български",
+  uk: "Українська",fa: "فارسی",      sw: "Swahili",     zu: "Zulu",
+  xh: "Xhosa",     am: "አማርኛ",      ta: "Tamil",       te: "Telugu",
+  mr: "Marathi",   pa: "Punjabi",     gu: "Gujarati",    kn: "Kannada",
+  ml: "Malayalam", si: "සිංහල",      my: "Burmese",     km: "Khmer",
+  lo: "Lao",       mn: "Mongolian",   tg: "Tajik",       uz: "Uzbek",
+  kk: "Kazakh",    ht: "Haitian Cr.", sq: "Shqip",       bs: "Bosanski",
+  ka: "ქართული",  az: "Azərbaycan",  ps: "Pashto",      so: "Somali",
+  ti: "Tigrinya",  yo: "Yoruba",      ig: "Igbo",
+};
+const detectLanguage = async (text) => {
+  if (!text || !text.trim()) return null;
+  try {
+    const snippet = encodeURIComponent(text.slice(0, 120));
+    const res = await fetch(
+      `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${snippet}`
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data[2] || null;
+  } catch {
+    return null;
+  }
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
 const CompletedInvite = () => {
   const APIKEY = process.env.REACT_APP_TINYMCE_API;
 
@@ -291,6 +358,7 @@ const CompletedInvite = () => {
     setFormState,
   } = useFormContext();
   const getTimezoneSymbol = (timezone) => timezoneSymbols[timezone] || timezone;
+  const { user: loggedInUser } = useHeaderTitle();
 
   let fromMeeting = true;
   if (location?.state?.from === "meeting") {
@@ -300,8 +368,9 @@ const CompletedInvite = () => {
   if (location?.state?.disabled === "yes") {
     isDisabled = true;
   }
+  const [meeting, setMeeting1] = useState(null);
   const { id } = useParams();
-  const [t] = useTranslation("global");
+  const [t, i18n] = useTranslation("global");
   const { setHeaderTitle } = useHeaderTitle();
   const { setStatus, setClosedOffset } = useMeetings();
   const { updateSteps } = useSteps();
@@ -309,35 +378,127 @@ const CompletedInvite = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [originalSummary, setOriginalSummary] = useState(meetingSummary || "");
 
+
+    const [meetingTranscript, setMeetingTranscript] = useState(null);
+  const [meetingTranscriptWithTimeStamps, setMeetingTranscriptWithTimeStamps] =
+    useState(null);
+
+  const [isTimeStampChecked, setIsTimeStampChecked] = useState(false);
   // Update originalSummary when meetingSummary changes
   useEffect(() => {
     setOriginalSummary(meetingSummary?.replace(/---/g, "") || "");
   }, [meetingSummary]);
+  const {user} = useHeaderTitle();
+
+  const targetLang = useMemo(() => {
+    try {
+      const userLan = user?.language;
+      if (userLan) {
+        return userLan;
+      }
+    } catch (e) {
+      console.error("Error reading user language from cookie", e);
+    }
+    return i18n?.language || "fr";
+  }, [i18n?.language,user]);
+
+  const cleanTargetLang = targetLang.split(/[-_]/)[0]; // e.g. "fr" or "en"
+
+  const [translatedSummary, setTranslatedSummary] = useState(null);
+  const [isTranslatingReport, setIsTranslatingReport] = useState(false);
+  const [showOriginalReport, setShowOriginalReport] = useState(false);
+  const [detectedSourceLang, setDetectedSourceLang] = useState(null);
+
+  const [translatedTranscript, setTranslatedTranscript] = useState(null);
+  const [isTranslatingTranscript, setIsTranslatingTranscript] = useState(false);
+  const [showOriginalTranscript, setShowOriginalTranscript] = useState(false);
+
+  useEffect(() => {
+    if (meeting?.automatic_translation && meetingSummary) {
+      const performTranslation = async () => {
+        setIsTranslatingReport(true);
+        try {
+          const [translated, srcLang] = await Promise.all([
+            translateLargeText(meetingSummary, cleanTargetLang),
+            detectLanguage(meetingSummary),
+          ]);
+          setTranslatedSummary(translated);
+          if (srcLang) setDetectedSourceLang(srcLang);
+        } catch (err) {
+          console.error("Error translating report:", err);
+        } finally {
+          setIsTranslatingReport(false);
+        }
+      };
+      performTranslation();
+    } else {
+      setTranslatedSummary(null);
+      setShowOriginalReport(false);
+      setDetectedSourceLang(null);
+    }
+  }, [meetingSummary, meeting?.automatic_translation, cleanTargetLang]);
+
+  useEffect(() => {
+    if (meeting?.automatic_translation && meetingTranscript) {
+      const performTranscriptTranslation = async () => {
+        setIsTranslatingTranscript(true);
+        try {
+          const isStamp = !!meetingTranscript?.transcriptionStamp;
+          const segments = isStamp ? meetingTranscript.transcriptionStamp : meetingTranscript;
+
+          if (Array.isArray(segments)) {
+            const translatedSegments = await Promise.all(
+              segments.map(async (segment) => {
+                if (!segment.text || !segment.text.trim()) return segment;
+                const translatedText = await translateText(segment.text, cleanTargetLang);
+                return { ...segment, text: translatedText };
+              })
+            );
+
+            if (isStamp) {
+              setTranslatedTranscript({
+                ...meetingTranscript,
+                transcriptionStamp: translatedSegments,
+              });
+            } else {
+              setTranslatedTranscript(translatedSegments);
+            }
+          }
+        } catch (err) {
+          console.error("Error translating transcript:", err);
+        } finally {
+          setIsTranslatingTranscript(false);
+        }
+      };
+      performTranscriptTranslation();
+    } else {
+      setTranslatedTranscript(null);
+      setShowOriginalTranscript(false);
+    }
+  }, [meetingTranscript, meeting?.automatic_translation, cleanTargetLang]);
 
   const handleCancelEdit = () => {
     setMeetingSummary(originalSummary);
     setIsEditing(false);
   };
 
-  // Use meetingSummary directly as markdown content, with fallback to empty string
-  const markdownContent = meetingSummary || "";
+  // Use translated summary unless user toggled to original
+  const markdownContent = (
+    meeting?.automatic_translation && translatedSummary && !showOriginalReport
+  )
+    ? translatedSummary
+    : (meetingSummary || "");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isFileUploaded, setIsFileUploaded] = useState(false);
 
-  const [meeting, setMeeting1] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [startTime1, setStartTime1] = useState(null);
   const [time, setTime] = useState(null);
 
   const [estimateTime, setEstimateTime] = useState(null);
   const [estimateDate, setEstimateDate] = useState(null);
-  const [meetingTranscript, setMeetingTranscript] = useState(null);
-  console.log("meetingTranscript", meetingTranscript);
-  const [meetingTranscriptWithTimeStamps, setMeetingTranscriptWithTimeStamps] =
-    useState(null);
 
-  const [isTimeStampChecked, setIsTimeStampChecked] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -2123,7 +2284,7 @@ Please categorize the relevant details into their corresponding sections.`;
       const currentMeetingReport = {
         date: meeting?.date,
         start_time: meeting?.start_time,
-        meeting_notes_summary: meeting?.meeting_notes_summary || markdownContent,
+        meeting_notes_summary: meeting?.meeting_notes_summary || meetingSummary || "",
         title: meeting?.title || "Réunion Actuelle",
         steps: meeting?.steps,
         timezone: meeting?.timezone,
@@ -2744,7 +2905,7 @@ Please categorize the relevant details into their corresponding sections.`;
 
       y = doc.lastAutoTable.finalY + 15;
 
-      const summary = meeting?.meeting_notes_summary || markdownContent;
+      const summary = meeting?.meeting_notes_summary || meetingSummary || "";
       if (summary) {
         doc.addPage();
         addHeader();
@@ -2816,7 +2977,7 @@ Please categorize the relevant details into their corresponding sections.`;
       const currentMeetingReport = {
         date: meeting?.date,
         start_time: meeting?.start_time,
-        meeting_notes_summary: meeting?.meeting_notes_summary || markdownContent,
+        meeting_notes_summary: meeting?.meeting_notes_summary || meetingSummary || "",
         title: meeting?.title || "Réunion Actuelle",
         steps: meeting?.steps,
         timezone: meeting?.timezone,
@@ -3319,7 +3480,7 @@ Please categorize the relevant details into their corresponding sections.`;
             new Paragraph({ text: meeting?.title || "Compte Rendu", heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER, spacing: { before: 400, after: 400 } }),
             new Paragraph({ text: dateText, alignment: AlignmentType.CENTER, spacing: { after: 400 } }),
             new Paragraph({
-              children: [new TextRun({ text: meeting?.meeting_notes_summary || "", size: 22 })],
+              children: [new TextRun({ text: meeting?.meeting_notes_summary || meetingSummary || "", size: 22 })],
               spacing: { before: 200 }
             })
           ]
@@ -4590,6 +4751,31 @@ Please categorize the relevant details into their corresponding sections.`;
                   </div>
                   </>
                 )}
+
+                {meeting?.automatic_translation && (
+                  <>
+                    <div>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="25"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                      >
+                        <path
+                          d="M12.87 15.07L10.33 12.56L10.36 12.53C12.1 10.59 13.34 8.36 14.07 6H17V4H10V2H8V4H1V6H12.17C11.5 7.92 10.44 9.75 9 11.35C8.07 10.32 7.3 9.19 6.69 8H4.69C5.42 9.63 6.42 11.17 7.67 12.56L2.58 17.58L4 19L9 14L12.11 17.11L12.87 15.07ZM18.5 10H16.5L12 22H14L15.12 19H19.87L21 22H23L18.5 10ZM15.88 17L17.5 12.67L19.12 17H15.88Z"
+                          fill="#3D57B5"
+                        />
+                      </svg>
+                      <span
+                        className="solutioncards"
+                        style={{ color: "#3D57B5" }}
+                      >
+                        {t("meeting.formState.Automatic Translation")}
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Star Ratings */}
@@ -5774,7 +5960,7 @@ Please categorize the relevant details into their corresponding sections.`;
                                         "This is the text you want to copy!";
                                       navigator.clipboard
                                         .writeText(
-                                          meeting?.meeting_notes_summary || ""
+                                          meeting?.meeting_notes_summary || meetingSummary || ""
                                         )
                                         .then(() => {
                                           toast.success("Copied to clipboard!");
@@ -5791,6 +5977,89 @@ Please categorize the relevant details into their corresponding sections.`;
                                   >
                                     <IoCopyOutline size={18} />
                                   </span>
+
+                                  {/* ── Original / Translated language toggle ── */}
+                                  {meeting?.automatic_translation && translatedSummary && (
+                                    <button
+                                      className="toggle-button-option play-btn d-flex align-items-center gap-1"
+                                      onClick={() => setShowOriginalReport((prev) => !prev)}
+                                      title={showOriginalReport ? "Show translated" : "Show original"}
+                                      style={{
+                                        fontSize: "0.78rem",
+                                        padding: "4px 10px",
+                                        borderRadius: "20px",
+                                        border: "1px solid #2c48ae",
+                                        background: showOriginalReport ? "#fff" : "#2c48ae",
+                                        color: showOriginalReport ? "#2c48ae" : "#fff",
+                                        fontWeight: 600,
+                                        cursor: "pointer",
+                                        transition: "all 0.2s",
+                                      }}
+                                    >
+                                      {showOriginalReport ? (
+                                        <>
+                                          <span style={{ fontSize: "0.9rem" }}>&#127760;</span>
+                                          {t("Translated") || "Traduit"}
+                                          <span style={{ opacity: 0.75, fontWeight: 400 }}>
+                                            &mdash;{LANG_NAMES[cleanTargetLang] || cleanTargetLang.toUpperCase()}
+                                          </span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <span style={{ fontSize: "0.9rem" }}>&#128292;</span>
+                                          {t("Original") || "Original"}
+                                          {detectedSourceLang && (
+                                            <span style={{ opacity: 0.75, fontWeight: 400 }}>
+                                              &nbsp;({LANG_NAMES[detectedSourceLang] || detectedSourceLang.toUpperCase()})
+                                            </span>
+                                          )}
+                                        </>
+                                      )}
+                                    </button>
+                                  )}
+                                </>
+                              )}
+                              {viewNote === "transcript" && (
+                                <>
+                                  {/* ── Original / Translated language toggle for Transcript ── */}
+                                  {meeting?.automatic_translation && translatedTranscript && (
+                                    <button
+                                      className="toggle-button-option play-btn d-flex align-items-center gap-1"
+                                      onClick={() => setShowOriginalTranscript((prev) => !prev)}
+                                      title={showOriginalTranscript ? "Show translated" : "Show original"}
+                                      style={{
+                                        fontSize: "0.78rem",
+                                        padding: "4px 10px",
+                                        borderRadius: "20px",
+                                        border: "1px solid #2c48ae",
+                                        background: showOriginalTranscript ? "#fff" : "#2c48ae",
+                                        color: showOriginalTranscript ? "#2c48ae" : "#fff",
+                                        fontWeight: 600,
+                                        cursor: "pointer",
+                                        transition: "all 0.2s",
+                                      }}
+                                    >
+                                      {showOriginalTranscript ? (
+                                        <>
+                                          <span style={{ fontSize: "0.9rem" }}>&#127760;</span>
+                                          {t("Translated") || "Traduit"}
+                                          <span style={{ opacity: 0.75, fontWeight: 400 }}>
+                                            &mdash;{(LANG_NAMES[cleanTargetLang] || cleanTargetLang.toUpperCase())}
+                                          </span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <span style={{ fontSize: "0.9rem" }}>&#128292;</span>
+                                          {t("Original") || "Original"}
+                                           {detectedSourceLang && (
+                                            <span style={{ opacity: 0.75, fontWeight: 400 }}>
+                                              &nbsp;({LANG_NAMES[detectedSourceLang] || detectedSourceLang.toUpperCase()})
+                                            </span>
+                                          )}
+                                        </>
+                                      )}
+                                    </button>
+                                  )}
                                 </>
                               )}
                               {/* Edit icon for notes */}
@@ -6013,9 +6282,27 @@ Please categorize the relevant details into their corresponding sections.`;
                                 ):( */}
                                   {/* <> */}
 
-                                  <TranscriptWithTimestamps
-                                    transcriptData={meetingTranscript}
-                                  />
+                                  {isTranslatingTranscript ? (
+                                    <>
+                                      <div className="progress-container">
+                                        <div
+                                          className="progress"
+                                          style={{ width: "50%" }}
+                                        />
+                                      </div>
+                                      <h5 className="text-center">
+                                        {t("note_translation.Processing Transcript") || "Translation in progress..."}
+                                      </h5>
+                                    </>
+                                  ) : (
+                                    <TranscriptWithTimestamps
+                                      transcriptData={
+                                        (meeting?.automatic_translation && translatedTranscript && !showOriginalTranscript)
+                                          ? translatedTranscript
+                                          : meetingTranscript
+                                      }
+                                    />
+                                  )}
                                   {/* </> */}
                                   {/* // )
 
@@ -6138,6 +6425,8 @@ Please categorize the relevant details into their corresponding sections.`;
                             setMeetingMessages(newMeetings)
                           }
                           refreshMessages={refreshMessages}
+                          userData={loggedInUser}
+
 
                         />
                       </div>

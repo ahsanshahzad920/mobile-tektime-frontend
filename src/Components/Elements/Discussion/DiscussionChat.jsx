@@ -58,6 +58,73 @@ import { API_BASE_URL, Assets_URL } from "../../Apicongfig";
 const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
 
+const translateText = async (text, targetLang) => {
+  if (!text || !text.trim()) return text;
+  try {
+    const response = await fetch(
+      `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`
+    );
+    if (!response.ok) throw new Error("Translation failed");
+    const data = await response.json();
+    if (data && data[0]) {
+      return data[0].map((x) => x[0]).join("");
+    }
+    return text;
+  } catch (error) {
+    console.error("Translation API error:", error);
+    return text;
+  }
+};
+
+const translateHtml = async (html, targetLang) => {
+  if (!html || !html.trim()) return html;
+  
+  // If there are no HTML tags, do a simple text translation
+  if (!html.includes("<") || !html.includes(">")) {
+    return await translateText(html, targetLang);
+  }
+
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    
+    const textNodes = [];
+    const walk = (node) => {
+      if (node.nodeType === Node.TEXT_NODE && node.nodeValue.trim()) {
+        textNodes.push(node);
+      } else {
+        for (let child of node.childNodes) {
+          walk(child);
+        }
+      }
+    };
+    walk(doc.body);
+
+    if (textNodes.length === 0) return html;
+
+    const texts = textNodes.map((node) => node.nodeValue);
+    const delimiter = " [|] ";
+    const combinedText = texts.join(delimiter);
+    
+    const translatedCombined = await translateText(combinedText, targetLang);
+    
+    // Split by the delimiter (allowing optional spaces around it)
+    const translatedTexts = translatedCombined.split(/\s*\[\s*\|\s*\]\s*/);
+
+    textNodes.forEach((node, index) => {
+      if (translatedTexts[index] !== undefined) {
+        node.nodeValue = translatedTexts[index];
+      }
+    });
+
+    return doc.body.innerHTML;
+  } catch (e) {
+    console.error("Error translating HTML content:", e);
+    // Fallback to translating raw text/html if parsing fails
+    return await translateText(html, targetLang);
+  }
+};
+
 const DiscussionChat = ({
   meetingId,
   messageId,
@@ -83,10 +150,96 @@ const DiscussionChat = ({
   hasMoreMissions = false,
   isLoadingMoreMissions = false,
 }) => {
-  const [t] = useTranslation("global");
+  const [t, i18n] = useTranslation("global");
   const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [selectedMoment, setSelectedMoment] = useState(null);
+
+  // Translation states
+  const [translations, setTranslations] = useState({}); // { [lang]: { [msgId]: html } }
+  const [translatingMessages, setTranslatingMessages] = useState({}); // { [msgId]: boolean }
+  const autoTranslate = !!selectedMoment?.automatic_translation;
+
+  const targetLang = useMemo(() => {
+    if (userData?.language) return userData.language;
+    if (i18n?.language) return i18n.language;
+    try {
+      const user = CookieService.get("user");
+      if (user) {
+        const parsed = JSON.parse(user);
+        if (parsed?.language) return parsed.language;
+      }
+    } catch (e) {
+      console.error("Error reading user language from cookie", e);
+    }
+    return "fr";
+  }, [userData, i18n?.language]);
+
+  const translationsRef = useRef(translations);
+  useEffect(() => {
+    translationsRef.current = translations;
+  }, [translations]);
+
+  const translatingMessagesRef = useRef(translatingMessages);
+  useEffect(() => {
+    translatingMessagesRef.current = translatingMessages;
+  }, [translatingMessages]);
+
+  useEffect(() => {
+    if (!autoTranslate || !messages.length) return;
+
+    const translatePending = async () => {
+      const currentTranslations = translationsRef.current[targetLang] || {};
+      const pendingMessages = messages.filter(
+        (msg) => !currentTranslations[msg.id] && !translatingMessagesRef.current[msg.id]
+      );
+
+      if (pendingMessages.length === 0) return;
+
+      // Mark as translating
+      setTranslatingMessages((prev) => {
+        const next = { ...prev };
+        pendingMessages.forEach((msg) => {
+          next[msg.id] = true;
+        });
+        return next;
+      });
+
+      // Translate all pending in parallel
+      const promises = pendingMessages.map(async (msg) => {
+        try {
+          const translatedHtml = await translateHtml(msg.message, targetLang);
+          setTranslations((prev) => ({
+            ...prev,
+            [targetLang]: {
+              ...(prev[targetLang] || {}),
+              [msg.id]: translatedHtml,
+            },
+          }));
+        } catch (err) {
+          console.error("Auto-translation failed for message", msg.id, err);
+        } finally {
+          setTranslatingMessages((prev) => {
+            const next = { ...prev };
+            delete next[msg.id];
+            return next;
+          });
+        }
+      });
+
+      await Promise.all(promises);
+    };
+
+    translatePending();
+  }, [messages, autoTranslate, targetLang]);
+
+  const getMessageContent = useCallback((msg, lang) => {
+    const translatedText = autoTranslate ? translations[lang]?.[msg.id] : null;
+    if (translatedText) {
+      return translatedText;
+    }
+    return msg.message;
+  }, [translations, autoTranslate]);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [editingMessage, setEditingMessage] = useState(null);
@@ -867,6 +1020,12 @@ const DiscussionChat = ({
                                 "DD/MM/YYYY HH:mm:ss",
                               )}
                             </Text>
+                            {autoTranslate && translations[targetLang]?.[msg.id] &&
+                             translations[targetLang]?.[msg.id].trim() !== msg.message?.trim() && (
+                              <Text type="secondary" style={{ fontSize: "10px", fontStyle: "italic", color: "#1890ff" }}>
+                                ({t("Translated") || "Traduit"})
+                              </Text>
+                            )}
                           </div>
                           <Space size="large" className="text-muted">
                             <Tooltip title="Pin">
@@ -922,10 +1081,17 @@ const DiscussionChat = ({
                         overflowWrap: "break-word",
                       }}
                     >
-                      {msg.sender === "system" || msg.sender === "assistant" || msg.type === "system" || msg.type === "assistant" || msg.sender_type === "system" || msg.sender_type === "assistant" || msg.message_type === "system" || msg.message_type === "assistant" || msg.message_type === "notification" || msg.message_type === "system-notification" ? (
-                        <AssistantMessage htmlContent={msg.message} />
+                      {translatingMessages[msg.id] ? (
+                        <div className="d-flex align-items-center gap-2 text-muted" style={{ fontSize: "13px", fontStyle: "italic", padding: "4px 0" }}>
+                          <Spin size="small" />
+                          <span>{t("translating...") || "Traduction en cours..."}</span>
+                        </div>
                       ) : (
-                        <div dangerouslySetInnerHTML={{ __html: msg.message }} />
+                        msg.sender === "system" || msg.sender === "assistant" || msg.type === "system" || msg.type === "assistant" || msg.sender_type === "system" || msg.sender_type === "assistant" || msg.message_type === "system" || msg.message_type === "assistant" || msg.message_type === "notification" || msg.message_type === "system-notification" ? (
+                          <AssistantMessage htmlContent={getMessageContent(msg, targetLang)} />
+                        ) : (
+                          <div dangerouslySetInnerHTML={{ __html: getMessageContent(msg, targetLang) }} />
+                        )
                       )}
                     </div>
                   </div>
@@ -1093,6 +1259,12 @@ const DiscussionChat = ({
                           >
                             {moment.utc(msg?.sent_date_time || msg?.created_at).local().format("DD/MM/YYYY HH:mm")}
                           </Text>
+                          {autoTranslate && translations[targetLang]?.[msg.id] &&
+                           translations[targetLang]?.[msg.id].trim() !== msg.message?.trim() && (
+                            <Text type="secondary" style={{ fontSize: "9px", fontStyle: "italic", color: "#1890ff" }}>
+                              ({t("Translated") || "Traduit"})
+                            </Text>
+                          )}
                         </div>
                         <div
                           className={`p-3 rounded-4 shadow-sm border ${isMe ? "bg-success bg-opacity-10 border-success border-opacity-20 m-0 bubble-me" : "bg-white bubble-other"}`}
@@ -1108,29 +1280,36 @@ const DiscussionChat = ({
                             overflowWrap: "break-word",
                           }}
                         >
-                          {msg.sender === "system" || msg.sender === "assistant" || msg.type === "system" || msg.type === "assistant" || msg.sender_type === "system" || msg.sender_type === "assistant" || msg.message_type === "system" || msg.message_type === "assistant" || msg.message_type === "notification" || msg.message_type === "system-notification" ? (
-                            <AssistantMessage
-                              htmlContent={msg.message}
-                              className="text-dark"
-                              style={{
-                                overflowX: "auto",
-                                maxWidth: "100%",
-                                wordBreak: "break-word",
-                                overflowWrap: "break-word",
-                              }}
-                            />
+                          {translatingMessages[msg.id] ? (
+                            <div className="d-flex align-items-center gap-2 text-muted" style={{ fontSize: "13px", fontStyle: "italic", padding: "4px 0" }}>
+                              <Spin size="small" />
+                              <span>{t("translating...") || "Traduction en cours..."}</span>
+                            </div>
                           ) : (
-                            <div
-                              dangerouslySetInnerHTML={{ __html: msg.message }}
-                              className="text-dark"
-                              style={{
-                                // FIX 3: rendered HTML (tables, images) — allow internal scroll if needed
-                                overflowX: "auto",
-                                maxWidth: "100%",
-                                wordBreak: "break-word",
-                                overflowWrap: "break-word",
-                              }}
-                            />
+                            msg.sender === "system" || msg.sender === "assistant" || msg.type === "system" || msg.type === "assistant" || msg.sender_type === "system" || msg.sender_type === "assistant" || msg.message_type === "system" || msg.message_type === "assistant" || msg.message_type === "notification" || msg.message_type === "system-notification" ? (
+                              <AssistantMessage
+                                htmlContent={getMessageContent(msg, targetLang)}
+                                className="text-dark"
+                                style={{
+                                  overflowX: "auto",
+                                  maxWidth: "100%",
+                                  wordBreak: "break-word",
+                                  overflowWrap: "break-word",
+                                }}
+                              />
+                            ) : (
+                              <div
+                                dangerouslySetInnerHTML={{ __html: getMessageContent(msg, targetLang) }}
+                                className="text-dark"
+                                style={{
+                                  // FIX 3: rendered HTML (tables, images) — allow internal scroll if needed
+                                  overflowX: "auto",
+                                  maxWidth: "100%",
+                                  wordBreak: "break-word",
+                                  overflowWrap: "break-word",
+                                }}
+                              />
+                            )
                           )}
                           <div
                             className="text-end"

@@ -80,7 +80,11 @@ const VisibilityMeetingMessageModal = ({
             </button>
           </div>
         ) : null}
-        {!window.location.href.includes("destination") && (
+        {window.location.href.includes("destination") ? (
+          <button className="btn-no" onClick={() => navigate(-1)}>
+            {t("buttons.goBack")}
+          </button>
+        ) : (
           <button className="btn-no" onClick={handleClose}>
             {t("confirmationModal.close")}
           </button>

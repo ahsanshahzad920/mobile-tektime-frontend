@@ -1,5 +1,5 @@
 import CookieService from '../../../../Utils/CookieService';
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   FaEdit,
   FaThumbtack,
@@ -24,19 +24,192 @@ const cleanHtml = (htmlString) => {
   return htmlString;
 };
 
+const translateText = async (text, targetLang) => {
+  if (!text || !text.trim()) return text;
+  try {
+    const response = await fetch(
+      `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`
+    );
+    if (!response.ok) throw new Error("Translation failed");
+    const data = await response.json();
+    if (data && data[0]) {
+      return data[0].map((x) => x[0]).join("");
+    }
+    return text;
+  } catch (error) {
+    console.error("Translation API error:", error);
+    return text;
+  }
+};
+
+const translateHtml = async (html, targetLang) => {
+  if (!html || !html.trim()) return html;
+  
+  // If there are no HTML tags, do a simple text translation
+  if (!html.includes("<") || !html.includes(">")) {
+    return await translateText(html, targetLang);
+  }
+
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    
+    const textNodes = [];
+    const walk = (node) => {
+      if (node.nodeType === Node.TEXT_NODE && node.nodeValue.trim()) {
+        textNodes.push(node);
+      } else {
+        for (let child of node.childNodes) {
+          walk(child);
+        }
+      }
+    };
+    walk(doc.body);
+
+    if (textNodes.length === 0) return html;
+
+    const texts = textNodes.map((node) => node.nodeValue);
+    const delimiter = " [|] ";
+    const combinedText = texts.join(delimiter);
+    
+    const translatedCombined = await translateText(combinedText, targetLang);
+    
+    // Split by the delimiter (allowing optional spaces around it)
+    const translatedTexts = translatedCombined.split(/\s*\[\s*\|\s*\]\s*/);
+
+    textNodes.forEach((node, index) => {
+      if (translatedTexts[index] !== undefined) {
+        node.nodeValue = translatedTexts[index];
+      }
+    });
+
+    return doc.body.innerHTML;
+  } catch (e) {
+    console.error("Error translating HTML content:", e);
+    // Fallback to translating raw text/html if parsing fails
+    return await translateText(html, targetLang);
+  }
+};
+
 function MeetingDiscussion({ meetingId, messages, selectedMoment, onMessagesUpdate, isOutlook = false, userData }) {
   const [editingMessage, setEditingMessage] = useState(null);
   const [showActionModal, setShowActionModal] = useState(false);
   const [isDrop, setIsDrop] = useState(false);
   const [id, setId] = useState(null);
   const [actionModalId, setActionModalId] = useState(null);
-  const [t] = useTranslation("global");
+  const [t, i18n] = useTranslation("global");
   const editorRef = useRef(null);
   const navigate = useNavigate();
   const [attachments, setAttachments] = useState([]);
   const [isExpanded, setIsExpanded] = useState(false);
   const [viewMode, setViewMode] = useState("conversation");
   const messageContainerRef = useRef(null);
+
+  // ── Translation state ────────────────────────────────────────────────
+  const [translations, setTranslations] = useState({}); // { [lang]: { [msgId]: html } }
+  const [translatingIds, setTranslatingIds] = useState({}); // { [msgId]: boolean }
+
+  const autoTranslate = useMemo(
+    () =>
+      selectedMoment?.automatic_translation === true ||
+      selectedMoment?.automatic_translation === 1 ||
+      selectedMoment?.automatic_translation === "1" ||
+      selectedMoment?.automatic_translation === "true",
+    [selectedMoment?.automatic_translation]
+  );
+
+  const targetLang = useMemo(() => {
+    if (userData?.language) return userData.language;
+    try {
+      const u = CookieService.get("user");
+      if (u) {
+        const parsed = JSON.parse(u);
+        if (parsed?.language) return parsed.language;
+      }
+    } catch {}
+    return "fr";
+  }, [userData?.language]);
+
+  const translationsRef = useRef(translations);
+  useEffect(() => {
+    translationsRef.current = translations;
+  }, [translations]);
+
+  const translatingIdsRef = useRef(translatingIds);
+  useEffect(() => {
+    translatingIdsRef.current = translatingIds;
+  }, [translatingIds]);
+
+  // Translate all messages when autoTranslate is on or messages change
+  useEffect(() => {
+    if (!autoTranslate || !messages?.length) return;
+
+    const translatePending = async () => {
+      const currentTranslations = translationsRef.current[targetLang] || {};
+      const pendingMessages = messages.filter(
+        (msg) =>
+          !currentTranslations[msg.id] &&
+          !translatingIdsRef.current[msg.id] &&
+          msg.message
+      );
+
+      if (pendingMessages.length === 0) return;
+
+      // Mark as translating
+      setTranslatingIds((prev) => {
+        const next = { ...prev };
+        pendingMessages.forEach((msg) => {
+          next[msg.id] = true;
+        });
+        return next;
+      });
+
+      // Translate all pending in parallel
+      const promises = pendingMessages.map(async (msg) => {
+        try {
+          const translatedHtml = await translateHtml(msg.message, targetLang);
+          setTranslations((prev) => ({
+            ...prev,
+            [targetLang]: {
+              ...(prev[targetLang] || {}),
+              [msg.id]: translatedHtml,
+            },
+          }));
+        } catch (err) {
+          console.error("Auto-translation failed for message", msg.id, err);
+        } finally {
+          setTranslatingIds((prev) => {
+            const next = { ...prev };
+            delete next[msg.id];
+            return next;
+          });
+        }
+      });
+
+      await Promise.all(promises);
+    };
+
+    translatePending();
+  }, [messages, autoTranslate, targetLang]);
+
+  // Clear translations when moment changes
+  useEffect(() => {
+    setTranslations({});
+    setTranslatingIds({});
+  }, [selectedMoment?.id]);
+
+  const getMessageBody = useCallback(
+    (msg) => {
+      if (autoTranslate) {
+        if (translatingIds[msg.id]) return null; // signals "loading"
+        const translatedText = translations[targetLang]?.[msg.id];
+        if (translatedText) return translatedText;
+      }
+      return msg.message;
+    },
+    [autoTranslate, translations, translatingIds, targetLang]
+  );
+  // ────────────────────────────────────────────────────────────────────
 
   const scrollToBottom = () => {
     if (messageContainerRef.current) {
@@ -214,7 +387,7 @@ function MeetingDiscussion({ meetingId, messages, selectedMoment, onMessagesUpda
 
   const MessageItem = ({
     message, onEdit, onDelete, onPin, onShowAction,
-    isEditing, currentUserId, userData, viewMode
+    isEditing, currentUserId, userData, viewMode, getMessageBody
   }) => {
     const outlookLink = userData?.email_links?.find(
       (link) => link.platform === "outlook" || link.platform === "Outlook"
@@ -296,6 +469,12 @@ function MeetingDiscussion({ meetingId, messages, selectedMoment, onMessagesUpda
                   <small className="text-muted" style={{ fontSize: "0.75rem" }}>
                     {formatDateForDisplay(message.created_at)}
                   </small>
+                  {autoTranslate && translations[targetLang]?.[message.id] &&
+                   translations[targetLang]?.[message.id].trim() !== message.message?.trim() && (
+                    <small className="text-primary" style={{ fontSize: "0.68rem", fontStyle: "italic" }}>
+                      ({t("Translated") || "Traduit"})
+                    </small>
+                  )}
                   {message?.is_pinned && (
                     <span className="badge bg-warning text-dark d-flex align-items-center gap-1" style={{ fontSize: '0.65rem' }}>
                       <FaThumbtack size={10} /> {t("Pinned")}
@@ -321,11 +500,17 @@ function MeetingDiscussion({ meetingId, messages, selectedMoment, onMessagesUpda
                 </div>
               </div>
               <div className="text-break text-secondary" style={{ fontSize: '0.9rem' }}>
-                {message?.sender === "system" || message?.sender === "assistant" || message?.type === "system" || message?.type === "assistant" || message?.sender_type === "system" || message?.sender_type === "assistant" || message?.message_type === "system" || message?.message_type === "assistant" || message?.message_type === "notification" || message?.message_type === "system-notification" ? (
-                  <AssistantMessage htmlContent={message.message} />
-                ) : (
-                  <div dangerouslySetInnerHTML={{ __html: message.message }} />
-                )}
+                {(() => {
+                  const body = getMessageBody(message);
+                  if (body === null) {
+                    return <span className="text-muted" style={{ fontSize: '0.8rem' }}>⏳ translating…</span>;
+                  }
+                  const isSystem = message?.sender === "system" || message?.sender === "assistant" || message?.type === "system" || message?.type === "assistant" || message?.sender_type === "system" || message?.sender_type === "assistant" || message?.message_type === "system" || message?.message_type === "assistant" || message?.message_type === "notification" || message?.message_type === "system-notification";
+                  if (isSystem) {
+                    return <AssistantMessage htmlContent={body} />;
+                  }
+                  return <div dangerouslySetInnerHTML={{ __html: body }} />;
+                })()}
                 {message.attachments?.length > 0 && (
                   <div className="attachments-container mt-2">
                     {message.attachments.map((att, idx) => <div key={idx}>{renderAttachment(att)}</div>)}
@@ -364,14 +549,26 @@ function MeetingDiscussion({ meetingId, messages, selectedMoment, onMessagesUpda
                   <small className="text-muted" style={{ fontSize: "0.7rem" }}>
                     {formatDateForDisplay(message.created_at)}
                   </small>
+                  {autoTranslate && translations[targetLang]?.[message.id] &&
+                   translations[targetLang]?.[message.id].trim() !== message.message?.trim() && (
+                    <small className="text-primary" style={{ fontSize: "0.68rem", fontStyle: "italic" }}>
+                      ({t("Translated") || "Traduit"})
+                    </small>
+                  )}
                 </div>
 
                 <div className={`message-bubble my-message-bubble ${isEditing ? "editing" : ""}`}>
-                  {message?.sender === "system" || message?.sender === "assistant" || message?.type === "system" || message?.type === "assistant" || message?.sender_type === "system" || message?.sender_type === "assistant" || message?.message_type === "system" || message?.message_type === "assistant" || message?.message_type === "notification" || message?.message_type === "system-notification" ? (
-                    <AssistantMessage htmlContent={message.message} />
-                  ) : (
-                    <div dangerouslySetInnerHTML={{ __html: message.message }} />
-                  )}
+                  {(() => {
+                    const body = getMessageBody(message);
+                    if (body === null) {
+                      return <span className="text-muted" style={{ fontSize: '0.8rem' }}>⏳ translating…</span>;
+                    }
+                    const isSystem = message?.sender === "system" || message?.sender === "assistant" || message?.type === "system" || message?.type === "assistant" || message?.sender_type === "system" || message?.sender_type === "assistant" || message?.message_type === "system" || message?.message_type === "assistant" || message?.message_type === "notification" || message?.message_type === "system-notification";
+                    if (isSystem) {
+                      return <AssistantMessage htmlContent={body} />;
+                    }
+                    return <div dangerouslySetInnerHTML={{ __html: body }} />;
+                  })()}
                   {message.attachments?.length > 0 && (
                     <div className="attachments-container mt-2">
                       {message.attachments.map((att, idx) => <div key={idx}>{renderAttachment(att)}</div>)}
@@ -404,6 +601,12 @@ function MeetingDiscussion({ meetingId, messages, selectedMoment, onMessagesUpda
               {/* Content */}
               <div className="d-flex flex-column align-items-end" style={{ maxWidth: "85%", minWidth: 0 }}>
                 <div className="d-flex align-items-center gap-1 mb-1 justify-content-end flex-wrap">
+                  {autoTranslate && translations[targetLang]?.[message.id] &&
+                   translations[targetLang]?.[message.id].trim() !== message.message?.trim() && (
+                    <small className="text-primary me-1" style={{ fontSize: "0.68rem", fontStyle: "italic" }}>
+                      ({t("Translated") || "Traduit"})
+                    </small>
+                  )}
                   <small className="text-muted" style={{ fontSize: "0.7rem" }}>
                     {formatDateForDisplay(message.created_at)}
                   </small>
@@ -414,11 +617,17 @@ function MeetingDiscussion({ meetingId, messages, selectedMoment, onMessagesUpda
 
                 <div className={`message-bubble other-message-bubble text-start ${isEditing ? "editing" : ""}`}
                   style={{ backgroundColor: userColor }}>
-                  {message?.sender === "system" || message?.sender === "assistant" || message?.type === "system" || message?.type === "assistant" || message?.sender_type === "system" || message?.sender_type === "assistant" || message?.message_type === "system" || message?.message_type === "assistant" || message?.message_type === "notification" || message?.message_type === "system-notification" ? (
-                    <AssistantMessage htmlContent={message.message} />
-                  ) : (
-                    <div dangerouslySetInnerHTML={{ __html: message.message }} />
-                  )}
+                  {(() => {
+                    const body = getMessageBody(message);
+                    if (body === null) {
+                      return <span className="text-muted" style={{ fontSize: '0.8rem' }}>⏳ translating…</span>;
+                    }
+                    const isSystem = message?.sender === "system" || message?.sender === "assistant" || message?.type === "system" || message?.type === "assistant" || message?.sender_type === "system" || message?.sender_type === "assistant" || message?.message_type === "system" || message?.message_type === "assistant" || message?.message_type === "notification" || message?.message_type === "system-notification";
+                    if (isSystem) {
+                      return <AssistantMessage htmlContent={body} />;
+                    }
+                    return <div dangerouslySetInnerHTML={{ __html: body }} />;
+                  })()}
                   {message.attachments?.length > 0 && (
                     <div className="attachments-container mt-2">
                       {message.attachments.map((att, idx) => <div key={idx}>{renderAttachment(att)}</div>)}
@@ -558,6 +767,7 @@ function MeetingDiscussion({ meetingId, messages, selectedMoment, onMessagesUpda
                         onPin={handlePinMessage} onShowAction={handleShowAction}
                         isEditing={editingMessage?.id === message.id}
                         currentUserId={currentUserId} userData={userData} viewMode={viewMode}
+                        getMessageBody={getMessageBody}
                       />
                     ))}
                     {messages.filter(msg => !msg.is_pinned).map(message => (
@@ -567,6 +777,7 @@ function MeetingDiscussion({ meetingId, messages, selectedMoment, onMessagesUpda
                         onPin={handlePinMessage} onShowAction={handleShowAction}
                         isEditing={editingMessage?.id === message.id}
                         currentUserId={currentUserId} userData={userData} viewMode={viewMode}
+                        getMessageBody={getMessageBody}
                       />
                     ))}
                   </>

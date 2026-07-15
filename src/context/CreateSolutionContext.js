@@ -14,7 +14,7 @@ import { useSteps } from "./Step";
 import { useSolutions } from "./SolutionsContext";
 import { useNavigate } from "react-router-dom";
 
-const CreateSolutionContext = createContext();
+export const CreateSolutionContext = createContext();
 
 export const useDestinations = () => useContext(CreateSolutionContext);
 
@@ -135,6 +135,7 @@ export const SolutionFormProvider = ({ children }) => {
     casting_type: "Invitation",
     show_participants: false,
     show_discussion: false,
+    show_qr_code: false,
   });
 
   const handleCloseModal = () => {
@@ -199,6 +200,7 @@ export const SolutionFormProvider = ({ children }) => {
       casting_type: "Invitation",
       show_participants: false,
       show_discussion: false,
+      show_qr_code: false,
     });
     updateSteps([]);
     updateSolutionSteps([]);
@@ -362,6 +364,7 @@ export const SolutionFormProvider = ({ children }) => {
           presentation: state.presentation,
           show_participants: state.show_participants,
           show_discussion: state.show_discussion,
+          show_qr_code: state.show_qr_code,
         };
       case "tab8":
         return {
@@ -487,6 +490,7 @@ export const SolutionFormProvider = ({ children }) => {
         presentation: formState.presentation,
         show_participants: formState.show_participants,
         show_discussion: formState.show_discussion,
+        show_qr_code: formState.show_qr_code,
         // teams: formState.teams,
         solution_id: formState.solutionId,
         status: "draft",
@@ -611,6 +615,7 @@ export const SolutionFormProvider = ({ children }) => {
       presentation,
       show_participants,
       show_discussion,
+      show_qr_code,
       problem_to_resolve,
       solution_to_bring,
       how_it_fixes,
@@ -665,6 +670,7 @@ export const SolutionFormProvider = ({ children }) => {
         presentation,
         show_participants,
         show_discussion,
+        show_qr_code,
         share_by,
         note_taker,
         total_time: time,
@@ -816,6 +822,7 @@ export const SolutionFormProvider = ({ children }) => {
       presentation,
       show_participants,
       show_discussion,
+      show_qr_code,
       problem_to_resolve,
       solution_to_bring,
       how_it_fixes,
@@ -865,6 +872,7 @@ export const SolutionFormProvider = ({ children }) => {
         whatsapp_in,
         show_participants,
         show_discussion,
+        show_qr_code,
         share_by,
         note_taker,
         total_time: time,
@@ -1004,6 +1012,7 @@ export const SolutionFormProvider = ({ children }) => {
             solution_password: null,
             show_participants: false,
             show_discussion: false,
+            show_qr_code: false,
           });
           navigate("/solution");
           setStepsData([]);
@@ -1065,6 +1074,7 @@ export const SolutionFormProvider = ({ children }) => {
         agenda: "",
         show_participants: false,
         show_discussion: false,
+        show_qr_code: false,
       });
       updateSteps([]);
       updateSolutionSteps([]);
@@ -1134,6 +1144,7 @@ export const SolutionFormProvider = ({ children }) => {
         agenda,
         show_participants,
         show_discussion,
+        show_qr_code,
       } = formState;
 
       const formFields = [title];
@@ -1213,6 +1224,7 @@ export const SolutionFormProvider = ({ children }) => {
           solution_id: checkId,
           show_participants,
           show_discussion,
+          show_qr_code,
         };
       }
       //
@@ -1266,6 +1278,7 @@ export const SolutionFormProvider = ({ children }) => {
             solution_password: null,
             show_participants: false,
             show_discussion: false,
+            show_qr_code: false,
           });
           setCheckId(null);
           updateSteps([]);
@@ -1390,6 +1403,7 @@ export const SolutionFormProvider = ({ children }) => {
             : [],
         show_participants: formState.show_participants,
         show_discussion: formState.show_discussion,
+        show_qr_code: formState.show_qr_code,
       };
 
       try {
@@ -1436,6 +1450,7 @@ export const SolutionFormProvider = ({ children }) => {
             solution_password: "",
             show_participants: false,
             show_discussion: false,
+            show_qr_code: false,
           });
           setCheckId(null);
           updateSteps([]);
@@ -1503,6 +1518,7 @@ export const SolutionFormProvider = ({ children }) => {
       solution_password,
       show_participants,
       show_discussion,
+      show_qr_code,
       date,
       start_time,
       repetition,
@@ -1603,6 +1619,7 @@ export const SolutionFormProvider = ({ children }) => {
         status: "active",
         show_participants,
         show_discussion,
+        show_qr_code,
         date,
         start_time,
         repetition,

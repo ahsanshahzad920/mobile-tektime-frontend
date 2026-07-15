@@ -178,7 +178,15 @@ const QuickMomentForm = ({
   const [newStep, setNewStep] = useState("");
   const [isDrop, setIsDrop] = useState(false);
   const [meeting, setMeeting] = useState(null);
+  const [isMeetingCreatedThisSession, setIsMeetingCreatedThisSession] = useState(false);
   const [id, setId] = useState(null);
+
+  useEffect(() => {
+    if (!show) {
+      setIsMeetingCreatedThisSession(false);
+      setMeeting(null);
+    }
+  }, [show]);
   const { user } = useHeaderTitle();
   const { setCallApi, setFromTektime } = useMeetings();
   const sessionUser = CookieService.get("email")?.toLowerCase()?.trim();
@@ -464,6 +472,7 @@ const QuickMomentForm = ({
       if (meetingData?.created_from_whatsapp) {
         setFormState(meetingData);
         setMeeting(meetingData);
+        setIsMeetingCreatedThisSession(true);
 
         // Map Date and Time
         const mTime = meetingData.time || meetingData.start_time;
@@ -2245,6 +2254,7 @@ const QuickMomentForm = ({
         // }
         setMeeting(data);
         setFormState(data);
+        setIsMeetingCreatedThisSession(true);
         // setCheckId(data.id);
         console.log("data", data);
 
@@ -2555,6 +2565,7 @@ const QuickMomentForm = ({
         const targetId = responseData?.id;
 
         setMeeting(responseData);
+        setIsMeetingCreatedThisSession(true);
         // toast.success(t("meeting.formState.Meeting created successfully"));
 
         const hasSteps = meetingData
@@ -3018,6 +3029,7 @@ const QuickMomentForm = ({
 
       if (res.status === 200 || res?.status === 201) {
         const response = res?.data?.data;
+        setIsMeetingCreatedThisSession(true);
         const hasSteps =
           isTemplate && selectedSolution?.is_step_exists !== false;
 
@@ -3602,6 +3614,24 @@ const QuickMomentForm = ({
                             </svg>
                           ),
                           checked: meeting.automatic_strategy,
+                        },
+                        {
+                          label: t("meeting.formState.Automatic Translation"),
+                          icon: (
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="25"
+                              height="24"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                            >
+                              <path
+                                d="M12.87 15.07L10.33 12.56L10.36 12.53C12.1 10.59 13.34 8.36 14.07 6H17V4H10V2H8V4H1V6H12.17C11.5 7.92 10.44 9.75 9 11.35C8.07 10.32 7.3 9.19 6.69 8H4.69C5.42 9.63 6.42 11.17 7.67 12.56L2.58 17.58L4 19L9 14L12.11 17.11L12.87 15.07ZM18.5 10H16.5L12 22H14L15.12 19H19.87L21 22H23L18.5 10ZM15.88 17L17.5 12.67L19.12 17H15.88Z"
+                                fill="#3D57B5"
+                              />
+                            </svg>
+                          ),
+                          checked: meeting.automatic_translation,
                         },
                         {
                           label: t("meeting.formState.Automatic Instruction"),
@@ -5186,6 +5216,24 @@ const QuickMomentForm = ({
                           checked: meeting.automatic_strategy,
                         },
                         {
+                          label: t("meeting.formState.Automatic Translation"),
+                          icon: (
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="25"
+                              height="24"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                            >
+                              <path
+                                d="M12.87 15.07L10.33 12.56L10.36 12.53C12.1 10.59 13.34 8.36 14.07 6H17V4H10V2H8V4H1V6H12.17C11.5 7.92 10.44 9.75 9 11.35C8.07 10.32 7.3 9.19 6.69 8H4.69C5.42 9.63 6.42 11.17 7.67 12.56L2.58 17.58L4 19L9 14L12.11 17.11L12.87 15.07ZM18.5 10H16.5L12 22H14L15.12 19H19.87L21 22H23L18.5 10ZM15.88 17L17.5 12.67L19.12 17H15.88Z"
+                                fill="#3D57B5"
+                              />
+                            </svg>
+                          ),
+                          checked: meeting.automatic_translation,
+                        },
+                        {
                           label: t("meeting.formState.Automatic Instruction"),
                           icon: (
                             <svg
@@ -6487,7 +6535,20 @@ const QuickMomentForm = ({
           <Button
             variant="danger"
             className="px-4 py-2 confirmation-delete"
-            onClick={() => {
+            onClick={async () => {
+              if (meeting?.id && (isMeetingCreatedThisSession || meetingData?.created_from_whatsapp)) {
+                try {
+                  await axios.delete(`${API_BASE_URL}/meetings/${meeting.id}`, {
+                    headers: {
+                      Authorization: `Bearer ${CookieService.get("token")}`,
+                    },
+                  });
+                  setCallApi((prev) => !prev);
+                  toast.success(t("draftDeletedToast") || "Meeting deleted successfully");
+                } catch (error) {
+                  console.error("Error deleting meeting:", error);
+                }
+              }
               setId(null);
               setClient(null);
               setClientId(null);

@@ -4332,7 +4332,7 @@ const Report = () => {
                                         />
                                       ) : meetingData?.moment_privacy ===
                                         "team" ? (
-                                        <div className="d-flex">
+                                        <div className="d-flex flex-wrap gap-1">
                                           {meetingData?.moment_privacy_teams_data?.map(
                                             (item, idx) => (
                                               <div key={idx} className="me-1">
@@ -4360,7 +4360,7 @@ const Report = () => {
                                         </div>
                                       ) : meetingData?.moment_privacy ===
                                         "participant only" ? (
-                                        <div className="d-flex">
+                                        <div className="d-flex flex-wrap gap-1">
                                           {meetingData?.user_with_participants?.map(
                                             (item, idx) => (
                                               <div key={idx} className="me-1">
@@ -5441,7 +5441,8 @@ const Report = () => {
                                     </div>
 
                                     {meetingData?.type !== "Calendly" &&
-                                      meetingData?.presentation && (
+                                      meetingData?.presentation &&
+                                      showButton && (
                                         <div className="d-flex gap-3 play-meeting-button">
                                           <div className="d-flex w-100 play-btn-child">
                                             <AntdTooltip
@@ -5476,7 +5477,7 @@ const Report = () => {
                                                   //       )
                                                   //   ) || play
                                                   // }
-                                                  disabled={!showButton || play}
+                                                  disabled={play}
                                                 >
                                                   {meetingData?.type ===
                                                     "Google Agenda Event" ||
@@ -6255,7 +6256,7 @@ const Report = () => {
                                         />
                                       ) : meetingData?.moment_privacy ===
                                         "team" ? (
-                                        <div className="d-flex">
+                                        <div className="d-flex flex-wrap gap-1">
                                           {meetingData?.moment_privacy_teams_data?.map(
                                             (item, idx) => (
                                               <div key={idx} className="me-1">
@@ -6283,7 +6284,7 @@ const Report = () => {
                                         </div>
                                       ) : meetingData?.moment_privacy ===
                                         "participant only" ? (
-                                        <div className="d-flex">
+                                        <div className="d-flex flex-wrap gap-1">
                                           {meetingData?.user_with_participants?.map(
                                             (item, idx) => (
                                               <div key={idx} className="me-1">

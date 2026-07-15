@@ -2932,6 +2932,31 @@ const Invite = () => {
                     </div>
                   </>
                 )}
+
+                {meeting?.show_qr_code && (
+                  <>
+                    <div>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="25"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                      >
+                        <path
+                          d="M3 11h8V3H3v8zm2-6h4v4H5V5zM3 21h8v-8H3v8zm2-6h4v4H5v-4zm8-12v8h8V3h-8zm6 6h-4V5h4v4zm0 6h2v2h-2v-2zm-2 2h2v2h-2v-2zm-2-2h2v2h-2v-2zm2 4h2v2h-2v-2zm-2-2h2v2h-2v-2zm-2 2h2v2h-2v-2zm2 2h2v2h-2v-2zm-4-4h2v2h-2v-2z"
+                          fill="#3D57B5"
+                        />
+                      </svg>
+                      <span
+                        className="solutioncards"
+                        style={{ color: "#3D57B5" }}
+                      >
+                        {t("meeting.formState.Show QR Code")}
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
               {/* </div> */}
 

@@ -220,23 +220,25 @@ const MemberDetail = () => {
           <div className="row child-1 mb-5">
             <div className="col-md-6 w-100">
               <div className="title mb-1">
-                <Link to={fromMission ? `/invities` : `/Team`}>
-                  {fromMission ? "Missions" : "Casting"}
-                </Link>
-                <span> / </span>
-                <Link
-                  to={
-                    fromMission
-                      ? `/invitiesToMeeting/${CookieService.getItem(
-                          "missionId"
-                        )}`
-                      : `/Team`
-                  }
-                >
-                  {fromMission
-                    ? "Casting"
-                    : `${t("team.membersof")} ${member?.enterprise?.name}`}
-                </Link>
+                {fromMission ? (
+                  <>
+                    <Link to="/invities">Missions</Link>
+                    <span> / </span>
+                    <Link to={`/invitiesToMeeting/${CookieService.getItem("missionId")}`}>
+                      {`${t("team.membersof")} ${member?.enterprise?.name}`}
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link to="/Enterprises">{t("Enterprises") || "Enterprises"}</Link>
+                    <span> / </span>
+                    <Link to={`/EntreprisesToTeam/${member?.enterprise?.id}`}>
+                      {member?.enterprise?.name}
+                    </Link>
+                    <span> / </span>
+                    <span>{t("team.members") || "Member"}</span>
+                  </>
+                )}
               </div>
               <div className="invite-header d-flex align-items-start">
                 <div className="col-md-8 d-flex flex-column">

@@ -4865,7 +4865,7 @@ const Report = () => {
                                     isTranscribing={isTranscribing}
                                     Assets_URL={Assets_URL}
                                     t={t}
-                                    isAccordion
+                                    isAccordion={true}
                                     stepMedias={stepMedias || []}
                                   />
                                 ))}
@@ -6817,7 +6817,7 @@ const Report = () => {
                                     isRun={isRun}
                                     isReOpen={isReOpen}
                                     reRunStep={handleReRunStep}
-                                    isAccordion={true} // Accordion layout for mobile
+                                    isAccordion={false} // Accordion layout for mobile
                                     Assets_URL={Assets_URL} // Pass Assets_URL
                                     t={t} // Pass translation function
                                     stepMedias={stepMedias}

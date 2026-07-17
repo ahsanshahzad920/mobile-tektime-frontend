@@ -11583,85 +11583,174 @@ Please categorize the relevant details into their corresponding sections.`;
         </div>
       )}
 
-      {/* Confirmation Popup before recording */}
+      {/* Confirmation Popup before recording — design v2 */}
       {showConfirmationPopup && (
         <Modal
           show={showConfirmationPopup}
           size="lg"
           centered
           backdrop="static"
+          contentClassName="tk-note-modal border-0"
         >
-          <Modal.Header>
-            <Modal.Title>{t("note_confirmation_title")}</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            <p
-              dangerouslySetInnerHTML={{
-                __html: t("note_confirmation_content"),
+          <Modal.Body style={{ padding: 0, borderRadius: 16, overflow: "hidden" }}>
+            {/* Bandeau */}
+            <div
+              style={{
+                background:
+                  "linear-gradient(135deg, #0026b1 0%, #3b5bdb 55%, #00b3d6 100%)",
+                color: "#fff",
+                padding: "30px 34px 26px",
+                textAlign: "center",
               }}
-            />
-            {/* system-specific image */}
-            <div className="d-flex justify-content-center">
-              {isMac && (
-                <img
-                  src="/Assets/mac-popup.png"
-                  alt="Mac Instructions"
-                  style={{
-                    // width: "100%",
-                    borderRadius: "8px",
-                    marginTop: "10px",
-                  }}
-                />
+            >
+              <div
+                style={{
+                  width: 58,
+                  height: 58,
+                  borderRadius: "50%",
+                  background: "rgba(255,255,255,0.18)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 14px",
+                }}
+              >
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                  <line x1="12" y1="19" x2="12" y2="23" />
+                  <line x1="8" y1="23" x2="16" y2="23" />
+                </svg>
+              </div>
+              <h4 style={{ fontWeight: 700, margin: 0, fontSize: 22 }}>
+                {t("note_v2_title")}
+              </h4>
+              <p style={{ margin: "8px auto 0", maxWidth: 440, opacity: 0.92, fontSize: 15 }}>
+                {t("note_v2_subtitle")}
+              </p>
+            </div>
+
+            {/* Étapes */}
+            <div style={{ padding: "26px 34px 8px" }}>
+              {[t("note_v2_step1"), t("note_v2_step2"), t("note_v2_step3")].map(
+                (label, i) => (
+                  <div
+                    key={i}
+                    style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 16 }}
+                  >
+                    <span
+                      style={{
+                        flex: "0 0 28px",
+                        width: 28,
+                        height: 28,
+                        borderRadius: "50%",
+                        background: "rgba(0,38,177,0.08)",
+                        color: "#0026b1",
+                        fontWeight: 700,
+                        fontSize: 14,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        marginTop: 1,
+                      }}
+                    >
+                      {i + 1}
+                    </span>
+                    <span style={{ fontSize: 15, color: "#374151", lineHeight: 1.5 }}>
+                      {label}
+                    </span>
+                  </div>
+                )
               )}
 
-              {isWindows && (
-                <img
-                  src="/Assets/windows-popup.png"
-                  alt="Windows Instructions"
-                  style={{
-                    // width: "100%",
-                    borderRadius: "8px",
-                    marginTop: "10px",
-                  }}
-                />
+              {/* Illustration système */}
+              {(isMac || isWindows) && (
+                <div style={{ display: "flex", justifyContent: "center", marginTop: 6 }}>
+                  <img
+                    src={isMac ? "/Assets/mac-popup.png" : "/Assets/windows-popup.png"}
+                    alt={isMac ? "Instructions macOS" : "Instructions Windows"}
+                    style={{
+                      maxWidth: "100%",
+                      borderRadius: 10,
+                      border: "1px solid #e6e9f0",
+                      boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
+                    }}
+                  />
+                </div>
               )}
+
+              {/* Note navigateur */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  marginTop: 18,
+                  padding: "10px 14px",
+                  background: "#f4f7ff",
+                  borderRadius: 10,
+                  color: "#4b5563",
+                  fontSize: 13.5,
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0026b1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="16" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
+                <span>{t("note_v2_note")}</span>
+              </div>
             </div>
-          </Modal.Body>
-          <Modal.Footer>
-          <div className="d-flex justify-content-between align-items-center w-100">
-              <div className="form-check m-0">
+
+            {/* Footer */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "16px 34px 24px",
+                marginTop: 8,
+                borderTop: "1px solid #eef0f4",
+              }}
+            >
+              <label
+                htmlFor="dontShowAgainCheck"
+                style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", userSelect: "none", color: "#6b7280", fontSize: 14, margin: 0 }}
+              >
                 <input
                   type="checkbox"
-                  className="form-check-input"
                   id="dontShowAgainCheck"
                   checked={dontShowAgain}
                   onChange={(e) => setDontShowAgain(e.target.checked)}
-                  style={{ cursor: "pointer" }}
+                  style={{ cursor: "pointer", width: 16, height: 16 }}
                 />
-                <label className="form-check-label ms-2" htmlFor="dontShowAgainCheck" style={{ cursor: "pointer", userSelect: "none" }}>
-                  Ne plus afficher
-                </label>
-              </div>
+                {t("note_v2_dont_show")}
+              </label>
               <button
-                className="btn"
+                onClick={initiateRecording}
                 style={{
                   backgroundColor: "#0026b1",
                   color: "#fff",
                   border: "none",
-                  padding: "9px 26px",
-                  fontSize: "16px",
+                  padding: "11px 30px",
+                  fontSize: 15,
+                  fontWeight: 600,
                   cursor: "pointer",
-                  borderRadius: "5px",
-                  transition: "background-color 0.3s",
+                  borderRadius: 10,
                   display: "flex",
                   alignItems: "center",
+                  gap: 8,
+                  boxShadow: "0 6px 16px rgba(0,38,177,0.25)",
                 }}
-                onClick={initiateRecording}
               >
-                {t("meeting.formState.Save and Continue")}
+                {t("note_v2_continue")}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="12 5 19 12 12 19" />
+                </svg>
               </button>
             </div>
-          </Modal.Footer>
+          </Modal.Body>
         </Modal>
       )}
 

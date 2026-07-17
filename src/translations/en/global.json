@@ -89,12 +89,14 @@
     "facture": "Invoicing / Facture"
   },
   "searchEngine": {
-    "subtitle": "FRENCH B2B SOLUTIONS ENGINE",
-    "placeholder": "What's on your mind?",
-    "button": "Search",
+    "titleNormal": "Find the solution to any professional problem ",
+    "titleHighlight": "in 30 seconds",
+    "subtitle": "TekTIME proposes the best solutions close to you: software, providers, experts or services.",
+    "placeholder": "What do you need today?",
+    "button": "Find",
     "suggestions": [
-      "Manage client meetings",
-      "Automate my invoicing",
+      "Manage my client meetings",
+      "Automate my billing",
       "Train my teams remotely",
       "Improve my customer service",
       "Track my projects in a team",
@@ -105,15 +107,15 @@
       "patrimoine": "Wealth management",
       "publique": "Public authorities",
       "tpe-pme": "Organization for SMBs",
-      "freelance": "Freelance Invoicing",
+      "freelance": "Freelance billing",
       "messages": "Centralize my messages",
       "naturopathe": "Naturopath guidance",
-      "batiment": "Construction site reports",
+      "batiment": "Site reports",
       "networking": "Digital business cards",
       "pomodoro": "Time management",
       "notes": "AI note taking",
       "projets": "Project steering",
-      "cabinets": "Lawyers & Legal firms"
+      "cabinets": "Lawyers & Legal professionals"
     },
     "loadingSuggestions": "Loading suggestions...",
     "noSuggestions": "No suggestions found"
@@ -988,15 +990,15 @@
       "participants": "Please complete all participant fields",
       "confirmation": "Are you sure you want to delete this Step?",
       "Add new invite": "Add new Invite",
-      "errors":{
-        "problemToResolve":"The problem you resolve is required",
-        "solutionToBring":"The solution you bring is required",
-        "howItFixes":"How it will fix it is required"
+      "errors": {
+        "problemToResolve": "The problem you resolve is required",
+        "solutionToBring": "The solution you bring is required",
+        "howItFixes": "How it will fix it is required"
       },
       "labels": {
-        "solutionToBring":"The solution you bring",
-        "problemToResolve":"The problem you resolve",
-        "howItFixes":"How it will fix it?",
+        "solutionToBring": "The solution you bring",
+        "problemToResolve": "The problem you resolve",
+        "howItFixes": "How it will fix it?",
         "typeOfChange": "Type of exchange",
         "objective": "Objective",
         "Destinations": "Missions",
@@ -1599,7 +1601,7 @@
     "are you sure you want to close this meeting?": "Are you sure you want to close this moment?"
   },
   "badge": {
-    "re_assignment":"Re-Assignment",
+    "re_assignment": "Re-Assignment",
     "to_accept": "To accept",
     "active": "Active",
     "draft": "Draft",
@@ -1986,7 +1988,7 @@
     "Newsletter": "Newsletter",
     "Social Media Newsletter": "Social Media Newsletter",
     "AI Social Media Newsletter": "AI Social Media Newsletter",
-    "AI Instruction":"AI Instruction",
+    "AI Instruction": "AI Instruction",
     "Séminaire": "Seminar",
     "Réseautage": "Networking",
     "Embauche": "Hiring",
@@ -2149,7 +2151,7 @@
   "Failed to save the notes: API error": "Failed to save the notes: API error",
   "Failed to save the reprt: API error": "Failed to save the report: API error",
   "you are already registered in this moment": "You are already registered in this moment",
-  "Already Registered":"Already Registered",
+  "Already Registered": "Already Registered",
   "Content": "Content",
   "back": "Back",
   "backtext": "<- Return to previous page",
@@ -4277,6 +4279,8 @@
   "stripe_disconnect_confirm": "Yes, Disconnect",
   "stripe_disconnect_cancel": "Cancel",
   "stripe_disconnect_btn": "Disconnect",
+  "stripe_dashboard_btn": "View my payouts",
+  "stripe_dashboard_error": "Failed to open your Stripe dashboard.",
   "linkedin_disconnect_title": "Disconnect LinkedIn",
   "linkedin_disconnect_message": "Are you sure you want to disconnect your LinkedIn account? You will need to reconnect it later to sync your information.",
   "linkedin_disconnect_confirm": "Yes, Disconnect",
@@ -4314,50 +4318,18 @@
     "missionTypesSubText": "Restrict visibility to specific mission types",
     "missionsAdded": "Missions added"
   },
-  "searchEngine": {
-    "titleNormal": "Find the solution to any professional problem ",
-    "titleHighlight": "in 30 seconds",
-    "subtitle": "TekTIME proposes the best solutions close to you: software, providers, experts or services.",
-    "placeholder": "What do you need today?",
-    "button": "Find",
-    "suggestions": [
-      "Manage my client meetings",
-      "Automate my billing",
-      "Train my teams remotely",
-      "Improve my customer service",
-      "Track my projects in a team",
-      "Recruit tech talent"
-    ],
-    "gateLabels": {
-      "detybel": "Rebuild & recover",
-      "patrimoine": "Wealth management",
-      "publique": "Public authorities",
-      "tpe-pme": "Organization for SMBs",
-      "freelance": "Freelance billing",
-      "messages": "Centralize my messages",
-      "naturopathe": "Naturopath guidance",
-      "batiment": "Site reports",
-      "networking": "Digital business cards",
-      "pomodoro": "Time management",
-      "notes": "AI note taking",
-      "projets": "Project steering",
-      "cabinets": "Lawyers & Legal professionals"
-    },
-    "loadingSuggestions": "Loading suggestions...",
-    "noSuggestions": "No suggestions found"
-  },
   "Mission History": "Mission History",
   "Failed to update mission history.": "Failed to update mission history.",
   "Error updating mission history.": "Error updating mission history.",
-  "mediaGenerating":"Generating Media...",
-  "of the month of":"of the month of",
-  "Meetingelay":"Delay",
+  "mediaGenerating": "Generating Media...",
+  "of the month of": "of the month of",
+  "Meetingelay": "Delay",
   "ai_popup": {
     "title": "AI Processing",
     "message": "AI Content and Media Generation is in progress...",
     "message_line2": "When it's ready you will automatically go in the meeting"
   },
-  "destination_home_participants":"Participants",
+  "destination_home_participants": "Participants",
   "subscription": {
     "expired": {
       "assistant_message": "Hello! Your free trial period has ended. To continue using all features of TekTIME, please set up your payment method using the secure Stripe button below."
@@ -4372,5 +4344,13 @@
   "Sunday": "Sunday",
   "yes": "Yes",
   "no": "No",
-  "planning":"Planning"
+  "planning": "Planning",
+  "note_v2_title": "Enable automatic note-taking",
+  "note_v2_subtitle": "In one click, TekTIME transcribes your meeting audio and writes the report.",
+  "note_v2_step1": "Click “Continue” below.",
+  "note_v2_step2": "In the browser window, choose your meeting tab.",
+  "note_v2_step3": "Tick “Also share tab audio”, then confirm.",
+  "note_v2_note": "For the best transcription, use Chrome or Edge.",
+  "note_v2_continue": "Continue",
+  "note_v2_dont_show": "Don't show again"
 }

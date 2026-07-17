@@ -366,27 +366,11 @@ const ActiveReportStepCard = ({
 
     if (
       (data?.editor_type === "Editeur" || data?.editor_type === "Subtask") &&
-      data?.editor_content &&
-      data?.editor_content.trim() !== "<html><head></head><body></body></html>"
+      data?.editor_content 
     ) {
-      const tempDiv = document.createElement("div");
-      tempDiv.innerHTML = data?.editor_content;
-      const firstImageTag = tempDiv.querySelector("img");
-      const firstImageUrl = firstImageTag
-        ? firstImageTag.getAttribute("src")
-        : "";
-      return firstImageUrl ? (
-        <img
-          src={firstImageUrl}
-          style={commonStyles}
-          alt="Step Preview"
-          className="step-media hover-scale"
-        />
-      ) : (
         <div style={commonStyles} className="hover-scale">
           <FiEdit size={40} color="#00a8e1" />
         </div>
-      );
     } else if (data?.editor_type === "File") {
       return (
         <div style={commonStyles} className="hover-scale">

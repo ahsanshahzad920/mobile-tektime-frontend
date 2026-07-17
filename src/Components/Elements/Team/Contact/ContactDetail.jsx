@@ -669,9 +669,21 @@ const ContactDetail = () => {
                 {/* <Link to="/Team">Casting</Link>
                 <span> / </span>
                 <Link to={`/Team`}> {t("team.contacts")}</Link> */}
-                <Link to={fromMission ? `/invities` : `/Team`}>{fromMission ? 'Missions' : 'Casting'}</Link>
-                <span> / </span>
-                <Link to={fromMission ? `/invitiesToMeeting/${CookieService.get('missionId')}` : `/Team`}>{fromMission ? `${t("team.membersof")} ${member?.enterprise?.name}` : `Contact`}</Link>
+                {fromMission ? (
+                  <>
+                    <Link to={`/invities`}>Missions</Link>
+                    <span> / </span>
+                    <Link to={`/invitiesToMeeting/${CookieService.get('missionId')}`}>{`${t("team.membersof")} ${member?.enterprise?.name}`}</Link>
+                  </>
+                ) : (
+                  <>
+                    <Link to="/Enterprises">{t("Enterprises") || "Enterprises"}</Link>
+                    <span> / </span>
+                    <Link to={`/EntreprisesToTeam/${member?.enterprise?.id}`}>{member?.enterprise?.name}</Link>
+                    <span> / </span>
+                    <span>{t("Contact")}</span>
+                  </>
+                )}
               </div>
               <div className="invite-header d-flex align-items-start">
                 <div className="col-md-8 d-flex flex-column">

@@ -88,7 +88,6 @@
     "file": "Fichiers",
     "facture": "Facturation / Facture"
   },
-  
   "whatsapp_in_tooltip": "Activer WhatsApp",
   "presentation_tooltip": "Activer la Présentation",
   "header": {
@@ -945,15 +944,15 @@
       "participants": "Veuillez remplir tous les champs des participants",
       "confirmation": "Etes-vous sûr que vous voulez supprimer?",
       "Add new invite": "Ajouter un nouveau Invité",
-       "errors":{
-        "problemToResolve":"Le problème que vous résolvez est requis.",
-        "solutionToBring":"La solution que vous apportez est nécessaire.",
-        "howItFixes":"Il est nécessaire d'expliquer comment cela résoudra le problème."
+      "errors": {
+        "problemToResolve": "Le problème que vous résolvez est requis.",
+        "solutionToBring": "La solution que vous apportez est nécessaire.",
+        "howItFixes": "Il est nécessaire d'expliquer comment cela résoudra le problème."
       },
       "labels": {
-         "solutionToBring":"La solution que vous apportez",
-        "problemToResolve":"Le problème que vous résolvez",
-        "howItFixes":"Comment cela va résoudre le problème?",
+        "solutionToBring": "La solution que vous apportez",
+        "problemToResolve": "Le problème que vous résolvez",
+        "howItFixes": "Comment cela va résoudre le problème?",
         "typeOfChange": "Type d'échange",
         "objective": "Objectif du moment",
         "Destinations": "Missions",
@@ -1337,8 +1336,8 @@
   "profile": {
     "customizeRole": "Personnalisez TekTIME selon votre rôle",
     "customizeRoleDesc": "TekTIME va activer les bons modules et vous suggérer les bons modèles selon vos priorités.",
-    "connect":"Connecter",
-    "connected":"Connecté",
+    "connect": "Connecter",
+    "connected": "Connecté",
     "needs": {
       "casting_need": "Je veux gérer mes clients, mes collaborateurs ou mon équipe facilement",
       "mission_need": "Je veux planifier mes projets, suivre les budgets et garder le cap sur mes deadlines",
@@ -1558,7 +1557,7 @@
   },
   "badge": {
     "re_assignment": "Ré-assignation",
-    "to_accept":"Accepter",
+    "to_accept": "Accepter",
     "active": "Active",
     "draft": "Brouillon",
     "late": "En retard",
@@ -1858,7 +1857,7 @@
   "Exit Moment": "Sortir",
   "Full Screen": "Plein écran",
   "Start At": "Démarrage à  ",
-  "Remaining":"Restant",
+  "Remaining": "Restant",
   "Estimated End At": "Fin estimée à ",
   "Remaining time of stage": "Temps de l'étape",
   "The meeting started with": "a démarré avec",
@@ -1946,7 +1945,7 @@
     "Newsletter": "Campagne d’emails",
     "Social Media Newsletter": "Newsletter Réseaux Sociaux",
     "AI Social Media Newsletter": "Newsletter Réseaux Sociaux IA",
-    "AI Instruction":"Instruction pour l'IA",
+    "AI Instruction": "Instruction pour l'IA",
     "Séminaire": "Séminaire",
     "Réseautage": "Réseautage",
     "Embauche": "Embauche",
@@ -1967,8 +1966,8 @@
     "Conversation": "Conversation"
   },
   "destinationTypes": {
-    "assistant conversation":"Assistant Conversation",
-    "Assistant Conversation":"Assistant Conversation",
+    "assistant conversation": "Assistant Conversation",
+    "Assistant Conversation": "Assistant Conversation",
     "Project": "Projet",
     "Study": "Etude",
     "Audit": "Audit",
@@ -2006,8 +2005,8 @@
   "addMoment": "Ajouter un moment",
   "addMomentbtninmission": "Planifier un moment",
   "addQuickMomentbtninmission": "Planifier",
-  "addQuickMomentbtninmission_mission":"Planifier",
-  "For the Agenda Creation At least one step is required":"Pour la création de l'ordre du jour, au moins une étape est requise.",
+  "addQuickMomentbtninmission_mission": "Planifier",
+  "For the Agenda Creation At least one step is required": "Pour la création de l'ordre du jour, au moins une étape est requise.",
   "areYouSure": "Es-tu sûr?",
   "Summary of": "Résumé de",
   "unsavedChangesWarning": "Êtes-vous sûr de vouloir fermer cette fenêtre modale ?",
@@ -2107,7 +2106,7 @@
   "Failed to save the notes: API error": "Impossible d'enregistrer les notes : erreur API",
   "Failed to save the reprt: API error": "Échec de l'enregistrement du rapport : erreur API",
   "you are already registered in this moment": "Vous êtes déjà inscrit en ce moment",
-  "Already Registered":"Déjà inscrit",
+  "Already Registered": "Déjà inscrit",
   "Content": "Contenu",
   "back": "Page précédente",
   "backtext": "<- Revenir à la page précédente",
@@ -2159,8 +2158,8 @@
   "Add Mission": "Nouvelle mission",
   "Created on": "Créée le",
   "destination_types": {
-    "assistant conversation":"Assistant Conversation",
-    "Assistant Conversation":"Assistant Conversation",
+    "assistant conversation": "Assistant Conversation",
+    "Assistant Conversation": "Assistant Conversation",
     "opportunity": "Opportunité d'affaire",
     "study": "Étude",
     "audit": "Audit",
@@ -2198,8 +2197,8 @@
     "Google Agenda": "Google Agenda",
     "Agenda": "Agenda",
     "agenda": "Agenda",
-    "assistant conversation":"Assistant Conversation",
-    "Assistant Conversation":"Assistant Conversation"
+    "assistant conversation": "Assistant Conversation",
+    "Assistant Conversation": "Assistant Conversation"
   },
   "mission-badge": {
     "new": "Nouvelles missions",
@@ -2546,11 +2545,11 @@
     "title4": "Finissez toutes vos projets <br class=\"d-none d-md-block\" /> professionnels à l'heure",
     "title5": "Structurez l'organisation <br class=\"d-none d-md-block\" /> de votre entreprise",
     "subtitle": "Pour chacune de vos problématiques business",
-     "title_prefix": "Transformez votre boîte de réception en",
-        "title_suffix": "un second cerveau",
-        "description": "Réveillez-vous avec la zenitude de la boîte de réception : réponses parfaitement rédigées, tâches gérées, e-mails organisés et votre chef de personnel IA disponible 24/7.",
-        "get_started": "Commencer",
-        "view_demo": "Voir la démo"
+    "title_prefix": "Transformez votre boîte de réception en",
+    "title_suffix": "un second cerveau",
+    "description": "Réveillez-vous avec la zenitude de la boîte de réception : réponses parfaitement rédigées, tâches gérées, e-mails organisés et votre chef de personnel IA disponible 24/7.",
+    "get_started": "Commencer",
+    "view_demo": "Voir la démo"
   },
   "demo": "Obtenez une démo maintenant",
   "whatisTektime": {
@@ -2673,44 +2672,44 @@
     "feature_5": "Génération automatique de compte-rendus",
     "feature_6": "Génération automatique de carte de visite"
   },
-   "feature-discussions": {
-        "badge": "Support client de niveau supérieur",
-        "title": "Tout ce dont vous avez besoin pour évoluer",
-        "card1": {
-            "title": "Ticketing intelligent et gestion",
-            "desc": "Automatisez le routage et la priorisation des tickets avec l'IA."
-        },
-        "card2": {
-            "title": "Ticketing intelligent et gestion des tâches",
-            "desc": "Gérez chaque tâche efficacement avec notre système intelligent centralisé."
-        },
-        "card3": {
-            "title": "Étiquetage IA",
-            "desc": "Catégorisez et étiquetez automatiquement les discussions pour une résolution plus rapide."
-        },
-        "card4": {
-            "title": "Nous rédigeons vos réponses",
-            "desc": "Accélérez les réponses avec des suggestions intelligentes et contextuelles."
-        }
+  "feature-discussions": {
+    "badge": "Support client de niveau supérieur",
+    "title": "Tout ce dont vous avez besoin pour évoluer",
+    "card1": {
+      "title": "Ticketing intelligent et gestion",
+      "desc": "Automatisez le routage et la priorisation des tickets avec l'IA."
     },
-     "how_it_works": {
-        "title_part1": "Comment démarrer en",
-        "title_part2": "3 Étapes ?",
-        "subtitle": "TekTIME AI est votre solution tout-en-un pour automatiser votre service client.",
-        "step1": {
-            "title": "Inscription",
-            "subtitle": "Essai gratuit",
-            "desc": "Créez votre compte TekTIME en quelques secondes, sans carte de crédit."
-        },
-        "step2": {
-            "title": "Intégration",
-            "subtitle": "Connectez vos outils",
-            "desc": "Intégrez facilement vos e-mails, chats et outils de support en un clic."
-        },
-        "step3": {
-            "desc": "Configurez et offrez un service client instantané grâce à l'IA."
-        }
+    "card2": {
+      "title": "Ticketing intelligent et gestion des tâches",
+      "desc": "Gérez chaque tâche efficacement avec notre système intelligent centralisé."
     },
+    "card3": {
+      "title": "Étiquetage IA",
+      "desc": "Catégorisez et étiquetez automatiquement les discussions pour une résolution plus rapide."
+    },
+    "card4": {
+      "title": "Nous rédigeons vos réponses",
+      "desc": "Accélérez les réponses avec des suggestions intelligentes et contextuelles."
+    }
+  },
+  "how_it_works": {
+    "title_part1": "Comment démarrer en",
+    "title_part2": "3 Étapes ?",
+    "subtitle": "TekTIME AI est votre solution tout-en-un pour automatiser votre service client.",
+    "step1": {
+      "title": "Inscription",
+      "subtitle": "Essai gratuit",
+      "desc": "Créez votre compte TekTIME en quelques secondes, sans carte de crédit."
+    },
+    "step2": {
+      "title": "Intégration",
+      "subtitle": "Connectez vos outils",
+      "desc": "Intégrez facilement vos e-mails, chats et outils de support en un clic."
+    },
+    "step3": {
+      "desc": "Configurez et offrez un service client instantané grâce à l'IA."
+    }
+  },
   "whyChooseUs": {
     "heading": "POURQUOI NOUS CHOISIR",
     "subheading": "TekTIME n'est pas qu'un outil mais aussi une philosophie à impacts",
@@ -2776,122 +2775,122 @@
     "author2": "Romain Barbe",
     "position2": "Fondateur de Mieux Donner"
   },
-   "testimonials-discussions": {
-        "badge": "Histoires de succès",
-        "title": "Approuvé par les leaders de l'industrie",
-        "list": [
-            {
-                "text": "Nous avons mis en place TekTIME au sein de Transeco2 pour mieux suivre les présentations commerciales de nos vendeurs et avoir des retours réels des entretiens sans interprétations possibles. En intégrant notre parcours commercial, TekTIME est devenu un véritable outil quotidien.",
-                "author": "Davy CHOUMILLE",
-                "role": "Président chez TRANSECO 2",
-                "title": "Un pipeline de vente enfin fonctionnel",
-                "avatar": "/Assets/testimonial_davy.jpg"
-            },
-            {
-                "text": "TekTIME a non seulement décidé de donner un pourcentage de ses revenus, mais a rationalisé son approche pour choisir les associations les plus efficaces. Cet engagement fondé sur les preuves témoigne de leur sérieux et de leur désir sincère d'avoir un impact positif durable.",
-                "author": "Romain Barbe",
-                "role": "Fondateur de Mieux Donner",
-                "title": "Une croissance sans effort",
-                "avatar": "/Assets/testimonial_generic.png"
-            }
-        ]
-    },
-    "cta": {
-        "title": "Prêt à booster votre support ?",
-        "text": "Rejoignez toutes les équipes",
-        "button": "Planifier une démo"
-    },
-      "security": {
-        "title": "Une sécurité de niveau bancaire pour votre tranquillité d'esprit",
-        "subtitle": "Sécurisé. Privé. Chiffré. Vos données sont en sécurité avec nous.",
-        "list": [
-            {
-                "title": "SOC2 Type 1",
-                "desc": "Nous avons terminé l'examen SOC 2 Type 1, audité indépendamment pour la sécurité, la disponibilité et la confidentialité."
-            },
-            {
-                "title": "Chiffrement",
-                "desc": "Vos e-mails sont chiffrés en transit et au repos en utilisant des protocoles de pointe."
-            },
-            {
-                "title": "Infrastructure de classe entreprise",
-                "desc": "Construit sur une infrastructure cloud sécurisée avec une disponibilité de 99,9% et des sauvegardes redondantes."
-            },
-            {
-                "title": "Confidentialité avant tout",
-                "desc": "Nous n'entraînons jamais de modèles IA sur vos données. Vos informations vous appartiennent et ne sont jamais partagées."
-            }
-        ]
-    },
-     "faq": {
-        "title": "Foire Aux Questions",
-        "subtitle": "Tout ce que vous devez savoir sur le produit et la facturation.",
-        "list": [
-            {
-                "question": "Y a-t-il un essai gratuit ?",
-                "answer": "Oui, vous pouvez nous essayer gratuitement pendant 8 jours. Si vous le souhaitez, nous vous fournirons un appel d'intégration personnalisé gratuit de 30 minutes pour vous rendre opérationnel le plus rapidement possible."
-            },
-            {
-                "question": "Puis-je changer mon plan plus tard ?",
-                "answer": "Bien sûr. Notre tarification évolue avec votre entreprise. Discutez avec notre équipe amicale pour trouver une solution qui vous convient."
-            },
-            {
-                "question": "Quelle est votre politique d'annulation ?",
-                "answer": "Nous comprenons que les choses changent. Vous pouvez annuler votre plan à tout moment et nous vous rembourserons la différence déjà payée."
-            },
-            {
-                "question": "D'autres infos peuvent-elles être ajoutées à une facture ?",
-                "answer": "Oui, vous pouvez ajouter vos coordonnées TVA ou toute autre information efficacement à vos factures depuis la section facturation."
-            },
-            {
-                "question": "Comment fonctionne la facturation ?",
-                "answer": "Les plans sont par espace de travail, pas par compte. Vous pouvez mettre à niveau un espace de travail et avoir un nombre illimité d'espaces de travail gratuits."
-            },
-            {
-                "question": "Comment changer l'e-mail de mon compte ?",
-                "answer": "Vous pouvez changer l'adresse e-mail associée à votre compte en allant dans les paramètres de votre compte."
-            }
-        ]
-    },
-    "pricing-discussions": {
-        "title": "Tarification simple et flexible",
-        "subtitle": "Choisissez le plan qui correspond à vos besoins.",
-        "loading": "Chargement des tarifs...",
-        "unavailable": "Actuellement indisponible.",
-        "most_popular": "Le plus populaire",
-        "subscribe": "Tester gratuitement pendant 8 jours",
-        "days_free_trial": "{{count}} jours d'essai gratuit",
-        "day_free_trial": "{{count}} jour d'essai gratuit",
-        "subscribe_trial": "Tester gratuitement pendant {{count}} jours",
-        "subscribe_trial_1": "Tester gratuitement pendant {{count}} jour",
-        "subscribe_now": "S'abonner",
-        "contact_sales": "Contacter les ventes",
-        "per_month": "par mois",
-        "per_year": "par an",
-        "monthly": "Mensuel",
-        "annual": "Annuel",
-        "license": "Licence",
-        "licenses": "Licences",
-        "for_license": "pour {{count}} licence",
-        "for_licenses": "pour {{count}} licences",
-        "monthly_billing": "Facturation mensuelle",
-        "annual_billing": "Facturation annuelle",
-        "enterprise": {
-            "title": "Entreprise",
-            "subtitle": "Pour les organisations qui ont besoin d'échelle et de support dédié. Idéal pour 50+ membres d'équipe.",
-            "bespoke_pricing": "Tarification sur mesure",
-            "price_text": "Contactez-nous",
-            "speak_to_sales": "Contacter notre équipe commerciale",
-            "features": []
-        }
-    },
-    "integrations": {
-        "title": "Récupérez 90% de votre temps email",
-        "subtitle": "Email reçu. Tâche effectuée. Intégrez toute votre pile de support."
-    },
-    "logo_cloud": {
-        "title": "UTILISÉ ET APPROUVÉ PAR"
-    },
+  "testimonials-discussions": {
+    "badge": "Histoires de succès",
+    "title": "Approuvé par les leaders de l'industrie",
+    "list": [
+      {
+        "text": "Nous avons mis en place TekTIME au sein de Transeco2 pour mieux suivre les présentations commerciales de nos vendeurs et avoir des retours réels des entretiens sans interprétations possibles. En intégrant notre parcours commercial, TekTIME est devenu un véritable outil quotidien.",
+        "author": "Davy CHOUMILLE",
+        "role": "Président chez TRANSECO 2",
+        "title": "Un pipeline de vente enfin fonctionnel",
+        "avatar": "/Assets/testimonial_davy.jpg"
+      },
+      {
+        "text": "TekTIME a non seulement décidé de donner un pourcentage de ses revenus, mais a rationalisé son approche pour choisir les associations les plus efficaces. Cet engagement fondé sur les preuves témoigne de leur sérieux et de leur désir sincère d'avoir un impact positif durable.",
+        "author": "Romain Barbe",
+        "role": "Fondateur de Mieux Donner",
+        "title": "Une croissance sans effort",
+        "avatar": "/Assets/testimonial_generic.png"
+      }
+    ]
+  },
+  "cta": {
+    "title": "Prêt à booster votre support ?",
+    "text": "Rejoignez toutes les équipes",
+    "button": "Planifier une démo"
+  },
+  "security": {
+    "title": "Une sécurité de niveau bancaire pour votre tranquillité d'esprit",
+    "subtitle": "Sécurisé. Privé. Chiffré. Vos données sont en sécurité avec nous.",
+    "list": [
+      {
+        "title": "SOC2 Type 1",
+        "desc": "Nous avons terminé l'examen SOC 2 Type 1, audité indépendamment pour la sécurité, la disponibilité et la confidentialité."
+      },
+      {
+        "title": "Chiffrement",
+        "desc": "Vos e-mails sont chiffrés en transit et au repos en utilisant des protocoles de pointe."
+      },
+      {
+        "title": "Infrastructure de classe entreprise",
+        "desc": "Construit sur une infrastructure cloud sécurisée avec une disponibilité de 99,9% et des sauvegardes redondantes."
+      },
+      {
+        "title": "Confidentialité avant tout",
+        "desc": "Nous n'entraînons jamais de modèles IA sur vos données. Vos informations vous appartiennent et ne sont jamais partagées."
+      }
+    ]
+  },
+  "faq": {
+    "title": "Foire Aux Questions",
+    "subtitle": "Tout ce que vous devez savoir sur le produit et la facturation.",
+    "list": [
+      {
+        "question": "Y a-t-il un essai gratuit ?",
+        "answer": "Oui, vous pouvez nous essayer gratuitement pendant 8 jours. Si vous le souhaitez, nous vous fournirons un appel d'intégration personnalisé gratuit de 30 minutes pour vous rendre opérationnel le plus rapidement possible."
+      },
+      {
+        "question": "Puis-je changer mon plan plus tard ?",
+        "answer": "Bien sûr. Notre tarification évolue avec votre entreprise. Discutez avec notre équipe amicale pour trouver une solution qui vous convient."
+      },
+      {
+        "question": "Quelle est votre politique d'annulation ?",
+        "answer": "Nous comprenons que les choses changent. Vous pouvez annuler votre plan à tout moment et nous vous rembourserons la différence déjà payée."
+      },
+      {
+        "question": "D'autres infos peuvent-elles être ajoutées à une facture ?",
+        "answer": "Oui, vous pouvez ajouter vos coordonnées TVA ou toute autre information efficacement à vos factures depuis la section facturation."
+      },
+      {
+        "question": "Comment fonctionne la facturation ?",
+        "answer": "Les plans sont par espace de travail, pas par compte. Vous pouvez mettre à niveau un espace de travail et avoir un nombre illimité d'espaces de travail gratuits."
+      },
+      {
+        "question": "Comment changer l'e-mail de mon compte ?",
+        "answer": "Vous pouvez changer l'adresse e-mail associée à votre compte en allant dans les paramètres de votre compte."
+      }
+    ]
+  },
+  "pricing-discussions": {
+    "title": "Tarification simple et flexible",
+    "subtitle": "Choisissez le plan qui correspond à vos besoins.",
+    "loading": "Chargement des tarifs...",
+    "unavailable": "Actuellement indisponible.",
+    "most_popular": "Le plus populaire",
+    "subscribe": "Tester gratuitement pendant 8 jours",
+    "days_free_trial": "{{count}} jours d'essai gratuit",
+    "day_free_trial": "{{count}} jour d'essai gratuit",
+    "subscribe_trial": "Tester gratuitement pendant {{count}} jours",
+    "subscribe_trial_1": "Tester gratuitement pendant {{count}} jour",
+    "subscribe_now": "S'abonner",
+    "contact_sales": "Contacter les ventes",
+    "per_month": "par mois",
+    "per_year": "par an",
+    "monthly": "Mensuel",
+    "annual": "Annuel",
+    "license": "Licence",
+    "licenses": "Licences",
+    "for_license": "pour {{count}} licence",
+    "for_licenses": "pour {{count}} licences",
+    "monthly_billing": "Facturation mensuelle",
+    "annual_billing": "Facturation annuelle",
+    "enterprise": {
+      "title": "Entreprise",
+      "subtitle": "Pour les organisations qui ont besoin d'échelle et de support dédié. Idéal pour 50+ membres d'équipe.",
+      "bespoke_pricing": "Tarification sur mesure",
+      "price_text": "Contactez-nous",
+      "speak_to_sales": "Contacter notre équipe commerciale",
+      "features": []
+    }
+  },
+  "integrations": {
+    "title": "Récupérez 90% de votre temps email",
+    "subtitle": "Email reçu. Tâche effectuée. Intégrez toute votre pile de support."
+  },
+  "logo_cloud": {
+    "title": "UTILISÉ ET APPROUVÉ PAR"
+  },
   "privacy_policy": "Politique de confidentialité",
   "welcome_message": "Bienvenue chez TekTIME. Nous nous engageons à protéger et à respecter votre vie privée. Cette <br class=\"d-none d-md-block\" /> politique de confidentialité explique comment nous collectons, utilisons, divulguons et protégeons vos informations personnelles lorsque vous utilisez notre logiciel SaaS TekTIME.",
   "google_api_services_disclosure": "Divulgation des services API Google",
@@ -3962,7 +3961,7 @@
     "moment-heading": "Boîte de reception",
     "Subject": "Sujet",
     "To": "A",
-    "Message":"Message",
+    "Message": "Message",
     "Attachments": "Pièces jointes",
     "Cancel": "Annuler",
     "Send Email": "Envoyer",
@@ -3984,18 +3983,16 @@
     "gateName": "Nom de la Porte",
     "landingPageType": "URL de la Landing Page",
     "existingImage": "Image actuelle",
-    "selectedContract":"Abonnement sélectionné",
+    "selectedContract": "Abonnement sélectionné",
     "selectGateType": "Sélectionner le type de porte",
     "gateType": "Type de porte",
     "gateTypeOptions": {
       "Entreprises": "Entreprises",
       "Profession": "Métiers",
       "Applications": "Applications",
-      "Prestations":"Prestations",
-      "Services":"Services"
-
+      "Prestations": "Prestations",
+      "Services": "Services"
     },
-
     "sections": {
       "hero": {
         "title": "1. HERO SECTION",
@@ -4012,8 +4009,7 @@
         "youtubeUrl": "URL Youtube",
         "autoplay": "Autoplay",
         "altText": "Texte alternatif (SEO)",
-        "upload":"Télécharger"
-
+        "upload": "Télécharger"
       },
       "problem": {
         "title": "2. LE PROBLÈME UTILISATEUR",
@@ -4076,7 +4072,7 @@
       "integrations": {
         "title": "7. INTÉGRATIONS & SÉCURITÉ",
         "sectionTitle": "Titre section",
-        "sectionDescription":"Description de la section",
+        "sectionDescription": "Description de la section",
         "list": "Intégrations",
         "example": "Ex: Gmail, Outlook, Ionos...",
         "placeholder": "Outil",
@@ -4240,98 +4236,100 @@
     "learnMore": "En savoir plus",
     "advantages": "AVANTAGES"
   },
-   "Registration successful!": "Inscription réussie !",
-    "Event Registration": "Inscription à l'événement",
-    "Tickets": "Billets",
-    "Details": "Détails",
-    "Payment": "Paiement",
-    "How many tickets do you need?": "De combien de billets avez-vous besoin ?",
-    "Select the number of participants you want to register.": "Sélectionnez le nombre de participants que vous souhaitez inscrire.",
-    "places remaining": "places restantes",
-    "Price per ticket": "Prix par billet",
-    "Want to register faster?": "Vous voulez vous inscrire plus rapidement ?",
-    "Log in to pre-fill your details": "Connectez-vous pour pré-remplir vos coordonnées",
-    "Participant Information": "Informations sur le participant",
-    "Participant": "Participant",
-    "Enter first name": "Entrez le prénom",
-    "Enter last name": "Entrez le nom",
-    "Email Address": "Adresse e-mail",
-    "Enter email address": "Entrez l'adresse e-mail",
-    "Registration Summary": "Résumé de l'inscription",
-    "Event": "Événement",
-    "Total Amount": "Montant total",
-    "Secure Payment": "Paiement sécurisé",
-    "Your payment is processed securely via our provider.": "Votre paiement est traité en toute sécurité via notre fournisseur.",
-    "By completing this registration, you agree to the event's terms and conditions.": "En complétant cette inscription, vous acceptez les conditions générales de l'événement.",
-    "Processing...": "Traitement...",
-    "Complete Registration": "Terminer l'inscription",
-    "Please fill all fields for participant ": "Veuillez remplir tous les champs pour le participant ",
-    "Invalid email for participant ": "E-mail invalide pour le participant ",
-    "The email ": "L'e-mail ",
-    " is already used for another participant.": " est déjà utilisé pour un autre participant.",
-    "Not enough places available": "Pas assez de places disponibles",
-    "Meeting ID is missing.": "L'ID de la réunion est manquant.",
-    "An error occurred during registration.": "Une erreur s'est produite lors de l'inscription.",
-    "Stripe connection initiated!": "Connexion Stripe initiée !",
-    "Failed to connect Stripe.": "Échec de la connexion à Stripe.",
-    "Stripe account disconnected successfully.": "Connexion Stripe réussie !",
-    "Failed to disconnect Stripe.": "Échec de la déconnexion de Stripe.",
-    "stripe_disconnect_title": "Déconnexion de Stripe",
-    "stripe_disconnect_message": "Êtes-vous sûr de vouloir déconnecter votre compte Stripe ? Vous ne pourrez plus recevoir de paiements pour les inscriptions.",
-    "stripe_disconnect_confirm": "Oui, déconnecter",
-    "stripe_disconnect_cancel": "Annuler",
-    "stripe_disconnect_btn": "Déconnecter",
-    "linkedin_disconnect_title": "Déconnecter LinkedIn",
-    "linkedin_disconnect_message": "Êtes-vous sûr de vouloir déconnecter votre compte LinkedIn ? Vous devrez le reconnecter ultérieurement pour synchroniser vos informations.",
-    "linkedin_disconnect_confirm": "Oui, déconnecter",
-    "linkedin_disconnect_cancel": "Annuler",
-    "linkedin_disconnect_btn": "Déconnecter",
-    "stripe_payment": {
-        "verifying_title": "Vérification du paiement...",
-        "verifying_text": "Veuillez patienter pendant que nous confirmons votre transaction avec Stripe.",
-        "success_title": "Paiement réussi !",
-        "success_text": "Merci pour votre inscription. Votre paiement a été traité avec succès.",
-        "goto_meetings": "Aller aux réunions",
-        "failed_title": "Échec du paiement",
-        "failed_text": "Nous n'avons pas pu vérifier votre session de paiement. Si vous pensez qu'il s'agit d'une erreur, veuillez contacter le support.",
-        "back": "Retour",
-        "retry_btn": "Réessayer la vérification",
-        "stripe_not_connected_error": "Veuillez connecter votre compte Stripe pour gérer les étapes des moments avec inscription.",
-        "stripe_connect_title": "Connecter votre compte Stripe",
-        "stripe_connect_required_msg": "L'intégration Stripe est requise pour gérer les étapes des moments avec inscription.",
-        "secure_footer": "Paiement sécurisé par Stripe"
-    },
-    "profile-visibility": {
-        "gates": "Portes",
-        "gatesSubText": "Restreindre la visibilité à des portes de page de destination spécifiques",
-        "selectGates": "Sélectionner les portes",
-        "gatesAdded": "Portes ajoutées",
-        "contracts": "Abonnements",
-        "contractsSubText": "Restreindre la visibilité à des abonnements spécifiques",
-        "selectContracts": "Sélectionner les abonnements",
-        "contractsAdded": "Abonnements ajoutés",
-        "roles": "Rôles",
-        "rolesSubText": "Restreindre la visibilité à des rôles spécifiques",
-        "selectRoles": "Sélectionner les rôles",
-        "rolesAdded": "Rôles ajoutés",
-        "missionTypes": "Types de missions",
-        "missionTypesSubText": "Restreindre la visibilité à des types de missions spécifiques",
-        "missionsAdded": "Missions ajoutées"
-    },
-    "Mission History": "Historique de la mission",
-    "Failed to update mission history.": "Échec de la mise à jour de l'historique de la mission.",
-    "Error updating mission history.": "Erreur lors de la mise à jour de l'historique de la mission.",
-    "mediaGenerating":"Génération de média...",
-    "of the month of":"du mois de",
-    "Meetingelay":"Dépassement",
-    "ai_popup": {
-      "title": "Traitement IA",
-      "message": "La génération de contenu et de médias par IA est en cours...",
-      "message_line2": "Une fois que tout sera prêt, vous rejoindrez automatiquement la réunion."
-    },
-    "Restart":"Reprendre",
-    "Remaining Places":"Places restantes",
-  "destination_home_participants":"Participants",
+  "Registration successful!": "Inscription réussie !",
+  "Event Registration": "Inscription à l'événement",
+  "Tickets": "Billets",
+  "Details": "Détails",
+  "Payment": "Paiement",
+  "How many tickets do you need?": "De combien de billets avez-vous besoin ?",
+  "Select the number of participants you want to register.": "Sélectionnez le nombre de participants que vous souhaitez inscrire.",
+  "places remaining": "places restantes",
+  "Price per ticket": "Prix par billet",
+  "Want to register faster?": "Vous voulez vous inscrire plus rapidement ?",
+  "Log in to pre-fill your details": "Connectez-vous pour pré-remplir vos coordonnées",
+  "Participant Information": "Informations sur le participant",
+  "Participant": "Participant",
+  "Enter first name": "Entrez le prénom",
+  "Enter last name": "Entrez le nom",
+  "Email Address": "Adresse e-mail",
+  "Enter email address": "Entrez l'adresse e-mail",
+  "Registration Summary": "Résumé de l'inscription",
+  "Event": "Événement",
+  "Total Amount": "Montant total",
+  "Secure Payment": "Paiement sécurisé",
+  "Your payment is processed securely via our provider.": "Votre paiement est traité en toute sécurité via notre fournisseur.",
+  "By completing this registration, you agree to the event's terms and conditions.": "En complétant cette inscription, vous acceptez les conditions générales de l'événement.",
+  "Processing...": "Traitement...",
+  "Complete Registration": "Terminer l'inscription",
+  "Please fill all fields for participant ": "Veuillez remplir tous les champs pour le participant ",
+  "Invalid email for participant ": "E-mail invalide pour le participant ",
+  "The email ": "L'e-mail ",
+  " is already used for another participant.": " est déjà utilisé pour un autre participant.",
+  "Not enough places available": "Pas assez de places disponibles",
+  "Meeting ID is missing.": "L'ID de la réunion est manquant.",
+  "An error occurred during registration.": "Une erreur s'est produite lors de l'inscription.",
+  "Stripe connection initiated!": "Connexion Stripe initiée !",
+  "Failed to connect Stripe.": "Échec de la connexion à Stripe.",
+  "Stripe account disconnected successfully.": "Connexion Stripe réussie !",
+  "Failed to disconnect Stripe.": "Échec de la déconnexion de Stripe.",
+  "stripe_disconnect_title": "Déconnexion de Stripe",
+  "stripe_disconnect_message": "Êtes-vous sûr de vouloir déconnecter votre compte Stripe ? Vous ne pourrez plus recevoir de paiements pour les inscriptions.",
+  "stripe_disconnect_confirm": "Oui, déconnecter",
+  "stripe_disconnect_cancel": "Annuler",
+  "stripe_disconnect_btn": "Déconnecter",
+  "stripe_dashboard_btn": "Voir mes encaissements",
+  "stripe_dashboard_error": "Impossible d'ouvrir votre espace Stripe.",
+  "linkedin_disconnect_title": "Déconnecter LinkedIn",
+  "linkedin_disconnect_message": "Êtes-vous sûr de vouloir déconnecter votre compte LinkedIn ? Vous devrez le reconnecter ultérieurement pour synchroniser vos informations.",
+  "linkedin_disconnect_confirm": "Oui, déconnecter",
+  "linkedin_disconnect_cancel": "Annuler",
+  "linkedin_disconnect_btn": "Déconnecter",
+  "stripe_payment": {
+    "verifying_title": "Vérification du paiement...",
+    "verifying_text": "Veuillez patienter pendant que nous confirmons votre transaction avec Stripe.",
+    "success_title": "Paiement réussi !",
+    "success_text": "Merci pour votre inscription. Votre paiement a été traité avec succès.",
+    "goto_meetings": "Aller aux réunions",
+    "failed_title": "Échec du paiement",
+    "failed_text": "Nous n'avons pas pu vérifier votre session de paiement. Si vous pensez qu'il s'agit d'une erreur, veuillez contacter le support.",
+    "back": "Retour",
+    "retry_btn": "Réessayer la vérification",
+    "stripe_not_connected_error": "Veuillez connecter votre compte Stripe pour gérer les étapes des moments avec inscription.",
+    "stripe_connect_title": "Connecter votre compte Stripe",
+    "stripe_connect_required_msg": "L'intégration Stripe est requise pour gérer les étapes des moments avec inscription.",
+    "secure_footer": "Paiement sécurisé par Stripe"
+  },
+  "profile-visibility": {
+    "gates": "Portes",
+    "gatesSubText": "Restreindre la visibilité à des portes de page de destination spécifiques",
+    "selectGates": "Sélectionner les portes",
+    "gatesAdded": "Portes ajoutées",
+    "contracts": "Abonnements",
+    "contractsSubText": "Restreindre la visibilité à des abonnements spécifiques",
+    "selectContracts": "Sélectionner les abonnements",
+    "contractsAdded": "Abonnements ajoutés",
+    "roles": "Rôles",
+    "rolesSubText": "Restreindre la visibilité à des rôles spécifiques",
+    "selectRoles": "Sélectionner les rôles",
+    "rolesAdded": "Rôles ajoutés",
+    "missionTypes": "Types de missions",
+    "missionTypesSubText": "Restreindre la visibilité à des types de missions spécifiques",
+    "missionsAdded": "Missions ajoutées"
+  },
+  "Mission History": "Historique de la mission",
+  "Failed to update mission history.": "Échec de la mise à jour de l'historique de la mission.",
+  "Error updating mission history.": "Erreur lors de la mise à jour de l'historique de la mission.",
+  "mediaGenerating": "Génération de média...",
+  "of the month of": "du mois de",
+  "Meetingelay": "Dépassement",
+  "ai_popup": {
+    "title": "Traitement IA",
+    "message": "La génération de contenu et de médias par IA est en cours...",
+    "message_line2": "Une fois que tout sera prêt, vous rejoindrez automatiquement la réunion."
+  },
+  "Restart": "Reprendre",
+  "Remaining Places": "Places restantes",
+  "destination_home_participants": "Participants",
   "subscription": {
     "expired": {
       "assistant_message": "Bonjour ! Votre période d'essai gratuite est terminée. Pour continuer à profiter de toutes les fonctionnalités de TekTIME, veuillez configurer votre moyen de paiement en cliquant sur le bouton Stripe ci-dessous."
@@ -4346,9 +4344,13 @@
   "Sunday": "Dimanche",
   "yes": "Oui",
   "no": "Non",
-  "planning":"Planning"
-
+  "planning": "Planning",
+  "note_v2_title": "Activer la prise de notes automatique",
+  "note_v2_subtitle": "En un clic, TekTIME transcrit l'audio de votre réunion et rédige le compte-rendu.",
+  "note_v2_step1": "Cliquez sur « Continuer » ci-dessous.",
+  "note_v2_step2": "Dans la fenêtre du navigateur, choisissez l'onglet de votre réunion.",
+  "note_v2_step3": "Cochez « Partager aussi l'audio de l'onglet », puis validez.",
+  "note_v2_note": "Pour une transcription optimale, utilisez Chrome ou Edge.",
+  "note_v2_continue": "Continuer",
+  "note_v2_dont_show": "Ne plus afficher"
 }
-
-
-

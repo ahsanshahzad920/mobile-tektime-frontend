@@ -1,6 +1,14 @@
-import CookieService from '../../Utils/CookieService';
+import CookieService from "../../Utils/CookieService";
 import React, { useEffect, useState, lazy, Suspense, useRef } from "react";
-import { Card, Row, Col, OverlayTrigger, Tooltip, Button, Accordion } from "react-bootstrap";
+import {
+  Card,
+  Row,
+  Col,
+  OverlayTrigger,
+  Tooltip,
+  Button,
+  Accordion,
+} from "react-bootstrap";
 import { FaExpand } from "react-icons/fa";
 import { PiFilePdfLight } from "react-icons/pi";
 import { IoCopyOutline, IoVideocamOutline } from "react-icons/io5";
@@ -39,29 +47,42 @@ const ReportActiveStepCard = ({
   isReOpen,
   isAccordion = false,
   index,
-                                                          stepMedias = [],
-
+  stepMedias = [],
 }) => {
-  const [ t ] = useTranslation("global");
+  const [t] = useTranslation("global");
   const [excelData, setExcelData] = useState(null);
   const [inProgressStep, setInProgressStep] = useState(null);
-  const hasStepMedias = (data?.step_medias && data.step_medias.length > 0) || 
-                        (stepMedias && stepMedias.filter(media => media.step_id === data.id).length > 0);
+  const hasStepMedias =
+    (data?.step_medias && data.step_medias.length > 0) ||
+    (stepMedias &&
+      stepMedias.filter((media) => media.step_id === data.id).length > 0);
 
-  const isClosed = data?.step_status === "closed" || data?.step_status === "completed" || data?.step_status === "cancelled" || data?.step_status === "abort";
+  const isClosed =
+    data?.step_status === "closed" ||
+    data?.step_status === "completed" ||
+    data?.step_status === "cancelled" ||
+    data?.step_status === "abort";
 
   const [dropdownVisible, setDropdownVisible] = useState(
-    isClosed 
-      ? hasStepMedias 
-      : !!(data?.editor_content || data?.note || data?.editor_type === "File" || data?.editor_type === "Url" || data?.editor_type === "Publication" || data?.editor_type === "AI Instruction" || hasStepMedias)
+    isClosed
+      ? hasStepMedias
+      : !!(
+          data?.editor_content ||
+          data?.note ||
+          data?.editor_type === "File" ||
+          data?.editor_type === "Url" ||
+          data?.editor_type === "Publication" ||
+          data?.editor_type === "AI Instruction" ||
+          hasStepMedias
+        ),
   );
   const [wasOpenedByMedia, setWasOpenedByMedia] = useState(false);
   const dropdownRef = useRef(null);
   const pdfIframeRef = useRef(null);
   // const [pdfHeight, setPdfHeight] = useState(isAccordion ? "300px" : "600px");
 
-    const getStepMedias = () => {
-    return stepMedias.filter(media => media.step_id === data.id);
+  const getStepMedias = () => {
+    return stepMedias.filter((media) => media.step_id === data.id);
   };
   const handleStepCardButtonClick = (item) => {
     setIsModalOpen1(true);
@@ -89,7 +110,10 @@ const ReportActiveStepCard = ({
     if (!timeTaken) return "";
     const timeUnits = t("time_unit", { returnObjects: true });
     const timeParts = timeTaken.split(" - ");
-    let days = null, hours = null, minutes = null, seconds = null;
+    let days = null,
+      hours = null,
+      minutes = null,
+      seconds = null;
 
     timeParts.forEach((part) => {
       if (part.includes("day")) days = part;
@@ -134,8 +158,26 @@ const ReportActiveStepCard = ({
   const sanitizeContent = (content) => {
     if (!content) return null;
     const sanitizedContent = DOMPurify.sanitize(content, {
-      ADD_TAGS: ["table", "tr", "td", "th", "tbody", "thead", "tfoot", "caption", "iframe"],
-      ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "scrolling", "src", "title", "style"],
+      ADD_TAGS: [
+        "table",
+        "tr",
+        "td",
+        "th",
+        "tbody",
+        "thead",
+        "tfoot",
+        "caption",
+        "iframe",
+      ],
+      ADD_ATTR: [
+        "allow",
+        "allowfullscreen",
+        "frameborder",
+        "scrolling",
+        "src",
+        "title",
+        "style",
+      ],
     });
 
     const tempDiv = document.createElement("div");
@@ -172,7 +214,7 @@ const ReportActiveStepCard = ({
           () => {
             el.style.display = "none";
           },
-          { once: true }
+          { once: true },
         );
       }
     }
@@ -186,7 +228,7 @@ const ReportActiveStepCard = ({
 
   useEffect(() => {
     const currentInProgressStep = meeting?.steps.find(
-      (item) => item.step_status === "in_progress"
+      (item) => item.step_status === "in_progress",
     );
     setInProgressStep(currentInProgressStep || null);
   }, [meeting?.steps]);
@@ -197,7 +239,7 @@ const ReportActiveStepCard = ({
         try {
           const fileResponse = await axios.get(
             `${Assets_URL}/${inProgressStep.file}`,
-            { responseType: "arraybuffer" }
+            { responseType: "arraybuffer" },
           );
           const fileData = fileResponse.data;
           const workbook = read(fileData, { type: "buffer" });
@@ -208,7 +250,7 @@ const ReportActiveStepCard = ({
             row.map((cell) => ({
               value: cell,
               readOnly: rowIndex === 0,
-            }))
+            })),
           );
           setExcelData(formattedData);
         } catch (error) {
@@ -274,26 +316,19 @@ const ReportActiveStepCard = ({
     };
 
     if (
-      (data?.editor_type === "Editeur" || data?.editor_type === "Subtask" || data?.editor_type === "Publication" || data?.editor_type === "AI Instruction" || data?.editor_type === "Story" || data?.editor_type === "Email") &&
-      data?.editor_content &&
-      data?.editor_content.trim() !== "<html><head></head><body></body></html>"
+      (data?.editor_type === "Editeur" ||
+        data?.editor_type === "Subtask" ||
+        data?.editor_type === "Publication" ||
+        data?.editor_type === "AI Instruction" ||
+        data?.editor_type === "Story" ||
+        data?.editor_type === "Email") &&
+      data?.editor_content
     ) {
-      const tempDiv = document.createElement("div");
-      tempDiv.innerHTML = data?.editor_content;
-      const firstImageTag = tempDiv.querySelector("img");
-      const firstImageUrl = firstImageTag ? firstImageTag.getAttribute("src") : "";
-      return firstImageUrl ? (
-        <img
-          src={firstImageUrl}
-          style={commonStyles}
-          alt="Step Preview"
-          className="step-media hover-scale"
-        />
-      ) : (
+
+    
         <div style={commonStyles} className="hover-scale">
           <FiEdit size={40} color="#00a8e1" />
         </div>
-      );
     } else if (data.editor_type === "File") {
       return (
         <div style={commonStyles} className="hover-scale">
@@ -306,7 +341,10 @@ const ReportActiveStepCard = ({
           <RiFileExcel2Line size={40} color="#00a8e1" />
         </div>
       );
-    } else if (data.editor_type === "Video" || data.editor_type === "Video Report") {
+    } else if (
+      data.editor_type === "Video" ||
+      data.editor_type === "Video Report"
+    ) {
       return (
         <div style={commonStyles} className="hover-scale">
           <IoVideocamOutline size={40} color="#00a8e1" />
@@ -343,13 +381,25 @@ const ReportActiveStepCard = ({
 
   const renderContent = () => {
     if (
-      (data?.editor_type === "Editeur" || data?.editor_type === "Subtask" || data?.editor_type === "Publication" || data?.editor_type === "AI Instruction" || data?.editor_type === "Story" || data?.editor_type === "Email") &&
+      (data?.editor_type === "Editeur" ||
+        data?.editor_type === "Subtask" ||
+        data?.editor_type === "Publication" ||
+        data?.editor_type === "AI Instruction" ||
+        data?.editor_type === "Story" ||
+        data?.editor_type === "Email") &&
       data?.editor_content &&
       data?.editor_content.trim() !== "<html><head></head><body></body></html>"
     ) {
       return (
-        <div className="rendered-content" style={{ borderRadius: "8px", padding: "1rem" }}>
-          <div dangerouslySetInnerHTML={{ __html: sanitizeContent(data?.editor_content) }} />
+        <div
+          className="rendered-content"
+          style={{ borderRadius: "8px", padding: "1rem" }}
+        >
+          <div
+            dangerouslySetInnerHTML={{
+              __html: sanitizeContent(data?.editor_content),
+            }}
+          />
         </div>
       );
     } else if (data?.file && data?.editor_type === "File") {
@@ -377,7 +427,10 @@ const ReportActiveStepCard = ({
       );
     } else if (data?.file && data?.editor_type === "Excel") {
       return (
-        <div className="excel-content" style={{ borderRadius: "8px", padding: "1rem" }}>
+        <div
+          className="excel-content"
+          style={{ borderRadius: "8px", padding: "1rem" }}
+        >
           {excelData ? (
             <Spreadsheet data={excelData} />
           ) : (
@@ -385,7 +438,8 @@ const ReportActiveStepCard = ({
           )}
         </div>
       );
-    } else if  (data.url &&
+    } else if (
+      data.url &&
       (data.editor_type === "Video" ||
         data.editor_type === "Video Report" ||
         data.editor_type === "Url")
@@ -395,7 +449,10 @@ const ReportActiveStepCard = ({
         <iframe
           src={embedUrl}
           width="100%"
-          style={{ height: isAccordion ? "200px" : "400px", borderRadius: "8px" }}
+          style={{
+            height: isAccordion ? "200px" : "400px",
+            borderRadius: "8px",
+          }}
           title="Video Preview"
           frameBorder="0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -404,7 +461,12 @@ const ReportActiveStepCard = ({
           loading="lazy"
         />
       ) : (
-        <Button href={data.url} target="_blank" rel="noopener noreferrer" className="option-btn">
+        <Button
+          href={data.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="option-btn"
+        >
           {t("View Video")}
         </Button>
       );
@@ -420,7 +482,12 @@ const ReportActiveStepCard = ({
       );
     } else if (data.url) {
       return (
-        <Button href={data.url} target="_blank" rel="noopener noreferrer" className="option-btn">
+        <Button
+          href={data.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="option-btn"
+        >
           {t("View Link")}
         </Button>
       );
@@ -428,9 +495,11 @@ const ReportActiveStepCard = ({
     return null;
   };
 
-  const renderActionButton = () => (
+  const renderActionButton = () =>
     (data?.step_status === null || data?.step_status === "to_finish") &&
-    meeting?.guides?.some((guide) => guide?.email === CookieService.get("email")) && (
+    meeting?.guides?.some(
+      (guide) => guide?.email === CookieService.get("email"),
+    ) && (
       <div className="mt-3">
         <Button
           style={{
@@ -457,11 +526,13 @@ const ReportActiveStepCard = ({
           {data?.step_status === null ? t("startMoment") : t("ReOpen")}
         </Button>
       </div>
-    )
-  );
+    );
 
   const renderCardContent = () => (
-    <Card className="step-card animate__animated animate__fadeInUp shadow-sm" style={{ animationDelay: `${index * 0.2}s` }}>
+    <Card
+      className="step-card animate__animated animate__fadeInUp shadow-sm"
+      style={{ animationDelay: `${index * 0.2}s` }}
+    >
       <Card.Body>
         <Row>
           <Col xs={12} md={4} className="step-multimedia">
@@ -470,59 +541,79 @@ const ReportActiveStepCard = ({
           <Col xs={12} md={8} className="step-details">
             <div className="d-flex justify-content-between align-items-center mb-3">
               <Card.Title className="step-card-heading">
-               {data?.order_no }. &nbsp; {data?.title}
+                {data?.order_no}. &nbsp; {data?.title}
                 {/* <OverlayTrigger
                   placement="top"
                   overlay={<Tooltip>{t(`badge.${data?.step_status}`)}</Tooltip>}
                 > */}
-                  {data?.step_status === "completed" ? (
-                    <span className="status-badge-completed ms-2">{t("badge.completed")}</span>
-                  ) : data?.step_status === "in_progress" ? (
-                    <span
-                      className={
-                        convertTimeTakenToSeconds(data?.time_taken) >
-                        convertCount2ToSeconds(data?.count2, data?.time_unit)
-                          ? "status-badge-red ms-2"
-                          : "status-badge-inprogress ms-2"
-                      }
-                    >
-                      {t("badge.inprogress")}
-                    </span>
-                  ) : data.step_status === "to_finish" ? (
-                    <span className="status-badge-finish ms-2">{t("badge.finish")}</span>
-                  ) : data.step_status === "to_accept" ? (
-                    <span className="status-badge-green ms-2">{t("badge.to_accept")}</span>
-                  ) : data.step_status === "no_status" ? null : data.step_status === "cancelled" ? (
-                    <span className="status-badge-red ms-2">{t("badge.cancel")}</span>
-                  ) : data.step_status === "todo" ? (
-                    <span className="status-badge-green ms-2">{t("badge.todo")}</span>
-                  ) : data.step_status === "paused" ? (
-                    <span className="status-badge-red ms-2">{t("badge.paused")}</span>
-                  ) : (
-                    <span className="status-badge-upcoming ms-2">{t("badge.future")}</span>
-                  )}
+                {data?.step_status === "completed" ? (
+                  <span className="status-badge-completed ms-2">
+                    {t("badge.completed")}
+                  </span>
+                ) : data?.step_status === "in_progress" ? (
+                  <span
+                    className={
+                      convertTimeTakenToSeconds(data?.time_taken) >
+                      convertCount2ToSeconds(data?.count2, data?.time_unit)
+                        ? "status-badge-red ms-2"
+                        : "status-badge-inprogress ms-2"
+                    }
+                  >
+                    {t("badge.inprogress")}
+                  </span>
+                ) : data.step_status === "to_finish" ? (
+                  <span className="status-badge-finish ms-2">
+                    {t("badge.finish")}
+                  </span>
+                ) : data.step_status === "to_accept" ? (
+                  <span className="status-badge-green ms-2">
+                    {t("badge.to_accept")}
+                  </span>
+                ) : data.step_status ===
+                  "no_status" ? null : data.step_status === "cancelled" ? (
+                  <span className="status-badge-red ms-2">
+                    {t("badge.cancel")}
+                  </span>
+                ) : data.step_status === "todo" ? (
+                  <span className="status-badge-green ms-2">
+                    {t("badge.todo")}
+                  </span>
+                ) : data.step_status === "paused" ? (
+                  <span className="status-badge-red ms-2">
+                    {t("badge.paused")}
+                  </span>
+                ) : (
+                  <span className="status-badge-upcoming ms-2">
+                    {t("badge.future")}
+                  </span>
+                )}
                 {/* </OverlayTrigger> */}
               </Card.Title>
-              {(data?.step_status === "in_progress" || data?.step_status === "completed") && (
+              {(data?.step_status === "in_progress" ||
+                data?.step_status === "completed") && (
                 // <OverlayTrigger
                 //   placement="top"
                 //   overlay={
                 //     <Tooltip>{dropdownVisible ? t("Hide Details") : t("Show Details")}</Tooltip>
                 //   }
                 // >
-                  <MdKeyboardArrowDown
-                    size={26}
-                    className="toggle-icon"
-                    style={{
-                      cursor: "pointer",
-                      transform: dropdownVisible ? "rotate(180deg)" : "rotate(0deg)",
-                    }}
-                    onClick={toggleDropdown}
-                  />
+                <MdKeyboardArrowDown
+                  size={26}
+                  className="toggle-icon"
+                  style={{
+                    cursor: "pointer",
+                    transform: dropdownVisible
+                      ? "rotate(180deg)"
+                      : "rotate(0deg)",
+                  }}
+                  onClick={toggleDropdown}
+                />
                 // </OverlayTrigger>
               )}
             </div>
-            <Card.Text className={`step-card-content d-flex ${meeting?.type === "Calendly" ? "flex-column align-items-start gap-1" : "align-items-center flex-wrap gap-2"}`}>
+            <Card.Text
+              className={`step-card-content d-flex ${meeting?.type === "Calendly" ? "flex-column align-items-start gap-1" : "align-items-center flex-wrap gap-2"}`}
+            >
               {meeting?.type === "Calendly" ? (
                 <>
                   <span className="d-flex align-items-center gap-2">
@@ -532,7 +623,11 @@ const ReportActiveStepCard = ({
                           <img
                             height="24px"
                             width="24px"
-                            style={{ borderRadius: "20px", objectFit: "cover", objectPosition: "top" }}
+                            style={{
+                              borderRadius: "20px",
+                              objectFit: "cover",
+                              objectPosition: "top",
+                            }}
                             src={
                               meeting?.newsletter_guide?.logo.startsWith("http")
                                 ? meeting?.newsletter_guide?.logo
@@ -551,7 +646,11 @@ const ReportActiveStepCard = ({
                           <img
                             height="24px"
                             width="24px"
-                            style={{ borderRadius: "20px", objectFit: "cover", objectPosition: "top" }}
+                            style={{
+                              borderRadius: "20px",
+                              objectFit: "cover",
+                              objectPosition: "top",
+                            }}
                             src={
                               data?.assigned_to_image?.startsWith("users/")
                                 ? `${Assets_URL}/${data?.assigned_to_image}`
@@ -563,7 +662,11 @@ const ReportActiveStepCard = ({
                           <img
                             height="24px"
                             width="24px"
-                            style={{ borderRadius: "20px", objectFit: "cover", objectPosition: "top" }}
+                            style={{
+                              borderRadius: "20px",
+                              objectFit: "cover",
+                              objectPosition: "top",
+                            }}
                             src={
                               users?.image?.startsWith("users/")
                                 ? `${Assets_URL}/${users?.image}`
@@ -573,7 +676,8 @@ const ReportActiveStepCard = ({
                           />
                         )}
                         <span>
-                          {data?.assigned_to_name || `${users?.firstName} ${users?.lastName}`}
+                          {data?.assigned_to_name ||
+                            `${users?.firstName} ${users?.lastName}`}
                         </span>
                       </>
                     )}
@@ -587,12 +691,22 @@ const ReportActiveStepCard = ({
                     />
                     <strong>Duréee : </strong>
                     <span>
-                      {data.step_status === null || data.step_status === "todo" || data.step_status === "no_status"
-                        ? data.count2 + " " + getTimeUnitDisplay(data?.count2, data?.time_unit, t, meeting?.type)
+                      {data.step_status === null ||
+                      data.step_status === "todo" ||
+                      data.step_status === "no_status"
+                        ? data.count2 +
+                          " " +
+                          getTimeUnitDisplay(
+                            data?.count2,
+                            data?.time_unit,
+                            t,
+                            meeting?.type,
+                          )
                         : data.step_status === "to_finish"
-                        ? formatPauseTime(data?.work_time, t)
-                        : localizeTimeTakenActive(data?.time_taken?.replace("-", ""))
-                      }
+                          ? formatPauseTime(data?.work_time, t)
+                          : localizeTimeTakenActive(
+                              data?.time_taken?.replace("-", ""),
+                            )}
                     </span>
                   </div>
                 </>
@@ -605,7 +719,11 @@ const ReportActiveStepCard = ({
                           <img
                             height="24px"
                             width="24px"
-                            style={{ borderRadius: "20px", objectFit: "cover", objectPosition: "top" }}
+                            style={{
+                              borderRadius: "20px",
+                              objectFit: "cover",
+                              objectPosition: "top",
+                            }}
                             src={
                               meeting?.newsletter_guide?.logo.startsWith("http")
                                 ? meeting?.newsletter_guide?.logo
@@ -624,7 +742,11 @@ const ReportActiveStepCard = ({
                           <img
                             height="24px"
                             width="24px"
-                            style={{ borderRadius: "20px", objectFit: "cover", objectPosition: "top" }}
+                            style={{
+                              borderRadius: "20px",
+                              objectFit: "cover",
+                              objectPosition: "top",
+                            }}
                             src={
                               data?.assigned_to_image?.startsWith("users/")
                                 ? `${Assets_URL}/${data?.assigned_to_image}`
@@ -636,7 +758,11 @@ const ReportActiveStepCard = ({
                           <img
                             height="24px"
                             width="24px"
-                            style={{ borderRadius: "20px", objectFit: "cover", objectPosition: "top" }}
+                            style={{
+                              borderRadius: "20px",
+                              objectFit: "cover",
+                              objectPosition: "top",
+                            }}
                             src={
                               users?.image?.startsWith("users/")
                                 ? `${Assets_URL}/${users?.image}`
@@ -646,31 +772,66 @@ const ReportActiveStepCard = ({
                           />
                         )}
                         <span>
-                          {data?.assigned_to_name || `${users?.firstName} ${users?.lastName}`}
+                          {data?.assigned_to_name ||
+                            `${users?.firstName} ${users?.lastName}`}
                         </span>
                       </>
                     )}
                   </span>
                   <span className="d-flex align-items-center gap-2">
-                    <img height="16px" width="16px" src="/Assets/ion_time-outline.svg" alt="Time" />
+                    <img
+                      height="16px"
+                      width="16px"
+                      src="/Assets/ion_time-outline.svg"
+                      alt="Time"
+                    />
                     {data?.time_unit === "days" ? (
-                      <span>{formatStepDate(data?.start_date, data?.step_time, meeting?.timezone)}</span>
+                      <span>
+                        {formatStepDate(
+                          data?.start_date,
+                          data?.step_time,
+                          meeting?.timezone,
+                        )}
+                      </span>
                     ) : (
                       <span>
-                        {formatStepDate(data?.start_date, data?.step_time, meeting?.timezone)} {t("at")}{" "}
-                        {convertTo24HourFormat(data?.step_time, data?.start_date, data?.time_unit, meeting?.timezone)}
+                        {formatStepDate(
+                          data?.start_date,
+                          data?.step_time,
+                          meeting?.timezone,
+                        )}{" "}
+                        {t("at")}{" "}
+                        {convertTo24HourFormat(
+                          data?.step_time,
+                          data?.start_date,
+                          data?.time_unit,
+                          meeting?.timezone,
+                        )}
                       </span>
                     )}
                   </span>
                   <span className="d-flex align-items-center gap-2">
-                    <img height="16px" width="16px" src="/Assets/alarm-invite.svg" alt="Duration" />
+                    <img
+                      height="16px"
+                      width="16px"
+                      src="/Assets/alarm-invite.svg"
+                      alt="Duration"
+                    />
                     <span>
                       {data.step_status === null || data.step_status === "todo"
-                        ? data.count2 + " " + getTimeUnitDisplay(data?.count2, data?.time_unit, t, meeting?.type)
+                        ? data.count2 +
+                          " " +
+                          getTimeUnitDisplay(
+                            data?.count2,
+                            data?.time_unit,
+                            t,
+                            meeting?.type,
+                          )
                         : data.step_status === "to_finish"
-                        ? formatPauseTime(data?.work_time, t)
-                        : localizeTimeTakenActive(data?.time_taken?.replace("-", ""))
-                      }
+                          ? formatPauseTime(data?.work_time, t)
+                          : localizeTimeTakenActive(
+                              data?.time_taken?.replace("-", ""),
+                            )}
                     </span>
                   </span>
                 </>
@@ -678,10 +839,20 @@ const ReportActiveStepCard = ({
             </Card.Text>
             {meeting?.type !== "Calendly" && renderActionButton()}
             {dropdownVisible && (
-              <div className="dropdown-content-1 fade" ref={dropdownRef} style={{ display: "none" }}>
-                <div className="dropdown-section-1">{renderContent()}</div>
-                                  <ReportMediaGallery stepMedias={getStepMedias()}  fromReport={true}/>
-                
+              <div
+                className="dropdown-content-1 fade"
+                ref={dropdownRef}
+                style={{ display: "none" }}
+              >
+                {!["no_status", "to_accept", "todo", null].includes(
+                  data?.step_status,
+                ) && (
+                  <div className="dropdown-section-1">{renderContent()}</div>
+                )}
+                <ReportMediaGallery
+                  stepMedias={getStepMedias()}
+                  fromReport={true}
+                />
               </div>
             )}
           </Col>
@@ -691,17 +862,40 @@ const ReportActiveStepCard = ({
   );
 
   const renderAccordionContent = () => (
-    <Accordion.Item eventKey={index.toString()} className="accordion-item-custom">
+    <Accordion.Item
+      eventKey={index.toString()}
+      className="accordion-item-custom"
+    >
       <Accordion.Header className="steps-header" onClick={toggleDropdown}>
         <div className="steps-header-content">
-          <h5 className="mb-0">{data?.order_no }. &nbsp; {data?.title}</h5>
+          <h5 className="mb-0">
+            {data?.order_no}. &nbsp; {data?.title}
+          </h5>
           <div className="steps-meta">
-            <span>{t("Assignee")}: {data?.assigned_to_name || `${users?.firstName} ${users?.lastName}`}</span>
+            <span>
+              {t("Assignee")}:{" "}
+              {data?.assigned_to_name ||
+                `${users?.firstName} ${users?.lastName}`}
+            </span>
             {meeting?.type !== "Calendly" && (
               <span>
-                {t("Date")}: {formatStepDate(data?.start_date, data?.step_time, meeting?.timezone)}
+                {t("Date")}:{" "}
+                {formatStepDate(
+                  data?.start_date,
+                  data?.step_time,
+                  meeting?.timezone,
+                )}
                 {data.time_unit !== "days" && (
-                  <> {t("at")} {convertTo24HourFormat(data?.step_time, data?.start_date, data?.time_unit, meeting?.timezone)}</>
+                  <>
+                    {" "}
+                    {t("at")}{" "}
+                    {convertTo24HourFormat(
+                      data?.step_time,
+                      data?.start_date,
+                      data?.time_unit,
+                      meeting?.timezone,
+                    )}
+                  </>
                 )}
               </span>
             )}
@@ -709,21 +903,40 @@ const ReportActiveStepCard = ({
               {meeting?.type === "Calendly" ? (
                 <>
                   <strong>Duréee : </strong>
-                  {data?.step_status === null || data?.step_status === "todo" || data?.step_status === "no_status"
-                    ? data?.count2 + " " + getTimeUnitDisplay(data?.count2, data?.time_unit, t, meeting?.type)
+                  {data?.step_status === null ||
+                  data?.step_status === "todo" ||
+                  data?.step_status === "no_status"
+                    ? data?.count2 +
+                      " " +
+                      getTimeUnitDisplay(
+                        data?.count2,
+                        data?.time_unit,
+                        t,
+                        meeting?.type,
+                      )
                     : data.step_status === "to_finish"
-                    ? formatPauseTime(data?.work_time, t)
-                    : localizeTimeTakenActive(data?.time_taken?.replace("-", ""))
-                  }
+                      ? formatPauseTime(data?.work_time, t)
+                      : localizeTimeTakenActive(
+                          data?.time_taken?.replace("-", ""),
+                        )}
                 </>
               ) : (
                 <>
-                  {t("Time Taken")}: {data?.step_status === null || data?.step_status === "todo"
-                    ? data?.count2 + " " + getTimeUnitDisplay(data?.count2, data?.time_unit, t, meeting?.type)
+                  {t("Time Taken")}:{" "}
+                  {data?.step_status === null || data?.step_status === "todo"
+                    ? data?.count2 +
+                      " " +
+                      getTimeUnitDisplay(
+                        data?.count2,
+                        data?.time_unit,
+                        t,
+                        meeting?.type,
+                      )
                     : data.step_status === "to_finish"
-                    ? formatPauseTime(data?.work_time, t)
-                    : localizeTimeTakenActive(data?.time_taken?.replace("-", ""))
-                  }
+                      ? formatPauseTime(data?.work_time, t)
+                      : localizeTimeTakenActive(
+                          data?.time_taken?.replace("-", ""),
+                        )}
                 </>
               )}
             </span>
@@ -731,43 +944,54 @@ const ReportActiveStepCard = ({
               placement="top"
               overlay={<Tooltip>{t(`badge.${data?.step_status}`)}</Tooltip>}
             > */}
-              <span>
-                {data.step_status === "completed" ? (
-                  <span className="status-badge-completed">{t("badge.completed")}</span>
-                ) : data.step_status === "in_progress" ? (
-                  <span
-                    className={
-                      convertTimeTakenToSeconds(data?.time_taken) >
-                      convertCount2ToSeconds(data?.count2, data?.time_unit)
-                        ? "status-badge-red"
-                        : "status-badge-inprogress"
-                    }
-                  >
-                    {t("badge.inprogress")}
-                  </span>
-                ) : data.step_status === "to_finish" ? (
-                  <span className="status-badge-finish">{t("badge.finish")}</span>
-                ) : data?.step_status === "to_accept" ? (
-                  <span className="status-badge-green">{t("badge.to_accept")}</span>
-                ) : data?.step_status === "no_status" ? null : data.step_status === "cancelled" ? (
-                  <span className="status-badge-red">{t("badge.cancel")}</span>
-                ) : data.step_status === "todo" ? (
-                  <span className="status-badge-green">{t("badge.todo")}</span>
-                ) : data.step_status === "paused" ? (
-                  <span className="status-badge-red">{t("badge.paused")}</span>
-                ) : (
-                  <span className="status-badge-upcoming">{t("badge.future")}</span>
-                )}
-              </span>
+            <span>
+              {data.step_status === "completed" ? (
+                <span className="status-badge-completed">
+                  {t("badge.completed")}
+                </span>
+              ) : data.step_status === "in_progress" ? (
+                <span
+                  className={
+                    convertTimeTakenToSeconds(data?.time_taken) >
+                    convertCount2ToSeconds(data?.count2, data?.time_unit)
+                      ? "status-badge-red"
+                      : "status-badge-inprogress"
+                  }
+                >
+                  {t("badge.inprogress")}
+                </span>
+              ) : data.step_status === "to_finish" ? (
+                <span className="status-badge-finish">{t("badge.finish")}</span>
+              ) : data?.step_status === "to_accept" ? (
+                <span className="status-badge-green">
+                  {t("badge.to_accept")}
+                </span>
+              ) : data?.step_status ===
+                "no_status" ? null : data.step_status === "cancelled" ? (
+                <span className="status-badge-red">{t("badge.cancel")}</span>
+              ) : data.step_status === "todo" ? (
+                <span className="status-badge-green">{t("badge.todo")}</span>
+              ) : data.step_status === "paused" ? (
+                <span className="status-badge-red">{t("badge.paused")}</span>
+              ) : (
+                <span className="status-badge-upcoming">
+                  {t("badge.future")}
+                </span>
+              )}
+            </span>
             {/* </OverlayTrigger> */}
           </div>
         </div>
       </Accordion.Header>
       <Accordion.Body className="steps-body">
         {renderMediaPreview()}
-        {renderContent()}
-                   {meeting?.type !== "Calendly" && data?.step_status !== "to_accept" && data?.step_status !== "no_status" && renderActionButton()}
-
+        {!["no_status", "to_accept", "todo", null].includes(
+          data?.step_status,
+        ) && renderContent()}
+        {meeting?.type !== "Calendly" &&
+          data?.step_status !== "to_accept" &&
+          data?.step_status !== "no_status" &&
+          renderActionButton()}
       </Accordion.Body>
     </Accordion.Item>
   );

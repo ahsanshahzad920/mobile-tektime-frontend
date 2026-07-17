@@ -11629,6 +11629,7 @@ Please categorize the relevant details into their corresponding sections.`;
                 {t("note_v2_subtitle")}
               </p>
             </div>
+            
 
             {/* Étapes */}
             <div style={{ padding: "26px 34px 8px" }}>
